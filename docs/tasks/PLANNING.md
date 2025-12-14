@@ -8,7 +8,7 @@
 | 004 | Refactor business agent with spec template | completed |
 | 005 | Refactor functional agent with spec template | new |
 | 006 | Refactor stack agent with spec template | new |
-| 007 | Refactor infrastructure agent with spec template | new |
+| 007 | Refactor infrastructure agent with spec template | completed |
 | 008 | Refactor coverage agent with spec template | new |
 | 009 | Refactor development agent with impl template | new |
 | 010 | Refactor deployment agent with impl template | new |

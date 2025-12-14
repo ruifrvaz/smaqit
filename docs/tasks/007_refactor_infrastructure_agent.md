@@ -1,7 +1,8 @@
 # Task: Refactor Infrastructure Agent with Spec Template
 
 **ID**: 007
-**Status**: new
+**Status**: Completed
+**Completed**: 2025-12-14
 
 ## Context
 
@@ -9,10 +10,10 @@ Use the specification agent template (from Task 002) to refactor `smaqit.infrast
 
 ## Acceptance Criteria
 
-- [ ] Apply specification agent template structure to `agents/smaqit.infrastructure.agent.md`
-- [ ] Preserve existing infrastructure agent functionality and constraints
-- [ ] Validate YAML frontmatter follows template format
-- [ ] Ensure Role, Input, Output, Constraints sections are properly structured
+- [x] Apply specification agent template structure to `agents/smaqit.infrastructure.agent.md`
+- [x] Preserve existing infrastructure agent functionality and constraints
+- [x] Validate YAML frontmatter follows template format
+- [x] Ensure Role, Input, Output, Constraints sections are properly structured
 
 ## Notes
 

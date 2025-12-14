@@ -5,7 +5,7 @@
 | 001 | Create smaq commands file | new |
 | 002 | Create specification agent template | completed |
 | 003 | Create implementation agent template | completed |
-| 004 | Refactor business agent with spec template | new |
+| 004 | Refactor business agent with spec template | completed |
 | 005 | Refactor functional agent with spec template | new |
 | 006 | Refactor stack agent with spec template | new |
 | 007 | Refactor infrastructure agent with spec template | new |

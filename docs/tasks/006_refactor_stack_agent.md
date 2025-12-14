@@ -1,7 +1,8 @@
 # Task: Refactor Stack Agent with Spec Template
 
 **ID**: 006
-**Status**: new
+**Status**: completed
+**Completed**: 2025-12-14
 
 ## Context
 
@@ -9,10 +10,10 @@ Use the specification agent template (from Task 002) to refactor `smaqit.stack.a
 
 ## Acceptance Criteria
 
-- [ ] Apply specification agent template structure to `agents/smaqit.stack.agent.md`
-- [ ] Preserve existing stack agent functionality and constraints
-- [ ] Validate YAML frontmatter follows template format
-- [ ] Ensure Role, Input, Output, Constraints sections are properly structured
+- [x] Apply specification agent template structure to `agents/smaqit.stack.agent.md`
+- [x] Preserve existing stack agent functionality and constraints
+- [x] Validate YAML frontmatter follows template format
+- [x] Ensure Role, Input, Output, Constraints sections are properly structured
 
 ## Notes
 

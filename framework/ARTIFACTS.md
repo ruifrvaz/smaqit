@@ -245,8 +245,10 @@ public async Task<AuthResult> Login(LoginRequest request)
 
 ### Implementation Artifacts by Phase
 
-**Develop Phase → Code:**
-- Source code, configurations, build artifacts
+**Develop Phase:**
+- Source code, tests, configurations, build files
+- README with build, test, and run instructions
+- Development report (build/test/run results)
 - MUST satisfy all spec acceptance criteria
 - MUST follow stack-specific standards
 

@@ -6,9 +6,11 @@ Phases are the sequential stages of software development in smaqit. Each phase f
 
 smaqit operates in three sequential phases:
 
-```
-Develop → Deploy → Validate
-```
+| Phase | Name | Specification Artifacts | Implementation Artifacts |
+|-------|------|------------------------|-------------------------|
+| Phase 1 | Develop | Business, Functional, Stack | Code, README, Development report |
+| Phase 2 | Deploy | Infrastructure | Running system |
+| Phase 3 | Validate | Coverage | Validation report |
 
 Each phase:
 1. **Specifies** — One or more specification agents produce layer specs
@@ -63,6 +65,8 @@ The Develop phase transforms user requirements into a working, tested applicatio
 - [ ] Unit tests pass
 - [ ] Application runs successfully in isolated environment
 - [ ] Behavior matches spec acceptance criteria
+- [ ] README includes build, test, and run instructions
+- [ ] Development report documents build/test/run results
 
 ---
 
@@ -73,13 +77,22 @@ The Deploy phase transforms a working application into a running system in a tar
 **Specification Agent:**
 | Agent | Layer | Input | Output |
 |-------|-------|-------|--------|
-| `smaqit.infrastructure` | Infrastructure | Stack specs + user input | `specs/infrastructure/*.md` |
+| `smaqit.infrastructure` | Infrastructure | Business, Functional, Stack specs + user input | `specs/infrastructure/*.md` |
 
 **Implementation Agent:** `smaqit.deployment`
 
 **User Input Required:**
-- Target environment (dev/staging/prod)
-- Environment-specific parameters (region, account references)
+
+| Category | Purpose |
+|----------|----------|
+| Target environment | Where the system will run |
+| Hosting platform | Provider or infrastructure type |
+| Service topology | How the application is structured for deployment |
+| Resource constraints | Compute, memory, storage limits |
+| Scaling requirements | How the system should handle load |
+| Geographic constraints | Location or data residency requirements |
+| Budget constraints | Cost limits or optimization goals |
+| Integration points | Existing systems to connect with |
 
 **Workflow:**
 ```

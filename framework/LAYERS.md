@@ -4,15 +4,18 @@ Layers define the progressive refinement of specifications from intent to verifi
 
 ## Layer Order
 
-Layers MUST be worked through in order:
+Layers MUST be worked through in order within each phase:
 
-```
-Business → Functional → Stack → Infrastructure → Coverage
-```
+**Phase 1 (Develop):** Business → Functional → Stack
+
+**Phase 2 (Deploy):** Infrastructure (reads all Phase 1 specs)
+
+**Phase 3 (Validate):** Coverage (reads all specs)
 
 Each layer depends on its predecessor(s):
-- **Linear layers** (Business through Infrastructure): depend on immediate upstream layer
-- **Coverage** (cross-cutting): depends on all four upstream layers
+- **Phase 1 layers** (Business through Stack): linear, each depends on immediate upstream layer
+- **Infrastructure** (Phase 2): cross-cutting, depends on all Phase 1 specs + user input
+- **Coverage** (Phase 3): cross-cutting, depends on all four upstream layers
 
 ## Layer Definitions
 
@@ -102,7 +105,7 @@ The Infrastructure layer defines where and how the application runs in productio
 
 **Purpose:** Specify compute, networking, observability, and operational concerns.
 
-**Upstream:** Stack specs
+**Upstream:** Phase 1 specs (Business, Functional, Stack) + user input
 
 **Downstream:** Deployment agent, Coverage layer
 
@@ -114,7 +117,8 @@ The Infrastructure layer defines where and how the application runs in productio
 - Include observability (logging, metrics, tracing)
 - Define scaling policies and resource limits
 - Specify secrets management approach
-- Reference stack specs for runtime requirements
+- Reference Phase 1 specs for requirements and runtime constraints
+- Verify coherence across all input specs before producing output
 
 **Infrastructure specs MUST NOT:**
 - Redefine business logic or functional behaviors
@@ -163,19 +167,23 @@ The Coverage layer ensures all upstream requirements are testable and traceable.
           │                       │         │                       │
     ┌─────┴─────┐           ┌─────┴─────┐   │                 ┌─────┴─────┐
     │  Business │           │ Functional│   │                 │  Infra    │
-    │   (Why?)  │──────────→│  (What?)  │───┼────────────────→│ (Where?)  │
-    └───────────┘           └───────────┘   │                 └───────────┘
-                                            │                       ↑
-                                            │                       │
-                                      ┌─────┴─────┐                 │
-                                      │   Stack   │─────────────────┘
-                                      │(With what)│
-                                      └───────────┘
+    │   (Why?)  │──────────→│  (What?)  │───┼─────────╮       │ (Where?)  │
+    └─────┬─────┘           └─────┬─────┘   │         │       └───────────┘
+          │                       │         │         │             ↑
+          │                       │         │         │             │
+          │                 ┌─────┴─────┐   │         │             │
+          │                 │   Stack   │───┘         │             │
+          │                 │(With what)│─────────────┼─────────────┘
+          │                 └───────────┘             │
+          │                                           │
+          └───────────────────────────────────────────┘
 ```
 
-**Linear flow:** Business → Functional → Stack → Infrastructure
+**Phase 1 (Develop):** Business → Functional → Stack (linear)
 
-**Cross-cutting:** Coverage reads all four layers
+**Phase 2 (Deploy):** Infrastructure reads all Phase 1 specs (cross-cutting)
+
+**Phase 3 (Validate):** Coverage reads all specs including Infrastructure (cross-cutting)
 
 ## See Also
 

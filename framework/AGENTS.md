@@ -21,6 +21,11 @@ All smaqit agents—specification and implementation—share these foundational 
 - Agents MUST NOT invent requirements not present in input
 - Agents SHOULD flag assumptions explicitly when clarification is unavailable
 
+### Fail-Fast on Inconsistency
+- Agents MUST verify coherence across all input sources before producing output
+- Agents MUST stop and report when inputs contradict each other
+- Agents MUST NOT proceed with output while unresolved inconsistencies exist
+
 ### Self-Validation Before Completion
 - Agents MUST validate their output against completion criteria before finishing
 - Agents MUST NOT declare completion if any required criterion is unmet
@@ -77,7 +82,7 @@ The Business agent is the primary entry point for user input, but all specificat
 | `smaqit.business` | Business | User description | `specs/business/*.md` |
 | `smaqit.functional` | Functional | Business specs | `specs/functional/*.md` |
 | `smaqit.stack` | Stack | Functional specs | `specs/stack/*.md` |
-| `smaqit.infrastructure` | Infrastructure | Stack specs | `specs/infrastructure/*.md` |
+| `smaqit.infrastructure` | Infrastructure | Phase 1 specs + user input | `specs/infrastructure/*.md` |
 | `smaqit.coverage` | Coverage | All layer specs | `specs/coverage/*.md` |
 
 ## Implementation Agents

@@ -109,22 +109,6 @@ Mark a task as done:
 - When completing a task, update planner status to `completed`
 - Individual task files in `docs/tasks/{id}_{title}.md` contain details
 
-## Content Guidelines
-
-When documenting framework concepts:
-
-### Do:
-
-- Prefer abstract categories over specific examples
-- Describe the purpose or kind of information needed
-- Use generic placeholders when examples are necessary
-
-### Don't:
-
-- List specific technologies, vendors, or architectures
-- Include examples that assume cloud/containers/web apps
-- Prescribe solutions that may not fit all project types 
-
 ## What is smaqit?
 
 A spec-driven agent orchestration kit. AI agents write specs first, then implement from those specs.
@@ -179,7 +163,24 @@ user-project/
     └── agents/               # Copied from agents/
 ```
 
-## When Editing Specification Templates
+## Content Guidelines
+
+When documenting framework concepts:
+
+### Do:
+
+- Prefer abstract categories over specific examples
+- Describe the purpose or kind of information needed
+- Use generic placeholders when examples are necessary
+
+### Don't:
+
+- List specific technologies, vendors, or architectures
+- Include examples that assume cloud/containers/web apps
+- Prescribe solutions that may not fit all project types 
+
+
+### When Editing Specification Templates
 
 Location: `templates/specs/`
 
@@ -187,7 +188,7 @@ Specification templates define the structure agents use when producing spec docu
 
 See [TEMPLATES.md](../framework/TEMPLATES.md) for template compliance rules.
 
-## When Editing Agent Templates
+### When Editing Agent Templates
 
 Location: `templates/agents/`
 
@@ -197,7 +198,7 @@ Agent templates define the structure for agent definition files:
 
 See [TEMPLATES.md](../framework/TEMPLATES.md) for agent behaviors, naming conventions, and placeholder conventions.
 
-## When Editing Agents
+### When Editing Agents
 
 Location: `agents/`
 
@@ -205,13 +206,13 @@ Agent definitions are the actual agents that consume templates and produce artif
 
 When creating or refactoring agents, use the appropriate agent template from `templates/agents/` to ensure consistency.
 
-## When Editing Framework Files
+### When Editing Framework Files
 
 See [SMAQIT.md](../framework/SMAQIT.md) for the framework file index.
 
 Keep cross-references between framework files consistent when editing.
 
-## When Editing Installer
+### When Editing Installer
 
 The CLI copies framework/, templates/, agents/ into user projects as:
 - `.smaqit/framework/` (entire directory)
@@ -219,6 +220,6 @@ The CLI copies framework/, templates/, agents/ into user projects as:
 - `.smaqit/specs/{layer}/`
 - `.github/agents/`
 
-## Version Sync
+### Version Sync
 
 Keep `installer/main.go` Version const in sync with SMAQIT.md version.

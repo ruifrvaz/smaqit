@@ -128,6 +128,25 @@ Implementation agents receive specs from multiple layers and MUST consolidate th
 3. **Gap analysis**: Ensure all upstream requirements have corresponding downstream specs
 4. **Amendment request**: If conflicts or gaps exist, request spec amendments before proceeding
 
+### Tooling
+
+Implementation agents require execution capabilities that specification agents do not need.
+
+| Agent Type | Tools | Rationale |
+|------------|-------|-----------|
+| Specification | `read`, `edit`, `search` | Produce documents only |
+| Implementation | `execute`, `read`, `edit`, `search`, `todo` | Build, run, test applications |
+
+**Tool descriptions:**
+
+| Tool | Purpose |
+|------|---------|
+| `execute` | Run terminal commands (build, test, deploy) |
+| `read` | Read files and specifications |
+| `edit` | Create and modify files |
+| `search` | Search codebase and specifications |
+| `todo` | Track multi-step task progress |
+
 Agents MUST NOT proceed with implementation while unresolved conflicts exist.
 
 ### Implementation Agent Mappings

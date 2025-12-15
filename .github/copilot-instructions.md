@@ -1,6 +1,6 @@
 # Copilot Instructions for smaqit Development
 
-You are developing the smaqit kit.
+You are developing smaqit.
 
 ## Session Commands
 
@@ -101,6 +101,29 @@ Mark a task as done:
 ## Notes
 [Optional additional context]
 ```
+### Task Management
+
+- All tasks are tracked in `docs/tasks/PLANNING.md` table
+- Task statuses: `new` | `in progress` | `completed`
+- When starting a task, update planner status to `in progress`
+- When completing a task, update planner status to `completed`
+- Individual task files in `docs/tasks/{id}_{title}.md` contain details
+
+## Content Guidelines
+
+When documenting framework concepts:
+
+### Do:
+
+- Prefer abstract categories over specific examples
+- Describe the purpose or kind of information needed
+- Use generic placeholders when examples are necessary
+
+### Don't:
+
+- List specific technologies, vendors, or architectures
+- Include examples that assume cloud/containers/web apps
+- Prescribe solutions that may not fit all project types 
 
 ## What is smaqit?
 
@@ -199,11 +222,3 @@ The CLI copies framework/, templates/, agents/ into user projects as:
 ## Version Sync
 
 Keep `installer/main.go` Version const in sync with SMAQIT.md version.
-
-### Task Management
-
-- All tasks are tracked in `docs/tasks/PLANNING.md` table
-- Task statuses: `new` | `in progress` | `completed`
-- When starting a task, update planner status to `in progress`
-- When completing a task, update planner status to `completed`
-- Individual task files in `docs/tasks/{id}_{title}.md` contain details

@@ -1,7 +1,7 @@
 ---
 name: smaqit.validation
 description: Implementation agent for the Validate phase. Executes tests against deployed system and produces validation report.
-tools: ["read", "edit", "search", "shell"]
+tools: ['execute', 'read', 'edit', 'search', 'todo']
 ---
 
 # Validation Agent

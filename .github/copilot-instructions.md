@@ -72,7 +72,7 @@ Create a new task:
 Show current tasks:
 
 1. Read `docs/tasks/PLANNING.md` only (not individual task files)
-2. Show tasks that are not completed, sorted by priority
+2. Show tasks from the Active table
 
 ### `task.complete [id]`
 
@@ -81,7 +81,7 @@ Mark a task as done:
 1. Read the task file to review acceptance criteria
 2. **Verify all criteria are met** - Do NOT complete if any criteria remain unfinished
 3. Check off completed acceptance criteria (`- [x]`)
-4. Update status to "Completed" and add completion date in `PLANNING.md`
+4. Move task from Active table to Completed table in `PLANNING.md`
 5. Update individual task file status to "Completed"
 
 **Task file format:**
@@ -103,10 +103,10 @@ Mark a task as done:
 ```
 ### Task Management
 
-- All tasks are tracked in `docs/tasks/PLANNING.md` table
-- Task statuses: `new` | `in progress` | `completed`
-- When starting a task, update planner status to `in progress`
-- When completing a task, update planner status to `completed`
+- `docs/tasks/PLANNING.md` has two tables: Active and Completed
+- New tasks go in Active table with status `new`
+- When starting a task, update status to `in progress`
+- When completing a task, move from Active to Completed table
 - Individual task files in `docs/tasks/{id}_{title}.md` contain details
 
 ## What is smaqit?

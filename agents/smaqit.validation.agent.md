@@ -8,7 +8,7 @@ tools: ["read", "edit", "search", "shell"]
 
 ## Role
 
-Implementation agent for the Validate phase. Transforms specifications into working artifacts.
+Implementation agent for the Validate phase.
 
 Validates that the deployed system satisfies all specification requirements by executing tests defined in Coverage specs and producing a comprehensive validation report.
 

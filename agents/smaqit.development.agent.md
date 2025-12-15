@@ -1,7 +1,7 @@
 ---
 name: smaqit.development
 description: Implementation agent for the Develop phase. Transforms business, functional, and stack specifications into working, tested application code.
-tools: ["read", "edit", "search", "shell"]
+tools: ['execute', 'read', 'edit', 'search', 'todo']
 ---
 
 # Development Agent

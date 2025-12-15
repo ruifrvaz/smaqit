@@ -1,7 +1,7 @@
 # Task: Refactor Validation Agent with Impl Template
 
 **ID**: 011
-**Status**: new
+**Status**: Completed
 
 ## Context
 
@@ -9,10 +9,10 @@ Use the implementation agent template (from Task 003) to refactor `smaqit.valida
 
 ## Acceptance Criteria
 
-- [ ] Apply implementation agent template structure to `agents/smaqit.validation.agent.md`
-- [ ] Preserve existing validation agent functionality and constraints
-- [ ] Validate YAML frontmatter follows template format
-- [ ] Ensure Role, Input, Output, Constraints sections are properly structured
+- [x] Apply implementation agent template structure to `agents/smaqit.validation.agent.md`
+- [x] Preserve existing validation agent functionality and constraints
+- [x] Validate YAML frontmatter follows template format
+- [x] Ensure Role, Input, Output, Constraints sections are properly structured
 
 ## Notes
 

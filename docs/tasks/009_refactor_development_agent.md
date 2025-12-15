@@ -1,7 +1,7 @@
 # Task: Refactor Development Agent with Impl Template
 
 **ID**: 009
-**Status**: new
+**Status**: Completed
 
 ## Context
 
@@ -9,10 +9,10 @@ Use the implementation agent template (from Task 003) to refactor `smaqit.develo
 
 ## Acceptance Criteria
 
-- [ ] Apply implementation agent template structure to `agents/smaqit.development.agent.md`
-- [ ] Preserve existing development agent functionality and constraints
-- [ ] Validate YAML frontmatter follows template format
-- [ ] Ensure Role, Input, Output, Constraints sections are properly structured
+- [x] Apply implementation agent template structure to `agents/smaqit.development.agent.md`
+- [x] Preserve existing development agent functionality and constraints
+- [x] Validate YAML frontmatter follows template format
+- [x] Ensure Role, Input, Output, Constraints sections are properly structured
 
 ## Notes
 

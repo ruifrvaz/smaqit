@@ -25,3 +25,5 @@
 | 011 | Refactor validation agent with impl template |
 | 013 | Split SMAQIT.md into framework files |
 | 016 | Infrastructure cross-cutting input |
+| 017 | Build business spec template |
+| 018 | Build functional spec template |

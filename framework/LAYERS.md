@@ -43,6 +43,16 @@ The Business layer captures the intent, value, and goals of what is being built.
 - Define data structures or API contracts
 - Reference deployment or infrastructure concerns
 
+**System Actor:**
+
+When stakeholders have requirements about system properties (availability, auditability, accessibility), use the **System** actor:
+
+| Actor | Description | Goals |
+|-------|-------------|-------|
+| System | The application as a whole | [System-level properties stakeholders require] |
+
+System actor specs remain business-level (stakeholder-driven) and do not prescribe technical solutions.
+
 ---
 
 ### Functional — What?
@@ -69,6 +79,23 @@ The Functional layer defines the behaviors, contracts, and data models required 
 - Include deployment or infrastructure concerns
 - Define performance benchmarks (those belong in Infrastructure)
 - Prescribe implementation patterns
+
+**Foundation vs Feature Specs:**
+
+Functional specs come in two categories:
+
+| Type | Purpose | Business Reference |
+|------|---------|--------------------|
+| **Feature specs** | Implement a specific business use case | 1:1 mapping (Implements) |
+| **Foundation specs** | Enable multiple business use cases | 1:many mapping (Enables) |
+
+Foundation specs (shared components, cross-cutting concerns, common contracts) are legitimate engineering artifacts that serve multiple business goals.
+
+**Foundation spec rules:**
+- SHOULD reference all Business specs they enable
+- MAY precede or parallel Business specs when engineering judgment requires
+- MUST flag absence of Business references with justification
+- Orphaned foundations (no Business references, no justification) indicate scope creep
 
 ---
 

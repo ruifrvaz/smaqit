@@ -93,18 +93,44 @@ Untestable criteria:
 
 Specifications MUST reference their upstream sources explicitly.
 
+**Reference Types:**
+
+| Type | Meaning | Example |
+|------|---------|----------|
+| **Implements** | Direct 1:1 implementation of upstream spec | Feature spec → Business use case |
+| **Enables** | Foundation that serves multiple upstream specs | Shared component → Multiple use cases |
+
 **Format:**
 ```markdown
 ## References
 
-- [BUS-LOGIN](../business/login.md) — Originating use case
-- [FUN-AUTH-TOKEN-001](../functional/authentication.md#fun-auth-token-001) — Token requirement
+### Implements
+- [BUS-LOGIN](../business/login.md) — Direct implementation of login use case
+
+### Enables
+- [BUS-CHECKOUT](../business/checkout.md) — Requires authenticated session
+- [BUS-PROFILE](../business/profile.md) — Requires authenticated session
 ```
+
+**Foundation specs without mapping:**
+
+When a foundation spec precedes Business specs or serves anticipated needs:
+
+```markdown
+## References
+
+### Enables
+<!-- ⚠️ FOUNDATION WITHOUT MAPPING -->
+**Justification:** [Why this foundation is needed before Business specs exist]
+```
+
+Orphaned foundations (no references, no justification) should be flagged by Coverage.
 
 **Rules:**
 - Every spec (except Business) MUST have a References section
 - References MUST use relative paths within `.smaqit/specs/`
 - References MUST point to existing, accessible documents
+- Foundation specs SHOULD list all Business specs they enable
 
 **Traceability Matrix:**
 

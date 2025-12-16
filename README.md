@@ -1,24 +1,8 @@
 # smaqit
 
-Spec-driven agent orchestration kit.
-
 ## What is it?
 
-A framework where AI agents write specifications, then implement from those specs. No code without specs first.
-
-## Layers
-
-1. **Business** — Use cases, actors, goals
-2. **Functional** — Behaviors, contracts, data models
-3. **Stack** — Languages, frameworks, tools
-4. **Infrastructure** — Compute, networking, observability
-5. **Coverage** — Tests against deployed app
-
-## Phases
-
-1. **Develop** — Write specs (business → functional → stack), then build
-2. **Deploy** — Write infrastructure spec, then deploy
-3. **Validate** — Write coverage spec, then test
+A Spec-driven agent orchestration kit where AI agents write specifications, then implement from those specs.
 
 ## Getting Started
 
@@ -43,8 +27,40 @@ smaqit develop
 | `smaqit validate` | Run validate phase |
 | `smaqit status` | Show current state |
 
-
 ---
+
+## Layers
+
+1. **Business** — Use cases, actors, goals
+2. **Functional** — Behaviors, contracts, data models
+3. **Stack** — Languages, frameworks, tools
+4. **Infrastructure** — Compute, networking, observability
+5. **Coverage** — Tests against deployed app
+
+## Phases
+
+1. **Develop** — Write specs (business → functional → stack), then build
+2. **Deploy** — Write infrastructure spec, then deploy
+3. **Validate** — Write coverage spec, then test
+
+## Team Alignment
+
+smaqit layers align with Agile/Scrum team roles, enabling specialists to work in their domain.
+
+| Role | Layer | Focus |
+|------|-------|-------|
+| Stakeholders | Input | Requirements and business needs |
+| Product Owner | Business | Why, for whom, success criteria |
+| Engineers | Functional | What behaviors, contracts, data models |
+| Software Developer | Stack | With what languages, frameworks, tools |
+| DevOps | Infrastructure | Where and how it runs |
+| Testers | Coverage | How we verify it works |
+
+Layer boundaries respect role boundaries:
+- Product Owners define *what* success looks like, not *how* to build it
+- Engineers translate business goals into system behaviors
+- Developers choose technologies that satisfy functional requirements
+- Each role focuses on their expertise without immediate cross-concerns
 
 ## Architecture
 
@@ -76,7 +92,6 @@ smaqit
 - Level 1 consumes Level 0 (templates follow framework rules)
 - Level 2 consumes Level 1 (agents/specs follow templates)
 - Level 3 consumes Level 2 (application follows specs)
-
 
 ## License
 

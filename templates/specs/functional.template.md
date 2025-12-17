@@ -2,18 +2,19 @@
 
 ## References
 
+<!-- References establish traceability and coherence, not requirement derivation -->
 <!-- Use Implements for feature specs (1:1 mapping) -->
 <!-- Use Enables for foundation specs (1:many mapping) -->
 
 ### Implements
 
-- [BUS-CONCEPT](../business/[FILENAME].md) — [Description of business use case this directly implements]
+- [BUS-CONCEPT](../business/[FILENAME].md) — [Business use case this is consistent with]
 
 ### Enables
 
 <!-- For foundation specs that serve multiple business cases -->
-- [BUS-CONCEPT-A](../business/[FILENAME].md) — [How this foundation enables the business case]
-- [BUS-CONCEPT-B](../business/[FILENAME].md) — [How this foundation enables the business case]
+- [BUS-CONCEPT-A](../business/[FILENAME].md) — [Business case this foundation must be consistent with]
+- [BUS-CONCEPT-B](../business/[FILENAME].md) — [Business case this foundation must be consistent with]
 
 ## Scope
 

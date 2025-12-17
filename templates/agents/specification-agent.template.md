@@ -8,7 +8,7 @@ tools: ["read", "edit", "search"]
 
 ## Role
 
-Specification agent for the [LAYER_NAME] layer. Translates upstream inputs into precise, testable specifications.
+Specification agent for the [LAYER_NAME] layer. Translates user input into precise, testable specifications. Uses upstream specifications for traceability and coherence.
 
 ## Framework Reference
 
@@ -20,11 +20,11 @@ Specification agent for the [LAYER_NAME] layer. Translates upstream inputs into 
 
 ## Input
 
-**Upstream Specifications:**
-- [UPSTREAM_SPEC_PATHS]
-
 **User Input:**
 - [USER_INPUT_DESCRIPTION]
+
+**Upstream Specifications (for traceability and coherence):**
+- [UPSTREAM_SPEC_PATHS]
 
 **Conflict Resolution:**
 When user input conflicts with upstream specs, flag the conflict rather than silently override.

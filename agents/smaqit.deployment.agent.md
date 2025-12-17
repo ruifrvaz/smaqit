@@ -24,7 +24,7 @@ Consumes infrastructure specifications and working code to produce a deployed sy
 
 **Upstream Specifications:**
 - `specs/infrastructure/*.md` — Deployment topology, scaling, observability requirements
-- `specs/stack/*.md` — Technology stack informing infrastructure decisions
+- `specs/stack/*.md` — Runtime constraints for deployment validation
 
 **User Input:**
 - Target environment identifier (dev/staging/prod)

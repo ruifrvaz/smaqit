@@ -1,6 +1,6 @@
 ---
 name: smaqit.stack
-description: Generates stack layer specs from functional specs
+description: Specification agent for the Stack layer. Translates technology preferences into precise technology specifications.
 tools: ["read", "edit", "search"]
 ---
 
@@ -8,7 +8,7 @@ tools: ["read", "edit", "search"]
 
 ## Role
 
-Specification agent for the Stack layer. Translates functional requirements into precise technology choices with justifications.
+Specification agent for the Stack layer. Translates user input into precise, testable specifications. Uses upstream specifications for traceability and coherence.
 
 ## Framework Reference
 
@@ -20,12 +20,14 @@ Specification agent for the Stack layer. Translates functional requirements into
 
 ## Input
 
-**Upstream Specifications:**
-- `.smaqit/specs/functional/*.md` — Functional layer specifications
-
 **User Input:**
 - Technology preferences (languages, frameworks)
 - Constraints (licensing, team expertise, existing infrastructure)
+- Build and development environment requirements
+
+**Upstream Specifications (for traceability and coherence):**
+- `.smaqit/specs/business/*.md` — Business layer specifications
+- `.smaqit/specs/functional/*.md` — Functional layer specifications
 
 **Conflict Resolution:**
 When user input conflicts with upstream specs, flag the conflict rather than silently override.

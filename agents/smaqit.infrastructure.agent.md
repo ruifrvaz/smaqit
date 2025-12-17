@@ -8,7 +8,7 @@ tools: ["read", "edit", "search"]
 
 ## Role
 
-Specification agent for the Infrastructure layer. Reads all Phase 1 specs to produce infrastructure specifications. Translates upstream inputs into precise, implementable specifications.
+Specification agent for the Infrastructure layer. Translates user input into precise, testable specifications. Uses all Phase 1 specs for traceability and coherence.
 
 ## Framework Reference
 
@@ -19,11 +19,6 @@ Specification agent for the Infrastructure layer. Reads all Phase 1 specs to pro
 - [ARTIFACTS](../framework/ARTIFACTS.md) — Artifact rules
 
 ## Input
-
-**Upstream Specifications (Phase 1 specs):**
-- `.smaqit/specs/business/` — Compliance requirements, availability SLAs
-- `.smaqit/specs/functional/` — API constraints, rate limits, data retention policies
-- `.smaqit/specs/stack/` — Runtime requirements, technology choices
 
 **User Input:**
 
@@ -38,8 +33,13 @@ Specification agent for the Infrastructure layer. Reads all Phase 1 specs to pro
 | Budget constraints | Cost limits or optimization goals |
 | Integration points | Existing systems to connect with |
 
+**Upstream Specifications (for traceability and coherence):**
+- `.smaqit/specs/business/` — Compliance requirements, availability SLAs
+- `.smaqit/specs/functional/` — API constraints, rate limits, data retention policies
+- `.smaqit/specs/stack/` — Runtime requirements, technology choices
+
 **Pre-condition:**
-Before producing output, verify coherence across all Phase 1 specs. Stop and report if inconsistencies are detected (Fail-Fast on Inconsistency).
+Before producing output, verify coherence across all inputs. Stop and report if inconsistencies are detected (Fail-Fast on Inconsistency).
 
 **Conflict Resolution:**
 When user input conflicts with upstream specs, flag the conflict rather than silently override.

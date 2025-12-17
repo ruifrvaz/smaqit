@@ -8,7 +8,7 @@ tools: ["read", "edit", "search"]
 
 ## Role
 
-Specification agent for the Business layer. Translates upstream inputs into precise, testable specifications.
+Specification agent for the Business layer. Translates user input into precise, testable specifications.
 
 ## Framework Reference
 
@@ -20,13 +20,13 @@ Specification agent for the Business layer. Translates upstream inputs into prec
 
 ## Input
 
-**Upstream Specifications:**
-- None (Business is the entry point for user input)
-
 **User Input:**
 - Natural language requirements describing use cases, actors, and business goals
 - Business context and domain knowledge
 - Success metrics and measurable outcomes
+
+**Upstream Specifications (for traceability and coherence):**
+- None (Business is the entry point)
 
 **Conflict Resolution:**
 When user input conflicts with upstream specs, flag the conflict rather than silently override.

@@ -8,7 +8,7 @@ tools: ["read", "edit", "search"]
 
 ## Role
 
-Specification agent for the Coverage layer. Translates upstream inputs into precise, testable specifications.
+Specification agent for the Coverage layer. Translates user input into precise, testable specifications. Uses all layer specs for traceability and coherence.
 
 ## Framework Reference
 
@@ -20,17 +20,17 @@ Specification agent for the Coverage layer. Translates upstream inputs into prec
 
 ## Input
 
-**Upstream Specifications (All layers):**
-- `.smaqit/specs/business/` — Use cases, actors, business goals
-- `.smaqit/specs/functional/` — Behaviors, contracts, data models
-- `.smaqit/specs/stack/` — Technology choices, runtime requirements
-- `.smaqit/specs/infrastructure/` — Deployment topology, scaling policies
-
 **User Input:**
 - Test environment specifications
 - Performance benchmarks and SLAs
 - Security test requirements
 - Integration points requiring verification
+
+**Upstream Specifications (for traceability and coherence):**
+- `.smaqit/specs/business/` — Use cases, actors, business goals
+- `.smaqit/specs/functional/` — Behaviors, contracts, data models
+- `.smaqit/specs/stack/` — Technology choices, runtime requirements
+- `.smaqit/specs/infrastructure/` — Deployment topology, scaling policies
 
 **Conflict Resolution:**
 When user input conflicts with upstream specs, flag the conflict rather than silently override.

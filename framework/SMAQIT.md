@@ -12,13 +12,27 @@ Specifications are not documentation—they are the source of truth. Implementat
 
 ### Traceability Across Layers
 
-**Every output MUST trace to an input.**
+**Every output MUST trace to a user input.**
 
-- Specs reference upstream specs or user input
+- Each layer receives requirements directly from user input
+- Upstream layers provide context for consistency validation, not requirements
 - Code references specs
 - Tests reference requirements
 
 Traceability enables impact analysis: when a requirement changes, the chain of dependencies is explicit.
+
+### Layer Independence
+
+**Layers are standalone manifests that can be selected independently.**
+
+Each layer receives its own user input:
+- Business: stakeholder goals and use cases
+- Functional: experience shape and behaviors  
+- Stack: technology preferences and constraints
+- Infrastructure: deployment requirements
+- Coverage: verification requirements
+
+Upstream layers exist to ensure consistency across the application, not to dictate downstream requirements. Implementation agents validate that all layers form a consistent whole before proceeding.
 
 ### Self-Validating Agents
 
@@ -91,13 +105,13 @@ When applying smaqit reveals limitations:
 
 ### Progressive Refinement
 
-Each layer adds precision while preserving upstream intent:
+Each layer addresses a distinct concern:
 
 ```
-Business (intent) → Functional (behavior) → Stack (tools) → Infrastructure (environment) → Coverage (verification)
+Business (intent) | Functional (behavior) | Stack (tools) | Infrastructure (environment) | Coverage (verification)
 ```
 
-No layer modifies upstream specifications. They only add detail within its scope.
+Layers are independent but must be consistent. No layer derives requirements from another—each receives user input directly. Implementation agents validate cross-layer consistency before execution.
 
 ### Explicit Over Implicit
 

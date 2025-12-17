@@ -1,21 +1,31 @@
 # Layers
 
-Layers define the progressive refinement of specifications from intent to verification. Each layer answers a specific question and adds precision while maintaining traceability to upstream layers.
+Layers are independent specification manifests that together form a consistent application. Each layer answers a specific question and receives its own user input. Upstream layers provide context for consistency validation, not requirements.
+
+## Layer Independence
+
+Each layer:
+- Receives requirements directly from user input
+- Can be selected or swapped independently
+- Must be consistent with adjacent layers
+- Does not derive requirements from upstream layers
+
+Consistency validation happens at the end of each phase, where the phase implementation agent consolidates the required specs before execution.
 
 ## Layer Order
 
-Layers MUST be worked through in order within each phase:
+Layers are worked through in order within each phase:
 
 **Phase 1 (Develop):** Business → Functional → Stack
 
-**Phase 2 (Deploy):** Infrastructure (reads all Phase 1 specs)
+**Phase 2 (Deploy):** Infrastructure (reads all Phase 1 specs for context)
 
 **Phase 3 (Validate):** Coverage (reads all specs)
 
-Each layer depends on its predecessor(s):
-- **Phase 1 layers** (Business through Stack): linear, each depends on immediate upstream layer
-- **Infrastructure** (Phase 2): cross-cutting, depends on all Phase 1 specs + user input
-- **Coverage** (Phase 3): cross-cutting, depends on all four upstream layers
+The order provides context accumulation, not requirement derivation:
+- **Phase 1 layers** (Business through Stack): each provides cumulative context for subsequent layers
+- **Infrastructure** (Phase 2): uses all Phase 1 specs as consistency context
+- **Coverage** (Phase 3): validates against all layers
 
 ## Layer Definitions
 
@@ -25,9 +35,9 @@ The Business layer captures the intent, value, and goals of what is being built.
 
 **Purpose:** Define use cases, actors, and measurable outcomes that justify the work.
 
-**Upstream:** User input (natural language requirements)
+**Input:** User requirements (stakeholder goals, use cases, success criteria)
 
-**Downstream:** Functional layer
+**Context:** None (Business is the first layer)
 
 **Directives:**
 
@@ -59,11 +69,11 @@ System actor specs remain business-level (stakeholder-driven) and do not prescri
 
 The Functional layer defines the behaviors, contracts, and data models required to fulfill business goals.
 
-**Purpose:** Translate business use cases into precise behavioral specifications.
+**Purpose:** Translate user experience requirements into precise behavioral specifications.
 
-**Upstream:** Business specs
+**Input:** User experience requirements (experience shape, behaviors, interactions)
 
-**Downstream:** Stack layer, Coverage layer
+**Context:** Business specs (for consistency validation)
 
 **Directives:**
 
@@ -103,20 +113,20 @@ Foundation specs (shared components, cross-cutting concerns, common contracts) a
 
 The Stack layer selects and justifies the technologies used to implement functional requirements.
 
-**Purpose:** Choose languages, frameworks, libraries, and tools that satisfy functional needs.
+**Purpose:** Choose languages, frameworks, libraries, and tools that can deliver the specified behaviors.
 
-**Upstream:** Functional specs
+**Input:** User technology preferences (languages, frameworks, constraints, team expertise)
 
-**Downstream:** Infrastructure layer, Development agent
+**Context:** Functional specs (for consistency validation)
 
 **Directives:**
 
 **Stack specs MUST:**
-- Justify each technology choice against functional requirements
+- Document technology choices with rationale
 - Define language versions and framework versions
 - Specify libraries and their purposes
 - Include build tools and development environment setup
-- Reference functional specs that drove each choice
+- Be consistent with Functional specs (validated at implementation)
 
 **Stack specs MUST NOT:**
 - Define deployment topology or infrastructure
@@ -132,9 +142,9 @@ The Infrastructure layer defines where and how the application runs in productio
 
 **Purpose:** Specify compute, networking, observability, and operational concerns.
 
-**Upstream:** Phase 1 specs (Business, Functional, Stack) + user input
+**Input:** User deployment requirements (environment, hosting, scaling, constraints)
 
-**Downstream:** Deployment agent, Coverage layer
+**Context:** Phase 1 specs (Business, Functional, Stack) for consistency validation
 
 **Directives:**
 
@@ -144,8 +154,7 @@ The Infrastructure layer defines where and how the application runs in productio
 - Include observability (logging, metrics, tracing)
 - Define scaling policies and resource limits
 - Specify secrets management approach
-- Reference Phase 1 specs for requirements and runtime constraints
-- Verify coherence across all input specs before producing output
+- Be consistent with Phase 1 specs regarding requirements and runtime constraints (validated at implementation)
 
 **Infrastructure specs MUST NOT:**
 - Redefine business logic or functional behaviors
@@ -157,13 +166,13 @@ The Infrastructure layer defines where and how the application runs in productio
 
 ### Coverage — What's verified?
 
-The Coverage layer ensures all upstream requirements are testable and traceable. It is cross-cutting, reading from all four upstream layers.
+The Coverage layer ensures all requirements are testable and traceable. It reads from all upstream layers for consistency.
 
 **Purpose:** Enumerate every acceptance criterion and map it to a verification test.
 
-**Upstream:** Business, Functional, Stack, and Infrastructure specs (all layers)
+**Input:** User verification requirements (test scope, performance benchmarks, security requirements)
 
-**Downstream:** Validation agent
+**Context:** All layer specs (Business, Functional, Stack, Infrastructure)
 
 **Directives:**
 

@@ -27,11 +27,11 @@ Phases are strictly sequential. Deploy cannot begin until Develop completes. Val
 The Develop phase transforms user requirements into a working, tested application running in an isolated environment.
 
 **Specification Agents:**
-| Agent | Layer | Input | Output |
-|-------|-------|-------|--------|
-| `smaqit.business` | Business | User description | `specs/business/*.md` |
-| `smaqit.functional` | Functional | Business specs + user input | `specs/functional/*.md` |
-| `smaqit.stack` | Stack | Functional specs + user input | `specs/stack/*.md` |
+| Agent | Layer | User Input | Context | Output |
+|-------|-------|------------|---------|--------|
+| `smaqit.business` | Business | Stakeholder goals | None | `specs/business/*.md` |
+| `smaqit.functional` | Functional | Experience shape | Business specs | `specs/functional/*.md` |
+| `smaqit.stack` | Stack | Technology preferences | Business and Functional specs | `specs/stack/*.md` |
 
 **Implementation Agent:** `smaqit.development`
 
@@ -75,9 +75,9 @@ The Develop phase transforms user requirements into a working, tested applicatio
 The Deploy phase transforms a working application into a running system in a target environment.
 
 **Specification Agent:**
-| Agent | Layer | Input | Output |
-|-------|-------|-------|--------|
-| `smaqit.infrastructure` | Infrastructure | Business, Functional, Stack specs + user input | `specs/infrastructure/*.md` |
+| Agent | Layer | User Input | Context | Output |
+|-------|-------|------------|---------|--------|
+| `smaqit.infrastructure` | Infrastructure | Deployment requirements | Phase 1 specs | `specs/infrastructure/*.md` |
 
 **Implementation Agent:** `smaqit.deployment`
 
@@ -273,6 +273,20 @@ When retry threshold is exceeded:
 1. Agent stops iterating
 2. Failure summary produced
 3. Human review required to proceed or abort
+
+---
+
+## Spec Change Adaptation
+
+When any layer spec changes, downstream phases must re-run:
+
+| Spec Changed | Required Re-runs |
+|--------------|------------------|
+| Business, Functional, Stack | Develop → Deploy → Validate |
+| Infrastructure | Deploy → Validate |
+| Coverage | Validate |
+
+Coverage phase always re-runs when any upstream spec changes to ensure test coverage remains current.
 
 ---
 

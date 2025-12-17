@@ -91,23 +91,51 @@ Untestable criteria:
 
 ### Traceability
 
-Specifications MUST reference their upstream sources explicitly.
+Specifications MUST reference their sources explicitly.
 
 **Reference Types:**
 
-| Type | Meaning | Example |
+| Type | Meaning | Use Case |
 |------|---------|----------|
-| **Implements** | Direct 1:1 implementation of upstream spec | Feature spec → Business use case |
-| **Enables** | Foundation that serves multiple upstream specs | Shared component → Multiple use cases |
+| **User Input** | Direct requirement from user | Primary source for layer requirements |
+| **Context** | Adjacent layer spec used for consistency | Ensures cross-layer consistency |
+
+**Cross-Layer Traceability:**
+
+Even though requirements come from user input per layer, the Implements/Enables references create an explicit chain for:
+- **Impact analysis** — When a Business spec changes, all referencing specs are identified
+- **Coverage mapping** — Coverage can trace through references to ensure all requirements are verified
+
+Layer Independence does not mean layer isolation. The reference chain preserves traceability without creating requirement derivation.
+
+**User Input Traceability:**
+
+Every requirement traces to user input for that layer:
+- Business: stakeholder requirements
+- Functional: experience requirements  
+- Stack: technology preferences
+- Infrastructure: deployment requirements
+- Coverage: verification requirements
+
+**Context References:**
+
+Specs reference adjacent layers for consistency validation. Context references distinguish between feature and foundation specs:
+
+| Reference Type | Meaning | Example |
+|----------------|---------|---------|
+| **Implements** | Feature spec with 1:1 mapping to business case | Feature spec → Single use case |
+| **Enables** | Foundation spec serving multiple business cases | Shared component → Multiple use cases |
 
 **Format:**
 ```markdown
 ## References
 
 ### Implements
-- [BUS-LOGIN](../business/login.md) — Direct implementation of login use case
+<!-- Feature spec: direct 1:1 implementation -->
+- [BUS-LOGIN](../business/login.md) — Implements login use case
 
-### Enables
+### Enables  
+<!-- Foundation spec: serves multiple business cases -->
 - [BUS-CHECKOUT](../business/checkout.md) — Requires authenticated session
 - [BUS-PROFILE](../business/profile.md) — Requires authenticated session
 ```
@@ -129,8 +157,8 @@ Orphaned foundations (no references, no justification) should be flagged by Cove
 **Rules:**
 - Every spec (except Business) MUST have a References section
 - References MUST use relative paths within `.smaqit/specs/`
-- References MUST point to existing, accessible documents
-- Foundation specs SHOULD list all Business specs they enable
+- References provide context for consistency, not requirements
+- Implementation agents validate cross-layer consistency
 
 **Traceability Matrix:**
 
@@ -195,12 +223,12 @@ Feature: Authentication Token
 
 A specification is complete when:
 
-- [ ] All template sections are filled (no placeholders remain)
-- [ ] All acceptance criteria have unique IDs
-- [ ] All acceptance criteria are testable (or flagged as untestable)
-- [ ] All upstream references are valid and accessible
-- [ ] Scope boundaries are explicitly stated
-- [ ] No implementation details are present (except Stack layer)
+- All template sections are filled (no placeholders remain)
+- All acceptance criteria have unique IDs
+- All acceptance criteria are testable (or flagged as untestable)
+- All upstream references are valid and accessible
+- Scope boundaries are explicitly stated
+- No implementation details are present (except Stack layer)
 
 ---
 
@@ -311,11 +339,11 @@ public async Task<AuthResult> Login(LoginRequest request)
 
 An implementation is complete when:
 
-- [ ] All referenced spec acceptance criteria are satisfied
-- [ ] Stack-specific standards are followed
-- [ ] Traceability to specs is documented
-- [ ] No unspecified features were added
-- [ ] Validation can verify behavior against specs
+- All referenced spec acceptance criteria are satisfied
+- Stack-specific standards are followed
+- Traceability to specs is documented
+- No unspecified features were added
+- Validation can verify behavior against specs
 
 ---
 

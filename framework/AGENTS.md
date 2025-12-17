@@ -45,13 +45,13 @@ Agents follow the pattern: `smaqit.[LAYER]` for specification agents and `smaqit
 Specification agents define *what* to build. They produce specification documents that serve as contracts for implementation agents.
 
 ### Purpose
-Translate upstream inputs into precise, testable specifications for a single layer.
+Translate user inputs into precise, testable specifications for a single layer.
 
 ### Input
-- **Upstream specifications**: Documents from previous layer(s) in the layer order
-- **User input**: Direct requirements relevant to the agent's layer (e.g., technology preferences for Stack, deployment constraints for Infrastructure)
+- **User input**: Direct requirements relevant to the agent's layer (the primary source)
+- **Context specifications**: Documents from previous layers for consistency validation (not requirements)
 
-The Business agent is the primary entry point for user input, but all specification agents MAY receive user input relevant to their layer. When user input conflicts with upstream specs, agents MUST flag the conflict rather than silently override.
+Each layer receives its own user input. Upstream layers provide context for consistency validation, not requirements. When user input would create inconsistency with existing specs, agents MUST flag the conflict rather than silently override.
 
 ### Output
 - Specification documents in `.smaqit/specs/{layer}/`
@@ -62,28 +62,28 @@ The Business agent is the primary entry point for user input, but all specificat
 **Specification agents MUST:**
 - Produce one specification file per distinct concept (e.g., one use case, one API contract)
 - Include testable acceptance criteria in every specification
-- Reference all upstream specs that informed the output
+- Reference context specs used for consistency validation
 - Validate output against layer template before completion
 
 **Specification agents MUST NOT:**
 - Include implementation details (code, technology choices outside Stack layer)
-- Modify or contradict upstream specifications
+- Create inconsistencies with context layer specifications
 - Produce specs for layers outside their scope
 
 **Specification agents SHOULD:**
 - Define explicit scope boundaries (what is included vs. excluded)
-- Use consistent terminology from upstream specs
-- Flag gaps or inconsistencies in upstream input
+- Use consistent terminology across layers
+- Flag potential inconsistencies with context specs
 
 ### Specification Agent Mappings
 
-| Agent | Layer | Input | Output |
-|-------|-------|-------|--------|
-| `smaqit.business` | Business | User description | `specs/business/*.md` |
-| `smaqit.functional` | Functional | Business specs | `specs/functional/*.md` |
-| `smaqit.stack` | Stack | Functional specs | `specs/stack/*.md` |
-| `smaqit.infrastructure` | Infrastructure | Phase 1 specs + user input | `specs/infrastructure/*.md` |
-| `smaqit.coverage` | Coverage | All layer specs | `specs/coverage/*.md` |
+| Agent | Layer | User Input | Context (for consistency) | Output |
+|-------|-------|------------|---------------------------|--------|
+| `smaqit.business` | Business | Stakeholder goals, use cases | None | `specs/business/*.md` |
+| `smaqit.functional` | Functional | Experience shape, behaviors | Business specs | `specs/functional/*.md` |
+| `smaqit.stack` | Stack | Technology preferences | Business and Functional specs | `specs/stack/*.md` |
+| `smaqit.infrastructure` | Infrastructure | Deployment requirements | Phase 1 specs | `specs/infrastructure/*.md` |
+| `smaqit.coverage` | Coverage | Verification requirements | All layer specs | `specs/coverage/*.md` |
 
 ## Implementation Agents
 

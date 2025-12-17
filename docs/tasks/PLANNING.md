@@ -30,3 +30,11 @@
 | 016 | Infrastructure cross-cutting input |
 | 017 | Build business spec template |
 | 018 | Build functional spec template |
+
+## Backlog
+
+Ideas and future considerations. Not committed — requires evidence before promotion to Active.
+
+| ID | Title | Rationale |
+|----|-------|-----------|
+| B001 | Extensible meta-framework | smaqit as configurable spec-driven framework enabling custom layers/phases |

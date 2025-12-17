@@ -18,4 +18,4 @@ Build the specification template for the Coverage layer. The template defines ve
 
 ## Notes
 
-Coverage layer is unique: it receives user input for verification requirements AND reads all upstream layers for consistency validation and traceability. It translates upstream acceptance criteria into executable test definitions.
+Coverage layer is unique: it receives user input for verification requirements AND reads all upstream layers for traceability and coherence. It translates upstream acceptance criteria into executable test definitions.

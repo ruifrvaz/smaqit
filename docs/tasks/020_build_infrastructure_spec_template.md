@@ -18,4 +18,4 @@ Build the specification template for the Infrastructure layer. The template defi
 
 ## Notes
 
-Infrastructure layer receives user input for deployment requirements. Context from Stack provides consistency validation for environment choices against technology constraints.
+Infrastructure layer receives user input for deployment requirements. Context from Phase 1 specs provides coherence and traceability.

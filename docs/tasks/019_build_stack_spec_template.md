@@ -18,4 +18,4 @@ Build the specification template for the Stack layer. The template defines techn
 
 ## Notes
 
-Stack layer receives user input for technology preferences. Context from Functional provides consistency validation for technology choices against behavioral requirements.
+Stack layer receives user input for technology preferences. Context from Business and Functional specs provides coherence and traceability.

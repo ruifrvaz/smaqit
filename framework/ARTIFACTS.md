@@ -98,7 +98,7 @@ Specifications MUST reference their sources explicitly.
 | Type | Meaning | Use Case |
 |------|---------|----------|
 | **User Input** | Direct requirement from user | Primary source for layer requirements |
-| **Context** | Adjacent layer spec used for consistency | Ensures cross-layer consistency |
+| **Context** | Adjacent layer spec used for coherence | Ensures cross-layer coherence |
 
 **Cross-Layer Traceability:**
 
@@ -119,7 +119,7 @@ Every requirement traces to user input for that layer:
 
 **Context References:**
 
-Specs reference adjacent layers for consistency validation. Context references distinguish between feature and foundation specs:
+Specs reference adjacent layers for coherence and traceability. Context references distinguish between feature and foundation specs:
 
 | Reference Type | Meaning | Example |
 |----------------|---------|---------|
@@ -157,8 +157,8 @@ Orphaned foundations (no references, no justification) should be flagged by Cove
 **Rules:**
 - Every spec (except Business) MUST have a References section
 - References MUST use relative paths within `.smaqit/specs/`
-- References provide context for consistency, not requirements
-- Implementation agents validate cross-layer consistency
+- References provide context for coherence, not requirements
+- Implementation agents validate cross-layer coherence
 
 **Traceability Matrix:**
 

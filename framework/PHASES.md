@@ -212,7 +212,7 @@ The Validate phase verifies that the deployed system satisfies all specification
 
 **Handoff:**
 - Working application code
-- Stack specs (inform infrastructure requirements)
+- Phase 1 specs (context for Infrastructure coherence)
 
 ---
 

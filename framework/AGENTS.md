@@ -49,9 +49,9 @@ Translate user inputs into precise, testable specifications for a single layer.
 
 ### Input
 - **User input**: Direct requirements relevant to the agent's layer (the primary source)
-- **Context specifications**: Documents from previous layers for consistency validation (not requirements)
+- **Context specifications**: Documents from previous layers for coherence and traceability (not requirements)
 
-Each layer receives its own user input. Upstream layers provide context for consistency validation, not requirements. When user input would create inconsistency with existing specs, agents MUST flag the conflict rather than silently override.
+Each layer receives its own user input. Upstream layers provide context for coherence, not requirements. When user input would create incoherence with existing specs, agents MUST flag the conflict rather than silently override.
 
 ### Output
 - Specification documents in `.smaqit/specs/{layer}/`
@@ -62,7 +62,7 @@ Each layer receives its own user input. Upstream layers provide context for cons
 **Specification agents MUST:**
 - Produce one specification file per distinct concept (e.g., one use case, one API contract)
 - Include testable acceptance criteria in every specification
-- Reference context specs used for consistency validation
+- Reference context specs used for coherence and traceability
 - Validate output against layer template before completion
 
 **Specification agents MUST NOT:**
@@ -77,7 +77,7 @@ Each layer receives its own user input. Upstream layers provide context for cons
 
 ### Specification Agent Mappings
 
-| Agent | Layer | User Input | Context (for consistency) | Output |
+| Agent | Layer | User Input | Context (for coherence) | Output |
 |-------|-------|------------|---------------------------|--------|
 | `smaqit.business` | Business | Stakeholder goals, use cases | None | `specs/business/*.md` |
 | `smaqit.functional` | Functional | Experience shape, behaviors | Business specs | `specs/functional/*.md` |

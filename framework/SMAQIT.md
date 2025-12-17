@@ -15,7 +15,7 @@ Specifications are not documentation—they are the source of truth. Implementat
 **Every output MUST trace to a user input.**
 
 - Each layer receives requirements directly from user input
-- Upstream layers provide context for consistency validation, not requirements
+- Upstream layers provide context for coherence, not requirements
 - Code references specs
 - Tests reference requirements
 
@@ -23,16 +23,15 @@ Traceability enables impact analysis: when a requirement changes, the chain of d
 
 ### Layer Independence
 
-**Layers are standalone manifests that can be selected independently.**
+**User input is the sole source of requirements for each layer.**
 
-Each layer receives its own user input:
-- Business: stakeholder goals and use cases
-- Functional: experience shape and behaviors  
-- Stack: technology preferences and constraints
-- Infrastructure: deployment requirements
-- Coverage: verification requirements
+Each layer receives its own user input directly—upstream layers provide context for coherence, not requirements. This ensures that user intent guides every layer without false derivation chains. See [LAYERS](LAYERS.md) for the full Layer Independence model.
 
-Upstream layers exist to ensure consistency across the application, not to dictate downstream requirements. Implementation agents validate that all layers form a consistent whole before proceeding.
+### Specification Coverage
+
+**Every requirement MUST be verified through traceable test coverage.**
+
+Traceability enables complete specification coverage: the Coverage layer traces requirements through all upstream specs to ensure nothing is missed. Untested requirements are explicit gaps, not silent omissions.
 
 ### Self-Validating Agents
 
@@ -111,7 +110,7 @@ Each layer addresses a distinct concern:
 Business (intent) | Functional (behavior) | Stack (tools) | Infrastructure (environment) | Coverage (verification)
 ```
 
-Layers are independent but must be consistent. No layer derives requirements from another—each receives user input directly. Implementation agents validate cross-layer consistency before execution.
+Layers are independent but must be coherent. No layer derives requirements from another—each receives user input directly. Implementation agents validate cross-layer coherence before execution.
 
 ### Explicit Over Implicit
 

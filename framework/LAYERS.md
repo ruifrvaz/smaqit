@@ -1,16 +1,27 @@
 # Layers
 
-Layers are independent specification manifests that together form a consistent application. Each layer answers a specific question and receives its own user input. Upstream layers provide context for consistency validation, not requirements.
+Layers are independent specification manifests that together form a coherent application. Each layer answers a specific question and receives its own user input. Upstream layers provide context for coherence and traceability, not requirements.
 
 ## Layer Independence
+
+**User input is the sole source of requirements for each layer.**
 
 Each layer:
 - Receives requirements directly from user input
 - Can be selected or swapped independently
-- Must be consistent with adjacent layers
+- Must be coherent with adjacent layers
 - Does not derive requirements from upstream layers
 
-Consistency validation happens at the end of each phase, where the phase implementation agent consolidates the required specs before execution.
+### Why Layers Reference Upstream
+
+Although requirements come from user input, layers still reference upstream specifications for two purposes:
+
+| Purpose | Description |
+|---------|-------------|
+| **Coherence** | Implementation agents consolidate specs from multiple layers before execution. References ensure specs are compatible—if Business says "real-time updates" and Stack says "batch processing," consolidation fails. |
+| **Traceability** | Coverage maps requirements through all layers to ensure nothing is missed. The reference chain enables complete specification coverage. |
+
+Coherence validation happens at the end of each phase, where the implementation agent consolidates the required specs before execution.
 
 ## Layer Order
 
@@ -24,7 +35,7 @@ Layers are worked through in order within each phase:
 
 The order provides context accumulation, not requirement derivation:
 - **Phase 1 layers** (Business through Stack): each provides cumulative context for subsequent layers
-- **Infrastructure** (Phase 2): uses all Phase 1 specs as consistency context
+- **Infrastructure** (Phase 2): uses all Phase 1 specs as coherence context
 - **Coverage** (Phase 3): validates against all layers
 
 ## Layer Definitions
@@ -73,7 +84,7 @@ The Functional layer defines the behaviors, contracts, and data models required 
 
 **Input:** User experience requirements (experience shape, behaviors, interactions)
 
-**Context:** Business specs (for consistency validation)
+**Context:** Business specs (for coherence and traceability)
 
 **Directives:**
 
@@ -82,7 +93,7 @@ The Functional layer defines the behaviors, contracts, and data models required 
 - Specify data models with attributes and relationships
 - Define API contracts (inputs, outputs, error conditions)
 - Include state transitions where applicable
-- Reference originating business specs
+- Reference business specs for traceability
 
 **Functional specs MUST NOT:**
 - Specify technology choices (languages, frameworks, databases)
@@ -117,7 +128,7 @@ The Stack layer selects and justifies the technologies used to implement functio
 
 **Input:** User technology preferences (languages, frameworks, constraints, team expertise)
 
-**Context:** Functional specs (for consistency validation)
+**Context:** Business and Functional specs (for coherence and traceability)
 
 **Directives:**
 
@@ -144,7 +155,7 @@ The Infrastructure layer defines where and how the application runs in productio
 
 **Input:** User deployment requirements (environment, hosting, scaling, constraints)
 
-**Context:** Phase 1 specs (Business, Functional, Stack) for consistency validation
+**Context:** Phase 1 specs (Business, Functional, Stack) for coherence and traceability
 
 **Directives:**
 
@@ -166,7 +177,7 @@ The Infrastructure layer defines where and how the application runs in productio
 
 ### Coverage — What's verified?
 
-The Coverage layer ensures all requirements are testable and traceable. It reads from all upstream layers for consistency.
+The Coverage layer ensures all requirements are testable and traceable. It reads from all upstream layers for traceability and coherence.
 
 **Purpose:** Enumerate every acceptance criterion and map it to a verification test.
 

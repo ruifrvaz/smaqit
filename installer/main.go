@@ -5,7 +5,8 @@ import (
 	"os"
 )
 
-const Version = "0.1.0"
+// Version is set via ldflags during build: -X main.Version=$(VERSION)
+var Version = "dev"
 
 func main() {
 	if len(os.Args) < 2 {

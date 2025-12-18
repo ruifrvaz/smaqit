@@ -2,3 +2,6 @@
 tasks/*.md
 !tasks/task.template.md
 !tasks/planner.md
+
+# Build artifacts
+installer/dist/

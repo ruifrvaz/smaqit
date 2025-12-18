@@ -6,15 +6,37 @@ A Spec-driven agent orchestration kit where AI agents write specifications, then
 
 ## Getting Started
 
-```bash
-# Install
-go install github.com/smaqit/smaqit@latest
+### Build and Install
 
+```bash
+# Clone the repository
+git clone https://github.com/ruifrvaz/smaqit.git
+cd smaqit/installer
+
+# Build for your platform
+make build
+
+# Or build for all platforms
+make build-all
+
+# Install locally (requires GOPATH/bin in PATH)
+make install
+```
+
+### Usage
+
+```bash
 # Initialize in your project
 smaqit init
 
 # Start developing
 smaqit develop
+
+# Deploy
+smaqit deploy
+
+# Validate
+smaqit validate
 ```
 
 ## Commands

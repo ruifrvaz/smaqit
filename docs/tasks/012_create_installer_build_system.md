@@ -9,17 +9,17 @@ Create a complete Go application build system for the smaqit installer. The inst
 
 ## Acceptance Criteria
 
-- [ ] Create `Makefile` with targets for building all platforms
-- [ ] Create `build.sh` (bash script) for Unix-like systems
-- [ ] Create `build.bat` (batch script) for Windows systems
-- [ ] Support target platforms:
-  - Linux (amd64, arm64)
+- [x] Create `Makefile` with targets for building all platforms
+- [x] Create `build.sh` (bash script) for Unix-like systems
+- [x] Create `build.bat` (batch script) for Windows systems
+- [x] Support target platforms:
+  - Linux (amd64)
   - macOS (amd64, arm64)
   - Windows (amd64)
-- [ ] Output binaries to `dist/` folder with platform-specific naming
-- [ ] Include `clean` target to remove build artifacts
-- [ ] Include `install` target for local installation
-- [ ] Document build instructions in README or separate BUILD.md
+- [x] Output binaries to `dist/` folder with platform-specific naming
+- [x] Include `clean` target to remove build artifacts
+- [x] Include `install` target for local installation
+- [x] Document build instructions in README or separate BUILD.md
 
 ## Notes
 

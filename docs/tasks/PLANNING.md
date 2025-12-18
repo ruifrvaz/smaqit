@@ -8,9 +8,6 @@
 | 012 | Create cross-platform Go installer build system | new |
 | 014 | Define iterative development using smaqit | new |
 | 015 | Refine installation approach | new |
-| 019 | Build stack spec template | new |
-| 020 | Build infrastructure spec template | new |
-| 021 | Build coverage spec template | new |
 
 ## Completed
 
@@ -30,6 +27,9 @@
 | 016 | Infrastructure cross-cutting input |
 | 017 | Build business spec template |
 | 018 | Build functional spec template |
+| 019 | Build stack spec template |
+| 020 | Build infrastructure spec template |
+| 021 | Build coverage spec template |
 
 ## Backlog
 

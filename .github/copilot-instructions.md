@@ -66,18 +66,19 @@ user-project/
     └── coverage/
 ```
 
-## Critical Engagement
+## Do Not Default to Agreement
 
-**Avoid echo chamber dynamics.** When the user proposes an idea:
+When the user proposes an idea or gives a direct command:
 
-1. **Assess critically** — Consider whether the proposal is necessary, redundant, or potentially problematic
-2. **Provide counter-arguments** — If you see flaws or alternatives, state them clearly before proceeding
-3. **Flag redundancy** — If a proposal duplicates existing structure, say so upfront
-4. **Suggest alternatives** — Offer better approaches when you see them
-
-**Do not default to agreement.** If asked "should we add X?" and X is unnecessary, say "No, because..." rather than "Yes, and here's how..."
-
-**Exception:** When the user gives a direct command (e.g., "add X to Y"), execute it. Save critique for proposals and questions.
+- **Assess critically** — Consider whether the proposal is necessary, redundant, or potentially problematic
+- **Provide counter-arguments** — If you see flaws or alternatives, state them clearly before proceeding
+- **Flag redundancy** — If a proposal duplicates existing structure, say so upfront
+- **Suggest alternatives** — Offer better approaches when you see them
+- **Flag security or pattern breaches** — Stop and explain risks before implementing anything that:
+   - Modifies user configuration files (dotfiles, shell configs)
+   - Violates security best practices
+   - Breaks established conventions without clear justification
+   - Could affect system stability or user experience negatively
 
 ## Content Guidelines
 

@@ -53,23 +53,20 @@ install: build
 		mkdir -p $$GOPATH/bin; \
 		cp $(DIST_DIR)/$(BINARY_NAME) $$GOPATH/bin/$(BINARY_NAME); \
 		echo "✓ Installed: $$GOPATH/bin/$(BINARY_NAME)"; \
-	elif [ -d "$$HOME/.local/bin" ]; then \
-		echo "Installing $(BINARY_NAME) to ~/.local/bin..."; \
-		cp $(DIST_DIR)/$(BINARY_NAME) $$HOME/.local/bin/$(BINARY_NAME); \
-		echo "✓ Installed: ~/.local/bin/$(BINARY_NAME)"; \
-		if ! echo $$PATH | grep -q "$$HOME/.local/bin"; then \
-			echo "⚠ ~/.local/bin is not in your PATH"; \
-			echo "  Add this to your ~/.bashrc or ~/.zshrc:"; \
-			echo "  export PATH=\"\$$HOME/.local/bin:\$$PATH\""; \
-		fi; \
 	else \
 		echo "Installing $(BINARY_NAME) to ~/.local/bin..."; \
 		mkdir -p $$HOME/.local/bin; \
 		cp $(DIST_DIR)/$(BINARY_NAME) $$HOME/.local/bin/$(BINARY_NAME); \
 		echo "✓ Installed: ~/.local/bin/$(BINARY_NAME)"; \
-		echo "⚠ ~/.local/bin is not in your PATH"; \
-		echo "  Add this to your ~/.bashrc or ~/.zshrc:"; \
-		echo "  export PATH=\"\$$HOME/.local/bin:\$$PATH\""; \
+		if ! echo $$PATH | grep -q "$$HOME/.local/bin"; then \
+			echo ""; \
+			echo "⚠ ~/.local/bin is not in your PATH"; \
+			echo "  Add to your shell config:"; \
+			echo "  echo 'export PATH=\"\$$HOME/.local/bin:\$$PATH\"' >> ~/.bashrc"; \
+			echo ""; \
+			echo "Then reload:"; \
+			echo "  source ~/.bashrc"; \
+		fi; \
 	fi
 
 # Uninstall from local bin

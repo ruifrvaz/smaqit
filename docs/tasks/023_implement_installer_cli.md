@@ -42,7 +42,7 @@ Implement the smaqit CLI executable for scaffolding, status checking, validation
   ```
 - [ ] Handle existing directories: error if `.smaqit/` already exists, prompt user to uninstall first
 - [ ] Embed smaqit version in `.smaqit/VERSION` file for compatibility checking
-- [ ] Print success message with next steps (run `/develop` in Copilot chat)
+- [ ] Print success message with next steps (run `/smaqit.develop` in Copilot chat)
 
 ### Status Command
 
@@ -99,7 +99,7 @@ Implement the smaqit CLI executable for scaffolding, status checking, validation
     /infrastructure   Create infrastructure layer specifications
     /coverage         Create coverage layer specifications
   ```
-- [ ] Include usage example: `Type '/develop' in GitHub Copilot chat to start developing`
+- [ ] Include usage example: `Type '/smaqit.develop' in GitHub Copilot chat to start developing`
 
 ### Uninstall Command
 

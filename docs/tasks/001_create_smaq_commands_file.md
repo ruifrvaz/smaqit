@@ -5,23 +5,23 @@
 
 ## Context
 
-Create VS Code Copilot prompt files (`.prompt.md`) for smaqit phase and layer operations. These prompts enable users to invoke smaqit workflows via GitHub Copilot chat using `/` commands (e.g., `/develop`, `/business`). Prompts are stored in `.github/prompts/` and follow VS Code prompt file conventions.
+Create VS Code Copilot prompt files (`.prompt.md`) for smaqit phase and layer operations. These prompts enable users to invoke smaqit workflows via GitHub Copilot chat using `/smaqit.` commands (e.g., `/smaqit.develop`, `/smaqit.business`). Prompts are stored in `.github/prompts/` and follow VS Code prompt file conventions.
 
 ## Acceptance Criteria
 
 ### Phase Prompts
 
-- [ ] Create `develop.prompt.md` — Orchestrates business → functional → stack spec agents, then development agent
-- [ ] Create `deploy.prompt.md` — Orchestrates infrastructure spec agent, then deployment agent
-- [ ] Create `validate.prompt.md` — Orchestrates coverage spec agent, then validation agent
+- [ ] Create `smaqit.develop.prompt.md` — Orchestrates business → functional → stack spec agents, then development agent
+- [ ] Create `smaqit.deploy.prompt.md` — Orchestrates infrastructure spec agent, then deployment agent
+- [ ] Create `smaqit.validate.prompt.md` — Orchestrates coverage spec agent, then validation agent
 
 ### Layer Prompts (Specification Agents)
 
-- [ ] Create `business.prompt.md` — Invokes business agent with interactive prompts for stakeholder goals
-- [ ] Create `functional.prompt.md` — Invokes functional agent with interactive prompts for experience requirements
-- [ ] Create `stack.prompt.md` — Invokes stack agent with interactive prompts for technology preferences
-- [ ] Create `infrastructure.prompt.md` — Invokes infrastructure agent with interactive prompts for deployment requirements
-- [ ] Create `coverage.prompt.md` — Invokes coverage agent with interactive prompts for verification requirements
+- [ ] Create `smaqit.business.prompt.md` — Invokes business agent with interactive prompts for stakeholder goals
+- [ ] Create `smaqit.functional.prompt.md` — Invokes functional agent with interactive prompts for experience requirements
+- [ ] Create `smaqit.stack.prompt.md` — Invokes stack agent with interactive prompts for technology preferences
+- [ ] Create `smaqit.infrastructure.prompt.md` — Invokes infrastructure agent with interactive prompts for deployment requirements
+- [ ] Create `smaqit.coverage.prompt.md` — Invokes coverage agent with interactive prompts for verification requirements
 
 ### Prompt File Structure
 

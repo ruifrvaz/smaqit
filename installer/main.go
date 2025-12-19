@@ -90,19 +90,19 @@ func cmdHelp() {
 	fmt.Println("  smaqit version    Show smaqit version")
 	fmt.Println()
 	fmt.Println("Copilot Prompts (use in GitHub Copilot chat with /):")
-	fmt.Println("  /develop          Run develop phase (business → functional → stack → build)")
-	fmt.Println("  /deploy           Run deploy phase (infrastructure → deploy)")
-	fmt.Println("  /validate         Run validate phase (coverage → validate)")
-	fmt.Println("  /business         Create business layer specifications")
-	fmt.Println("  /functional       Create functional layer specifications")
-	fmt.Println("  /stack            Create stack layer specifications")
-	fmt.Println("  /infrastructure   Create infrastructure layer specifications")
-	fmt.Println("  /coverage         Create coverage layer specifications")
+	fmt.Println("  /smaqit.develop       Run develop phase (business → functional → stack → build)")
+	fmt.Println("  /smaqit.deploy        Run deploy phase (infrastructure → deploy)")
+	fmt.Println("  /smaqit.validate      Run validate phase (coverage → validate)")
+	fmt.Println("  /smaqit.business      Create business layer specifications")
+	fmt.Println("  /smaqit.functional    Create functional layer specifications")
+	fmt.Println("  /smaqit.stack         Create stack layer specifications")
+	fmt.Println("  /smaqit.infrastructure Create infrastructure layer specifications")
+	fmt.Println("  /smaqit.coverage      Create coverage layer specifications")
 	fmt.Println()
 	fmt.Println("Getting Started:")
 	fmt.Println("  1. Run 'smaqit init' in your project directory")
 	fmt.Println("  2. Open GitHub Copilot chat in VS Code")
-	fmt.Println("  3. Type '/develop' to start the development phase")
+	fmt.Println("  3. Type '/smaqit.develop' to start the development phase")
 	fmt.Println()
 	fmt.Println("Documentation: https://github.com/ruifrvaz/smaqit")
 }
@@ -177,11 +177,11 @@ func cmdInit(targetDir string) {
 	fmt.Println("✓ Copied framework files")
 	fmt.Println("✓ Copied templates")
 	fmt.Println("✓ Copied agent definitions")
-	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
+	fmt.Println("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
-	fmt.Println("  2. Type '/develop' to start the development phase")
-	fmt.Println("  3. Or type '/business' to create business specifications")
+	fmt.Println("  2. Type '/smaqit.develop' to start the development phase")
+	fmt.Println("  3. Or type '/smaqit.business' to create business specifications"))
 }
 
 // copyEmbeddedDir copies files from an embedded FS to a target directory
@@ -293,13 +293,13 @@ func cmdUninstall() {
 
 func cmdDevelop() {
 	fmt.Println("The 'develop' command has been moved to GitHub Copilot prompts.")
-	fmt.Println("Type '/develop' in GitHub Copilot chat to run the develop phase.")
+	fmt.Println("Type '/smaqit.develop' in GitHub Copilot chat to run the develop phase.")
 	os.Exit(1)
 }
 
 func cmdDeploy() {
 	fmt.Println("The 'deploy' command has been moved to GitHub Copilot prompts.")
-	fmt.Println("Type '/deploy' in GitHub Copilot chat to run the deploy phase.")
+	fmt.Println("Type '/smaqit.deploy' in GitHub Copilot chat to run the deploy phase.")
 	os.Exit(1)
 }
 

@@ -1,42 +1,107 @@
-# Refine Installation Approach
+# Task: Investigate Framework Bundling at Installation
 
-**Status:** Not Started  
-**Created:** 2025-12-13
+**ID**: 015
+**Status**: new
 
-## Description
+## Context
 
-Evaluate and decide on the smaqit installation approach. The current installer copies the entire `framework/` directory into user projects at `.smaqit/framework/`. 
+Currently, `smaqit init` installs the full framework directory (`.smaqit/framework/`) containing all Level 0 development files (SMAQIT.md, LAYERS.md, PHASES.md, TEMPLATES.md, AGENTS.md, ARTIFACTS.md). These files were foundational for building Level 1 (templates) and Level 2 (agents/prompts) but may not be necessary for end users.
 
-The question: Should the framework remain as separate files that get copied, or should the framework content become embedded directly into the agents and templates?
+**Current installation:**
+- `.smaqit/framework/` — Full framework docs (6 markdown files)
+- `.smaqit/templates/specs/` — Spec templates (5 files)
+- `.github/agents/` — Agent definitions (8 files)
+- `.github/prompts/` — Copilot prompts (8 files, when implemented)
 
-### Current Approach
-- Framework files are standalone documentation in `framework/`
-- Installer copies them to `.smaqit/framework/`
-- Agents/templates reference framework files
+**Question:** Should Level 2 users receive condensed framework instructions instead of full Level 0 docs?
 
-### Alternative Approach
-- Embed framework knowledge directly into agent instructions
-- Templates become self-contained with embedded principles
-- No separate framework files needed in user projects
+## Investigation Areas
 
-### Considerations
-- **Maintainability**: Separate files are easier to update; embedded requires updating multiple agents
-- **Context window**: Embedded agents are larger; separate files require file reads
-- **User understanding**: Separate files let users read the methodology; embedded is opaque
-- **Distribution size**: Embedded is self-contained; separate has more files
+### 1. Framework Reference Analysis
+
+- [ ] Identify which framework files are referenced by agents and prompts
+- [ ] Determine if agents/prompts need direct access to framework files
+- [ ] Check if framework files are used during runtime vs. build-time only
+
+### 2. Condensed Instructions Approach
+
+- [ ] Prototype a single `FRAMEWORK_GUIDE.md` or embedded instructions in agents
+- [ ] Evaluate if core principles (Layer Independence, Traceability, etc.) can be condensed
+- [ ] Determine if user-facing docs need full framework depth or just essentials
+
+### 3. Documentation Layering
+
+Establish what belongs at each level:
+
+| Level | Audience | Content | Location |
+|-------|----------|---------|----------|
+| Level 0 | smaqit developers | Full framework specs, design rationale | This repo only |
+| Level 1 | Template creators | Template structure rules | `.smaqit/templates/` (or embedded) |
+| Level 2 | End users | Agent definitions, prompts, condensed framework guide | `.github/`, `specs/` |
+
+### 4. Agent Self-Containment
+
+- [ ] Investigate embedding framework rules directly in agent definitions
+- [ ] Determine if agents can be fully self-contained (no external framework refs)
+- [ ] Evaluate trade-offs: agent file size vs. framework file duplication
+
+### 5. User Experience Impact
+
+- [ ] Survey what users actually need to understand to use smaqit effectively
+- [ ] Identify minimal viable documentation for spec-driven development
+- [ ] Determine if full framework is helpful or overwhelming for new users
 
 ## Acceptance Criteria
 
-- [ ] Analyze pros/cons of each approach
-- [ ] Consider hybrid approaches (e.g., minimal framework + embedded essentials)
-- [ ] Document decision rationale
-- [ ] Update installer if approach changes
-- [ ] Update copilot-instructions.md if structure changes
+- [ ] Document current framework file usage by agents/prompts
+- [ ] Prototype at least one alternative bundling approach
+- [ ] Provide recommendation with evidence from investigation
+- [ ] Update installer if recommendation differs from current approach
+
+## Potential Outcomes
+
+**Option 1: Keep Current Approach**
+- Ship full `.smaqit/framework/` directory
+- Users have complete reference docs
+- Maintains current agent references
+
+**Option 2: Condensed Framework Guide**
+- Create single `FRAMEWORK_GUIDE.md` with essentials
+- Remove individual framework files
+- Update agent references to condensed guide
+
+**Option 3: Self-Contained Agents**
+- Embed all framework rules in agent definitions
+- No separate framework directory needed
+- Agents are fully standalone
+
+**Option 4: Hybrid Approach**
+- Ship minimal reference (e.g., just SMAQIT.md)
+- Embed layer-specific rules in agents
+- Point users to online docs for deep dive
 
 ## Notes
 
-This decision affects:
-- `installer/main.go` - what gets copied where
-- All agent files - how they reference framework
-- Template files - self-contained vs referential
-- User project structure - `.smaqit/` contents
+**Current agent references:**
+All agents include:
+```markdown
+## Framework Reference
+
+- [SMAQIT](../framework/SMAQIT.md) — Core principles
+- [LAYERS](../framework/LAYERS.md) — Layer definitions
+- [TEMPLATES](../framework/TEMPLATES.md) — Template rules
+- [AGENTS](../framework/AGENTS.md) — Agent behaviors
+- [ARTIFACTS](../framework/ARTIFACTS.md) — Artifact rules
+```
+
+**Question:** Are these references informational (users can ignore) or operational (agents need them at runtime)?
+
+**Evidence needed:**
+- Do users consult framework files when using smaqit?
+- Are framework files cluttering the project?
+- Would condensed docs reduce barrier to entry?
+
+## Related Tasks
+
+- Task 001: Copilot prompt files (also part of Level 2)
+

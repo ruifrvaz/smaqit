@@ -6,7 +6,7 @@
 |----|-------|--------|
 | 001 | Create Copilot prompt files | new |
 | 014 | Define iterative development using smaqit | new |
-| 015 | Refine installation approach | new |
+| 015 | Investigate framework bundling at installation | new |
 | 022 | Create GitHub Action for automated releases | new |
 | 023 | Implement installer CLI | new |
 

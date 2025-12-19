@@ -181,7 +181,7 @@ func cmdInit(targetDir string) {
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
 	fmt.Println("  2. Type '/smaqit.develop' to start the development phase")
-	fmt.Println("  3. Or type '/smaqit.business' to create business specifications"))
+	fmt.Println("  3. Or type '/smaqit.business' to create business specifications")
 }
 
 // copyEmbeddedDir copies files from an embedded FS to a target directory
@@ -392,7 +392,7 @@ func cmdValidate() {
 				"coverage":       "COV",
 			}
 			prefix := layerPrefixes[layer]
-			
+
 			// Look for at least one requirement ID with correct prefix
 			hasCorrectID := strings.Contains(string(content), prefix+"-")
 			hasAcceptanceCriteria := strings.Contains(string(content), "## Acceptance Criteria") ||

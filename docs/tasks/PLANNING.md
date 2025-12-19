@@ -8,7 +8,6 @@
 | 014 | Define iterative development using smaqit | new |
 | 015 | Investigate framework bundling at installation | new |
 | 022 | Create GitHub Action for automated releases | new |
-| 023 | Implement installer CLI | new |
 
 ## Completed
 
@@ -24,6 +23,7 @@
 | 009 | Refactor development agent with impl template |
 | 010 | Refactor deployment agent with impl template |
 | 011 | Refactor validation agent with impl template |
+| 012 | Create cross-platform Go installer build system |
 | 013 | Split SMAQIT.md into framework files |
 | 016 | Infrastructure cross-cutting input |
 | 017 | Build business spec template |
@@ -31,7 +31,7 @@
 | 019 | Build stack spec template |
 | 020 | Build infrastructure spec template |
 | 021 | Build coverage spec template |
-| 012 | Create cross-platform Go installer build system |
+| 023 | Implement installer CLI |
 
 ## Backlog
 

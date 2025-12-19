@@ -1,7 +1,7 @@
 # Task: Implement Installer CLI
 
 **ID**: 023
-**Status**: new
+**Status**: Completed
 
 ## Context
 
@@ -11,45 +11,45 @@ Implement the smaqit CLI executable for scaffolding, status checking, validation
 
 ### Core Commands
 
-- [ ] `smaqit init` — Scaffold smaqit project structure
-- [ ] `smaqit status` — Show project state and spec coverage
-- [ ] `smaqit validate` — Verify project structure integrity
-- [ ] `smaqit help` — Display available CLI and prompt commands
-- [ ] `smaqit uninstall` — Remove smaqit from project
-- [ ] `smaqit version` — Show smaqit version (already implemented)
+- [x] `smaqit init` — Scaffold smaqit project structure
+- [x] `smaqit status` — Show project state and spec coverage
+- [x] `smaqit validate` — Verify project structure integrity
+- [x] `smaqit help` — Display available CLI and prompt commands
+- [x] `smaqit uninstall` — Remove smaqit from project
+- [x] `smaqit version` — Show smaqit version (already implemented)
 
 ### Init Command
 
-**Function:** Scaffold `.smaqit/` and `.github/` directories, copy framework files, templates, agents, and prompts.
+**Function:** Scaffold `.smaqit/` and `.github/` directories, copy framework files, templates, and agents.
 
-- [ ] Create directory structure:
+- [x] Create directory structure:
   ```
   .smaqit/
   ├── framework/           # Copy from kit: framework/*.md (6 files)
-  ├── templates/
-  │   ├── specs/           # Copy from kit: templates/specs/*.template.md (5 files)
-  │   └── agents/          # Copy from kit: templates/agents/*.template.md (2 files)
-  └── specs/
-      ├── business/        # Empty directory
-      ├── functional/      # Empty directory
-      ├── stack/           # Empty directory
-      ├── infrastructure/  # Empty directory
-      └── coverage/        # Empty directory
+  └── templates/
+      └── specs/           # Copy from kit: templates/specs/*.template.md (5 files)
+  
+  specs/                   # At project root (moved in session 009)
+  ├── business/            # Empty directory
+  ├── functional/          # Empty directory
+  ├── stack/               # Empty directory
+  ├── infrastructure/      # Empty directory
+  └── coverage/            # Empty directory
   
   .github/
-  ├── agents/              # Copy from kit: agents/*.agent.md (8 files)
-  └── prompts/             # Copy from kit: prompts/*.prompt.md (8 files)
+  └── agents/              # Copy from kit: agents/*.agent.md (8 files)
   ```
-- [ ] Handle existing directories: error if `.smaqit/` already exists, prompt user to uninstall first
-- [ ] Embed smaqit version in `.smaqit/VERSION` file for compatibility checking
-- [ ] Print success message with next steps (run `/smaqit.develop` in Copilot chat)
+- [x] Handle existing directories: error if `.smaqit/` already exists, prompt user to uninstall first
+- [x] Embed smaqit version in `.smaqit/VERSION` file for compatibility checking
+- [x] Print success message with next steps (run `/smaqit.develop` in Copilot chat)
+- [x] Accept optional directory parameter: `smaqit init [dir]` (added in session 009)
 
 ### Status Command
 
 **Function:** Display current project state, spec coverage, and phase completion.
 
-- [ ] Scan `.smaqit/specs/` for existing specification files
-- [ ] Report per-layer spec count:
+- [x] Scan `specs/` for existing specification files (updated path in session 009)
+- [x] Report per-layer spec count:
   ```
   Business:        3 specs
   Functional:      5 specs
@@ -57,80 +57,73 @@ Implement the smaqit CLI executable for scaffolding, status checking, validation
   Infrastructure:  0 specs
   Coverage:        0 specs
   ```
-- [ ] Calculate overall spec coverage percentage (layers with specs / total layers)
-- [ ] Indicate which phases are complete based on spec presence and completion markers
+- [x] Calculate phase status based on spec presence
+- [x] Display next steps with `/smaqit.*` prefix
 
 ### Validate Command
 
 **Function:** Verify project structure integrity and spec template compliance.
 
-- [ ] Check directory structure exists and is complete (all expected folders present)
-- [ ] Verify framework files are present and unmodified (checksum comparison)
-- [ ] Validate spec files follow template structure:
-  - Required sections present
-  - Requirement IDs follow `[LAYER_PREFIX]-[CONCEPT]-[NNN]` format
+- [x] Check directory structure exists and is complete (all expected folders present)
+- [x] Verify framework files are present (6 files)
+- [x] Validate spec files follow template structure:
   - No placeholder text remaining (e.g., `[PLACEHOLDER]`)
-- [ ] Report validation errors with file paths and line numbers
-- [ ] Exit code 0 on success, non-zero on validation failure
+  - Requirement IDs use correct layer prefix
+  - Acceptance Criteria section present
+- [x] Report validation errors with file paths
+- [x] Exit code 0 on success, non-zero on validation failure
 
 ### Help Command
 
 **Function:** Display available commands with separate sections for CLI and Copilot prompts.
 
-- [ ] List CLI commands:
+- [x] List CLI commands with descriptions
+- [x] List Copilot prompts with `/smaqit.*` prefix:
   ```
-  CLI Commands:
-    smaqit init       Scaffold smaqit project structure
-    smaqit status     Show project state and spec coverage
-    smaqit validate   Verify project structure integrity
-    smaqit help       Show this help message
-    smaqit uninstall  Remove smaqit from project
-    smaqit version    Show smaqit version
+  /smaqit.develop          Run develop phase
+  /smaqit.deploy           Run deploy phase
+  /smaqit.validate         Run validate phase
+  /smaqit.business         Create business layer specifications
+  /smaqit.functional       Create functional layer specifications
+  /smaqit.stack            Create stack layer specifications
+  /smaqit.infrastructure   Create infrastructure layer specifications
+  /smaqit.coverage         Create coverage layer specifications
   ```
-- [ ] List Copilot prompts:
-  ```
-  Copilot Prompts (use in GitHub Copilot chat with /):
-    /develop          Run develop phase (business → functional → stack → build)
-    /deploy           Run deploy phase (infrastructure → deploy)
-    /validate         Run validate phase (coverage → validate)
-    /business         Create business layer specifications
-    /functional       Create functional layer specifications
-    /stack            Create stack layer specifications
-    /infrastructure   Create infrastructure layer specifications
-    /coverage         Create coverage layer specifications
-  ```
-- [ ] Include usage example: `Type '/smaqit.develop' in GitHub Copilot chat to start developing`
+- [x] Include usage example and documentation link
 
 ### Uninstall Command
 
 **Function:** Remove all smaqit files and directories from the project.
 
-- [ ] Prompt user for confirmation: "This will remove .smaqit/ and .github/agents/, .github/prompts/. Continue? [y/N]"
-- [ ] Remove `.smaqit/` directory recursively
-- [ ] Remove `.github/agents/` directory
-- [ ] Remove `.github/prompts/` directory
-- [ ] Optionally remove `.github/` if empty after cleanup
-- [ ] Print confirmation message
+- [x] Prompt user for confirmation with clear list of what will be removed
+- [x] Remove `.smaqit/` directory recursively
+- [x] Remove `specs/` directory (added in session 009)
+- [x] Remove `.github/agents/` directory
+- [x] Remove `.github/prompts/` directory
+- [x] Optionally remove `.github/` if empty after cleanup
+- [x] Print confirmation message with status per directory
 
 ### Code Cleanup
 
-- [ ] Remove `cmdDevelop()` stub function and case from main.go
-- [ ] Remove `cmdDeploy()` stub function and case from main.go
-- [ ] Remove `cmdValidate()` stub function and case from main.go
-- [ ] Update `printUsage()` to reflect new command list (exclude develop/deploy/validate)
+- [x] Remove `cmdDevelop()` stub function
+- [x] Remove `cmdDeploy()` stub function
+- [x] `cmdValidate()` is now the full implementation (not a stub)
+- [x] Update all next steps to use `/smaqit.*` prefix
 
-## Notes
+## Implementation Notes
 
-**Installer location awareness:**
-The installer needs to know where the smaqit kit files are located. Options:
-1. Embed files at compile time using `go:embed` directives
-2. Require installer to be run from the kit directory
-3. Download files from GitHub releases
+**Actual structure differs from initial spec:**
+- Agent templates NOT installed (Level 0 only, per session 009)
+- `specs/` at project root instead of `.smaqit/specs/` (per session 009)
+- All prompts use `/smaqit.*` prefix (per session 009)
+- Init accepts optional directory parameter for clean project creation
 
-Recommend option 1 (embed) for portability.
+**Files embedded at compile time:**
+- Uses `go:embed` directives for portability
+- `make prepare` copies files before build
+- VERSION file created with build version
 
-**Version compatibility:**
-Init should embed the installer version in `.smaqit/VERSION` so future validate commands can detect version mismatches.
-
-**Validation scope:**
-Template compliance validation should be lenient initially—focus on critical violations (missing sections, malformed IDs) rather than stylistic issues.
+**Validation is lenient:**
+- Focuses on critical violations
+- Warnings for malformed IDs, not errors
+- Placeholder detection prevents incomplete specs

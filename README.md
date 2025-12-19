@@ -6,21 +6,27 @@ A Spec-driven agent orchestration kit where AI agents write specifications, then
 
 ## Getting Started
 
-### Build and Install
+### Installation
 
+**Download the latest release for your platform:**
+
+Visit [Releases](https://github.com/ruifrvaz/smaqit/releases) and download the appropriate binary:
+
+- **Linux**: `smaqit_linux_amd64`
+- **macOS Intel**: `smaqit_darwin_amd64`
+- **macOS Apple Silicon**: `smaqit_darwin_arm64`
+- **Windows**: `smaqit_windows_amd64.exe`
+
+**Make it executable (Linux/macOS):**
 ```bash
-# Clone the repository
-git clone https://github.com/ruifrvaz/smaqit.git
-cd smaqit/installer
+chmod +x smaqit_*
+mv smaqit_* /usr/local/bin/smaqit
+```
 
-# Build for your platform
-make build
-
-# Or build for all platforms
-make build-all
-
-# Install locally (requires GOPATH/bin in PATH)
-make install
+**Or add to PATH (Windows):**
+```powershell
+# Move to a directory in your PATH
+move smaqit_windows_amd64.exe C:\Windows\smaqit.exe
 ```
 
 ### Usage
@@ -114,6 +120,45 @@ smaqit
 - Level 1 consumes Level 0 (templates follow framework rules)
 - Level 2 consumes Level 1 (agents/specs follow templates)
 - Level 3 consumes Level 2 (application follows specs)
+
+---
+
+## Contributors
+
+### Building from Source
+
+**Prerequisites:**
+- Go 1.25 or later
+- make (optional, can use build scripts)
+
+**Build:**
+```bash
+# Clone the repository
+git clone https://github.com/ruifrvaz/smaqit.git
+cd smaqit/installer
+
+# Build for your platform
+make build
+
+# Or build for all platforms
+make build-all
+
+# Or use shell scripts
+./build.sh build          # Unix-like systems
+build.bat build           # Windows
+```
+
+**Development:**
+```bash
+# Show version that would be built
+make version
+
+# Clean build artifacts
+make clean
+
+# Install to GOPATH/bin
+make install
+```
 
 ## License
 

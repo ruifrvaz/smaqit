@@ -122,7 +122,7 @@ Keep cross-references between framework files consistent when editing.
 The CLI copies framework/, templates/, agents/ into user projects as:
 - `.smaqit/framework/` (entire directory)
 - `.smaqit/templates/`
-- `.smaqit/specs/{layer}/`
+- `specs/{layer}/`
 - `.github/agents/`
 
 ### Version Sync
@@ -235,3 +235,78 @@ Mark a task as done:
 - When starting a task, update status to `in progress`
 - When completing a task, move from Active to Completed table
 - Individual task files in `docs/tasks/{id}_{title}.md` contain details
+
+## Testing
+
+**Test location:** `installer/test/` (standardized test directory)
+
+### Installer Testing Workflow
+
+1. **Build installer:**
+   ```bash
+   cd installer
+   make clean && make build
+   ```
+
+2. **Create test directory:**
+   ```bash
+   mkdir -p test
+   cd test
+   ```
+
+3. **Test init command:**
+   ```bash
+   ../dist/smaqit init
+   # Verify: .smaqit/ and .github/ directories created
+   # Verify: framework files, templates, agents copied
+   ```
+
+4. **Test status command:**
+   ```bash
+   ../dist/smaqit status
+   # Verify: Shows 0 specs, all phases "Not started"
+   # Verify: Version matches build version
+   ```
+
+5. **Test validate command:**
+   ```bash
+   ../dist/smaqit validate
+   # Verify: Directory structure validation passes
+   # Verify: Framework files present
+   ```
+
+6. **Test help command:**
+   ```bash
+   ../dist/smaqit help
+   # Verify: Shows CLI commands and Copilot prompts
+   ```
+
+7. **Test uninstall command:**
+   ```bash
+   ../dist/smaqit uninstall
+   # Type 'y' to confirm
+   # Verify: .smaqit/ and .github/ removed
+   ```
+
+8. **Clean up:**
+   ```bash
+   cd ..
+   rm -rf test/
+   ```
+
+### Pre-Release Testing Checklist
+
+Before creating a release:
+
+- [ ] Build for all platforms: `make build-all`
+- [ ] Test init/status/validate/help/uninstall on current platform
+- [ ] Verify version embedding: `dist/smaqit version` matches git tag
+- [ ] Check embedded files count: init should create 14+ files in `.smaqit/`
+- [ ] Validate clean uninstall: no residual files after uninstall
+
+### Testing Philosophy
+
+- **Always test in `installer/test/`** to avoid polluting the repo
+- **Clean up after tests** to prevent accidental commits of test artifacts
+- **Build before testing** to ensure latest changes are included
+- **Test all commands** even if only one changed (regression prevention)

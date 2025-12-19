@@ -31,7 +31,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 ## Output
 
-**Location:** `.smaqit/specs/[LAYER]/`
+**Location:** `specs/[LAYER]/`
 
 **Template:** `templates/specs/[LAYER].template.md`
 

@@ -4,10 +4,11 @@
 
 | ID | Title | Status |
 |----|-------|--------|
-| 001 | Create smaq commands file | new |
-| 012 | Create cross-platform Go installer build system | new |
+| 001 | Create Copilot prompt files | new |
 | 014 | Define iterative development using smaqit | new |
 | 015 | Refine installation approach | new |
+| 022 | Create GitHub Action for automated releases | new |
+| 023 | Implement installer CLI | new |
 
 ## Completed
 
@@ -30,6 +31,7 @@
 | 019 | Build stack spec template |
 | 020 | Build infrastructure spec template |
 | 021 | Build coverage spec template |
+| 012 | Create cross-platform Go installer build system |
 
 ## Backlog
 

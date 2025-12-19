@@ -11,9 +11,18 @@ LDFLAGS = -ldflags "-X main.Version=$(VERSION)"
 # Platform targets
 PLATFORMS = linux_amd64 darwin_amd64 darwin_arm64 windows_amd64
 
+# Copy embedded files (required for go:embed at compile time)
+.PHONY: prepare
+prepare:
+	@echo "Copying embedded files..."
+	@cp -r ../framework .
+	@mkdir -p templates
+	@cp -r ../templates/specs templates/
+	@cp -r ../agents .
+
 # Default target: build for current platform
 .PHONY: build
-build:
+build: prepare
 	@echo "Building $(BINARY_NAME) version $(VERSION) for current platform..."
 	@mkdir -p $(DIST_DIR)
 	@go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME) .
@@ -21,7 +30,7 @@ build:
 
 # Build for all platforms
 .PHONY: build-all
-build-all: $(PLATFORMS)
+build-all: prepare $(PLATFORMS)
 
 # Platform-specific builds
 .PHONY: linux_amd64
@@ -58,6 +67,10 @@ version:
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(DIST_DIR)
+	@rm -rf framework/
+	@rm -rf templates/
+	@rm -rf agents/
+	@rm -rf test/
 	@echo "Done."
 
 # Install to local bin (requires GOPATH or GOBIN set)

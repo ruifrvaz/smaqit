@@ -54,7 +54,7 @@ Translate user inputs into precise, testable specifications for a single layer.
 Each layer receives its own user input. Upstream layers provide context for coherence, not requirements. When user input would create incoherence with existing specs, agents MUST flag the conflict rather than silently override.
 
 ### Output
-- Specification documents in `.smaqit/specs/{layer}/`
+- Specification documents in `specs/{layer}/`
 - Documents MUST follow `templates/{layer}.template.md`
 
 ### Directives

@@ -26,14 +26,14 @@ Specification agent for the Functional layer. Translates user input into precise
 - Domain-specific constraints or business rules
 
 **Upstream Specifications (for traceability and coherence):**
-- `.smaqit/specs/business/*.md` — Business layer specifications
+- `specs/business/*.md` — Business layer specifications
 
 **Conflict Resolution:**
 When user input conflicts with upstream specs, flag the conflict rather than silently override.
 
 ## Output
 
-**Location:** `.smaqit/specs/functional/`
+**Location:** `specs/functional/`
 
 **Template:** `templates/specs/functional.template.md`
 

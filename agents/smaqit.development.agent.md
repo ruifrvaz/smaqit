@@ -23,9 +23,9 @@ Consumes business, functional, and stack specifications to produce a working, te
 ## Input
 
 **Upstream Specifications:**
-- `.smaqit/specs/business/*.md` — Business layer specifications
-- `.smaqit/specs/functional/*.md` — Functional layer specifications
-- `.smaqit/specs/stack/*.md` — Stack layer specifications
+- `specs/business/*.md` — Business layer specifications
+- `specs/functional/*.md` — Functional layer specifications
+- `specs/stack/*.md` — Stack layer specifications
 
 **User Input:**
 - Existing codebase (if present)

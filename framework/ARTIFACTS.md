@@ -14,7 +14,8 @@ Specifications are the source of truth in Spec Driven Development. They serve as
 
 ### Purpose
 
-- **Upstream → Downstream**: Each spec informs the next layer's work
+- **User Input → Spec**: Each layer receives requirements directly from user input
+- **Upstream Specs → Context**: Adjacent layer specs provide traceability and context, not requirements
 - **Spec → Implementation**: Implementation agents consume specs as requirements, not suggestions
 - **Spec → Validation**: Coverage specs translate requirements into verifiable tests
 
@@ -156,7 +157,7 @@ Orphaned foundations (no references, no justification) should be flagged by Cove
 
 **Rules:**
 - Every spec (except Business) MUST have a References section
-- References MUST use relative paths within `.smaqit/specs/`
+- References MUST use relative paths within `specs/`
 - References provide context for coherence, not requirements
 - Implementation agents validate cross-layer coherence
 
@@ -211,7 +212,7 @@ Feature: Authentication Token
 
 **Directory Structure:**
 ```
-.smaqit/specs/
+specs/
 ├── business/
 ├── functional/
 ├── stack/

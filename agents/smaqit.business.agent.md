@@ -33,7 +33,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 ## Output
 
-**Location:** `.smaqit/specs/business/`
+**Location:** `specs/business/`
 
 **Template:** `templates/specs/business.template.md`
 

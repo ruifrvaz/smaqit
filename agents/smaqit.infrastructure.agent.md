@@ -34,9 +34,9 @@ Specification agent for the Infrastructure layer. Translates user input into pre
 | Integration points | Existing systems to connect with |
 
 **Upstream Specifications (for traceability and coherence):**
-- `.smaqit/specs/business/` — Compliance requirements, availability SLAs
-- `.smaqit/specs/functional/` — API constraints, rate limits, data retention policies
-- `.smaqit/specs/stack/` — Runtime requirements, technology choices
+- `specs/business/` — Compliance requirements, availability SLAs
+- `specs/functional/` — API constraints, rate limits, data retention policies
+- `specs/stack/` — Runtime requirements, technology choices
 
 **Pre-condition:**
 Before producing output, verify coherence across all inputs. Stop and report if inconsistencies are detected (Fail-Fast on Inconsistency).
@@ -46,7 +46,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 ## Output
 
-**Location:** `.smaqit/specs/infrastructure/`
+**Location:** `specs/infrastructure/`
 
 **Template:** `templates/specs/infrastructure.template.md`
 

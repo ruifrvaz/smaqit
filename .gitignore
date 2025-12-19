@@ -5,3 +5,8 @@ tasks/*.md
 
 # Build artifacts
 installer/dist/
+
+# Embedded copies (installer needs local copies for go:embed)
+installer/framework/
+installer/templates/
+installer/agents/

@@ -23,7 +23,7 @@ Validates that the deployed system satisfies all specification requirements by e
 ## Input
 
 **Upstream Specifications:**
-- `.smaqit/specs/coverage/*.md` — Test definitions mapped to acceptance criteria
+- `specs/coverage/*.md` — Test definitions mapped to acceptance criteria
 
 **User Input:**
 - Deployed system endpoints and access information

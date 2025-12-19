@@ -26,15 +26,15 @@ Specification agent for the Stack layer. Translates user input into precise, tes
 - Build and development environment requirements
 
 **Upstream Specifications (for traceability and coherence):**
-- `.smaqit/specs/business/*.md` — Business layer specifications
-- `.smaqit/specs/functional/*.md` — Functional layer specifications
+- `specs/business/*.md` — Business layer specifications
+- `specs/functional/*.md` — Functional layer specifications
 
 **Conflict Resolution:**
 When user input conflicts with upstream specs, flag the conflict rather than silently override.
 
 ## Output
 
-**Location:** `.smaqit/specs/stack/`
+**Location:** `specs/stack/`
 
 **Template:** `templates/specs/stack.template.md`
 

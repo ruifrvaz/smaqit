@@ -27,17 +27,17 @@ Specification agent for the Coverage layer. Translates user input into precise, 
 - Integration points requiring verification
 
 **Upstream Specifications (for traceability and coherence):**
-- `.smaqit/specs/business/` — Use cases, actors, business goals
-- `.smaqit/specs/functional/` — Behaviors, contracts, data models
-- `.smaqit/specs/stack/` — Technology choices, runtime requirements
-- `.smaqit/specs/infrastructure/` — Deployment topology, scaling policies
+- `specs/business/` — Use cases, actors, business goals
+- `specs/functional/` — Behaviors, contracts, data models
+- `specs/stack/` — Technology choices, runtime requirements
+- `specs/infrastructure/` — Deployment topology, scaling policies
 
 **Conflict Resolution:**
 When user input conflicts with upstream specs, flag the conflict rather than silently override.
 
 ## Output
 
-**Location:** `.smaqit/specs/coverage/`
+**Location:** `specs/coverage/`
 
 **Template:** `templates/specs/coverage.template.md`
 

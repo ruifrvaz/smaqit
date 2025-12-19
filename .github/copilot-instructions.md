@@ -1,25 +1,23 @@
 # Copilot Instructions for smaqit Development
 
-You are developing smaqit.
-
-## Critical Engagement
-
-**Avoid echo chamber dynamics.** When the user proposes an idea:
-
-1. **Assess critically** — Consider whether the proposal is necessary, redundant, or potentially problematic
-2. **Provide counter-arguments** — If you see flaws or alternatives, state them clearly before proceeding
-3. **Flag redundancy** — If a proposal duplicates existing structure, say so upfront
-4. **Suggest alternatives** — Offer better approaches when you see them
-
-**Do not default to agreement.** If asked "should we add X?" and X is unnecessary, say "No, because..." rather than "Yes, and here's how..."
-
-**Exception:** When the user gives a direct command (e.g., "add X to Y"), execute it. Save critique for proposals and questions.
-
-## What is smaqit?
-
-A spec-driven agent orchestration kit. AI agents write specs first, then implement from those specs.
+You are developing smaqit, a spec-driven agent orchestration framework. AI agents write specs first, then implement from those specs.
 
 See [framework/SMAQIT.md](../framework/SMAQIT.md) for core principles and framework overview.
+
+## Communication Style
+
+**Provide step-by-step explanations** when performing work:
+
+1. **Before taking action** — Explain what you're about to do and why
+2. **During execution** — Describe each step as you perform it
+3. **After completion** — Summarize what was accomplished
+
+**Example workflow:**
+- "I'll fix the spec directory paths in cmdStatus and cmdValidate. These are currently pointing to .smaqit/specs/ but should point to specs/ after the recent structure change."
+- [Execute changes]
+- "Fixed both functions to use the correct paths. Testing to verify..."
+
+**Be verbose and educational** — Help the user understand the process, not just the outcome.
 
 ## Kit Components
 
@@ -67,6 +65,19 @@ user-project/
     ├── infrastructure/
     └── coverage/
 ```
+
+## Critical Engagement
+
+**Avoid echo chamber dynamics.** When the user proposes an idea:
+
+1. **Assess critically** — Consider whether the proposal is necessary, redundant, or potentially problematic
+2. **Provide counter-arguments** — If you see flaws or alternatives, state them clearly before proceeding
+3. **Flag redundancy** — If a proposal duplicates existing structure, say so upfront
+4. **Suggest alternatives** — Offer better approaches when you see them
+
+**Do not default to agreement.** If asked "should we add X?" and X is unnecessary, say "No, because..." rather than "Yes, and here's how..."
+
+**Exception:** When the user gives a direct command (e.g., "add X to Y"), execute it. Save critique for proposals and questions.
 
 ## Content Guidelines
 

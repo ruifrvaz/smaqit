@@ -8,9 +8,6 @@ BINARY_NAME = smaqit
 DIST_DIR = dist
 LDFLAGS = -ldflags "-X main.Version=$(VERSION)"
 
-# Platform targets
-PLATFORMS = linux_amd64 darwin_amd64 darwin_arm64 windows_amd64
-
 # Copy embedded files (required for go:embed at compile time)
 .PHONY: prepare
 prepare:
@@ -30,69 +27,100 @@ build: prepare
 
 # Build for all platforms
 .PHONY: build-all
-build-all: prepare $(PLATFORMS)
-
-# Platform-specific builds
-.PHONY: linux_amd64
-linux_amd64:
+build-all: prepare
+	@echo "Building for all platforms..."
+	@mkdir -p $(DIST_DIR)
 	@echo "Building for linux/amd64..."
-	@mkdir -p $(DIST_DIR)
 	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME)_linux_amd64 .
-
-.PHONY: darwin_amd64
-darwin_amd64:
 	@echo "Building for darwin/amd64..."
-	@mkdir -p $(DIST_DIR)
 	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME)_darwin_amd64 .
-
-.PHONY: darwin_arm64
-darwin_arm64:
 	@echo "Building for darwin/arm64..."
-	@mkdir -p $(DIST_DIR)
 	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME)_darwin_arm64 .
-
-.PHONY: windows_amd64
-windows_amd64:
 	@echo "Building for windows/amd64..."
-	@mkdir -p $(DIST_DIR)
 	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME)_windows_amd64.exe .
+	@echo "✓ Built all platforms"
 
 # Show version that would be built
 .PHONY: version
 version:
 	@echo "$(VERSION)"
 
-# Clean build artifacts
-.PHONY: clean
-clean:
-	@echo "Cleaning build artifacts..."
-	@rm -rf $(DIST_DIR)
-	@rm -rf framework/
-	@rm -rf templates/
-	@rm -rf agents/
-	@rm -rf test/
-	@echo "Done."
-
-# Install to local bin (requires GOPATH or GOBIN set)
+# Install to local bin
 .PHONY: install
 install: build
-	@echo "Installing $(BINARY_NAME) to $$GOPATH/bin..."
-	@cp $(DIST_DIR)/$(BINARY_NAME) $$GOPATH/bin/$(BINARY_NAME)
-	@echo "Installed: $$GOPATH/bin/$(BINARY_NAME)"
+	@if [ -n "$$GOPATH" ]; then \
+		echo "Installing $(BINARY_NAME) to $$GOPATH/bin..."; \
+		mkdir -p $$GOPATH/bin; \
+		cp $(DIST_DIR)/$(BINARY_NAME) $$GOPATH/bin/$(BINARY_NAME); \
+		echo "✓ Installed: $$GOPATH/bin/$(BINARY_NAME)"; \
+	elif [ -d "$$HOME/.local/bin" ]; then \
+		echo "Installing $(BINARY_NAME) to ~/.local/bin..."; \
+		cp $(DIST_DIR)/$(BINARY_NAME) $$HOME/.local/bin/$(BINARY_NAME); \
+		echo "✓ Installed: ~/.local/bin/$(BINARY_NAME)"; \
+		if ! echo $$PATH | grep -q "$$HOME/.local/bin"; then \
+			echo "⚠ ~/.local/bin is not in your PATH"; \
+			echo "  Add this to your ~/.bashrc or ~/.zshrc:"; \
+			echo "  export PATH=\"\$$HOME/.local/bin:\$$PATH\""; \
+		fi; \
+	else \
+		echo "Installing $(BINARY_NAME) to ~/.local/bin..."; \
+		mkdir -p $$HOME/.local/bin; \
+		cp $(DIST_DIR)/$(BINARY_NAME) $$HOME/.local/bin/$(BINARY_NAME); \
+		echo "✓ Installed: ~/.local/bin/$(BINARY_NAME)"; \
+		echo "⚠ ~/.local/bin is not in your PATH"; \
+		echo "  Add this to your ~/.bashrc or ~/.zshrc:"; \
+		echo "  export PATH=\"\$$HOME/.local/bin:\$$PATH\""; \
+	fi
+
+# Uninstall from local bin
+.PHONY: uninstall
+uninstall:
+	@if [ -n "$$GOPATH" ] && [ -f "$$GOPATH/bin/$(BINARY_NAME)" ]; then \
+		rm $$GOPATH/bin/$(BINARY_NAME); \
+		echo "✓ Removed: $$GOPATH/bin/$(BINARY_NAME)"; \
+	elif [ -f "$$HOME/.local/bin/$(BINARY_NAME)" ]; then \
+		rm $$HOME/.local/bin/$(BINARY_NAME); \
+		echo "✓ Removed: ~/.local/bin/$(BINARY_NAME)"; \
+	else \
+		echo "$(BINARY_NAME) not found in PATH locations"; \
+	fi; \
+	if grep -q 'HOME/.local/bin.*PATH' $$HOME/.bashrc 2>/dev/null; then \
+		printf "\nAlso remove PATH export from ~/.bashrc? [y/N]: "; \
+		read response; \
+		case "$$response" in \
+			[yY]|[yY][eE][sS]) \
+				grep -v 'HOME/.local/bin.*PATH' $$HOME/.bashrc > $$HOME/.bashrc.tmp && \
+				mv $$HOME/.bashrc.tmp $$HOME/.bashrc && \
+				echo "✓ Removed PATH export from ~/.bashrc" && \
+				echo "ℹ Run 'source ~/.bashrc' to apply changes"; \
+				;; \
+			*) \
+				echo "✓ Kept PATH export in ~/.bashrc"; \
+				;; \
+		esac; \
+	fi; \
+	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "agents" ] || [ -d "test" ]; then \
+		printf "\nAlso clean build artifacts (dist/, embedded files, test/)? [y/N]: "; \
+		read clean_response; \
+		case "$$clean_response" in \
+			[yY]|[yY][eE][sS]) \
+				rm -rf $(DIST_DIR) framework/ templates/ agents/ test/; \
+				echo "✓ Cleaned build artifacts"; \
+				;; \
+			*) \
+				echo "✓ Kept build artifacts"; \
+				;; \
+		esac; \
+	fi
 
 # Help
-.PHONY: help
 help:
 	@echo "smaqit installer build targets:"
 	@echo ""
-	@echo "  make build          - Build for current platform"
-	@echo "  make build-all      - Build for all platforms"
-	@echo "  make linux_amd64    - Build for Linux (amd64)"
-	@echo "  make darwin_amd64   - Build for macOS Intel (amd64)"
-	@echo "  make darwin_arm64   - Build for macOS Apple Silicon (arm64)"
-	@echo "  make windows_amd64  - Build for Windows (amd64)"
-	@echo "  make version        - Show version that would be built"
-	@echo "  make clean          - Remove build artifacts"
-	@echo "  make install        - Install to GOPATH/bin"
+	@echo "  make build      - Build for current platform"
+	@echo "  make build-all  - Build for all platforms (Linux, macOS, Windows)"
+	@echo "  make install    - Build and install to ~/.local/bin (adds to PATH if needed)"
+	@echo "  make uninstall  - Remove binary (prompts for PATH and artifact cleanup)"
+	@echo "  make version    - Show version that will be built"
 	@echo ""
 	@echo "Current version: $(VERSION)"

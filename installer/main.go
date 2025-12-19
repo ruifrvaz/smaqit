@@ -177,7 +177,7 @@ func cmdInit(targetDir string) {
 	fmt.Println("✓ Copied framework files")
 	fmt.Println("✓ Copied templates")
 	fmt.Println("✓ Copied agent definitions")
-	fmt.Println("✓ Initialized smaqit %s\n\n", Version)
+	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
 	fmt.Println("  2. Type '/smaqit.develop' to start the development phase")
@@ -230,7 +230,6 @@ func cmdUninstall() {
 	// Prompt for confirmation
 	fmt.Println("This will remove:")
 	fmt.Println("  • .smaqit/")
-	fmt.Println("  • specs/")
 	fmt.Println("  • .github/agents/")
 	fmt.Println("  • .github/prompts/")
 	fmt.Print("\nContinue? [y/N]: ")
@@ -244,6 +243,16 @@ func cmdUninstall() {
 		os.Exit(0)
 	}
 
+	// Ask about specs directory
+	removeSpecs := false
+	if _, err := os.Stat("specs"); err == nil {
+		fmt.Print("\nAlso remove specs/ directory (contains your specifications)? [y/N]: ")
+		var specsResponse string
+		fmt.Scanln(&specsResponse)
+		specsResponse = strings.ToLower(strings.TrimSpace(specsResponse))
+		removeSpecs = (specsResponse == "y" || specsResponse == "yes")
+	}
+
 	// Remove directories
 	errors := 0
 
@@ -254,11 +263,15 @@ func cmdUninstall() {
 		fmt.Println("✓ Removed .smaqit/")
 	}
 
-	if err := os.RemoveAll("specs"); err != nil && !os.IsNotExist(err) {
-		fmt.Printf("Error removing specs/: %v\n", err)
-		errors++
+	if removeSpecs {
+		if err := os.RemoveAll("specs"); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("Error removing specs/: %v\n", err)
+			errors++
+		} else {
+			fmt.Println("✓ Removed specs/")
+		}
 	} else {
-		fmt.Println("✓ Removed specs/")
+		fmt.Println("✓ Kept specs/ (user specifications)")
 	}
 
 	if err := os.RemoveAll(filepath.Join(".github", "agents")); err != nil && !os.IsNotExist(err) {
@@ -289,18 +302,6 @@ func cmdUninstall() {
 	} else {
 		fmt.Println("\n✓ Uninstall complete")
 	}
-}
-
-func cmdDevelop() {
-	fmt.Println("The 'develop' command has been moved to GitHub Copilot prompts.")
-	fmt.Println("Type '/smaqit.develop' in GitHub Copilot chat to run the develop phase.")
-	os.Exit(1)
-}
-
-func cmdDeploy() {
-	fmt.Println("The 'deploy' command has been moved to GitHub Copilot prompts.")
-	fmt.Println("Type '/smaqit.deploy' in GitHub Copilot chat to run the deploy phase.")
-	os.Exit(1)
 }
 
 func cmdValidate() {
@@ -358,7 +359,7 @@ func cmdValidate() {
 	// Validate spec files (basic checks)
 	layers := []string{"business", "functional", "stack", "infrastructure", "coverage"}
 	for _, layer := range layers {
-		specDir := filepath.Join(".smaqit", "specs", layer)
+		specDir := filepath.Join("specs", layer)
 		entries, err := os.ReadDir(specDir)
 		if err != nil {
 			continue
@@ -446,7 +447,7 @@ func cmdStatus() {
 	totalSpecs := 0
 
 	for _, layer := range layers {
-		specDir := filepath.Join(".smaqit", "specs", layer)
+		specDir := filepath.Join("specs", layer)
 		entries, err := os.ReadDir(specDir)
 		if err != nil {
 			layerCounts[layer] = 0
@@ -498,11 +499,11 @@ func cmdStatus() {
 
 	fmt.Println("\nNext steps:")
 	if !hasPhase1 {
-		fmt.Println("  • Type '/develop' in GitHub Copilot chat to start Phase 1")
+		fmt.Println("  • Type '/smaqit.develop' in GitHub Copilot chat to start Phase 1")
 	} else if !hasPhase2 {
-		fmt.Println("  • Type '/deploy' in GitHub Copilot chat to start Phase 2")
+		fmt.Println("  • Type '/smaqit.deploy' in GitHub Copilot chat to start Phase 2")
 	} else if !hasPhase3 {
-		fmt.Println("  • Type '/validate' in GitHub Copilot chat to start Phase 3")
+		fmt.Println("  • Type '/smaqit.validate' in GitHub Copilot chat to start Phase 3")
 	} else {
 		fmt.Println("  • All phases have specs. Review and iterate as needed.")
 	}

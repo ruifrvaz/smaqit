@@ -68,7 +68,7 @@ user-project/
 
 ## Do Not Default to Agreement
 
-When the user proposes an idea or gives a direct command:
+When the user proposes an action or gives a direct command:
 
 - **Assess critically** — Consider whether the proposal is necessary, redundant, or potentially problematic
 - **Provide counter-arguments** — If you see flaws or alternatives, state them clearly before proceeding
@@ -122,6 +122,31 @@ Location: `agents/`
 Agent definitions are the actual agents that consume templates and produce artifacts.
 
 When creating or refactoring agents, use the appropriate agent template from `templates/agents/` to ensure consistency.
+
+### When Editing Prompts
+
+Location: `prompts/`
+
+Prompt files (`.prompt.md`) are user-facing interfaces to invoke smaqit workflows via GitHub Copilot chat.
+
+**Structure:**
+- YAML frontmatter: `name`, `description`, `agent` (for layer prompts), `tools`
+- Input variables: `${input:variableName:placeholder}` for user requirements
+- Framework references: Use relative paths (`../framework/`)
+- Instructions: Natural language guidance for agent invocation
+
+**Prompt types:**
+- **Layer prompts** (5) — Single agent invocation with user input collection (business, functional, stack, infrastructure, coverage)
+- **Phase prompts** (3) — Multi-agent orchestration with sequential workflow (develop, deploy, validate)
+
+**When to edit:**
+- Changing input collection pattern or prompt structure
+- Adding error handling or validation logic to orchestration
+- Updating framework references or context provided to agents
+
+**When NOT to edit:**
+- Changing agent behavior (edit the agent definition in `agents/` instead)
+- Modifying specification structure (edit templates in `templates/specs/` instead)
 
 ### When Editing Framework Files
 
@@ -322,3 +347,49 @@ Before creating a release:
 - **Clean up after tests** to prevent accidental commits of test artifacts
 - **Build before testing** to ensure latest changes are included
 - **Test all commands** even if only one changed (regression prevention)
+
+### User Testing Agent
+
+**Purpose:** End-to-end validation of smaqit workflows from user perspective.
+
+**Agent:** `@smaqit.user-testing` (development agent for this project, NOT shipped to users)
+
+**Location:** `.github/agents/smaqit.user-testing.agent.md` (smaqit repo only)
+
+**What it does:**
+1. Builds installer from source
+2. Initializes test project
+3. Invokes all layer prompts with standardized test case (Mario hello world)
+4. Validates spec outputs minimally (file existence only)
+5. Continues on failures to collect comprehensive results
+6. Generates detailed report with standardized checklist
+7. Cleans up test artifacts
+
+**When to use:**
+- Before releases (validate complete workflow)
+- After framework changes (ensure no regressions)
+- After template updates (verify agents still work)
+- After prompt modifications (test orchestration)
+- To document painpoints for iteration
+
+**Test Case:** Mario Hello World Console Application
+- Standardized, domain-agnostic test feature
+- Exercises all 5 specification layers
+- Pre-defined requirements in `docs/test-cases/mario-hello.md`
+
+**Report Location:** `docs/user-testing/YYYY-MM-DD_test-report.md`
+
+**Report Contents:**
+- Environment information (OS, Go version, smaqit version)
+- Standardized checklist (pass/fail per validation point)
+- Execution log (timestamped steps)
+- Painpoints identified (blockers, issues, UX friction, performance)
+- Recommendations for improvements
+- Overall result (PASS/FAIL)
+
+**Invocation:**
+```
+User: @smaqit.user-testing run end-to-end test
+```
+
+The agent handles everything automatically and generates a comprehensive report.

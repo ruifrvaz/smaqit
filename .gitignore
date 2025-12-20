@@ -10,3 +10,4 @@ installer/dist/
 installer/framework/
 installer/templates/
 installer/agents/
+installer/prompts/

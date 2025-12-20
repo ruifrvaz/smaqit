@@ -16,6 +16,7 @@ prepare:
 	@mkdir -p templates
 	@cp -r ../templates/specs templates/
 	@cp -r ../agents .
+	@cp -r ../prompts .
 
 # Default target: build for current platform
 .PHONY: build
@@ -96,12 +97,12 @@ uninstall:
 				;; \
 		esac; \
 	fi; \
-	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "agents" ] || [ -d "test" ]; then \
+	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "agents" ] || [ -d "prompts" ] || [ -d "test" ]; then \
 		printf "\nAlso clean build artifacts (dist/, embedded files, test/)? [y/N]: "; \
 		read clean_response; \
 		case "$$clean_response" in \
 			[yY]|[yY][eE][sS]) \
-				rm -rf $(DIST_DIR) framework/ templates/ agents/ test/; \
+				rm -rf $(DIST_DIR) framework/ templates/ agents/ prompts/ test/; \
 				echo "✓ Cleaned build artifacts"; \
 				;; \
 			*) \

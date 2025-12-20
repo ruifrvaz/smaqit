@@ -4,15 +4,16 @@
 
 | ID | Title | Status |
 |----|-------|--------|
-| 001 | Create Copilot prompt files | new |
 | 014 | Define iterative development using smaqit | new |
 | 015 | Investigate framework bundling at installation | new |
 | 022 | Create GitHub Action for automated releases | new |
+| 025 | Integrate testing agent with CI/CD | new |
 
 ## Completed
 
 | ID | Title |
 |----|-------|
+| 001 | Create Copilot prompt files |
 | 002 | Create specification agent template |
 | 003 | Create implementation agent template |
 | 004 | Refactor business agent with spec template |
@@ -32,6 +33,7 @@
 | 020 | Build infrastructure spec template |
 | 021 | Build coverage spec template |
 | 023 | Implement installer CLI |
+| 024 | Create smaqit user testing agent |
 
 ## Backlog
 

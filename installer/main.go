@@ -18,6 +18,9 @@ var templateFiles embed.FS
 //go:embed agents/*.md
 var agentFiles embed.FS
 
+//go:embed prompts/*.md
+var promptFiles embed.FS
+
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
 var Version = "dev"
 
@@ -139,6 +142,7 @@ func cmdInit(targetDir string) {
 		"specs/infrastructure",
 		"specs/coverage",
 		".github/agents",
+		".github/prompts",
 	}
 
 	for _, dir := range dirs {
@@ -166,6 +170,12 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
+	// Copy prompt files
+	if err := copyEmbeddedDir(promptFiles, "prompts", ".github/prompts"); err != nil {
+		fmt.Printf("Error copying prompt files: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Write version file
 	versionFile := filepath.Join(".smaqit", "VERSION")
 	if err := os.WriteFile(versionFile, []byte(Version+"\n"), 0644); err != nil {
@@ -177,6 +187,7 @@ func cmdInit(targetDir string) {
 	fmt.Println("✓ Copied framework files")
 	fmt.Println("✓ Copied templates")
 	fmt.Println("✓ Copied agent definitions")
+	fmt.Println("✓ Copied prompt files")
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")

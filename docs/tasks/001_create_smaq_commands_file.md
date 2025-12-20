@@ -1,7 +1,7 @@
 # Task: Create Copilot Prompt Files
 
 **ID**: 001
-**Status**: new
+**Status**: Completed
 
 ## Context
 
@@ -11,32 +11,32 @@ Create VS Code Copilot prompt files (`.prompt.md`) for smaqit phase and layer op
 
 ### Phase Prompts
 
-- [ ] Create `smaqit.develop.prompt.md` — Orchestrates business → functional → stack spec agents, then development agent
-- [ ] Create `smaqit.deploy.prompt.md` — Orchestrates infrastructure spec agent, then deployment agent
-- [ ] Create `smaqit.validate.prompt.md` — Orchestrates coverage spec agent, then validation agent
+- [x] Create `smaqit.develop.prompt.md` — Orchestrates business → functional → stack spec agents, then development agent
+- [x] Create `smaqit.deploy.prompt.md` — Orchestrates infrastructure spec agent, then deployment agent
+- [x] Create `smaqit.validate.prompt.md` — Orchestrates coverage spec agent, then validation agent
 
 ### Layer Prompts (Specification Agents)
 
-- [ ] Create `smaqit.business.prompt.md` — Invokes business agent with interactive prompts for stakeholder goals
-- [ ] Create `smaqit.functional.prompt.md` — Invokes functional agent with interactive prompts for experience requirements
-- [ ] Create `smaqit.stack.prompt.md` — Invokes stack agent with interactive prompts for technology preferences
-- [ ] Create `smaqit.infrastructure.prompt.md` — Invokes infrastructure agent with interactive prompts for deployment requirements
-- [ ] Create `smaqit.coverage.prompt.md` — Invokes coverage agent with interactive prompts for verification requirements
+- [x] Create `smaqit.business.prompt.md` — Invokes business agent with interactive prompts for stakeholder goals
+- [x] Create `smaqit.functional.prompt.md` — Invokes functional agent with interactive prompts for experience requirements
+- [x] Create `smaqit.stack.prompt.md` — Invokes stack agent with interactive prompts for technology preferences
+- [x] Create `smaqit.infrastructure.prompt.md` — Invokes infrastructure agent with interactive prompts for deployment requirements
+- [x] Create `smaqit.coverage.prompt.md` — Invokes coverage agent with interactive prompts for verification requirements
 
 ### Prompt File Structure
 
 Each prompt file MUST include:
 
-- [ ] YAML frontmatter with: `name`, `description`, `agent` (reference to corresponding `.agent.md`), `tools`
-- [ ] Interactive input variables using `${input:variableName:placeholder}` syntax for user input
-- [ ] Markdown body with clear instructions for the LLM
-- [ ] Reference to framework files using relative paths (e.g., `[SMAQIT.md](../../framework/SMAQIT.md)`)
+- [x] YAML frontmatter with: `name`, `description`, `agent` (reference to corresponding `.agent.md`), `tools`
+- [x] Interactive input variables using `${input:variableName:placeholder}` syntax for user input
+- [x] Markdown body with clear instructions for the LLM
+- [x] Reference to framework files using relative paths (e.g., `[SMAQIT.md](../../framework/SMAQIT.md)`)
 
 ### Integration
 
-- [ ] Prompts reference corresponding agents in `.github/agents/` via `agent` frontmatter field
-- [ ] Phase prompts orchestrate multiple agents in sequence
-- [ ] Layer prompts pass user input to agents as context
+- [x] Prompts reference corresponding agents in `.github/agents/` via `agent` frontmatter field
+- [x] Phase prompts orchestrate multiple agents in sequence
+- [x] Layer prompts pass user input to agents as context
 
 ## Notes
 

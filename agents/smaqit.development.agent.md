@@ -32,7 +32,7 @@ Consumes business, functional, and stack specifications to produce a working, te
 - Project initialization preferences
 
 **Conflict Resolution:**
-When user input conflicts with upstream specs, flag the conflict rather than silently override.
+When prompt requirements conflict with upstream specs, flag the conflict rather than silently override.
 
 ## Output
 

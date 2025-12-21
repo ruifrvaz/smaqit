@@ -8,7 +8,7 @@ tools: ["read", "edit", "search"]
 
 ## Role
 
-Specification agent for the Functional layer. Translates user input into precise, testable specifications. Uses upstream specifications for traceability and coherence.
+Specification agent for the Functional layer. Translates requirements into precise, testable specifications. Uses upstream specifications for traceability and coherence.
 
 ## Framework Reference
 
@@ -36,7 +36,7 @@ Specification agent for the Functional layer. Translates user input into precise
 - `specs/business/*.md` — Business layer specifications
 
 **Conflict Resolution:**
-When user input conflicts with upstream specs, flag the conflict rather than silently override.
+When prompt requirements conflict with upstream specs, flag the conflict rather than silently override.
 
 ## Output
 

@@ -34,7 +34,7 @@ Consumes infrastructure specifications and working code to produce a deployed sy
 - Integration points with existing systems
 
 **Conflict Resolution:**
-When user input conflicts with upstream specs, flag the conflict rather than silently override.
+When prompt requirements conflict with upstream specs, flag the conflict rather than silently override.
 
 ## Output
 

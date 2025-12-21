@@ -21,13 +21,33 @@ See [framework/SMAQIT.md](../framework/SMAQIT.md) for core principles and framew
 
 ## Kit Components
 
-- **Framework files** (`framework/`) — See [SMAQIT.md](../framework/SMAQIT.md) for index
+- **Framework files** (`framework/`) — Pure LLM execution instructions (see [SMAQIT.md](../framework/SMAQIT.md) for index)
+- **Wiki** (`docs/wiki/`) — Human-readable context and rationale (concepts, design-decisions, patterns, workflows)
 - **Specification templates** (`templates/specs/`) — Structure for spec documents per layer
 - **Prompt templates** (`templates/prompts/`) — Structure for prompt files
 - **Agent templates** (`templates/agents/`) — Structure for agent definitions
 - **Agents** (`agents/`) — GitHub Custom Agents (`.agent.md` format)
 - **Prompts** (`prompts/`) — Input record files (`.prompt.md` format)
 - **Installer** (`installer/`) — Go CLI that scaffolds smaqit into user projects
+
+## Documentation Structure
+
+**Framework files** (`framework/`) — For LLM agents only:
+- Pure execution instructions, no rationale or meta-explanations
+- Core principles, layer definitions, phase workflows, template rules
+- Agents consume these files directly
+
+**Wiki** (`docs/wiki/`) — For human developers:
+- `concepts/` — Core concepts explained with rationale
+- `design-decisions/` — Why we chose these patterns
+- `patterns/` — Common usage patterns and conventions
+- `workflows/` — Step-by-step processes for common tasks
+- Provides context that framework files omit
+
+**README** — For users and contributors:
+- Project overview, installation, usage
+- Architecture overview and team alignment
+- Framework evolution and contribution guidelines
 
 ## Source vs Artifacts
 
@@ -50,6 +70,7 @@ smaqit/
 ├── prompts/*.prompt.md       # Prompt files (8)
 ├── installer/main.go         # CLI tool
 ├── docs/
+│   ├── wiki/                 # Human-readable rationale
 │   ├── history/              # Session logs (meta)
 │   └── tasks/                # Work items (meta)
 └── README.md                 # User docs

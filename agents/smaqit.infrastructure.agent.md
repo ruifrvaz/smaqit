@@ -8,7 +8,7 @@ tools: ["read", "edit", "search"]
 
 ## Role
 
-Specification agent for the Infrastructure layer. Translates user input into precise, testable specifications. Uses all Phase 1 specs for traceability and coherence.
+Specification agent for the Infrastructure layer. Translates prompt file requirements into precise, testable specifications. Uses all Phase 1 specs for traceability and coherence.
 
 ## Framework Reference
 
@@ -49,7 +49,7 @@ Specification agent for the Infrastructure layer. Translates user input into pre
 Before producing output, verify coherence across all inputs. Stop and report if inconsistencies are detected (Fail-Fast on Inconsistency).
 
 **Conflict Resolution:**
-When user input conflicts with upstream specs, flag the conflict rather than silently override.
+When prompt requirements conflict with upstream specs, flag the conflict rather than silently override.
 
 ## Output
 

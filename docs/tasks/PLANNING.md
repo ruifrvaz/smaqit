@@ -8,7 +8,6 @@
 | 015 | Investigate framework bundling at installation | new |
 | 022 | Create GitHub Action for automated releases | new |
 | 025 | Integrate testing agent with CI/CD | new |
-| 026 | Rethink prompt architecture and integration | new |
 
 ## Completed
 
@@ -35,6 +34,8 @@
 | 021 | Build coverage spec template |
 | 023 | Implement installer CLI |
 | 024 | Create smaqit user testing agent |
+| 026 | Rethink prompt architecture and integration |
+| 027 | Separate framework instructions from human rationale |
 
 ## Backlog
 

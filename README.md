@@ -153,11 +153,14 @@ build.bat build           # Windows
 # Show version that would be built
 make version
 
-# Clean build artifacts
-make clean
-
-# Install to GOPATH/bin
+# Install to ~/.local/bin (adds to PATH if needed)
 make install
+
+# Remove binary (prompts for PATH and artifact cleanup)
+make uninstall
+
+# See all available targets
+make help
 ```
 
 ## License

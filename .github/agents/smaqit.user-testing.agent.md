@@ -49,14 +49,12 @@ User perspective testing agent that orchestrates complete smaqit workflows from 
 
 2. **Build installer**
    - Navigate to `installer/` directory
-   - Execute `make clean` to remove old artifacts
-   - Execute `make prepare` to copy embedded files
-   - Execute `make build` to compile installer
+   - Execute `make build` to compile installer (includes prepare step)
    - Verify binary exists in `dist/`
    - Record build outcome in checklist
 
 3. **Create test project**
-   - Create temporary test directory (e.g., `/tmp/smaqit-test-mario-hello-TIMESTAMP`)
+   - Create test directory: `installer/test/mario-hello/`
    - Record test project path in report
 
 ### Phase 2: Project Initialization
@@ -132,7 +130,7 @@ User perspective testing agent that orchestrates complete smaqit workflows from 
     - Save report to `docs/user-testing/YYYY-MM-DD_test-report.md`
 
 13. **Clean up test artifacts**
-    - Remove test project directory completely
+    - Remove `installer/test/` directory completely
     - Verify no residual artifacts in smaqit source directory
     - Record cleanup outcome in checklist
 

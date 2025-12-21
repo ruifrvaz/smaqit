@@ -2,49 +2,51 @@
 name: smaqit.infrastructure
 description: Create infrastructure layer specifications from deployment requirements
 agent: smaqit.infrastructure
-tools: ["read", "edit", "search"]
 ---
 
-# Infrastructure Specification Prompt
+# Infrastructure Prompt
 
-You are creating infrastructure layer specifications for the smaqit framework. This layer defines **where** the system runs—the compute resources, networking, observability, and operational concerns for production deployment.
+This prompt captures infrastructure and deployment requirements for your project. These requirements will be used to generate infrastructure specifications.
 
-## Framework Context
+## Requirements
 
-Review these framework files to understand the Infrastructure layer requirements:
-- [Core Principles](../framework/SMAQIT.md)
-- [Infrastructure Layer Definition](../framework/LAYERS.md#infrastructure--where)
-- [Template Structure](../framework/TEMPLATES.md)
-- [Artifact Rules](../framework/ARTIFACTS.md)
+### Target Environment
+[Where will this system run?]
 
-## User Input
+<!-- Example: "Local development machine - no cloud deployment" -->
+<!-- Example: "Developer laptop (Windows/macOS/Linux)" -->
 
-Collect deployment and operational requirements:
+### Hosting Platform
+[What platform or infrastructure?]
 
-${input:infrastructureRequirements:Describe target environment, hosting platform, service topology, resource constraints, scaling needs, geographic constraints, and budget limits}
+<!-- Example: "Local execution - no hosting required" -->
 
-## Instructions
+### Service Topology
+[How is the system structured?]
 
-Once you have collected the infrastructure requirements:
+<!-- Example: "Single-file Python script - no services" -->
 
-1. Read all Phase 1 specifications (business, functional, stack) for context and runtime constraints
-2. Read the infrastructure specification template from `../templates/specs/infrastructure.template.md`
-3. Invoke the Infrastructure Agent (smaqit.infrastructure) to transform the requirements into structured specifications
-4. The agent will create specification files in `specs/infrastructure/` following the template
-5. Each specification MUST include:
-   - References to Phase 1 specs for traceability
-   - Compute resources and service topology
-   - Networking topology and security boundaries
-   - Observability setup (logging, metrics, tracing)
-   - Scaling policies and resource limits
-   - Secrets management approach
-   - Acceptance criteria with IDs in format `INF-[CONCEPT]-[NNN]`
+### Resource Constraints
+[What are the compute/memory/storage limits?]
 
-## Success Criteria
+<!-- Example: "Minimal - runs on any modern system with Python" -->
 
-Infrastructure specifications are complete when:
-- All compute, networking, and observability concerns are defined
-- Infrastructure is consistent with stack runtime requirements
-- Scaling and resource policies are clearly specified
-- All acceptance criteria have unique IDs and are testable
-- No business logic or functional behaviors are redefined (those belong in earlier layers)
+### Scaling Requirements
+[How should the system handle load?]
+
+<!-- Example: "No scaling needed - single execution per run" -->
+
+### Geographic Constraints
+[Are there location or data residency requirements?]
+
+<!-- Example: "No constraints - runs locally" -->
+
+### Budget Constraints
+[What are the cost limits?]
+
+<!-- Example: "$0 - no infrastructure costs" -->
+
+### Integration Points
+[What existing systems need to connect?]
+
+<!-- Example: "None - standalone application" -->

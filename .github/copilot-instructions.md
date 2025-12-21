@@ -152,6 +152,8 @@ Prompt files (`.prompt.md`) are input records that capture user requirements. Th
 **Prompt types:**
 
 - **Layer prompts** (5) — Capture requirements for specification layers (business, functional, stack, infrastructure, coverage)
+- **Phase prompts** (3) — Trigger phase implementation agents
+
 
 **When to edit:**
 

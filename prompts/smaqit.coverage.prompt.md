@@ -2,48 +2,45 @@
 name: smaqit.coverage
 description: Create coverage layer specifications from verification requirements
 agent: smaqit.coverage
-tools: ["read", "edit", "search"]
 ---
 
-# Coverage Specification Prompt
+# Coverage Prompt
 
-You are creating coverage layer specifications for the smaqit framework. This layer ensures **everything is verified**—all requirements from upstream layers are testable, traceable, and mapped to verification tests.
+This prompt captures verification and testing requirements for your project. These requirements will be used to generate coverage specifications.
 
-## Framework Context
+## Requirements
 
-Review these framework files to understand the Coverage layer requirements:
-- [Core Principles](../framework/SMAQIT.md)
-- [Coverage Layer Definition](../framework/LAYERS.md#coverage--whats-verified)
-- [Template Structure](../framework/TEMPLATES.md)
-- [Artifact Rules](../framework/ARTIFACTS.md)
+### Test Scope
+[What types of testing are needed?]
 
-## User Input
+<!-- Example: "Integration testing - verify greeting output" -->
+<!-- Example: "End-to-end testing - full application execution" -->
 
-Collect verification and testing requirements:
+### Performance Benchmarks
+[What are the performance requirements?]
 
-${input:coverageRequirements:Specify test scope, performance benchmarks, security requirements, test environment details, and integration points}
+<!-- Example: "Application completes in under 2 seconds" -->
+<!-- Example: "Memory usage under 10MB" -->
 
-## Instructions
+### Security Requirements
+[What security verifications are needed?]
 
-Once you have collected the coverage requirements:
+<!-- Example: "No user input - no injection vulnerabilities" -->
+<!-- Example: "Read-only file access for greeting data" -->
 
-1. Read ALL upstream specifications (business, functional, stack, infrastructure) for complete traceability
-2. Read the coverage specification template from `../templates/specs/coverage.template.md`
-3. Invoke the Coverage Agent (smaqit.coverage) to transform requirements into structured verification specifications
-4. The agent will create specification files in `specs/coverage/` following the template
-5. Each specification MUST include:
-   - References to all upstream layer specs
-   - Coverage map tracing: Requirement ID → Test Case ID → Expected Outcome
-   - Complete test definitions in Gherkin format (Integration, E2E, Performance, Security, Acceptance)
-   - Untestable criteria explicitly flagged with verification decision
-   - Coverage summary with spec coverage percentage calculation
-   - Acceptance criteria with IDs in format `COV-[CONCEPT]-[NNN]`
+### Test Environment
+[Where and how should tests run?]
 
-## Success Criteria
+<!-- Example: "GitHub Actions on push to main branch" -->
+<!-- Example: "Local test suite with pytest" -->
 
-Coverage specifications are complete when:
-- Every testable requirement from upstream specs is mapped to a test case
-- All test definitions are written in complete Gherkin format
-- Untestable criteria are identified with justification
-- Spec coverage percentage is calculated
-- No new requirements are added (all tests trace to existing upstream requirements)
+### Integration Points
+[What external systems need testing?]
+
+<!-- Example: "None - standalone application" -->
+
+### Acceptance Thresholds
+[What defines acceptable test results?]
+
+<!-- Example: "100% of acceptance criteria must pass" -->
+<!-- Example: "All integration tests green" -->

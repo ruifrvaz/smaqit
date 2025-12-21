@@ -2,48 +2,43 @@
 name: smaqit.stack
 description: Create stack layer specifications from technology preferences
 agent: smaqit.stack
-tools: ["read", "edit", "search"]
 ---
 
-# Stack Specification Prompt
+# Stack Prompt
 
-You are creating stack layer specifications for the smaqit framework. This layer defines **with what** the system will be built—the languages, frameworks, libraries, and tools that can deliver the specified behaviors.
+This prompt captures technology preferences and constraints for your project. These requirements will be used to generate stack specifications.
 
-## Framework Context
+## Requirements
 
-Review these framework files to understand the Stack layer requirements:
-- [Core Principles](../framework/SMAQIT.md)
-- [Stack Layer Definition](../framework/LAYERS.md#stack--with-what)
-- [Template Structure](../framework/TEMPLATES.md)
-- [Artifact Rules](../framework/ARTIFACTS.md)
+### Technology Preferences
+[What languages, frameworks, or tools do you prefer?]
 
-## User Input
+<!-- Example: "Python 3.11+ for simplicity and readability" -->
+<!-- Example: "No external dependencies - standard library only" -->
 
-Collect technology preferences and constraints:
+### Constraints
+[What are the technology limitations?]
 
-${input:stackRequirements:Specify preferred languages, frameworks, libraries, build tools, or technology constraints}
+<!-- Example: "Must run on Windows, macOS, and Linux" -->
+<!-- Example: "Target Python beginners - simple syntax" -->
 
-## Instructions
+### Build Tools
+[What build system or tooling do you need?]
 
-Once you have collected the stack requirements:
+<!-- Example: "Standard Python packaging - no special build tools" -->
 
-1. Read existing business and functional specifications from `specs/business/` and `specs/functional/` for context
-2. Read the stack specification template from `../templates/specs/stack.template.md`
-3. Invoke the Stack Agent (smaqit.stack) to transform the preferences into structured specifications
-4. The agent will create specification files in `specs/stack/` following the template
-5. Each specification MUST include:
-   - References to business and functional specs for traceability
-   - Technology choices with rationale (why each technology was selected)
-   - Language versions and framework versions
-   - Libraries and their purposes
-   - Build tools and development environment setup
-   - Acceptance criteria with IDs in format `STK-[CONCEPT]-[NNN]`
+### Development Environment
+[What development setup is required?]
 
-## Success Criteria
+<!-- Example: "Python 3.11+ interpreter" -->
+<!-- Example: "Text editor or IDE with Python support" -->
 
-Stack specifications are complete when:
-- All technology choices are documented with clear rationale
-- Versions are specified for languages and frameworks
-- Technology stack is consistent with functional requirements
-- All acceptance criteria have unique IDs and are testable
-- No deployment or infrastructure concerns are included (that's the Infrastructure layer)
+### Dependencies
+[What libraries or packages are needed?]
+
+<!-- Example: "None - use only Python standard library" -->
+
+### Rationale
+[Why these technology choices?]
+
+<!-- Example: "Python for accessibility, standard library for simplicity" -->

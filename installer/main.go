@@ -15,6 +15,9 @@ var frameworkFiles embed.FS
 //go:embed templates/specs/*.md
 var templateFiles embed.FS
 
+//go:embed templates/prompts/*.md
+var promptTemplateFiles embed.FS
+
 //go:embed agents/*.md
 var agentFiles embed.FS
 
@@ -136,6 +139,7 @@ func cmdInit(targetDir string) {
 	dirs := []string{
 		".smaqit/framework",
 		".smaqit/templates/specs",
+		".smaqit/templates/prompts",
 		"specs/business",
 		"specs/functional",
 		"specs/stack",
@@ -161,6 +165,12 @@ func cmdInit(targetDir string) {
 	// Copy spec templates
 	if err := copyEmbeddedDir(templateFiles, "templates/specs", ".smaqit/templates/specs"); err != nil {
 		fmt.Printf("Error copying spec templates: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Copy prompt templates
+	if err := copyEmbeddedDir(promptTemplateFiles, "templates/prompts", ".smaqit/templates/prompts"); err != nil {
+		fmt.Printf("Error copying prompt templates: %v\n", err)
 		os.Exit(1)
 	}
 

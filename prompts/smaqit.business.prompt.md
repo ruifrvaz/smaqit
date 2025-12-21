@@ -2,45 +2,39 @@
 name: smaqit.business
 description: Create business layer specifications from stakeholder requirements
 agent: smaqit.business
-tools: ["read", "edit", "search"]
 ---
 
-# Business Specification Prompt
+# Business Prompt
 
-You are creating business layer specifications for the smaqit framework. This is the first layer that defines **why** the system exists and **what success looks like** from a business perspective.
+This prompt captures business requirements for your project. These requirements will be used to generate business specifications.
 
-## Framework Context
+## Requirements
 
-Review these framework files to understand the Business layer requirements:
-- [Core Principles](../framework/SMAQIT.md)
-- [Business Layer Definition](../framework/LAYERS.md#business--why)
-- [Template Structure](../framework/TEMPLATES.md)
-- [Artifact Rules](../framework/ARTIFACTS.md)
+### Actors
+[Who interacts with the system?]
 
-## User Input
+<!-- Example: "Mario Fan - Users who love Nintendo's Mario franchise" -->
+<!-- Example: "System - Console application that manages state" -->
 
-Collect stakeholder requirements:
+### Use Cases
+[What do users want to accomplish?]
 
-${input:businessRequirements:Describe the use cases, actors, business goals, and success metrics}
+<!-- Example: "Greet Mario Fans - User runs application, system displays greeting" -->
 
-## Instructions
+### Success Metrics
+[How do you measure success?]
 
-Once you have collected the business requirements:
+<!-- Example: "Users recognize Mario catchphrases in output" -->
+<!-- Example: "Application completes in under 2 seconds" -->
 
-1. Read the business specification template from `../templates/specs/business.template.md`
-2. Invoke the Business Agent (smaqit.business) to transform the requirements into structured specifications
-3. The agent will create specification files in `specs/business/` following the template
-4. Each specification MUST include:
-   - Identified actors and their goals
-   - Use cases with preconditions, postconditions, main flow, and alternative flows
-   - Measurable success metrics
-   - Acceptance criteria with IDs in format `BUS-[CONCEPT]-[NNN]`
+### Business Goals
+[What are the objectives this system supports?]
 
-## Success Criteria
+<!-- Example: "Demonstrate brand recognition through character quotes" -->
+<!-- Example: "Provide simple, joyful user experience" -->
 
-Business specifications are complete when:
-- All use cases are documented with clear flows
-- All actors and their goals are identified
-- Success metrics are measurable and observable
-- All acceptance criteria have unique IDs and are testable
-- No technology or implementation details are mentioned (keep business-level only)
+### Constraints
+[What are the business limitations or requirements?]
+
+<!-- Example: "Must use only official Mario dialogue" -->
+<!-- Example: "Budget: $0 (open source project)" -->

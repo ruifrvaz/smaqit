@@ -6,6 +6,9 @@ tasks/*.md
 # Build artifacts
 installer/dist/
 
+# Test artifacts
+installer/test/
+
 # Embedded copies (installer needs local copies for go:embed)
 installer/framework/
 installer/templates/

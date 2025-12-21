@@ -20,6 +20,13 @@ Specification agent for the Stack layer. Translates user input into precise, tes
 
 ## Input
 
+**Prompt File:** `.github/prompts/smaqit.stack.prompt.md`
+
+- Read requirements from prompt file
+- Ignore all HTML comments (`<!-- Example: ... -->`) to prevent example pollution
+- Interpret free-style natural language without rigid structure enforcement
+- Validate sufficiency - if content insufficient, request clarification with natural language guidance
+
 **User Input:**
 - Technology preferences (languages, frameworks)
 - Constraints (licensing, team expertise, existing infrastructure)

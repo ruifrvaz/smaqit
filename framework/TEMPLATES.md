@@ -13,12 +13,13 @@ Templates are not suggestions—they are mandatory structure.
 
 ## Template Types
 
-smaqit uses two types of templates:
+smaqit uses three types of templates:
 
 | Type | Location | Purpose | Produces |
 |------|----------|---------|----------|
 | **Specification templates** | `templates/specs/` | Structure for spec documents | `specs/**/*.md` |
 | **Agent templates** | `templates/agents/` | Structure for agent definitions | `agents/*.agent.md` |
+| **Prompt templates** | `templates/prompts/` | Structure for prompt files | `.github/prompts/*.prompt.md` |
 
 ## Placeholder Convention
 
@@ -161,6 +162,86 @@ tools: ["read", "edit", "search"]
 
 Note: The code fence above is for illustration only. Actual agent files start directly with the YAML frontmatter (`---`).
 
+## Prompt Templates
+
+Prompt templates define the structure for prompt files that serve as input records and agent invocation interface.
+
+### Location
+
+```
+templates/prompts/
+├── specification-prompt.template.md
+└── phase-prompt.template.md
+```
+
+### Required Sections
+
+Every prompt template MUST include:
+
+| Section | Purpose |
+|---------|---------|
+| YAML Frontmatter | name, description, agent, tools |
+| Purpose | What this prompt captures |
+| Requirements | Sub-sections with suggested structure |
+| Comment Examples | `<!-- Example: ... -->` for guidance |
+
+### Prompt Template Format
+
+Prompt templates use GitHub Copilot prompt format:
+
+```markdown
+---
+name: smaqit.[layer]
+description: [One-line description]
+agent: smaqit.[layer]
+tools: ["read", "edit", "search"]
+---
+
+# [Layer] Prompt
+
+[Brief explanation]
+
+## Requirements
+
+[Sub-sections with suggested structure]
+
+<!-- Example: [Guidance showing format] -->
+
+[User fills requirements here]
+```
+
+### Free-Style with Structure
+
+Prompts are **free-style natural language inputs**, not rigidly structured forms. Templates provide:
+
+- **Suggested structure**: Sections and sub-sections to guide users
+- **Commented examples**: `<!-- Example: ... -->` showing good formats
+- **No enforcement**: Users write in their own words
+
+Agents interpret natural language and request clarification if needed. See [PROMPTS](PROMPTS.md) for complete principles.
+
+### Comment Convention
+
+Templates and shipped prompts include examples wrapped in HTML comments:
+
+```markdown
+### Actors
+
+<!-- Example: "Mario Fan - Users who love Nintendo's Mario franchise" -->
+
+[User writes actual actors here]
+```
+
+**Critical:** Agents MUST ignore HTML comments to prevent example requirements from contaminating generated specs.
+
+### Single Manifest Pattern
+
+Unlike specifications (one file per concept), prompts are **single manifest files**:
+
+- One prompt per layer captures all requirements for that layer
+- Users add features to existing prompts as projects evolve
+- Prompts become consolidated input records for entire project
+
 ## Template Completeness
 
 A template is complete when:
@@ -169,10 +250,4 @@ A template is complete when:
 - [ ] Placeholders are clearly marked with `[PLACEHOLDER]` format
 - [ ] Section purposes are unambiguous
 - [ ] Layer-specific rules from LAYERS.md are incorporated (for spec templates)
-
-## See Also
-
-- [SMAQIT](SMAQIT.md) — Framework overview and principles
-- [LAYERS](LAYERS.md) — Layer definitions and dependencies
-- [AGENTS](AGENTS.md) — Agent behaviors
-- [ARTIFACTS](ARTIFACTS.md) — Artifact rules
+- [ ] Comment examples use `<!-- Example: ... -->` format (for prompt templates)

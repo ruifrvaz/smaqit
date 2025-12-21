@@ -98,20 +98,20 @@ Specifications MUST reference their sources explicitly.
 
 | Type | Meaning | Use Case |
 |------|---------|----------|
-| **User Input** | Direct requirement from user | Primary source for layer requirements |
+| **Prompt File** | Layer-specific prompt (`.github/prompts/smaqit.[layer].prompt.md`) | Primary source for layer requirements |
 | **Context** | Adjacent layer spec used for coherence | Ensures cross-layer coherence |
 
 **Cross-Layer Traceability:**
 
-Even though requirements come from user input per layer, the Implements/Enables references create an explicit chain for:
+Even though requirements come from prompt files per layer, the Implements/Enables references create an explicit chain for:
 - **Impact analysis** — When a Business spec changes, all referencing specs are identified
 - **Coverage mapping** — Coverage can trace through references to ensure all requirements are verified
 
 Layer Independence does not mean layer isolation. The reference chain preserves traceability without creating requirement derivation.
 
-**User Input Traceability:**
+**Prompt File Traceability:**
 
-Every requirement traces to user input for that layer:
+Every requirement traces to the prompt file for that layer:
 - Business: stakeholder requirements
 - Functional: experience requirements  
 - Stack: technology preferences
@@ -345,13 +345,3 @@ An implementation is complete when:
 - Traceability to specs is documented
 - No unspecified features were added
 - Validation can verify behavior against specs
-
----
-
-## See Also
-
-- [SMAQIT](SMAQIT.md) — Framework overview and principles
-- [LAYERS](LAYERS.md) — Layer definitions and dependencies
-- [PHASES](PHASES.md) — Phase workflows and transitions
-- [AGENTS](AGENTS.md) — Agent behaviors
-- [TEMPLATES](TEMPLATES.md) — Template structure rules

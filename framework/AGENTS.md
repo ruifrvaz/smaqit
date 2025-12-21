@@ -6,6 +6,18 @@ Agents are LLM-powered actors that operate within the smaqit framework. This doc
 
 All smaqit agents—specification and implementation—share these foundational principles:
 
+### Prompt Interaction
+
+Agents receive requirements from prompts in `.github/prompts/`:
+
+- **Read prompt files**: Agents MUST read corresponding prompt files (`.github/prompts/smaqit.[layer].prompt.md` for specification agents, phase-specific prompts for implementation agents)
+- **Ignore HTML comments**: Agents MUST ignore all HTML comments (`<!-- ... -->`) in prompt files to prevent example requirements from contaminating specifications
+- **Interpret free-style input**: Agents consume natural language requirements without rigid structure enforcement
+- **Validate sufficiency**: Agents MUST request clarification if prompt content is insufficient, using natural language guidance (e.g., "Please specify measurable success criteria" not "Missing: Success Metrics section")
+- **Equivalent outcomes**: Given the same prompt set across all layers, acceptance criteria should pass/fail consistently (acknowledging LLM variance in artifact style)
+
+See [PROMPTS](PROMPTS.md) for complete prompt architecture and input record principles.
+
 ### Template-Constrained Output
 - Agents MUST produce output following their designated template
 - Agents MUST NOT add sections not defined in the template
@@ -45,13 +57,13 @@ Agents follow the pattern: `smaqit.[LAYER]` for specification agents and `smaqit
 Specification agents define *what* to build. They produce specification documents that serve as contracts for implementation agents.
 
 ### Purpose
-Translate user inputs into precise, testable specifications for a single layer.
+Translate prompt file requirements into precise, testable specifications for a single layer.
 
 ### Input
-- **User input**: Direct requirements relevant to the agent's layer (the primary source)
+- **Prompt file**: Requirements from `.github/prompts/smaqit.[layer].prompt.md` (the primary source)
 - **Context specifications**: Documents from previous layers for coherence and traceability (not requirements)
 
-Each layer receives its own user input. Upstream layers provide context for coherence, not requirements. When user input would create incoherence with existing specs, agents MUST flag the conflict rather than silently override.
+Each layer reads from its own prompt file. Upstream layers provide context for coherence, not requirements. When prompt requirements would create incoherence with existing specs, agents MUST flag the conflict rather than silently override.
 
 ### Output
 - Specification documents in `specs/{layer}/`
@@ -77,13 +89,13 @@ Each layer receives its own user input. Upstream layers provide context for cohe
 
 ### Specification Agent Mappings
 
-| Agent | Layer | User Input | Context (for coherence) | Output |
-|-------|-------|------------|---------------------------|--------|
-| `smaqit.business` | Business | Stakeholder goals, use cases | None | `specs/business/*.md` |
-| `smaqit.functional` | Functional | Experience shape, behaviors | Business specs | `specs/functional/*.md` |
-| `smaqit.stack` | Stack | Technology preferences | Business and Functional specs | `specs/stack/*.md` |
-| `smaqit.infrastructure` | Infrastructure | Deployment requirements | Phase 1 specs | `specs/infrastructure/*.md` |
-| `smaqit.coverage` | Coverage | Verification requirements | All layer specs | `specs/coverage/*.md` |
+| Agent | Layer | Prompt File | Context (for coherence) | Output |
+|-------|-------|-------------|---------------------------|--------|
+| `smaqit.business` | Business | `smaqit.business.prompt.md` | None | `specs/business/*.md` |
+| `smaqit.functional` | Functional | `smaqit.functional.prompt.md` | Business specs | `specs/functional/*.md` |
+| `smaqit.stack` | Stack | `smaqit.stack.prompt.md` | Business and Functional specs | `specs/stack/*.md` |
+| `smaqit.infrastructure` | Infrastructure | `smaqit.infrastructure.prompt.md` | Phase 1 specs | `specs/infrastructure/*.md` |
+| `smaqit.coverage` | Coverage | `smaqit.coverage.prompt.md` | All layer specs | `specs/coverage/*.md` |
 
 ## Implementation Agents
 
@@ -212,11 +224,3 @@ When an agent cannot complete:
 | Conflicting requirements | Flag conflict, propose resolution options |
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
-
-## See Also
-
-- [SMAQIT](SMAQIT.md) — Framework overview and principles
-- [LAYERS](LAYERS.md) — Layer definitions and dependencies
-- [PHASES](PHASES.md) — Phase workflows and transitions
-- [TEMPLATES](TEMPLATES.md) — Template structure rules
-- [ARTIFACTS](ARTIFACTS.md) — Artifact rules

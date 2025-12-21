@@ -1,20 +1,20 @@
 # Layers
 
-Layers are independent specification manifests that together form a coherent application. Each layer answers a specific question and receives its own user input. Upstream layers provide context for coherence and traceability, not requirements.
+Layers are independent specification manifests that together form a coherent application. Each layer answers a specific question and receives requirements from its own prompt file. Upstream layers provide context for coherence and traceability, not requirements.
 
 ## Layer Independence
 
-**User input is the sole source of requirements for each layer.**
+**Each layer's prompt file is the sole source of requirements for that layer.**
 
 Each layer:
-- Receives requirements directly from user input
+- Receives requirements from its prompt file (`.github/prompts/smaqit.[layer].prompt.md`)
 - Can be selected or swapped independently
 - Must be coherent with adjacent layers
 - Does not derive requirements from upstream layers
 
 ### Why Layers Reference Upstream
 
-Although requirements come from user input, layers still reference upstream specifications for two purposes:
+Although requirements come from prompt files, layers still reference upstream specifications for two purposes:
 
 | Purpose | Description |
 |---------|-------------|
@@ -231,11 +231,3 @@ The Coverage layer ensures all requirements are testable and traceable. It reads
 **Phase 2 (Deploy):** Infrastructure reads all Phase 1 specs (cross-cutting)
 
 **Phase 3 (Validate):** Coverage reads all specs including Infrastructure (cross-cutting)
-
-## See Also
-
-- [SMAQIT](SMAQIT.md) — Framework overview and principles
-- [PHASES](PHASES.md) — Phase workflows and transitions
-- [TEMPLATES](TEMPLATES.md) — Template structure rules
-- [AGENTS](AGENTS.md) — Agent behaviors
-- [ARTIFACTS](ARTIFACTS.md) — Artifact rules

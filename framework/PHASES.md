@@ -35,6 +35,16 @@ The Develop phase transforms user requirements into a working, tested applicatio
 
 **Implementation Agent:** `smaqit.development`
 
+**Pre-Run Validation:**
+
+Before starting, the Development agent validates all required prompt files are filled:
+
+- `.github/prompts/smaqit.business.prompt.md` has content
+- `.github/prompts/smaqit.functional.prompt.md` has content
+- `.github/prompts/smaqit.stack.prompt.md` has content
+
+If any prompt is empty or insufficient, agent halts and guides user: "Please fill [prompt file] with your [layer] requirements before starting development."
+
 **Workflow:**
 ```
 1. Business agent produces business specifications
@@ -80,6 +90,15 @@ The Deploy phase transforms a working application into a running system in a tar
 | `smaqit.infrastructure` | Infrastructure | Deployment requirements | Phase 1 specs | `specs/infrastructure/*.md` |
 
 **Implementation Agent:** `smaqit.deployment`
+
+**Pre-Run Validation:**
+
+Before starting, check `.github/prompts/smaqit.infrastructure.prompt.md` for content beyond template structure:
+
+- If empty or only contains comments: Halt with natural language guidance
+- Example guidance: "Please specify your target environment (cloud, on-premise, hybrid), hosting platform, and service topology requirements"
+
+If prompt has content, agents interpret free-style requirements and request clarification for ambiguities.
 
 **User Input Required:**
 
@@ -157,6 +176,15 @@ The Validate phase verifies that the deployed system satisfies all specification
 | `smaqit.coverage` | Coverage | All layer specs | `specs/coverage/*.md` |
 
 **Implementation Agent:** `smaqit.validation`
+
+**Pre-Run Validation:**
+
+Before starting, check `.github/prompts/smaqit.coverage.prompt.md` for content beyond template structure:
+
+- If empty or only contains comments: Halt with natural language guidance
+- Example guidance: "Please specify the test scenarios, validation criteria, and acceptance thresholds for your application"
+
+If prompt has content, agents interpret free-style requirements and request clarification for ambiguities.
 
 **Workflow:**
 ```
@@ -299,13 +327,3 @@ These assumptions are explicitly stated and subject to revision per [SMAQIT](SMA
 | Phases are strictly sequential | Active | Incremental deployment proves valuable |
 | Validation failures require human decision | Active | Patterns emerge for automated routing |
 | New features trigger new cycle | Active | Addressed in task 014 |
-
----
-
-## See Also
-
-- [SMAQIT](SMAQIT.md) — Framework overview and principles
-- [LAYERS](LAYERS.md) — Layer definitions and dependencies
-- [TEMPLATES](TEMPLATES.md) — Template structure rules
-- [AGENTS](AGENTS.md) — Agent behaviors
-- [ARTIFACTS](ARTIFACTS.md) — Artifact rules

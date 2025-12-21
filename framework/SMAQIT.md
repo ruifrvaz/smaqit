@@ -12,9 +12,9 @@ Specifications are not documentation—they are the source of truth. Implementat
 
 ### Traceability Across Layers
 
-**Every output MUST trace to a user input.**
+**Every output MUST trace to a prompt file.**
 
-- Each layer receives requirements directly from user input
+- Each layer receives requirements from its prompt file
 - Upstream layers provide context for coherence, not requirements
 - Code references specs
 - Tests reference requirements
@@ -23,9 +23,9 @@ Traceability enables impact analysis: when a requirement changes, the chain of d
 
 ### Layer Independence
 
-**User input is the sole source of requirements for each layer.**
+**Each layer's prompt file is the sole source of requirements for that layer.**
 
-Each layer receives its own user input directly—upstream layers provide context for coherence, not requirements. This ensures that user intent guides every layer without false derivation chains. See [LAYERS](LAYERS.md) for the full Layer Independence model.
+Each layer has its own prompt file where users input requirements. Upstream layers provide context for coherence, not requirements. This ensures that user intent guides every layer without false derivation chains.
 
 ### Specification Coverage
 
@@ -60,45 +60,15 @@ LLMs rarely generate identical output twice. Rather than fighting this inherent 
 
 The specification is the invariant. The implementation is the variable.
 
-## Iteration Through Experimentation
+### Reproducible from Input Set
 
-smaqit is designed to evolve through use. The current framework represents a minimal viable structure—sufficient to test the spec-driven hypothesis, but expected to adapt as real constraints emerge.
+**Identical input sets should produce equivalent validated behavior.**
 
-Complexity is added only when proven necessary by real project experience.
+The complete set of prompts across all layers defines a reproducible workflow. Given the same prompt set:
 
-### Evidence Over Theory
-
-Framework changes require evidence from actual application:
-
-| Change Type | Required Evidence |
-|-------------|-------------------|
-| New layer | Multiple projects demonstrate a missing concern |
-| New phase | Existing phases cannot accommodate a workflow |
-| Structural change | Current structure blocks common patterns |
-
-Anticipated edge cases do not justify framework changes. Observed constraints do.
-
-### Explicit Assumptions
-
-The framework operates under assumptions that may be revised:
-
-| Assumption | Status | Revision Trigger |
-|------------|--------|------------------|
-| Layers are strictly linear | Active | Projects require multi-layer dependencies |
-| Phases are sequential | Active | Parallel workflows prove necessary |
-| Amendments are sufficient for conflicts | Active | Amendment overhead becomes prohibitive |
-| Coverage reads all layers | Active | Subset coverage proves sufficient |
-
-When an assumption is challenged by evidence, it becomes a candidate for revision.
-
-### Amendment Protocol
-
-When applying smaqit reveals limitations:
-
-1. **Document** — Record the constraint encountered with context
-2. **Propose** — Suggest framework amendment with rationale
-3. **Test** — Apply amendment to subsequent projects
-4. **Formalize** — If amendment improves outcomes, integrate into framework
+- **Equivalent outcomes**: Acceptance criteria pass or fail consistently
+- **Traceable changes**: Modifying any prompt in the set reveals requirement changes explicitly
+- **Audit trail**: Prompt sets document what was requested at each layer
 
 ## Design Philosophy
 
@@ -110,7 +80,7 @@ Each layer addresses a distinct concern:
 Business (intent) | Functional (behavior) | Stack (tools) | Infrastructure (environment) | Coverage (verification)
 ```
 
-Layers are independent but must be coherent. No layer derives requirements from another—each receives user input directly. Implementation agents validate cross-layer coherence before execution.
+Layers are independent but must be coherent. No layer derives requirements from another—each reads from its own prompt file. Implementation agents validate cross-layer coherence before execution.
 
 ### Explicit Over Implicit
 
@@ -129,16 +99,6 @@ When input is unclear:
 - Flag assumptions explicitly
 
 The cost of clarification is lower than the cost of rework from incorrect assumptions.
-
-## Framework Files
-
-| File | Purpose |
-|------|---------|
-| [LAYERS](LAYERS.md) | Five specification layers and their dependencies |
-| [PHASES](PHASES.md) | Three development phases and their workflows |
-| [TEMPLATES](TEMPLATES.md) | Template structure rules for specs and agents |
-| [AGENTS](AGENTS.md) | Agent behaviors (actors) |
-| [ARTIFACTS](ARTIFACTS.md) | Artifact rules (outputs) |
 
 ## Quick Reference
 
@@ -176,3 +136,16 @@ project/
 └── .github/
     └── agents/           # Agent definitions
 ```
+
+## See Also
+
+Read SMAQIT.md first for framework overview. Consult these files as needed:
+
+| File | Purpose | When to Consult |
+|------|---------|-----------------|
+| [PROMPTS](PROMPTS.md) | Prompt structure, input records, agent interaction | Understanding prompt files or agent invocation |
+| [LAYERS](LAYERS.md) | Five specification layers and their dependencies | Generating or validating layer specs |
+| [PHASES](PHASES.md) | Three development phases and their workflows | Orchestrating multi-agent workflows |
+| [TEMPLATES](TEMPLATES.md) | Template structure rules for prompts, specs, and agents | Creating or validating templates |
+| [AGENTS](AGENTS.md) | Agent behaviors (actors) | Understanding agent responsibilities |
+| [ARTIFACTS](ARTIFACTS.md) | Artifact rules (outputs) | Understanding spec structure and traceability |

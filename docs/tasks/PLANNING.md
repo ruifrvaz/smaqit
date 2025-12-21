@@ -8,6 +8,7 @@
 | 015 | Investigate framework bundling at installation | new |
 | 022 | Create GitHub Action for automated releases | new |
 | 025 | Integrate testing agent with CI/CD | new |
+| 026 | Rethink prompt architecture and integration | new |
 
 ## Completed
 

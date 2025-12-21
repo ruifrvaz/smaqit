@@ -23,8 +23,10 @@ See [framework/SMAQIT.md](../framework/SMAQIT.md) for core principles and framew
 
 - **Framework files** (`framework/`) — See [SMAQIT.md](../framework/SMAQIT.md) for index
 - **Specification templates** (`templates/specs/`) — Structure for spec documents per layer
+- **Prompt templates** (`templates/prompts/`) — Structure for prompt files
 - **Agent templates** (`templates/agents/`) — Structure for agent definitions
 - **Agents** (`agents/`) — GitHub Custom Agents (`.agent.md` format)
+- **Prompts** (`prompts/`) — Input record files (`.prompt.md` format)
 - **Installer** (`installer/`) — Go CLI that scaffolds smaqit into user projects
 
 ## Source vs Artifacts
@@ -38,11 +40,14 @@ smaqit/
 │   ├── PHASES.md             # Phase workflows
 │   ├── TEMPLATES.md          # Template structure rules
 │   ├── AGENTS.md             # Agent behaviors
-│   └── ARTIFACTS.md          # Artifact rules
+│   ├── ARTIFACTS.md          # Artifact rules
+│   └── PROMPTS.md            # Prompt architecture
 ├── templates/
 │   ├── specs/                # Specification templates (5)
+│   ├── prompts/              # Prompt templates (2)
 │   └── agents/               # Agent templates (2)
 ├── agents/*.agent.md         # Agent definitions (8)
+├── prompts/*.prompt.md       # Prompt files (8)
 ├── installer/main.go         # CLI tool
 ├── docs/
 │   ├── history/              # Session logs (meta)
@@ -54,10 +59,11 @@ smaqit/
 ```
 user-project/
 ├── .github/
-│   └── agents/               # Copied from agents/
+│   ├── agents/               # Copied from agents/
+│   └── prompts/              # Copied from prompts/
 ├── .smaqit/
 │   ├── framework/            # Copied from framework/
-│   └── templates/            # Copied from templates/specs/
+│   └── templates/            # Copied from templates/specs/ and templates/prompts/
 └── specs/
     ├── business/
     ├── functional/
@@ -127,26 +133,40 @@ When creating or refactoring agents, use the appropriate agent template from `te
 
 Location: `prompts/`
 
-Prompt files (`.prompt.md`) are user-facing interfaces to invoke smaqit workflows via GitHub Copilot chat.
+Prompt files (`.prompt.md`) are input records that capture user requirements. They are free-style natural language with suggested structure.
+
+**Key Principles:**
+
+- **Prompts are input records** — Capture user requirements for reproducibility and auditability
+- **Free-style natural language** — Users write in their own words, agents interpret
+- **HTML comment examples** — `<!-- Example: ... -->` provide guidance without rigid enforcement
+- **Single manifest per layer** — One prompt file accumulates all requirements for a layer (unlike specs which are one-per-concept)
 
 **Structure:**
+
 - YAML frontmatter: `name`, `description`, `agent` (for layer prompts), `tools`
-- Input variables: `${input:variableName:placeholder}` for user requirements
-- Framework references: Use relative paths (`../framework/`)
-- Instructions: Natural language guidance for agent invocation
+- Requirement sections with layer-specific sub-sections
+- `<!-- Example: ... -->` comments for guidance (agents MUST ignore these)
+- Free-style user content in natural language
 
 **Prompt types:**
-- **Layer prompts** (5) — Single agent invocation with user input collection (business, functional, stack, infrastructure, coverage)
-- **Phase prompts** (3) — Multi-agent orchestration with sequential workflow (develop, deploy, validate)
+
+- **Layer prompts** (5) — Capture requirements for specification layers (business, functional, stack, infrastructure, coverage)
 
 **When to edit:**
-- Changing input collection pattern or prompt structure
-- Adding error handling or validation logic to orchestration
-- Updating framework references or context provided to agents
+
+- Refining suggested structure for better user guidance
+- Adding or modifying `<!-- Example: ... -->` comments
+- Updating pre-run validation logic in phase prompts
+- Improving natural language guidance for missing content
 
 **When NOT to edit:**
+
 - Changing agent behavior (edit the agent definition in `agents/` instead)
 - Modifying specification structure (edit templates in `templates/specs/` instead)
+- Adding rigid validation (prompts are free-style by design)
+
+See [PROMPTS.md](../framework/PROMPTS.md) for complete prompt architecture and input record principles.
 
 ### When Editing Framework Files
 

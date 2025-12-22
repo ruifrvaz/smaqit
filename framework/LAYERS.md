@@ -12,14 +12,14 @@ Each layer:
 - Must be coherent with adjacent layers
 - Does not derive requirements from upstream layers
 
-### Why Layers Reference Upstream
+### Upstream References
 
-Although requirements come from prompt files, layers still reference upstream specifications for two purposes:
+Layers reference upstream specifications for these purposes:
 
 | Purpose | Description |
 |---------|-------------|
-| **Coherence** | Implementation agents consolidate specs from multiple layers before execution. References ensure specs are compatible—if Business says "real-time updates" and Stack says "batch processing," consolidation fails. |
-| **Traceability** | Coverage maps requirements through all layers to ensure nothing is missed. The reference chain enables complete specification coverage. |
+| **Coherence** | Implementation agents consolidate specs from multiple layers before execution. References ensure specs are compatible. |
+| **Traceability** | Coverage maps requirements through all layers to ensure nothing is missed. |
 
 Coherence validation happens at the end of each phase, where the implementation agent consolidates the required specs before execution.
 

@@ -145,7 +145,7 @@ Location: `templates/specs/`
 
 Specification templates define the structure agents use when producing spec documents. 
 
-Follow [TEMPLATES.md](../framework/TEMPLATES.md) compliance rules.
+Follow [TEMPLATES.md] compliance rules.
 
 ### When Editing Agent Templates
 
@@ -155,7 +155,7 @@ Agent templates define the structure for agent definition files:
 - `specification-agent.template.md` — For spec agents (business, functional, stack, infrastructure, coverage)
 - `implementation-agent.template.md` — For impl agents (development, deployment, validation)
 
-Follow [TEMPLATES.md](../framework/TEMPLATES.md) for agent behaviors, naming conventions, and placeholder conventions.
+Follow [TEMPLATES.md] for agent behaviors, naming conventions, and placeholder conventions.
 
 ### When Editing Agents
 
@@ -163,7 +163,7 @@ Location: `agents/`
 
 Agent definitions are the actual agents that consume templates and produce artifacts. When creating or refactoring agents, use the appropriate agent template from `templates/agents/` to ensure consistency.
 
-Follow [AGENTS.md](../framework/AGENTS.md) for agent behaviors, naming conventions, and placeholder conventions.
+Follow [AGENTS.md] for agent behaviors, naming conventions, and placeholder conventions.
 
 ### When Editing Prompts
 
@@ -184,7 +184,7 @@ Prompt files (`.prompt.md`) are placeholders for input records that capture user
 - Modifying specification structure (edit templates in `templates/specs/` instead)
 - Adding rigid validation (prompts are free-style by design)
 
-Follow [PROMPTS.md](../framework/PROMPTS.md) architecture and input record principles.
+Follow [PROMPTS.md] architecture and input record principles.
 
 ### When Editing Framework Files
 

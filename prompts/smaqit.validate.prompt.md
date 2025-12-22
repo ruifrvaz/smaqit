@@ -4,34 +4,23 @@ description: Run the validation phase - create coverage specs, then validate dep
 tools: ["agent", "read", "edit", "search", "execute", "todo"]
 ---
 
-# Validation Phase Prompt
+# Validate Phase Prompt
 
-You are orchestrating the **Validate phase** of the smaqit framework. This phase verifies that the deployed system satisfies all specification requirements by producing coverage specifications that map all requirements to tests, then executing those tests against the running system.
+This phase orchestrates Coverage specification agent, then invokes the Validation implementation agent to verify the deployed system.
 
-## Framework Context
+## Pre-Run Validation
 
-Review these framework files to understand the Validate phase workflow:
-- [Core Principles](../framework/SMAQIT.md)
-- [Validate Phase Definition](../framework/PHASES.md#validate--verify-spec-compliance)
-- [Coverage Layer Definition](../framework/LAYERS.md#coverage--whats-verified)
+Before starting, verify `.github/prompts/smaqit.coverage.prompt.md` has content beyond template structure.
 
-## User Input
-
-Collect verification and testing requirements:
-
-${input:coverageRequirements:Specify test scope, performance benchmarks, security requirements, test environment details, and integration points}
-
-${input:targetEnvironment:Specify the target environment where the system is deployed (must match Deploy phase)}
+**If prompt is empty:** Halt and provide natural language guidance about test scenarios, validation criteria, and acceptance thresholds.
 
 ## Orchestration Workflow
 
-Once all inputs are collected, execute the following sequence:
-
 ### Step 1: Coverage Specifications
 
-Run subagent **smaqit.coverage** with the coverage requirements to produce coverage layer specifications in `specs/coverage/`.
+Invoke `@smaqit.coverage` agent to produce coverage layer specifications in `specs/coverage/`.
 
-The agent will:
+Agent performs:
 1. Read ALL upstream specifications (business, functional, stack, infrastructure)
 2. Enumerate all acceptance criteria by ID
 3. Produce complete test definitions in Gherkin format
@@ -39,24 +28,33 @@ The agent will:
 5. Flag untestable criteria with justification
 6. Calculate spec coverage percentage
 
-**On failure:** Stop and report the error. Coverage specs are required before validation.
+**On failure:** Stop and report error. Coverage specs required before validation.
 
 ### Step 2: Execute Validation Tests
 
-Run subagent **smaqit.validation** to execute tests against the deployed system.
+Invoke `@smaqit.validation` agent to execute tests against deployed system.
 
-The validation agent will:
-1. Execute tests against the deployed system in the target environment
+Agent performs:
+1. Execute tests against deployed system in target environment
 2. Collect pass/fail results for each test case
 3. Calculate actual spec coverage percentage
 4. Identify unverified requirements
 5. Produce validation report with detailed results
 
-**On failure:** Test failures do NOT trigger automatic retry. The validation agent reports failures, and human decides next action:
+**On failure:** Test failures do NOT trigger automatic retry. Validation agent reports failures, and human decides next action:
 - Return to Develop phase (code or spec issue)
 - Return to Deploy phase (environment issue)
 - Investigate further
 - Accept with known issues
+
+## Completion Criteria
+
+Phase complete when:
+- [ ] Coverage specifications produced with all testable criteria mapped
+- [ ] Tests executed against deployed system
+- [ ] Validation report generated
+- [ ] Spec coverage percentage calculated
+- [ ] Untestable criteria documented with justification
 
 ## Success Criteria
 

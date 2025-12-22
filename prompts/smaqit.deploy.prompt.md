@@ -1,60 +1,48 @@
 ---
 name: smaqit.deploy
 description: Run the deployment phase - create infrastructure specs, then deploy to target environment
-tools: ["agent", "read", "edit", "search", "execute", "todo"]
 ---
 
-# Deployment Phase Prompt
+# Deploy Phase Prompt
 
-You are orchestrating the **Deploy phase** of the smaqit framework. This phase transforms a working application into a running system in a target environment by producing infrastructure specifications, then deploying the application.
+This phase orchestrates Infrastructure specification agent, then invokes the Deployment implementation agent to deploy the application.
 
-## Framework Context
+## Pre-Run Validation
 
-Review these framework files to understand the Deploy phase workflow:
-- [Core Principles](../framework/SMAQIT.md)
-- [Deploy Phase Definition](../framework/PHASES.md#deploy--run-in-target-environment)
-- [Infrastructure Layer Definition](../framework/LAYERS.md#infrastructure--where)
+Before starting, verify `.github/prompts/smaqit.infrastructure.prompt.md` has content beyond template structure.
 
-## User Input
-
-Collect deployment and operational requirements:
-
-${input:infrastructureRequirements:Describe target environment, hosting platform, service topology, resource constraints, scaling needs, geographic constraints, and budget limits}
-
-${input:targetEnvironment:Specify the target environment identifier (e.g., dev, staging, production)}
+**If prompt is empty:** Halt and provide natural language guidance about target environment, hosting platform, and service topology requirements.
 
 ## Orchestration Workflow
 
-Once all inputs are collected, execute the following sequence:
-
 ### Step 1: Infrastructure Specifications
 
-Run subagent **smaqit.infrastructure** with the infrastructure requirements to produce infrastructure layer specifications in `specs/infrastructure/`.
+Invoke `@smaqit.infrastructure` agent to produce infrastructure layer specifications in `specs/infrastructure/`.
 
-The agent will read all Phase 1 specifications (business, functional, stack) for context and runtime constraints.
+Agent reads all Phase 1 specifications (business, functional, stack) for context and runtime constraints.
 
-**On failure:** Stop and report the error. Infrastructure specs are required before deployment.
+**On failure:** Stop and report error. Infrastructure specs required before deployment.
 
 ### Step 2: Deploy Application
 
-Run subagent **smaqit.deployment** to deploy the application to the target environment.
+Invoke `@smaqit.deployment` agent to deploy application to target environment.
 
-The deployment agent will:
+Agent performs:
 1. Consolidate infrastructure and stack specifications (coherence check)
-2. Generate Infrastructure as Code configurations (with reference-only secrets)
-3. Trigger trusted execution layer with the target environment parameter
+2. Generate Infrastructure as Code configurations (reference-only secrets)
+3. Trigger trusted execution layer with target environment parameter
 4. Receive deployment outcome (success/failure, health status, endpoints)
-5. Verify system health in the target environment
+5. Verify system health in target environment
 6. Report deployment status
 
-**On failure:** The deployment agent will iterate up to its retry threshold. If it fails repeatedly, it will report the blocking issue with scrubbed output (no sensitive data).
+**On failure:** Deployment agent iterates up to retry threshold, then reports blocking issue with scrubbed output (no sensitive data).
 
-## Success Criteria
+## Completion Criteria
 
-The Deploy phase is complete when:
-- Infrastructure specifications are produced and complete
-- Infrastructure as Code is generated with reference-only secrets
-- Deployment executes successfully in the target environment
-- Health checks pass
-- System is accessible at expected endpoints
-- Deployment report documents the running system status
+Phase complete when:
+- [ ] Infrastructure specifications produced
+- [ ] Infrastructure as Code generated with reference-only secrets
+- [ ] Deployment executes successfully in target environment
+- [ ] Health checks pass
+- [ ] System accessible at expected endpoints
+- [ ] Deployment report documents running system status

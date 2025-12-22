@@ -205,6 +205,14 @@ make uninstall
 make help
 ```
 
+## Testing
+
+**Test location:** `installer/test/` (standardized test directory)
+
+**Automated end-to-end testing:** See `.github/agents/smaqit.user-testing.agent.md`
+
+**Testing philosophy and manual workflows:** See `docs/wiki/workflows/testing-smaqit.md`
+
 ## License
 
 MIT

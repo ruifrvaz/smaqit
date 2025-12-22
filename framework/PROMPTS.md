@@ -2,6 +2,25 @@
 
 Prompts are the user-facing interface for smaqit workflows. They capture requirements as input records and invoke agents to generate specifications.
 
+**Key Principles:**
+
+- **Prompts are input records** — Capture user requirements for reproducibility and auditability
+- **Free-style natural language** — Users write in their own words, agents interpret
+- **HTML comment examples** — `<!-- Example: ... -->` provide guidance without rigid enforcement
+- **Single manifest per layer** — One prompt file accumulates all requirements for a layer (unlike specs which are one-per-concept)
+
+**Structure:**
+
+- YAML frontmatter: `name`, `description`, `agent` (for layer prompts), `tools`
+- Requirement sections with layer-specific sub-sections
+- `<!-- Example: ... -->` comments for guidance (agents MUST ignore these)
+- Free-style user content in natural language
+
+**Prompt types:**
+
+- **Layer prompts** (5) — Capture requirements for specification layers (business, functional, stack, infrastructure, coverage)
+- **Phase prompts** (3) — Trigger phase implementation agents
+
 ## Prompts as Input Records
 
 **Prompts are versioned input records capturing user requirements at each layer.**

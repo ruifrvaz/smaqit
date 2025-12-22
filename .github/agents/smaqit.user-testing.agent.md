@@ -1,7 +1,7 @@
 ---
 name: smaqit.user-testing
 description: End-to-end user testing agent that validates smaqit workflows with standardized test cases
-tools: ["agent", "execute", "read", "edit", "search", "todo"]
+tools: ["execute", "read", "edit", "search", "todo"]
 ---
 
 # Testing Agent
@@ -224,14 +224,3 @@ Each test case should:
 - Exercise all 5 specification layers
 - Test different technical patterns
 - Validate different smaqit features
-
-## See Also
-
-- [User Testing Report Template](../../docs/user-testing/report-template.md) — Strict format for test reports
-- [Mario Test Case](../../docs/test-cases/mario-hello.md) — Standardized test feature
-- [Task 024](../../docs/tasks/024_debate_smaqit_testing_agent.md) — Testing agent design rationale
-- [Task 025](../../docs/tasks/025_testing_agent_ci_integration.md) — Future CI/CD integration
-
----
-
-**Note:** This agent is located in `.github/agents/` and is used ONLY for testing smaqit itself during development. It is NOT shipped to users via the installer and does NOT appear in user projects. Users only interact with the 8 agents in `agents/` (business, functional, stack, infrastructure, coverage, development, deployment, validation).

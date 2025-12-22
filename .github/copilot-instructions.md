@@ -1,27 +1,10 @@
 # Copilot Instructions for smaqit Development
 
-You are developing smaqit, a spec-driven agent orchestration framework. AI agents write specs first, then implement from those specs.
-
-See [framework/SMAQIT.md](../framework/SMAQIT.md) for core principles and framework overview.
-
-## Communication Style
-
-**Provide step-by-step explanations** when performing work:
-
-1. **Before taking action** — Explain what you're about to do and why
-2. **During execution** — Describe each step as you perform it
-3. **After completion** — Summarize what was accomplished
-
-**Example workflow:**
-- "I'll fix the spec directory paths in cmdStatus and cmdValidate. These are currently pointing to .smaqit/specs/ but should point to specs/ after the recent structure change."
-- [Execute changes]
-- "Fixed both functions to use the correct paths. Testing to verify..."
-
-**Be verbose and educational** — Help the user understand the process, not just the outcome.
+You are developing smaqit, a spec-driven agent orchestration framework. User provides inputs via prompt files, AI agents use those inputs to write specs, then implement from those specs.
 
 ## Kit Components
 
-- **Framework files** (`framework/`) — Pure LLM execution instructions (see [SMAQIT.md](../framework/SMAQIT.md) for index)
+- **Framework files** (`framework/`) — Pure LLM execution instructions
 - **Wiki** (`docs/wiki/`) — Human-readable context and rationale (concepts, design-decisions, patterns, workflows)
 - **Specification templates** (`templates/specs/`) — Structure for spec documents per layer
 - **Prompt templates** (`templates/prompts/`) — Structure for prompt files
@@ -93,23 +76,50 @@ user-project/
     └── coverage/
 ```
 
-## Do Not Default to Agreement
+## Communication Style
 
-When the user proposes an action or gives a direct command:
+### Provide step-by-step explanations
 
-- **Assess critically** — Consider whether the proposal is necessary, redundant, or potentially problematic
-- **Provide counter-arguments** — If you see flaws or alternatives, state them clearly before proceeding
-- **Flag redundancy** — If a proposal duplicates existing structure, say so upfront
-- **Suggest alternatives** — Offer better approaches when you see them
-- **Flag security or pattern breaches** — Stop and explain risks before implementing anything that:
-   - Modifies user configuration files (dotfiles, shell configs)
-   - Violates security best practices
-   - Breaks established conventions without clear justification
-   - Could affect system stability or user experience negatively
+When performing work:
+
+1. **Before taking action** — Explain what you're about to do and why
+2. **During execution** — Describe each step as you perform it
+3. **After completion** — Summarize what was accomplished
+
+**Be verbose and educational** — Help the user understand the process, not just the outcome.
+
+### Critical Assessment First
+
+**MANDATORY for EVERY request** — Before taking any action, apply critical assessment:
+
+1. **Question the premise** — Is this request necessary? Does it duplicate existing work? Could it create maintenance burden?
+2. **Check existing state** — Read relevant files FIRST to understand what already exists before proposing changes
+3. **Identify trade-offs** — What are the downsides? What alternatives exist? Which is better and why?
+4. **Flag problems upfront** — If you see flaws, redundancy, or better approaches, state them clearly BEFORE proceeding
+5. **Propose, don't assume** — Present your assessment and ask for confirmation, even for simple requests
+
+**This applies to ALL requests, not just questionable ones:**
+- Simple refactorings → Check if they duplicate existing patterns
+- Documentation updates → Verify target location and check for existing content
+- New features → Question whether they're needed or if existing solutions suffice
+- "Clean up X" requests → Ask "Clean up relative to what? What's the duplication source?"
+
+**Critical assessment failures to avoid:**
+- Immediately executing without checking existing files
+- Assuming user's framing is complete/correct
+- Creating new content before verifying it doesn't already exist
+- Treating normal-seeming requests as safe to execute without analysis
+
+**Stop and explain risks before implementing anything that:**
+- Modifies user configuration files (dotfiles, shell configs)
+- Violates security best practices
+- Breaks established conventions without clear justification
+- Could affect system stability or user experience negatively
+- Duplicates existing functionality in another location
 
 ## Content Guidelines
 
-When documenting framework concepts:
+### When documenting framework concepts
 
 ### Do:
 
@@ -133,9 +143,9 @@ When documenting framework concepts:
 
 Location: `templates/specs/`
 
-Specification templates define the structure agents use when producing spec documents.
+Specification templates define the structure agents use when producing spec documents. 
 
-See [TEMPLATES.md](../framework/TEMPLATES.md) for template compliance rules.
+Follow [TEMPLATES.md](../framework/TEMPLATES.md) compliance rules.
 
 ### When Editing Agent Templates
 
@@ -145,41 +155,21 @@ Agent templates define the structure for agent definition files:
 - `specification-agent.template.md` — For spec agents (business, functional, stack, infrastructure, coverage)
 - `implementation-agent.template.md` — For impl agents (development, deployment, validation)
 
-See [TEMPLATES.md](../framework/TEMPLATES.md) for agent behaviors, naming conventions, and placeholder conventions.
+Follow [TEMPLATES.md](../framework/TEMPLATES.md) for agent behaviors, naming conventions, and placeholder conventions.
 
 ### When Editing Agents
 
 Location: `agents/`
 
-Agent definitions are the actual agents that consume templates and produce artifacts.
+Agent definitions are the actual agents that consume templates and produce artifacts. When creating or refactoring agents, use the appropriate agent template from `templates/agents/` to ensure consistency.
 
-When creating or refactoring agents, use the appropriate agent template from `templates/agents/` to ensure consistency.
+Follow [AGENTS.md](../framework/AGENTS.md) for agent behaviors, naming conventions, and placeholder conventions.
 
 ### When Editing Prompts
 
 Location: `prompts/`
 
-Prompt files (`.prompt.md`) are input records that capture user requirements. They are free-style natural language with suggested structure.
-
-**Key Principles:**
-
-- **Prompts are input records** — Capture user requirements for reproducibility and auditability
-- **Free-style natural language** — Users write in their own words, agents interpret
-- **HTML comment examples** — `<!-- Example: ... -->` provide guidance without rigid enforcement
-- **Single manifest per layer** — One prompt file accumulates all requirements for a layer (unlike specs which are one-per-concept)
-
-**Structure:**
-
-- YAML frontmatter: `name`, `description`, `agent` (for layer prompts), `tools`
-- Requirement sections with layer-specific sub-sections
-- `<!-- Example: ... -->` comments for guidance (agents MUST ignore these)
-- Free-style user content in natural language
-
-**Prompt types:**
-
-- **Layer prompts** (5) — Capture requirements for specification layers (business, functional, stack, infrastructure, coverage)
-- **Phase prompts** (3) — Trigger phase implementation agents
-
+Prompt files (`.prompt.md`) are placeholders for input records that capture user requirements. They are filled in with free-style natural language with suggested structure.
 
 **When to edit:**
 
@@ -194,11 +184,9 @@ Prompt files (`.prompt.md`) are input records that capture user requirements. Th
 - Modifying specification structure (edit templates in `templates/specs/` instead)
 - Adding rigid validation (prompts are free-style by design)
 
-See [PROMPTS.md](../framework/PROMPTS.md) for complete prompt architecture and input record principles.
+Follow [PROMPTS.md](../framework/PROMPTS.md) architecture and input record principles.
 
 ### When Editing Framework Files
-
-See [SMAQIT.md](../framework/SMAQIT.md) for the framework file index.
 
 Keep cross-references between framework files consistent when editing.
 
@@ -321,123 +309,17 @@ Mark a task as done:
 - When completing a task, move from Active to Completed table
 - Individual task files in `docs/tasks/{id}_{title}.md` contain details
 
-## Testing
+**Quick commands:**
 
-**Test location:** `installer/test/` (standardized test directory)
-
-### Installer Testing Workflow
-
-1. **Build installer:**
-   ```bash
-   cd installer
-   make clean && make build
-   ```
-
-2. **Create test directory:**
-   ```bash
-   mkdir -p test
-   cd test
-   ```
-
-3. **Test init command:**
-   ```bash
-   ../dist/smaqit init
-   # Verify: .smaqit/ and .github/ directories created
-   # Verify: framework files, templates, agents copied
-   ```
-
-4. **Test status command:**
-   ```bash
-   ../dist/smaqit status
-   # Verify: Shows 0 specs, all phases "Not started"
-   # Verify: Version matches build version
-   ```
-
-5. **Test validate command:**
-   ```bash
-   ../dist/smaqit validate
-   # Verify: Directory structure validation passes
-   # Verify: Framework files present
-   ```
-
-6. **Test help command:**
-   ```bash
-   ../dist/smaqit help
-   # Verify: Shows CLI commands and Copilot prompts
-   ```
-
-7. **Test uninstall command:**
-   ```bash
-   ../dist/smaqit uninstall
-   # Type 'y' to confirm
-   # Verify: .smaqit/ and .github/ removed
-   ```
-
-8. **Clean up:**
-   ```bash
-   cd ..
-   rm -rf test/
-   ```
-
-### Pre-Release Testing Checklist
-
-Before creating a release:
-
-- [ ] Build for all platforms: `make build-all`
-- [ ] Test init/status/validate/help/uninstall on current platform
-- [ ] Verify version embedding: `dist/smaqit version` matches git tag
-- [ ] Check embedded files count: init should create 14+ files in `.smaqit/`
-- [ ] Validate clean uninstall: no residual files after uninstall
-
-### Testing Philosophy
-
-- **Always test in `installer/test/`** to avoid polluting the repo
-- **Clean up after tests** to prevent accidental commits of test artifacts
-- **Build before testing** to ensure latest changes are included
-- **Test all commands** even if only one changed (regression prevention)
-
-### User Testing Agent
-
-**Purpose:** End-to-end validation of smaqit workflows from user perspective.
-
-**Agent:** `@smaqit.user-testing` (development agent for this project, NOT shipped to users)
-
-**Location:** `.github/agents/smaqit.user-testing.agent.md` (smaqit repo only)
-
-**What it does:**
-1. Builds installer from source
-2. Initializes test project
-3. Invokes all layer prompts with standardized test case (Mario hello world)
-4. Validates spec outputs minimally (file existence only)
-5. Continues on failures to collect comprehensive results
-6. Generates detailed report with standardized checklist
-7. Cleans up test artifacts
-
-**When to use:**
-- Before releases (validate complete workflow)
-- After framework changes (ensure no regressions)
-- After template updates (verify agents still work)
-- After prompt modifications (test orchestration)
-- To document painpoints for iteration
-
-**Test Case:** Mario Hello World Console Application
-- Standardized, domain-agnostic test feature
-- Exercises all 5 specification layers
-- Pre-defined requirements in `docs/test-cases/mario-hello.md`
-
-**Report Location:** `docs/user-testing/YYYY-MM-DD_test-report.md`
-
-**Report Contents:**
-- Environment information (OS, Go version, smaqit version)
-- Standardized checklist (pass/fail per validation point)
-- Execution log (timestamped steps)
-- Painpoints identified (blockers, issues, UX friction, performance)
-- Recommendations for improvements
-- Overall result (PASS/FAIL)
-
-**Invocation:**
-```
+```bash
+# Automated validation (invokes testing agent)
 User: @smaqit.user-testing run end-to-end test
-```
 
-The agent handles everything automatically and generates a comprehensive report.
+# Manual installer test
+cd installer && make build && mkdir -p test && cd test
+../dist/smaqit init && ../dist/smaqit status
+cd .. && rm -rf test/
+
+# Pre-release: Run testing agent + build all platforms
+make build-all
+```

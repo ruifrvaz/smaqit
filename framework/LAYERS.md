@@ -12,7 +12,7 @@ Each layer:
 - Must be coherent with adjacent layers
 - Does not derive requirements from upstream layers
 
-### Upstream References
+## Upstream References
 
 Layers reference upstream specifications for these purposes:
 

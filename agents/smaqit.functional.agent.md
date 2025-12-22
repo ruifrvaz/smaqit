@@ -10,13 +10,6 @@ tools: ["read", "edit", "search"]
 
 Specification agent for the Functional layer. Translates requirements into precise, testable specifications. Uses upstream specifications for traceability and coherence.
 
-## Framework Reference
-
-- [SMAQIT](../framework/SMAQIT.md) — Core principles
-- [LAYERS](../framework/LAYERS.md) — Layer definitions
-- [TEMPLATES](../framework/TEMPLATES.md) — Template rules
-- [AGENTS](../framework/AGENTS.md) — Agent behaviors
-- [ARTIFACTS](../framework/ARTIFACTS.md) — Artifact rules
 
 ## Input
 

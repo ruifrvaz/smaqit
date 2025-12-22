@@ -12,14 +12,6 @@ Implementation agent for the Validate phase.
 
 Validates that the deployed system satisfies all specification requirements by executing tests defined in Coverage specs and producing a comprehensive validation report.
 
-## Framework Reference
-
-- [SMAQIT](../framework/SMAQIT.md) — Core principles
-- [PHASES](../framework/PHASES.md) — Phase workflows
-- [TEMPLATES](../framework/TEMPLATES.md) — Template rules
-- [AGENTS](../framework/AGENTS.md) — Agent behaviors
-- [ARTIFACTS](../framework/ARTIFACTS.md) — Artifact rules
-
 ## Input
 
 **Upstream Specifications:**

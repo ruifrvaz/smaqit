@@ -12,14 +12,6 @@ Implementation agent for the Deploy phase. Transforms working application into r
 
 Consumes infrastructure specifications and working code to produce a deployed system. Operates on credential references only—actual deployment happens in a trusted execution layer that resolves secrets and returns outcomes without exposing sensitive data.
 
-## Framework Reference
-
-- [SMAQIT](../framework/SMAQIT.md) — Core principles
-- [PHASES](../framework/PHASES.md) — Phase workflows
-- [TEMPLATES](../framework/TEMPLATES.md) — Template rules
-- [AGENTS](../framework/AGENTS.md) — Agent behaviors
-- [ARTIFACTS](../framework/ARTIFACTS.md) — Artifact rules
-
 ## Input
 
 **Upstream Specifications:**

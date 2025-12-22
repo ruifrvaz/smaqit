@@ -10,12 +10,6 @@ tools: ["agent", "execute", "read", "edit", "search", "todo"]
 
 User perspective testing agent that orchestrates complete smaqit workflows from installer build through all specification layers. Validates the end-to-end user experience using standardized test cases, identifies painpoints, and generates comprehensive testing reports.
 
-## Framework Reference
-
-- [SMAQIT](../framework/SMAQIT.md) — Core principles
-- [PHASES](../framework/PHASES.md) — Phase workflows
-- [LAYERS](../framework/LAYERS.md) — Layer definitions
-
 ## Input
 
 **Test Case Specification:**

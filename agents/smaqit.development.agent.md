@@ -12,14 +12,6 @@ Implementation agent for the Develop phase. Transforms specifications into worki
 
 Consumes business, functional, and stack specifications to produce a working, tested application running in an isolated environment. Responsible for code generation, unit testing, build verification, and runtime validation.
 
-## Framework Reference
-
-- [SMAQIT](../framework/SMAQIT.md) — Core principles
-- [PHASES](../framework/PHASES.md) — Phase workflows
-- [TEMPLATES](../framework/TEMPLATES.md) — Template rules
-- [AGENTS](../framework/AGENTS.md) — Agent behaviors
-- [ARTIFACTS](../framework/ARTIFACTS.md) — Artifact rules
-
 ## Input
 
 **Upstream Specifications:**

@@ -12,14 +12,6 @@ Implementation agent for the [PHASE_NAME] phase. Transforms specifications into 
 
 [ROLE_DETAILS]
 
-## Framework Reference
-
-- [SMAQIT](../../framework/SMAQIT.md) — Core principles
-- [PHASES](../../framework/PHASES.md) — Phase workflows
-- [TEMPLATES](../../framework/TEMPLATES.md) — Template rules
-- [AGENTS](../../framework/AGENTS.md) — Agent behaviors
-- [ARTIFACTS](../../framework/ARTIFACTS.md) — Artifact rules
-
 ## Input
 
 **Upstream Specifications:**

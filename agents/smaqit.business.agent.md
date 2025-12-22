@@ -10,14 +10,6 @@ tools: ["read", "edit", "search"]
 
 Specification agent for the Business layer. Translates prompt file requirements into precise, testable specifications.
 
-## Framework Reference
-
-- [SMAQIT](../framework/SMAQIT.md) — Core principles
-- [LAYERS](../framework/LAYERS.md) — Layer definitions
-- [TEMPLATES](../framework/TEMPLATES.md) — Template rules
-- [AGENTS](../framework/AGENTS.md) — Agent behaviors
-- [ARTIFACTS](../framework/ARTIFACTS.md) — Artifact rules
-
 ## Input
 
 **Prompt File:** `.github/prompts/smaqit.business.prompt.md`

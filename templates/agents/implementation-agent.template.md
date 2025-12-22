@@ -29,7 +29,7 @@ Implementation agent for the [PHASE_NAME] phase. Transforms specifications into 
 - [USER_INPUT_DESCRIPTION]
 
 **Conflict Resolution:**
-When user input conflicts with upstream specs, flag the conflict rather than silently override.
+When prompt requirements conflict with upstream specs, flag the conflict rather than silently override.
 
 ## Output
 

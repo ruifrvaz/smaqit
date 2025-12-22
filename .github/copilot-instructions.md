@@ -116,13 +116,18 @@ When documenting framework concepts:
 - Prefer abstract categories over specific examples
 - Describe the purpose or kind of information needed
 - Use generic placeholders when examples are necessary
+- Keep framework files (`framework/`), templates (`templates/`), and agents (`agents/`) as pure instructions
+- Move rationale, examples, and "why" explanations to wiki (`docs/wiki/`)
+- Write execution instructions in framework files, context in wiki files
 
 ### Don't:
 
 - List specific technologies, vendors, or architectures
 - Include examples that assume cloud/containers/web apps
-- Prescribe solutions that may not fit all project types 
-
+- Prescribe solutions that may not fit all project types
+- Add meta-rationale or "why" explanations to framework files
+- Include historical context or design evolution in framework files
+- Put examples or extended explanations in template/agent files
 
 ### When Editing Specification Templates
 

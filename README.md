@@ -121,6 +121,48 @@ smaqit
 - Level 2 consumes Level 1 (agents/specs follow templates)
 - Level 3 consumes Level 2 (application follows specs)
 
+## Documentation Structure
+
+smaqit documentation serves three audiences with distinct separation of concerns:
+
+### Framework Files (`framework/`)
+**Audience:** LLM agents  
+**Purpose:** Pure execution instructions
+
+These files contain ONLY what agents need to execute workflows:
+- Core principles (SMAQIT.md)
+- Layer definitions (LAYERS.md)
+- Phase workflows (PHASES.md)
+- Template rules (TEMPLATES.md)
+- Agent behaviors (AGENTS.md)
+- Artifact rules (ARTIFACTS.md)
+
+**No rationale, no examples, no history**—just instructions.
+
+### Wiki (`docs/wiki/`)
+**Audience:** Human developers  
+**Purpose:** Context and rationale
+
+These files explain WHY the framework is designed this way:
+- `concepts/` — Core concepts explained
+- `design-decisions/` — Why we chose these patterns
+- `patterns/` — Common usage patterns
+- `workflows/` — Step-by-step processes
+
+**For learning and understanding**, not for LLM consumption.
+
+### README (this file)
+**Audience:** Users and contributors  
+**Purpose:** Project overview
+
+High-level introduction:
+- What smaqit is
+- How to install and use it
+- Architecture overview
+- Contributor guidelines
+
+**Entry point for humans**, links to framework and wiki as needed.
+
 ---
 
 ## Contributors

@@ -54,10 +54,7 @@ Agents follow the pattern: `smaqit.[LAYER]` for specification agents and `smaqit
 
 ## Specification Agents
 
-Specification agents define *what* to build. They produce specification documents that serve as contracts for implementation agents.
-
-### Purpose
-Translate prompt file requirements into precise, testable specifications for a single layer.
+Specification agents translate prompt file requirements into precise, testable specifications for a single layer.
 
 ### Input
 - **Prompt file**: Requirements from `.github/prompts/smaqit.[layer].prompt.md` (the primary source)
@@ -99,10 +96,7 @@ Each layer reads from its own prompt file. Upstream layers provide context for c
 
 ## Implementation Agents
 
-Implementation agents build *how* it works. They consume specifications and produce executable artifacts.
-
-### Purpose
-Transform specifications into working software, deployed systems, or validated results.
+Implementation agents transform specifications into working software, deployed systems, or validated results.
 
 ### Input
 - Specification documents from relevant layers

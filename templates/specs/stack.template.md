@@ -24,15 +24,15 @@
 
 ### Languages
 
-| Language | Version | Rationale |
-|----------|---------|-----------|
-| [LANGUAGE] | [VERSION] | [Why this language was chosen] |
+| Language | Version |
+|----------|---------|
+| [LANGUAGE] | [VERSION] |
 
 ### Frameworks
 
-| Framework | Version | Rationale |
-|-----------|---------|-----------|
-| [FRAMEWORK] | [VERSION] | [Why this framework was chosen] |
+| Framework | Version |
+|-----------|---------|
+| [FRAMEWORK] | [VERSION] |
 
 ### Libraries
 

@@ -1,11 +1,11 @@
 # Copilot Instructions for smaqit Development
 
-You are developing smaqit, a spec-driven agent orchestration framework. User provides inputs via prompt files, AI agents use those inputs to write specs, then implement from those specs.
+You are developing smaqit, a spec-driven agent orchestration framework.
 
 ## Kit Components
 
-- **Framework files** (`framework/`) — Pure LLM execution instructions
-- **Wiki** (`docs/wiki/`) — Human-readable context and rationale (concepts, design-decisions, patterns, workflows)
+- **Framework files** (`framework/`) — LLM execution instructions
+- **Wiki** (`docs/wiki/`) — Human-readable context and rationale (concepts, designs, patterns, workflows)
 - **Specification templates** (`templates/specs/`) — Structure for spec documents per layer
 - **Prompt templates** (`templates/prompts/`) — Structure for prompt files
 - **Agent templates** (`templates/agents/`) — Structure for agent definitions
@@ -22,7 +22,7 @@ You are developing smaqit, a spec-driven agent orchestration framework. User pro
 
 **Wiki** (`docs/wiki/`) — For human developers:
 - `concepts/` — Core concepts explained with rationale
-- `design-decisions/` — Why we chose these patterns
+- `designs/` — Why we chose these patterns
 - `patterns/` — Common usage patterns and conventions
 - `workflows/` — Step-by-step processes for common tasks
 - Provides context that framework files omit

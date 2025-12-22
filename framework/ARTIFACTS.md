@@ -12,13 +12,6 @@ There are two types of artifacts:
 
 Specifications are the source of truth in Spec Driven Development. They serve as contracts between layers.
 
-### Purpose
-
-- **User Input → Spec**: Each layer receives requirements directly from user input
-- **Upstream Specs → Context**: Adjacent layer specs provide traceability and context, not requirements
-- **Spec → Implementation**: Implementation agents consume specs as requirements, not suggestions
-- **Spec → Validation**: Coverage specs translate requirements into verifiable tests
-
 A specification is complete when another agent (or human) can implement or validate against it without requiring additional context.
 
 ### Requirement Identifiers

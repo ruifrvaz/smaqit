@@ -25,5 +25,5 @@ Filled prompts should be committed to version control alongside specs. When requ
 
 ## Related
 
-- [Free-Style Prompts](../design-decisions/free-style-prompts.md) — Why prompts are natural language
+- [Free-Style Prompts](../designs/free-style-prompts.md) — Why prompts are natural language
 - [Amending Requirements](../workflows/amending-requirements.md) — How to evolve prompts over time

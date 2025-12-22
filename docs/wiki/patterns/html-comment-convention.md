@@ -44,5 +44,5 @@ Use HTML comments for:
 
 ## Related
 
-- [Free-Style Prompts](../design-decisions/free-style-prompts.md) — Why prompts are natural language
+- [Free-Style Prompts](../designs/free-style-prompts.md) — Why prompts are natural language
 - [Validation Messages](../patterns/validation-messages.md) — How agents guide users when input is insufficient

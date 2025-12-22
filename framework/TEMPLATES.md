@@ -1,15 +1,6 @@
 # Templates
 
-Templates define the structure that agents MUST follow when producing output. This document establishes the rules for both specification templates and agent templates.
-
-## Purpose
-
-Templates serve as cognitive scaffolds:
-- **Consistent output** across runs
-- **Predictable input** for downstream consumers
-- **Reduced LLM variance** through structural constraints
-
-Templates are not suggestions—they are mandatory structure.
+Templates define the structure that agents MUST follow when producing output. This document establishes the rules for both specification templates, agent templates and prompt templates.
 
 ## Template Types
 
@@ -100,9 +91,11 @@ Every specification template MUST include:
 When producing specs from templates:
 
 - Agents MUST use the template from `templates/specs/[LAYER].template.md`
+- Agents MUST produce consistent output structure across all runs
 - Agents MUST NOT add sections not defined in the template
 - Agents MUST NOT omit required sections from the template
 - Agents MUST NOT leave placeholder text in completed specs
+- Agents MUST minimize variance in generated artifacts
 
 ### Placeholder Handling
 
@@ -194,7 +187,6 @@ Prompt templates use GitHub Copilot prompt format:
 name: smaqit.[layer]
 description: [One-line description]
 agent: smaqit.[layer]
-tools: ["read", "edit", "search"]
 ---
 
 # [Layer] Prompt

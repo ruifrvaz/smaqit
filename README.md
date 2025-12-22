@@ -145,7 +145,7 @@ These files contain ONLY what agents need to execute workflows:
 
 These files explain WHY the framework is designed this way:
 - `concepts/` — Core concepts explained
-- `design-decisions/` — Why we chose these patterns
+- `designs/` — Why we chose these patterns
 - `patterns/` — Common usage patterns
 - `workflows/` — Step-by-step processes
 

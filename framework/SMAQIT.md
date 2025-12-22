@@ -19,8 +19,6 @@ Specifications are not documentation—they are the source of truth. Implementat
 - Code references specs
 - Tests reference requirements
 
-Traceability enables impact analysis: when a requirement changes, the chain of dependencies is explicit.
-
 ### Layer Independence
 
 **Each layer's prompt file is the sole source of requirements for that layer.**
@@ -58,8 +56,6 @@ LLMs rarely generate identical output twice. Rather than fighting this inherent 
 - **Immutable behavior**: Specifications define expected outcomes, not implementation details
 - **Validation over reproducibility**: Success is measured by passing acceptance criteria, not by identical output
 
-The specification is the invariant. The implementation is the variable.
-
 ### Reproducible from Input Set
 
 **Identical input sets should produce equivalent validated behavior.**
@@ -70,35 +66,29 @@ The complete set of prompts across all layers defines a reproducible workflow. G
 - **Traceable changes**: Modifying any prompt in the set reveals requirement changes explicitly
 - **Audit trail**: Prompt sets document what was requested at each layer
 
-## Design Philosophy
-
 ### Progressive Refinement
 
-Each layer addresses a distinct concern:
+**Each layer addresses a distinct concern.**
 
-```
-Business (intent) | Functional (behavior) | Stack (tools) | Infrastructure (environment) | Coverage (verification)
-```
-
-Layers are independent but must be coherent. No layer derives requirements from another—each reads from its own prompt file. Implementation agents validate cross-layer coherence before execution.
+Layers are independent but must be coherent:
+- Business (intent) | Functional (behavior) | Stack (tools) | Infrastructure (environment) | Coverage (verification)
+- No layer derives requirements from another—each reads from its own prompt file
+- Implementation agents validate cross-layer coherence before execution
 
 ### Explicit Over Implicit
 
-When in doubt, make it explicit:
+**When in doubt, make it explicit.**
+
 - State assumptions rather than assume shared context
 - Define scope boundaries rather than imply them
 - Reference sources rather than expect inference
 
-LLMs benefit from explicit context. Humans benefit from explicit documentation.
-
 ### Fail-Fast on Ambiguity
 
-When input is unclear:
-- Stop and request clarification
+**When input is unclear, stop and request clarification.**
+
 - Do not invent requirements
 - Flag assumptions explicitly
-
-The cost of clarification is lower than the cost of rework from incorrect assumptions.
 
 ## Quick Reference
 

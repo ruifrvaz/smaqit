@@ -48,5 +48,5 @@ Agents should:
 
 ## Related
 
-- [Free-Style Prompts](../design-decisions/free-style-prompts.md) — Why prompts are natural language
+- [Free-Style Prompts](../designs/free-style-prompts.md) — Why prompts are natural language
 - [HTML Comment Convention](html-comment-convention.md) — How templates provide guidance

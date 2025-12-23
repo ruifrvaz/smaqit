@@ -116,15 +116,16 @@ Layers are independent but must be coherent:
 project/
 ├── .smaqit/
 │   ├── framework/        # Framework files (this directory)
-│   ├── specs/
-│   │   ├── business/
-│   │   ├── functional/
-│   │   ├── stack/
-│   │   ├── infrastructure/
-│   │   └── coverage/
-│   └── templates/        # Layer templates
-└── .github/
-    └── agents/           # Agent definitions
+│   └── templates/        # Spec and prompt templates
+├── .github/
+│   ├── agents/           # Agent definitions
+│   └── prompts/          # Prompt files (user input)
+└── specs/
+    ├── business/
+    ├── functional/
+    ├── stack/
+    ├── infrastructure/
+    └── coverage/
 ```
 
 ## See Also

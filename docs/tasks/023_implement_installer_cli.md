@@ -25,9 +25,10 @@ Implement the smaqit CLI executable for scaffolding, status checking, validation
 - [x] Create directory structure:
   ```
   .smaqit/
-  ├── framework/           # Copy from kit: framework/*.md (6 files)
+  ├── framework/           # Copy from kit: framework/*.md (7 files)
   └── templates/
-      └── specs/           # Copy from kit: templates/specs/*.template.md (5 files)
+      ├── specs/           # Copy from kit: templates/specs/*.template.md (5 files)
+      └── prompts/         # Copy from kit: templates/prompts/*.template.md (2 files)
   
   specs/                   # At project root (moved in session 009)
   ├── business/            # Empty directory
@@ -37,7 +38,8 @@ Implement the smaqit CLI executable for scaffolding, status checking, validation
   └── coverage/            # Empty directory
   
   .github/
-  └── agents/              # Copy from kit: agents/*.agent.md (8 files)
+  ├── agents/              # Copy from kit: agents/*.agent.md (8 files)
+  └── prompts/             # Copy from kit: prompts/*.prompt.md (8 files)
   ```
 - [x] Handle existing directories: error if `.smaqit/` already exists, prompt user to uninstall first
 - [x] Embed smaqit version in `.smaqit/VERSION` file for compatibility checking

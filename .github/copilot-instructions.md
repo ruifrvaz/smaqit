@@ -13,25 +13,6 @@ You are developing smaqit, a spec-driven agent orchestration framework.
 - **Prompts** (`prompts/`) — Input record files (`.prompt.md` format)
 - **Installer** (`installer/`) — Go CLI that scaffolds smaqit into user projects
 
-## Documentation Structure
-
-**Framework files** (`framework/`) — For LLM agents only:
-- Pure execution instructions, no rationale or meta-explanations
-- Core principles, layer definitions, phase workflows, template rules
-- Agents consume these files directly
-
-**Wiki** (`docs/wiki/`) — For human developers:
-- `concepts/` — Core concepts explained with rationale
-- `designs/` — Why we chose these patterns
-- `patterns/` — Common usage patterns and conventions
-- `workflows/` — Step-by-step processes for common tasks
-- Provides context that framework files omit
-
-**README** — For users and contributors:
-- Project overview, installation, usage
-- Architecture overview and team alignment
-- Framework evolution and contribution guidelines
-
 ## Source vs Artifacts
 
 **Source (this repo)** — Kit development files:

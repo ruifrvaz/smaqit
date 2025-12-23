@@ -98,18 +98,21 @@ smaqit kit is organized in hierarchical levels:
 smaqit
 ├── Level 0: Framework (Foundation)
 │   ├── framework/SMAQIT.md      # Core principles
-│   ├── framework/LAYERS.md      # Layer definitions (Business → Coverage)
-│   └── framework/PHASES.md      # Phase workflows (Develop → Validate)
+│   ├── framework/LAYERS.md      # Layer definitions
+│   ├── framework/PHASES.md      # Phase workflows
+│   ├── framework/TEMPLATES.md   # Template rules
+│   ├── framework/AGENTS.md      # Agent behaviors
+│   ├── framework/ARTIFACTS.md   # Artifact rules
+│   └── framework/PROMPTS.md     # Prompt architecture
 │
 ├── Level 1: Templates (Structure)
-│   ├── framework/TEMPLATES.md   # Template rules
 │   ├── templates/specs/         # Specification templates (5)
+│   ├── templates/prompts/       # Prompt templates (2)
 │   └── templates/agents/        # Agent templates (2)
 │
 ├── Level 2: Agents & Artifacts (Instances)
-│   ├── framework/AGENTS.md      # Agent behaviors
-│   ├── framework/ARTIFACTS.md   # Artifact rules
 │   ├── agents/*.agent.md        # Agent definitions (8)
+│   ├── prompts/*.prompt.md      # Prompt files (8)
 │   └── specs/**/*.md            # Specification documents
 │
 └── Level 3: Application (Output)
@@ -118,12 +121,10 @@ smaqit
 
 **Level dependencies:**
 - Level 1 consumes Level 0 (templates follow framework rules)
-- Level 2 consumes Level 1 (agents/specs follow templates)
+- Level 2 consumes Level 1 (agents/specs/prompts follow templates)
 - Level 3 consumes Level 2 (application follows specs)
 
 ## Documentation Structure
-
-smaqit documentation serves three audiences with distinct separation of concerns:
 
 ### Framework Files (`framework/`)
 **Audience:** LLM agents  
@@ -137,8 +138,6 @@ These files contain ONLY what agents need to execute workflows:
 - Agent behaviors (AGENTS.md)
 - Artifact rules (ARTIFACTS.md)
 
-**No rationale, no examples, no history**—just instructions.
-
 ### Wiki (`docs/wiki/`)
 **Audience:** Human developers  
 **Purpose:** Context and rationale
@@ -148,20 +147,6 @@ These files explain WHY the framework is designed this way:
 - `designs/` — Why we chose these patterns
 - `patterns/` — Common usage patterns
 - `workflows/` — Step-by-step processes
-
-**For learning and understanding**, not for LLM consumption.
-
-### README (this file)
-**Audience:** Users and contributors  
-**Purpose:** Project overview
-
-High-level introduction:
-- What smaqit is
-- How to install and use it
-- Architecture overview
-- Contributor guidelines
-
-**Entry point for humans**, links to framework and wiki as needed.
 
 ---
 

@@ -169,6 +169,7 @@ Task 029 complete. Active tasks remaining:
 - Task 015: Investigate framework bundling at installation
 - Task 022: Create GitHub Action for automated releases
 - Task 025: Integrate testing agent with CI/CD
+- **Task 030: Move session and task commands into prompts** (created this session, pick up next)
 
 ## Notes
 

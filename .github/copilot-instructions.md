@@ -183,108 +183,20 @@ The CLI copies framework/, templates/, agents/ into user projects as:
 
 Keep `installer/main.go` Version const in sync with SMAQIT.md version.
 
-## Session Commands
+## Workflow Commands
 
-Explicit keywords for session management. These are unambiguous commands.
+Session management and task management commands are available as prompts in `.github/prompts/`:
 
-### `session.recap`
+**Session commands:**
+- `/session.recap` - Load full project context for new chat
+- `/session.wrap` - Document session history at completion
 
-Start a new chat with full project context. Execute these steps IN ORDER:
+**Task commands:**
+- `/task.create [title]` - Create new task with auto-numbering
+- `/task.list` - Show current active tasks
+- `/task.complete [id]` - Mark task as completed with verification
 
-1. **Read core project files from start to finish** (in parallel):
-   - `README.md` (project root)
-   - `framework/SMAQIT.md` (index + core principles)
-   - `framework/LAYERS.md` (layer definitions)
-   - `framework/PHASES.md` (phase workflows)
-   - `framework/TEMPLATES.md` (template structure rules)
-   - `framework/AGENTS.md` (agent behaviors)
-   - `framework/ARTIFACTS.md` (artifact rules)
-   - `framework/PROMPTS.md` (prompt architecture)
-
-2. **Read the 3 most recent history files from start to finish** from `docs/history/` (sorted by date descending)
-
-3. **Read task planning file:** `docs/tasks/PLANNING.md` (NOT individual task files)
-
-4. **Synthesize and present** a recap covering:
-   - Current project state (from READMEs)
-   - Recent changes and decisions (from history)
-   - Open tasks sorted by priority
-   - Suggested next steps
-
-**CRITICAL:** Read complete files without line limits. Do NOT truncate at any arbitrary limit.
-
-**Note:** Only read individual task files (`docs/tasks/NNN_*.md`) when actively working on that specific task.
-
-### `session.wrap`
-
-End a session by documenting the **entire session** (not just recent activity):
-
-1. **Review full conversation** - All topics discussed, decisions made, files modified
-2. **Create history file** if session qualifies as significant (see Documentation Philosophy)
-   - Filename: `docs/history/YYYY-MM-DD_description.md`
-   - Include: Actions taken, problems solved, decisions made, files modified, next steps
-   - Focus on **what** and **why**, not implementation details
-   - Cover the **complete session arc**, not just the last activity
-3. **Update this history file** as the session reference for next chat
-- **Do NOT create** separate RESUME or TODO files (history file serves this purpose)
-
-## Task Commands
-
-Explicit keywords for task management. These are unambiguous commands.
-
-**Central planning file:** `docs/tasks/PLANNING.md`
-- Contains status of all tasks (sorted by ID)
-- Single source of truth for task overview
-- Update this file when task status changes
-
-### `task.create [title]` or `task.create [title] - [description] - [criteria]`
-
-Create a new task:
-
-1. Create new task file in `docs/tasks/` directory
-2. Filename: `docs/tasks/NNN_task_title.md` (NNN = next available number, zero-padded to 3 digits)
-3. Tasks are numbered sequentially starting at 001
-4. **Add entry to `docs/tasks/PLANNING.md`** with status "Not Started"
-
-**Flexible input formats:**
-- `task.create Fix RAG chunking` - Title only (prompt for details or infer from context)
-- `task.create Fix RAG chunking - Chunks are too large for embedding model` - Title + description
-- `task.create Fix RAG chunking - Chunks too large - Chunks under 512 tokens, Tests pass` - Full specification
-
-### `task.list`
-
-Show current tasks:
-
-1. Read `docs/tasks/PLANNING.md` only (not individual task files)
-2. Show tasks from the Active table
-
-### `task.complete [id]`
-
-Mark a task as done:
-
-1. Read the task file to review acceptance criteria
-2. **Verify all criteria are met** - Do NOT complete if any criteria remain unfinished
-3. Check off completed acceptance criteria (`- [x]`)
-4. Move task from Active table to Completed table in `PLANNING.md`
-5. Update individual task file status to "Completed"
-
-**Task file format:**
-```markdown
-# [Task Title]
-
-**Status:** Not Started | In Progress | Completed | Blocked  
-**Created:** YYYY-MM-DD
-
-## Description
-[Clear description of what needs to be done]
-
-## Acceptance Criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
-
-## Notes
-[Optional additional context]
-```
+See individual prompt files in `.github/prompts/` for detailed workflows.
 ### Task Management
 
 - `docs/tasks/PLANNING.md` has two tables: Active and Completed

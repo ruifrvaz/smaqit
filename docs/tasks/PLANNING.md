@@ -38,6 +38,7 @@
 | 027 | Separate framework instructions from human rationale |
 | 028 | Audit all smaqit levels for meta-rationale |
 | 029 | Simplify implementation prompts to minimal orchestration inputs |
+| 030 | Move session and task commands into prompts |
 
 ## Backlog
 

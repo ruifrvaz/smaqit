@@ -191,7 +191,7 @@ Explicit keywords for session management. These are unambiguous commands.
 
 Start a new chat with full project context. Execute these steps IN ORDER:
 
-1. **Read core project files** (in parallel):
+1. **Read core project files from start to finish** (in parallel):
    - `README.md` (project root)
    - `framework/SMAQIT.md` (index + core principles)
    - `framework/LAYERS.md` (layer definitions)
@@ -199,8 +199,9 @@ Start a new chat with full project context. Execute these steps IN ORDER:
    - `framework/TEMPLATES.md` (template structure rules)
    - `framework/AGENTS.md` (agent behaviors)
    - `framework/ARTIFACTS.md` (artifact rules)
+   - `framework/PROMPTS.md` (prompt architecture)
 
-2. **Read the 3 most recent history files** from `docs/history/` (sorted by date descending)
+2. **Read the 3 most recent history files from start to finish** from `docs/history/` (sorted by date descending)
 
 3. **Read task planning file:** `docs/tasks/PLANNING.md` (NOT individual task files)
 
@@ -209,6 +210,8 @@ Start a new chat with full project context. Execute these steps IN ORDER:
    - Recent changes and decisions (from history)
    - Open tasks sorted by priority
    - Suggested next steps
+
+**CRITICAL:** Read complete files without line limits. Do NOT truncate at any arbitrary limit.
 
 **Note:** Only read individual task files (`docs/tasks/NNN_*.md`) when actively working on that specific task.
 

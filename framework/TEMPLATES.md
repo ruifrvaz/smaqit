@@ -112,7 +112,8 @@ Agent templates define the structure for agent definition files.
 ```
 templates/agents/
 ├── specification-agent.template.md
-└── implementation-agent.template.md
+├── implementation-agent.template.md
+└── orchestrator-agent.template.md
 ```
 
 ### Required Sections
@@ -164,7 +165,8 @@ Prompt templates define the structure for prompt files that serve as input recor
 ```
 templates/prompts/
 ├── specification-prompt.template.md
-└── phase-prompt.template.md
+├── implementation-prompt.template.md
+└── orchestrator-prompt.template.md
 ```
 
 ### Required Sections
@@ -173,7 +175,7 @@ Every prompt template MUST include:
 
 | Section | Purpose |
 |---------|---------|
-| YAML Frontmatter | name, description, agent, tools |
+| YAML Frontmatter | name, description, agent |
 | Purpose | What this prompt captures |
 | Requirements | Sub-sections with suggested structure |
 | Comment Examples | `<!-- Example: ... -->` for guidance |

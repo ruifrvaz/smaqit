@@ -1,6 +1,6 @@
 # smaqit Framework
 
-Spec-driven agent orchestration. AI agents write specifications first, then implement from those specs.
+Spec-driven agent orchestration where specifications are split into layers and phases. Users input requirements in prompt files, AI specification agents read from these prompt files to write specifications, then implementation agents generate outputs from those specifications.
 
 ## Core Principles
 

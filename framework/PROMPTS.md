@@ -11,7 +11,7 @@ Prompts are the user-facing interface for smaqit workflows. They capture require
 
 **Structure:**
 
-- YAML frontmatter: `name`, `description`, `agent` (for layer prompts), `tools`
+- YAML frontmatter: `name`, `description`, `agent`
 - Requirement sections with layer-specific sub-sections
 - `<!-- Example: ... -->` comments for guidance (agents MUST ignore these)
 - Free-style user content in natural language
@@ -43,16 +43,17 @@ project/
         ├── smaqit.stack.prompt.md
         ├── smaqit.infrastructure.prompt.md
         ├── smaqit.coverage.prompt.md
-        ├── smaqit.develop.prompt.md
-        ├── smaqit.deploy.prompt.md
-        └── smaqit.validate.prompt.md
+        ├── smaqit.development.prompt.md
+        ├── smaqit.deployment.prompt.md
+        ├── smaqit.validation.prompt.md
+        └── smaqit.orchestrate.prompt.md
 ```
 
 ### Format
 
 **YAML Frontmatter + Free-Style Content**
 
-Prompts use GitHub Copilot prompt format with frontmatter specifying name, description, agent, and tools. See `templates/prompts/` for structure.
+Prompts use GitHub Copilot prompt format with frontmatter specifying name, description, and agent. See `templates/prompts/` for structure.
 
 ### Single Manifest per Layer
 
@@ -98,23 +99,6 @@ Agents guide users naturally, not with template references or error codes.
 - Agent proceeds with spec generation
 - Agent uses prompt content as authoritative input
 
-### Pre-Run Validation
-
-Phase agents (Development, Deployment, Validation) perform **pre-flight checks** before orchestration:
-
-**Development agent checks:**
-- Business prompt has content
-- Functional prompt has content
-- Stack prompt has content
-
-**Deployment agent checks:**
-- Infrastructure prompt has content
-
-**Validation agent checks:**
-- Coverage prompt has content
-
-If any upstream prompt is empty or insufficient, phase agent halts and guides user to fill missing prompts before proceeding.
-
 ## Amendment Workflow
 
 When requirements change, users edit prompts and regenerate specs. Prompts are the source, specs are derived. Agents always read from `.github/prompts/`.
@@ -133,15 +117,25 @@ Capture requirements for single specification layer:
 | `smaqit.infrastructure.prompt.md` | Infrastructure | Deployment, scaling, observability | Infrastructure Agent |
 | `smaqit.coverage.prompt.md` | Coverage | Test scope, verification requirements | Coverage Agent |
 
-### Phase Prompts (Orchestration Prompts)
+### Implementation Prompts
 
-Coordinate multiple agents for workflow execution:
+Trigger single implementation agent with optional execution parameters:
 
-| Prompt | Phase | Orchestrates | Validates |
-|--------|-------|--------------|-----------|
-| `smaqit.develop.prompt.md` | Develop | Business → Functional → Stack → Development | All 3 layer prompts filled |
-| `smaqit.deploy.prompt.md` | Deploy | Infrastructure → Deployment | Infrastructure prompt filled |
-| `smaqit.validate.prompt.md` | Validate | Coverage → Validation | Coverage prompt filled |
+| Prompt | Phase | Captures | Invokes |
+|--------|-------|----------|---------|
+| `smaqit.development.prompt.md` | Development | Build options, output preferences | Development Agent |
+| `smaqit.deployment.prompt.md` | Deployment | Deployment target, verification | Deployment Agent |
+| `smaqit.validation.prompt.md` | Validation | Test scope, failure handling | Validation Agent |
 
-Phase prompts may collect orchestration parameters (e.g., "Run in watch mode") but primarily validate and coordinate.
+Implementation prompts collect minimal runtime parameters (watch mode, verbosity, skip flags). Agents handle orchestration, validation, and error handling.
+
+### Orchestrator Prompt
+
+Coordinates full workflow from specifications through validation:
+
+| Prompt | Captures | Invokes |
+|--------|----------|----------|
+| `smaqit.orchestrate.prompt.md` | Phase selection, pre-validation preferences, error handling | Orchestrator Agent |
+
+Orchestrator prompt collects execution parameters (which phases to run, validation preferences, error handling strategy). Orchestrator agent executes the workflow logic.
 

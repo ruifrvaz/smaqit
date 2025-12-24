@@ -189,7 +189,3 @@ This prompt captures [LAYER] requirements for your project. These requirements w
 <!-- Example: "ASCII art renders correctly" -->
 <!-- Example: "Application exits with code 0" -->
 ```
-
-## Placeholder Convention
-
-Use `<!-- Example: ... -->` for guidance comments that agents should ignore. These help users understand format without polluting requirements.

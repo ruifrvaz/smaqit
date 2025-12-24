@@ -45,12 +45,13 @@ See [PROMPTS](PROMPTS.md) for complete prompt architecture and input record prin
 
 ## Naming Convention
 
-Agents follow the pattern: `smaqit.[LAYER]` for specification agents and `smaqit.[PHASE]` for implementation agents.
+Agents follow the pattern: `smaqit.[LAYER]` for specification agents, `smaqit.[PHASE]` for implementation agents, and `smaqit.orchestrator` for the orchestration agent.
 
 | Type | Pattern | Examples |
 |------|---------|----------|
 | Specification | `smaqit.[LAYER]` | `smaqit.business`, `smaqit.functional`, `smaqit.stack` |
 | Implementation | `smaqit.[PHASE]` | `smaqit.development`, `smaqit.deployment`, `smaqit.validation` |
+| Orchestrator | `smaqit.orchestrator` | `smaqit.orchestrator` |
 
 ## Specification Agents
 
@@ -162,6 +163,60 @@ Agents MUST NOT proceed with implementation while unresolved conflicts exist.
 | `smaqit.development` | Develop | Business + Functional + Stack specs | Code |
 | `smaqit.deployment` | Deploy | Code + Infrastructure specs | Running system |
 | `smaqit.validation` | Validate | Deployed system + Coverage specs | Validation report |
+
+## Orchestrator Agent
+
+The orchestrator agent coordinates full workflow execution from specifications through validation.
+
+### Input
+- **Orchestrator prompt**: `prompts/smaqit.orchestrate.prompt.md` — User preferences for workflow execution
+- **All prompts**: Layer prompts (5) and implementation prompts (3) — Required for pre-run validation
+
+### Output
+- **Orchestration report**: Documents agent invocations, phase outcomes, errors
+- **Workflow status**: Complete/partial/failed with detailed execution log
+
+### Directives
+
+**Orchestrator agent MUST:**
+- Execute pre-run validation before starting workflow (if requested)
+- Invoke agents in correct dependency order: 5 spec agents → 3 implementation agents
+- Verify each phase completion before proceeding to next phase
+- Report all errors with context (phase, agent, input state)
+- Respect user error handling preferences (stop on error vs continue)
+- Validate workflow completion criteria before declaring success
+
+**Orchestrator agent MUST NOT:**
+- Skip required phases without user approval
+- Proceed with missing upstream specifications
+- Silently ignore phase failures
+- Modify agent execution order to bypass dependencies
+- Bypass pre-run validation when user requested it
+
+**Orchestrator agent SHOULD:**
+- Provide progress updates during long-running workflows
+- Report estimated time remaining for multi-phase execution
+- Suggest recovery actions when phases fail
+- Document lessons learned for workflow optimization
+
+### Tooling
+
+Orchestrator agent requires the `agent` tool to invoke other agents:
+
+| Tool | Purpose |
+|------|----------|
+| `agent` | Invoke specification and implementation agents |
+| `execute` | Run validation commands |
+| `read` | Read prompts and orchestration parameters |
+| `edit` | Create orchestration reports |
+| `search` | Locate prompt files and verify completeness |
+| `todo` | Track multi-phase workflow progress |
+
+### Orchestrator Agent Mapping
+
+| Agent | Purpose | Input | Output |
+|-------|---------|-------|--------|
+| `smaqit.orchestrator` | Coordinate workflow | Orchestrator prompt + all layer/implementation prompts | Orchestration report + workflow status |
 
 ## Validation
 

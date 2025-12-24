@@ -8,7 +8,6 @@
 | 015 | Investigate framework bundling at installation | new |
 | 022 | Create GitHub Action for automated releases | new |
 | 025 | Integrate testing agent with CI/CD | new |
-| 029 | Simplify implementation prompts to minimal orchestration inputs | new |
 
 ## Completed
 
@@ -38,6 +37,7 @@
 | 026 | Rethink prompt architecture and integration |
 | 027 | Separate framework instructions from human rationale |
 | 028 | Audit all smaqit levels for meta-rationale |
+| 029 | Simplify implementation prompts to minimal orchestration inputs |
 
 ## Backlog
 

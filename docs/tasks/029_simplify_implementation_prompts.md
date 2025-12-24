@@ -1,11 +1,15 @@
 # Simplify implementation prompts to minimal orchestration inputs
 
-**Status:** Not Started  
+**Status:** Completed  
 **Created:** 2025-12-22
 
-## Architecture Decision Required
+## Architecture Decision
 
-Before simplifying implementation prompts, we need to decide the orchestration architecture.
+**Decision:** Option 4 - Implementation prompts + orchestrator prompt
+
+- 3 implementation prompts: `smaqit.development`, `smaqit.deployment`, `smaqit.validation`
+- 1 orchestrator prompt: `smaqit.orchestrate` 
+- Users choose granularity (single phase or full workflow)
 
 ### Current State
 
@@ -90,38 +94,42 @@ Current state:
 ## Scope
 
 **Phase prompt files:**
-- [ ] `prompts/smaqit.develop.prompt.md`
-- [ ] `prompts/smaqit.deploy.prompt.md`
-- [ ] `prompts/smaqit.validate.prompt.md`
+- [x] `prompts/smaqit.develop.prompt.md` → renamed to `smaqit.development.prompt.md`
+- [x] `prompts/smaqit.deploy.prompt.md` → renamed to `smaqit.deployment.prompt.md`
+- [x] `prompts/smaqit.validate.prompt.md` → renamed to `smaqit.validation.prompt.md`
 
 **Phase prompt template:**
-- [ ] `templates/prompts/phase-prompt.template.md`
+- [x] `templates/prompts/phase-prompt.template.md` → renamed to `orchestrator-prompt.template.md`
+- [x] Created `templates/prompts/implementation-prompt.template.md`
 
 **All prompt files (tools removal):**
-- [ ] `prompts/smaqit.business.prompt.md`
-- [ ] `prompts/smaqit.functional.prompt.md`
-- [ ] `prompts/smaqit.stack.prompt.md`
-- [ ] `prompts/smaqit.infrastructure.prompt.md`
-- [ ] `prompts/smaqit.coverage.prompt.md`
-- [ ] `prompts/smaqit.develop.prompt.md`
-- [ ] `prompts/smaqit.deploy.prompt.md`
-- [ ] `prompts/smaqit.validate.prompt.md`
+- [x] `prompts/smaqit.business.prompt.md`
+- [x] `prompts/smaqit.functional.prompt.md`
+- [x] `prompts/smaqit.stack.prompt.md`
+- [x] `prompts/smaqit.infrastructure.prompt.md`
+- [x] `prompts/smaqit.coverage.prompt.md`
+- [x] `prompts/smaqit.development.prompt.md`
+- [x] `prompts/smaqit.deployment.prompt.md`
+- [x] `prompts/smaqit.validation.prompt.md`
 
 **Template files (tools removal):**
-- [ ] `templates/prompts/specification-prompt.template.md`
-- [ ] `templates/prompts/phase-prompt.template.md`
+- [x] `templates/prompts/specification-prompt.template.md`
+- [x] `templates/prompts/orchestrator-prompt.template.md`
+- [x] `templates/prompts/implementation-prompt.template.md`
 
 ## Acceptance Criteria
 
-- [ ] Phase prompt template simplified to minimal orchestration structure
-- [ ] All three phase prompts simplified (develop, deploy, validate)
-- [ ] `tools` field removed from all 8 prompt files
-- [ ] `tools` field removed from both prompt templates
-- [ ] Framework documentation updated to reflect:
+- [x] Phase prompt template simplified to minimal orchestration structure
+- [x] All three phase prompts simplified (develop, deploy, validate)
+- [x] `tools` field removed from all 8 prompt files
+- [x] `tools` field removed from all 3 prompt templates
+- [x] Framework documentation updated to reflect:
   - Phase prompts are for orchestration parameters only
   - Implementation agents read from specs, not phase prompts
   - Prompt files don't override agent tools
-- [ ] Copilot instructions updated with phase prompt guidelines
+- [x] Orchestrator agent created with workflow logic
+- [x] Orchestrator agent template created
+- [x] Framework files updated (AGENTS.md, TEMPLATES.md, PROMPTS.md)
 
 ## What Phase Prompts Should Look Like
 

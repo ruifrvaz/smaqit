@@ -297,18 +297,46 @@ public async Task<AuthResult> Login(LoginRequest request)
 - Source code, tests, configurations, build files
 - README with build, test, and run instructions
 - Development report (build/test/run results)
+- Phase completion in `.smaqit/state.json`
 - MUST satisfy all spec acceptance criteria
 - MUST follow stack-specific standards
 
 **Deploy Phase → Infrastructure:**
 - Infrastructure code (Terraform, etc.)
 - Deployment manifests, environment configs
+- Phase completion in `.smaqit/state.json`
 - MUST NOT hardcode secrets (Isolation Principle)
 
 **Validate Phase → Reports:**
 - Test results, coverage report, validation summary
+- Phase completion in `.smaqit/state.json`
 - MUST map results to Coverage spec test cases
 - MUST include spec coverage percentage
+
+**Phase State Tracking:**
+
+Implementation agents write phase completion to `.smaqit/state.json`:
+
+```json
+{
+  "version": "1.0",
+  "phases": {
+    "develop": {
+      "completed": true,
+      "timestamp": "2025-12-26T10:30:00Z"
+    },
+    "deploy": {
+      "completed": true,
+      "timestamp": "2025-12-26T14:15:00Z"
+    },
+    "validate": {
+      "completed": false
+    }
+  }
+}
+```
+
+Agents use atomic writes (temp file + rename) to prevent corruption. The `smaqit status` command reads this file to display project state.
 
 **Validation Report Format:**
 ```markdown

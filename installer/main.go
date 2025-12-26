@@ -2,11 +2,13 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 //go:embed framework/*.md
@@ -14,9 +16,6 @@ var frameworkFiles embed.FS
 
 //go:embed templates/specs/*.md
 var templateFiles embed.FS
-
-//go:embed templates/prompts/*.md
-var promptTemplateFiles embed.FS
 
 //go:embed agents/*.md
 var agentFiles embed.FS
@@ -26,6 +25,87 @@ var promptFiles embed.FS
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
 var Version = "dev"
+
+// PhaseState represents the completion state of a phase
+type PhaseState struct {
+	Completed bool   `json:"completed"`
+	Timestamp string `json:"timestamp,omitempty"`
+}
+
+// StateFile represents the .smaqit/state.json structure
+type StateFile struct {
+	Version string                `json:"version"`
+	Phases  map[string]PhaseState `json:"phases"`
+}
+
+// initStateFile creates a new state.json with all phases marked incomplete
+func initStateFile() StateFile {
+	return StateFile{
+		Version: "1.0",
+		Phases: map[string]PhaseState{
+			"develop":  {Completed: false},
+			"deploy":   {Completed: false},
+			"validate": {Completed: false},
+		},
+	}
+}
+
+// readStateFile reads and validates state.json, returning default state on error
+func readStateFile(path string) StateFile {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		// File doesn't exist or can't be read - return default
+		return initStateFile()
+	}
+
+	var state StateFile
+	if err := json.Unmarshal(content, &state); err != nil {
+		// Corrupted JSON - warn and return default
+		fmt.Println("⚠ Warning: state.json is corrupted, using default state")
+		return initStateFile()
+	}
+
+	// Validate schema
+	if state.Version == "" || state.Phases == nil {
+		fmt.Println("⚠ Warning: state.json has invalid schema, using default state")
+		return initStateFile()
+	}
+
+	// Ensure all phases exist
+	if _, ok := state.Phases["develop"]; !ok {
+		state.Phases["develop"] = PhaseState{Completed: false}
+	}
+	if _, ok := state.Phases["deploy"]; !ok {
+		state.Phases["deploy"] = PhaseState{Completed: false}
+	}
+	if _, ok := state.Phases["validate"]; !ok {
+		state.Phases["validate"] = PhaseState{Completed: false}
+	}
+
+	return state
+}
+
+// writeStateFile writes state.json using atomic write pattern (temp + rename)
+func writeStateFile(path string, state StateFile) error {
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling state: %w", err)
+	}
+
+	// Write to temporary file
+	tempPath := path + ".tmp"
+	if err := os.WriteFile(tempPath, data, 0644); err != nil {
+		return fmt.Errorf("writing temp file: %w", err)
+	}
+
+	// Atomic rename
+	if err := os.Rename(tempPath, path); err != nil {
+		os.Remove(tempPath) // Clean up temp file on failure
+		return fmt.Errorf("renaming temp file: %w", err)
+	}
+
+	return nil
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -139,7 +219,6 @@ func cmdInit(targetDir string) {
 	dirs := []string{
 		".smaqit/framework",
 		".smaqit/templates/specs",
-		".smaqit/templates/prompts",
 		"specs/business",
 		"specs/functional",
 		"specs/stack",
@@ -168,12 +247,6 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
-	// Copy prompt templates
-	if err := copyEmbeddedDir(promptTemplateFiles, "templates/prompts", ".smaqit/templates/prompts"); err != nil {
-		fmt.Printf("Error copying prompt templates: %v\n", err)
-		os.Exit(1)
-	}
-
 	// Copy agent files
 	if err := copyEmbeddedDir(agentFiles, "agents", ".github/agents"); err != nil {
 		fmt.Printf("Error copying agent files: %v\n", err)
@@ -186,10 +259,11 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
-	// Write version file
-	versionFile := filepath.Join(".smaqit", "VERSION")
-	if err := os.WriteFile(versionFile, []byte(Version+"\n"), 0644); err != nil {
-		fmt.Printf("Error writing VERSION file: %v\n", err)
+	// Initialize state.json
+	stateFilePath := filepath.Join(".smaqit", "state.json")
+	initialState := initStateFile()
+	if err := writeStateFile(stateFilePath, initialState); err != nil {
+		fmt.Printf("Error writing state.json: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -206,7 +280,10 @@ func cmdInit(targetDir string) {
 }
 
 // copyEmbeddedDir copies files from an embedded FS to a target directory
+// If dstDir contains "templates/specs", performs version substitution
 func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
+	substituteVersion := strings.Contains(dstDir, "templates/specs")
+	
 	return fs.WalkDir(embeddedFS, srcDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -220,6 +297,13 @@ func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
 		content, err := embeddedFS.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("reading %s: %w", path, err)
+		}
+
+		// Perform version substitution for spec templates
+		if substituteVersion {
+			contentStr := string(content)
+			contentStr = strings.ReplaceAll(contentStr, "[SMAQIT_VERSION]", Version)
+			content = []byte(contentStr)
 		}
 
 		// Calculate destination path
@@ -448,19 +532,9 @@ func cmdStatus() {
 	fmt.Println("smaqit Project Status")
 	fmt.Println("=====================\n")
 
-	// Read version
-	versionFile := filepath.Join(".smaqit", "VERSION")
-	versionBytes, err := os.ReadFile(versionFile)
-	installedVersion := "unknown"
-	if err == nil {
-		installedVersion = strings.TrimSpace(string(versionBytes))
-	}
-
-	fmt.Printf("Version: %s", installedVersion)
-	if installedVersion != Version {
-		fmt.Printf(" (current: %s)", Version)
-	}
-	fmt.Println("\n")
+	// Read state.json
+	stateFilePath := filepath.Join(".smaqit", "state.json")
+	state := readStateFile(stateFilePath)
 
 	// Scan specs by layer
 	layers := []string{"business", "functional", "stack", "infrastructure", "coverage"}
@@ -486,7 +560,7 @@ func cmdStatus() {
 	}
 
 	// Display layer coverage
-	fmt.Println("Specification Coverage:")
+	fmt.Println("Specification Layers:")
 	fmt.Printf("  Business:        %d spec(s)\n", layerCounts["business"])
 	fmt.Printf("  Functional:      %d spec(s)\n", layerCounts["functional"])
 	fmt.Printf("  Stack:           %d spec(s)\n", layerCounts["stack"])
@@ -494,38 +568,64 @@ func cmdStatus() {
 	fmt.Printf("  Coverage:        %d spec(s)\n", layerCounts["coverage"])
 	fmt.Printf("\nTotal: %d specification(s)\n\n", totalSpecs)
 
-	// Phase completion status
-	hasPhase1 := layerCounts["business"] > 0 || layerCounts["functional"] > 0 || layerCounts["stack"] > 0
-	hasPhase2 := layerCounts["infrastructure"] > 0
-	hasPhase3 := layerCounts["coverage"] > 0
-
+	// Display phase completion status from state.json
 	fmt.Println("Phase Status:")
-	if hasPhase1 {
-		fmt.Println("  ✓ Develop (Phase 1): In progress or complete")
+	
+	developPhase := state.Phases["develop"]
+	if developPhase.Completed {
+		timestamp := developPhase.Timestamp
+		if timestamp != "" {
+			// Parse and format timestamp
+			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
+				timestamp = t.Format("2006-01-02")
+			}
+			fmt.Printf("  ✓ Develop:  Complete (%s)\n", timestamp)
+		} else {
+			fmt.Println("  ✓ Develop:  Complete")
+		}
 	} else {
-		fmt.Println("  ○ Develop (Phase 1): Not started")
+		fmt.Println("  - Develop:  Not started")
 	}
 
-	if hasPhase2 {
-		fmt.Println("  ✓ Deploy (Phase 2): In progress or complete")
+	deployPhase := state.Phases["deploy"]
+	if deployPhase.Completed {
+		timestamp := deployPhase.Timestamp
+		if timestamp != "" {
+			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
+				timestamp = t.Format("2006-01-02")
+			}
+			fmt.Printf("  ✓ Deploy:   Complete (%s)\n", timestamp)
+		} else {
+			fmt.Println("  ✓ Deploy:   Complete")
+		}
 	} else {
-		fmt.Println("  ○ Deploy (Phase 2): Not started")
+		fmt.Println("  - Deploy:   Not started")
 	}
 
-	if hasPhase3 {
-		fmt.Println("  ✓ Validate (Phase 3): In progress or complete")
+	validatePhase := state.Phases["validate"]
+	if validatePhase.Completed {
+		timestamp := validatePhase.Timestamp
+		if timestamp != "" {
+			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
+				timestamp = t.Format("2006-01-02")
+			}
+			fmt.Printf("  ✓ Validate: Complete (%s)\n", timestamp)
+		} else {
+			fmt.Println("  ✓ Validate: Complete")
+		}
 	} else {
-		fmt.Println("  ○ Validate (Phase 3): Not started")
+		fmt.Println("  - Validate: Not started")
 	}
 
+	// Next steps based on phase completion
 	fmt.Println("\nNext steps:")
-	if !hasPhase1 {
-		fmt.Println("  • Type '/smaqit.develop' in GitHub Copilot chat to start Phase 1")
-	} else if !hasPhase2 {
-		fmt.Println("  • Type '/smaqit.deploy' in GitHub Copilot chat to start Phase 2")
-	} else if !hasPhase3 {
-		fmt.Println("  • Type '/smaqit.validate' in GitHub Copilot chat to start Phase 3")
+	if !developPhase.Completed {
+		fmt.Println("  • Type '/smaqit.development' in GitHub Copilot chat to start Develop phase")
+	} else if !deployPhase.Completed {
+		fmt.Println("  • Type '/smaqit.deployment' in GitHub Copilot chat to start Deploy phase")
+	} else if !validatePhase.Completed {
+		fmt.Println("  • Type '/smaqit.validation' in GitHub Copilot chat to start Validate phase")
 	} else {
-		fmt.Println("  • All phases have specs. Review and iterate as needed.")
+		fmt.Println("  • All phases complete. Run '/smaqit.orchestrate' to iterate or extend.")
 	}
 }

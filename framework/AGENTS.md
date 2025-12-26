@@ -116,11 +116,23 @@ Implementation agents transform specifications into working software, deployed s
 - Trace every implementation decision to a specification
 - Validate output against specification acceptance criteria
 - Report deviations or impossibilities rather than silently diverge
+- Write phase completion to `.smaqit/state.json` using atomic write pattern upon successful completion
+
+**State tracking format:**
+```json
+{
+  "completed": true,
+  "timestamp": "2025-12-26T10:30:00Z"
+}
+```
+
+Agents update the appropriate phase key (`develop`, `deploy`, or `validate`) in `.smaqit/state.json`. Use atomic writes (temp file + rename) to prevent corruption during concurrent access.
 
 **Implementation agents MUST NOT:**
 - Modify specifications (request changes through proper channels)
 - Implement features not defined in specifications
 - Skip validation steps defined in Coverage specs
+- Write state updates before all completion criteria are satisfied
 
 **Implementation agents SHOULD:**
 - Prefer explicit over implicit behavior

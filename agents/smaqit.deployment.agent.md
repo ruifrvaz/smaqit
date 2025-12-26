@@ -140,6 +140,15 @@ Before declaring completion, verify:
 - [ ] System accessible at expected endpoints
 - [ ] Deployment topology verified against infrastructure specs
 - [ ] Observability configured per infrastructure specs
+- [ ] Phase completion written to `.smaqit/state.json` using atomic write pattern
+
+**State update format:**
+```json
+{
+  "completed": true,
+  "timestamp": "2025-12-26T10:30:00Z"
+}
+```
 
 ## Failure Handling
 

@@ -109,3 +109,7 @@ If any criterion cannot be automatically validated, flag it:
   - **Reason:** [Why it cannot be tested automatically]
   - **Proposal:** [Measurable proxy or alternative approach]
   - **Resolution:** [How it will be verified]
+
+---
+
+*Generated with smaqit [SMAQIT_VERSION]*

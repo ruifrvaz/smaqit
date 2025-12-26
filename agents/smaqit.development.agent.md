@@ -119,6 +119,15 @@ Before declaring completion, verify:
 - [ ] Behavior matches spec acceptance criteria
 - [ ] README includes build, test, and run instructions
 - [ ] Development report documents build/test/run results
+- [ ] Phase completion written to `.smaqit/state.json` using atomic write pattern
+
+**State update format:**
+```json
+{
+  "completed": true,
+  "timestamp": "2025-12-26T10:30:00Z"
+}
+```
 
 ## Failure Handling
 

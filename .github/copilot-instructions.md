@@ -48,7 +48,7 @@ user-project/
 │   └── prompts/              # Copied from prompts/
 ├── .smaqit/
 │   ├── framework/            # Copied from framework/
-│   └── templates/            # Copied from templates/specs/ and templates/prompts/
+│   └── templates/            # Copied from templates/specs/
 └── specs/
     ├── business/
     ├── functional/

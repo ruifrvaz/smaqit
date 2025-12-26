@@ -77,6 +77,7 @@ If any prompt is empty or insufficient, agent halts and guides user: "Please fil
 - [ ] Behavior matches spec acceptance criteria
 - [ ] README includes build, test, and run instructions
 - [ ] Development report documents build/test/run results
+- [ ] Phase completion written to `.smaqit/state.json` with timestamp
 
 ---
 
@@ -163,6 +164,7 @@ See [ARTIFACTS](ARTIFACTS.md) for the Isolation Principle.
 - [ ] Deployment executed successfully
 - [ ] Health checks pass
 - [ ] System accessible at expected endpoints
+- [ ] Phase completion written to `.smaqit/state.json` with timestamp
 
 ---
 
@@ -224,6 +226,7 @@ If prompt has content, agents interpret free-style requirements and request clar
 - [ ] Validation report generated
 - [ ] Spec coverage percentage calculated
 - [ ] Untestable criteria documented with justification
+- [ ] Phase completion written to `.smaqit/state.json` with timestamp
 
 ---
 

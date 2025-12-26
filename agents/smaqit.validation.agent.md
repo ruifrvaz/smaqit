@@ -110,6 +110,15 @@ Before declaring completion, verify:
 - [ ] Validation report includes spec coverage percentage
 - [ ] Unverified requirements documented with justification
 - [ ] Failure details include sufficient evidence for debugging
+- [ ] Phase completion written to `.smaqit/state.json` using atomic write pattern
+
+**State update format:**
+```json
+{
+  "completed": true,
+  "timestamp": "2025-12-26T10:30:00Z"
+}
+```
 
 ## Failure Handling
 

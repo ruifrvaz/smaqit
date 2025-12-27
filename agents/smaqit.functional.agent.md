@@ -46,7 +46,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Produce output following `templates/specs/functional.template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output
-- Use requirement IDs: `FUN-[CONCEPT]-[NNN]` (see ARTIFACTS.md)
+- Use requirement IDs: `FUN-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 
@@ -68,23 +68,146 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ## Layer-Specific Rules
 
-**Functional specs MUST:**
+These rules are specific to the Functional layer and must be followed when producing specifications.
+
+### MUST
+
 - Define user flows that implement business use cases
 - Specify data models with attributes and relationships
 - Define API contracts (inputs, outputs, error conditions)
 - Include state transitions where applicable
 - Reference business specs for traceability
-- Focus on the "What?" — behaviors and contracts needed to fulfill business goals
 
-**Functional specs MUST NOT:**
+### MUST NOT
+
 - Specify technology choices (languages, frameworks, databases)
 - Include deployment or infrastructure concerns
 - Define performance benchmarks (those belong in Infrastructure)
 - Prescribe implementation patterns
 
-**File Organization:**
-- One file per user flow, API contract, or data model
-- Naming: lowercase with hyphens (e.g., `user-authentication-flow.md`, `order-api.md`)
+### Patterns
+
+**Foundation vs Feature Specs:**
+
+Functional specs come in two categories:
+
+| Type | Purpose | Business Reference |
+|------|---------|--------------------|
+| **Feature specs** | Implement a specific business use case | 1:1 mapping (Implements) |
+| **Foundation specs** | Enable multiple business use cases | 1:many mapping (Enables) |
+
+Foundation specs (shared components, cross-cutting concerns, common contracts) are legitimate engineering artifacts that serve multiple business goals.
+
+**Foundation spec rules:**
+- SHOULD reference all Business specs they enable
+- MAY precede or parallel Business specs when engineering judgment requires
+- MUST flag absence of Business references with justification
+- Orphaned foundations (no Business references, no justification) indicate scope creep
+
+## Requirement ID Format
+
+All acceptance criteria must use this format for traceability:
+
+**Format:** `FUN-[CONCEPT]-[NNN]`
+
+**Components:**
+- `FUN` — Three-letter layer code for Functional
+- `[CONCEPT]` — Descriptive concept name (e.g., AUTH, USER-FLOW, API-ORDER)
+- `[NNN]` — Sequential number with leading zeros (001, 002, 015)
+
+**Example:** `FUN-AUTH-001: JWT token expires after 24 hours`
+
+**Rules:**
+- IDs must be unique within the project
+- IDs must not be reused after deletion (deprecate instead)
+- IDs must remain stable—never rename an ID, only deprecate and create new
+- Related criteria should share the same CONCEPT segment
+
+## Acceptance Criteria Format
+
+Every specification must include testable acceptance criteria:
+
+**Format:**
+```markdown
+## Acceptance Criteria
+
+- [ ] [ID]: [Criterion statement]
+- [ ] [ID]: [Criterion statement]
+```
+
+**Testability Requirements:**
+
+Every criterion must be:
+
+| Property | Definition | Good Example | Bad Example |
+|----------|------------|--------------|-------------|
+| **Measurable** | Has quantifiable outcome | "Response time < 2 seconds" | "Response is fast" |
+| **Observable** | Can be verified externally | "Error message is displayed" | "System handles error gracefully" |
+| **Unambiguous** | Single interpretation | "User sees 'Invalid password' text" | "User understands the error" |
+
+**Untestable Criteria:**
+
+Some requirements cannot be automatically validated. Flag these:
+
+```markdown
+- [ ] [ID]: [Criterion] *(untestable)*
+  - **Flag**: [Why it cannot be tested]
+  - **Proposal**: [Measurable alternatives or resolution]
+  - **Resolution**: [How to handle (manual review, exclude from coverage)]
+```
+
+## Traceability
+
+Specs reference adjacent layers for coherence and traceability. Context references distinguish between feature and foundation specs:
+
+| Reference Type | Meaning | Example |
+|----------------|---------|---------|
+| **Implements** | Feature spec with 1:1 mapping to business case | Feature spec → Single use case |
+| **Enables** | Foundation spec serving multiple business cases | Shared component → Multiple use cases |
+
+**Format:**
+```markdown
+## References
+
+### Implements
+<!-- Feature spec: direct 1:1 implementation -->
+- [BUS-LOGIN](../business/login.md) — Implements login use case
+
+### Enables  
+<!-- Foundation spec: serves multiple business cases -->
+- [BUS-CHECKOUT](../business/checkout.md) — Requires authenticated session
+- [BUS-PROFILE](../business/profile.md) — Requires authenticated session
+```
+
+**Foundation specs without mapping:**
+
+When a foundation spec precedes Business specs or serves anticipated needs:
+
+```markdown
+## References
+
+### Enables
+<!-- ⚠️ FOUNDATION WITHOUT MAPPING -->
+**Justification:** [Why this foundation is needed before Business specs exist]
+```
+
+**Rules:**
+- Every spec must have a References section
+- References must use relative paths within `specs/`
+- References provide context for coherence, not requirements
+
+## File Organization
+
+**One Spec Per Concept:**
+
+Create one specification file per distinct concept:
+- ✅ Good: `user-authentication-flow.md` — Single flow
+- ❌ Bad: `user-management.md` — Multiple flows (auth, profile, settings)
+
+**Naming Conventions:**
+- Use lowercase with hyphens: `user-authentication-flow.md`, `order-api.md`
+- Match the primary concept name
+- Avoid generic names: `misc.md`, `other.md`, `notes.md`
 
 ## Completion Criteria
 

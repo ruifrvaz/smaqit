@@ -45,7 +45,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Produce output following `templates/specs/business.template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output (N/A for Business layer)
-- Use requirement IDs: `BUS-[CONCEPT]-[NNN]` (see ARTIFACTS.md)
+- Use requirement IDs: `BUS-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 
@@ -67,22 +67,98 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ## Layer-Specific Rules
 
-**Business specs MUST:**
+These rules are specific to the Business layer and must be followed when producing specifications.
+
+### MUST
+
 - Identify all actors and their goals
 - Define measurable success metrics for each use case
 - Include preconditions and postconditions
 - Describe main and alternative flows in business terms
-- Focus on the "Why?" — value and intent behind the work
 
-**Business specs MUST NOT:**
+### MUST NOT
+
 - Mention specific technologies, frameworks, or libraries
 - Include implementation details or technical solutions
 - Define data structures or API contracts
 - Reference deployment or infrastructure concerns
 
-**File Organization:**
-- One file per use case or business flow
-- Naming: lowercase with hyphens (e.g., `user-login.md`, `checkout-flow.md`)
+### Patterns
+
+**System Actor:**
+
+When stakeholders have requirements about system properties (availability, auditability, accessibility), use the **System** actor:
+
+| Actor | Description | Goals |
+|-------|-------------|-------|
+| System | The application as a whole | [System-level properties stakeholders require] |
+
+System actor specs remain business-level (stakeholder-driven) and do not prescribe technical solutions.
+
+## Requirement ID Format
+
+All acceptance criteria must use this format for traceability:
+
+**Format:** `BUS-[CONCEPT]-[NNN]`
+
+**Components:**
+- `BUS` — Three-letter layer code for Business
+- `[CONCEPT]` — Descriptive concept name (e.g., LOGIN, CHECKOUT, USER-REGISTRATION)
+- `[NNN]` — Sequential number with leading zeros (001, 002, 015)
+
+**Example:** `BUS-LOGIN-001: User can authenticate with valid credentials`
+
+**Rules:**
+- IDs must be unique within the project
+- IDs must not be reused after deletion (deprecate instead)
+- IDs must remain stable—never rename an ID, only deprecate and create new
+- Related criteria should share the same CONCEPT segment
+
+## Acceptance Criteria Format
+
+Every specification must include testable acceptance criteria:
+
+**Format:**
+```markdown
+## Acceptance Criteria
+
+- [ ] [ID]: [Criterion statement]
+- [ ] [ID]: [Criterion statement]
+```
+
+**Testability Requirements:**
+
+Every criterion must be:
+
+| Property | Definition | Good Example | Bad Example |
+|----------|------------|--------------|-------------|
+| **Measurable** | Has quantifiable outcome | "Response time < 2 seconds" | "Response is fast" |
+| **Observable** | Can be verified externally | "Error message is displayed" | "System handles error gracefully" |
+| **Unambiguous** | Single interpretation | "User sees 'Invalid password' text" | "User understands the error" |
+
+**Untestable Criteria:**
+
+Some requirements cannot be automatically validated. Flag these:
+
+```markdown
+- [ ] [ID]: [Criterion] *(untestable)*
+  - **Flag**: [Why it cannot be tested]
+  - **Proposal**: [Measurable alternatives or resolution]
+  - **Resolution**: [How to handle (manual review, exclude from coverage)]
+```
+
+## File Organization
+
+**One Spec Per Concept:**
+
+Create one specification file per distinct concept:
+- ✅ Good: `login.md` — Single use case
+- ❌ Bad: `authentication.md` — Multiple use cases (login, logout, password reset, MFA)
+
+**Naming Conventions:**
+- Use lowercase with hyphens: `user-login.md`, `checkout-flow.md`
+- Match the primary concept name
+- Avoid generic names: `misc.md`, `other.md`, `notes.md`
 
 ## Completion Criteria
 

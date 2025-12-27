@@ -73,16 +73,46 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Skip validation steps defined in Coverage specs
 - Invent requirements not present in input
 - Proceed with unresolved cross-layer conflicts
-- Expose secrets or credentials in agent context
-- Hardcode sensitive values in IaC or configurations
+- Include secrets, passwords, API keys, tokens, or credentials in generated artifacts (use placeholder references like `${secrets.KEY_NAME}`)
 
 ### SHOULD
 
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions
-- Follow industry standards for the chosen stack (see Anchoring Principle in ARTIFACTS.md)
+- Follow industry standards for the chosen stack while satisfying spec-defined behavior
+- Ensure implementations are structurally recognizable and behaviorally equivalent to specs
 - Verify deployment topology matches infrastructure specs
+
+## State Tracking
+
+Deployment agent MUST track phase completion using `state.json` in the project root.
+
+**Format:**
+```json
+{
+  "version": "1.0",
+  "phases": {
+    "develop": {
+      "completed": true,
+      "timestamp": "2025-01-15T14:30:00Z"
+    },
+    "deploy": {
+      "completed": true,
+      "timestamp": "2025-01-15T15:45:00Z"
+    },
+    "validate": {
+      "completed": false
+    }
+  }
+}
+```
+
+**Rules:**
+- Read existing `state.json` (created by Development agent)
+- Update atomically (read → modify → write as single operation)
+- Set `deploy.completed: true` only when Deployment phase succeeds
+- Include ISO 8601 timestamp when marking phase complete
 - Configure health checks and monitoring endpoints
 
 ## Phase-Specific Rules

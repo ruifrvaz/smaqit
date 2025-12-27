@@ -47,7 +47,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Produce output following `templates/specs/stack.template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output
-- Use requirement IDs: `STK-[CONCEPT]-[NNN]` (see ARTIFACTS.md)
+- Use requirement IDs: `STK-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 
@@ -69,18 +69,108 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ## Layer-Specific Rules
 
-**Stack specs MUST:**
-- Justify each technology choice against functional requirements
+These rules are specific to the Stack layer and must be followed when producing specifications.
+
+### MUST
+
+- Document technology choices with rationale
 - Define language versions and framework versions
 - Specify libraries and their purposes
 - Include build tools and development environment setup
-- Reference functional specs that drove each choice
+- Be consistent with Functional specs (validated at implementation)
 
-**Stack specs MUST NOT:**
+### MUST NOT
+
 - Define deployment topology or infrastructure
 - Include compute, networking, or scaling decisions
 - Specify cloud providers or hosting platforms
 - Contradict functional requirements
+
+## Requirement ID Format
+
+All acceptance criteria must use this format for traceability:
+
+**Format:** `STK-[CONCEPT]-[NNN]`
+
+**Components:**
+- `STK` — Three-letter layer code for Stack
+- `[CONCEPT]` — Descriptive concept name (e.g., FRAMEWORK, BACKEND, DATABASE)
+- `[NNN]` — Sequential number with leading zeros (001, 002, 015)
+
+**Example:** `STK-FRAMEWORK-001: Use React 18+ for frontend`
+
+**Rules:**
+- IDs must be unique within the project
+- IDs must not be reused after deletion (deprecate instead)
+- IDs must remain stable—never rename an ID, only deprecate and create new
+- Related criteria should share the same CONCEPT segment
+
+## Acceptance Criteria Format
+
+Every specification must include testable acceptance criteria:
+
+**Format:**
+```markdown
+## Acceptance Criteria
+
+- [ ] [ID]: [Criterion statement]
+- [ ] [ID]: [Criterion statement]
+```
+
+**Testability Requirements:**
+
+Every criterion must be:
+
+| Property | Definition | Good Example | Bad Example |
+|----------|------------|--------------|-------------|
+| **Measurable** | Has quantifiable outcome | "Response time < 2 seconds" | "Response is fast" |
+| **Observable** | Can be verified externally | "Error message is displayed" | "System handles error gracefully" |
+| **Unambiguous** | Single interpretation | "User sees 'Invalid password' text" | "User understands the error" |
+
+**Untestable Criteria:**
+
+Some requirements cannot be automatically validated. Flag these:
+
+```markdown
+- [ ] [ID]: [Criterion] *(untestable)*
+  - **Flag**: [Why it cannot be tested]
+  - **Proposal**: [Measurable alternatives or resolution]
+  - **Resolution**: [How to handle (manual review, exclude from coverage)]
+```
+
+## Traceability
+
+Specs reference adjacent layers for coherence and traceability:
+
+**Format:**
+```markdown
+## References
+
+### Implements
+- [FUN-API](../functional/user-api.md) — Technology choices for this API
+
+### Enables
+- [FUN-AUTH](../functional/authentication.md) — Framework supports auth patterns
+- [FUN-DATA](../functional/data-model.md) — ORM supports data relationships
+```
+
+**Rules:**
+- Every spec must have a References section
+- References must use relative paths within `specs/`
+- References provide context for coherence, not requirements
+
+## File Organization
+
+**One Spec Per Concept:**
+
+Create one specification file per distinct concept:
+- ✅ Good: `frontend-framework.md` — Single technology stack
+- ❌ Bad: `technologies.md` — Multiple stacks (frontend, backend, database)
+
+**Naming Conventions:**
+- Use lowercase with hyphens: `frontend-framework.md`, `backend-stack.md`
+- Match the primary concept name
+- Avoid generic names: `misc.md`, `other.md`, `notes.md`
 
 ## Completion Criteria
 

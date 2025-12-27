@@ -50,7 +50,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Produce output following `templates/specs/coverage.template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output
-- Use requirement IDs: `COV-[CONCEPT]-[NNN]` (see ARTIFACTS.md)
+- Use requirement IDs: `COV-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 
@@ -72,21 +72,124 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ## Layer-Specific Rules
 
-**Coverage specs MUST:**
+These rules are specific to the Coverage layer and must be followed when producing specifications.
+
+### MUST
+
 - Reference every acceptance criterion from upstream specs by ID
 - Define a test case for each testable requirement
 - Map: Requirement ID → Test Case → Expected Outcome
 - Flag untestable requirements explicitly
 - Include integration, E2E, and acceptance test definitions
 - Report spec coverage (% of requirements with corresponding tests)
-- Test against deployed application (not local/dev environment)
-- Include performance tests, security tests, and acceptance tests
+- Define specifications for performance, security, and acceptance tests where requirements exist
 
-**Coverage specs MUST NOT:**
+### MUST NOT
+
 - Add requirements not present in upstream specs
 - Modify or reinterpret upstream acceptance criteria
 - Skip requirements without explicit justification
 - Define unit tests (those are implementation details)
+
+## Requirement ID Format
+
+All acceptance criteria must use this format for traceability:
+
+**Format:** `COV-[CONCEPT]-[NNN]`
+
+**Components:**
+- `COV` — Three-letter layer code for Coverage
+- `[CONCEPT]` — Descriptive concept name (e.g., LOGIN, AUTH, API)
+- `[NNN]` — Sequential number with leading zeros (001, 002, 015)
+
+**Example:** `COV-LOGIN-001: Test case for BUS-LOGIN-001`
+
+**Rules:**
+- IDs must be unique within the project
+- IDs must not be reused after deletion (deprecate instead)
+- IDs must remain stable—never rename an ID, only deprecate and create new
+- Related criteria should share the same CONCEPT segment
+
+## Acceptance Criteria Format
+
+Every specification must include testable acceptance criteria:
+
+**Format:**
+```markdown
+## Acceptance Criteria
+
+- [ ] [ID]: [Criterion statement]
+- [ ] [ID]: [Criterion statement]
+```
+
+**Testability Requirements:**
+
+Every criterion must be:
+
+| Property | Definition | Good Example | Bad Example |
+|----------|------------|--------------|-------------|
+| **Measurable** | Has quantifiable outcome | "Response time < 2 seconds" | "Response is fast" |
+| **Observable** | Can be verified externally | "Error message is displayed" | "System handles error gracefully" |
+| **Unambiguous** | Single interpretation | "User sees 'Invalid password' text" | "User understands the error" |
+
+## Coverage Translation
+
+The Coverage layer translates acceptance criteria into executable test definitions.
+
+**Translation Example:**
+
+Source (Functional spec):
+```markdown
+- [ ] [FUN-ID]: [Functional requirement statement]
+```
+
+Coverage translation:
+```gherkin
+# [COV-ID]: Maps to [FUN-ID]
+Feature: [Feature name]
+  Scenario: [Scenario description]
+    Given [precondition]
+    When [action]
+    Then [expected outcome]
+```
+
+**Coverage Rules:**
+- Each testable criterion MUST map to at least one test case
+- Coverage IDs MUST reference their source requirement ID
+- Untestable criteria MUST be listed with justification for exclusion
+- Spec coverage % = (tested criteria / total testable criteria) × 100
+
+## Traceability
+
+Coverage specs reference all upstream layers:
+
+**Format:**
+```markdown
+## References
+
+- [BUS-ID](../business/concept.md) — Business requirement being verified
+- [FUN-ID](../functional/concept.md) — Functional behavior being tested
+- [STK-ID](../stack/concept.md) — Stack implementation being validated
+- [INF-ID](../infrastructure/concept.md) — Infrastructure being tested
+```
+
+**Rules:**
+- Every spec must have a References section
+- References must use relative paths within `specs/`
+- References trace requirements through all layers
+
+## File Organization
+
+**One Spec Per Concept:**
+
+Create one specification file per distinct concept:
+- ✅ Good: `login-tests.md` — Tests for login feature
+- ❌ Bad: `all-tests.md` — Tests for multiple features
+
+**Naming Conventions:**
+- Use lowercase with hyphens: `login-tests.md`, `api-integration-tests.md`
+- Match the primary concept name
+- Avoid generic names: `misc.md`, `other.md`, `notes.md`
 
 **File Organization:**
 - One file per test suite or verification plan

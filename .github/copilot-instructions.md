@@ -183,6 +183,95 @@ The CLI copies framework/, templates/, agents/ into user projects as:
 
 Keep `installer/main.go` Version const in sync with SMAQIT.md version.
 
+## Level Transition Workflow
+
+When implementing features that transition from Level 0 (framework) → Level 1 (templates) → Level 2 (agents):
+
+### Critical Assessment Phase
+
+**Before any implementation:**
+
+1. **Question assumptions** — Is framework content needed at runtime? Is it currently bundled correctly? What's actually used vs assumed?
+2. **Check empirically** — Use grep to find actual file references, read existing implementations, verify what agents consume
+3. **Identify alternatives** — Embed vs bundle vs remove? What are trade-offs (tokens, complexity, reliability)?
+4. **Analyze dependencies** — Which Level 0 content feeds which Level 1/Level 2 artifacts? Map the flow
+5. **Propose with rationale** — Present options with cost-benefit analysis, ask for confirmation
+
+**Red flags to catch:**
+- Bundling source files that should be compiled
+- Copying verbose explanations meant for humans into agent instructions
+- Including specific examples that will pollute generated artifacts
+- Violating Level hierarchy (e.g., Level 2 referencing Level 0 directly)
+
+### Implementation Phase
+
+**Strict sequence enforcement:**
+
+1. **Level 0 → Level 1** — Update templates first with placeholders and structure
+   - Distill Level 0 educational content to actionable directives
+   - Use generic placeholders: `[ID]`, `[CONCEPT]`, `[Layer]`, never specific examples
+   - Keep only execution instructions, remove "why" explanations
+   - Add structured sections (format definitions, rules tables, examples with placeholders)
+
+2. **Level 1 → Level 2** — Regenerate agents from updated templates
+   - Populate placeholders with layer-specific content
+   - Verify no Level 0 file references remain (grep for `.md` references)
+   - Ensure agents are self-contained with embedded necessary content
+   - Remove verbose principle explanations, keep concise directives
+
+3. **Level 2 → Level 3** — Update installer/distribution
+   - Remove any Level 0 bundling if content is now embedded
+   - Test installation in clean environment
+   - Verify CLI commands work without bundled source files
+
+**Never skip levels or work out of order.**
+
+### Refinement Phase
+
+**Iterative improvement based on review:**
+
+1. **Example pollution** — Replace any specific examples (BUS-LOGIN-001, JWT tokens, authentication) with generic placeholders
+2. **Verbosity reduction** — Remove educational sections (principle explanations, examples with context), keep operational directives
+3. **Clarity improvement** — Rephrase ambiguous rules, consolidate redundant sections, align terminology
+4. **Level alignment** — Ensure each level only references its direct predecessor, not jumping levels
+
+**Key questions for refinement:**
+- Does this text instruct execution or explain concepts? (Keep first, remove second)
+- Would a practitioner misinterpret this as an actual requirement? (Replace with placeholder)
+- Is this duplicated from a higher level verbatim? (Distill to essential directives)
+- Does this align with Level 0 principles? (Cross-check SMAQIT.md, LAYERS.md, ARTIFACTS.md)
+
+### Validation Phase
+
+**Test at each level:**
+
+1. **Template validation** — Verify placeholders are clear, structure is complete, no missing sections
+2. **Agent validation** — Check embedded content is accurate, grep for unresolved references, verify self-containment
+3. **Build validation** — Compile installer successfully, test CLI commands
+4. **Installation validation** — Run `smaqit init` in clean directory, verify structure, test `validate` and `status` commands
+5. **Documentation validation** — Update task files, session history, README if needed
+
+**Success criteria:**
+- Installer builds without errors
+- Agents have zero external file dependencies (unless intentional)
+- User workspace is clean and minimal
+- No specific examples polluting instructions
+- Documentation captures decisions and rationale
+
+### Documentation Requirements
+
+**Always document:**
+- **Decision made** — What was chosen and why
+- **Alternatives rejected** — What was considered but not selected, with rationale
+- **Trade-offs accepted** — What was gained vs lost
+- **Validation results** — Test outcomes proving the change works
+- **Files modified** — Complete list with description of changes
+
+**Record in:**
+- Task file (`docs/tasks/{id}_{title}.md`) — Detailed work log
+- Session history (`docs/history/{id}_*.md`) — Complete session narrative
+- PLANNING.md — Task status updates
+
 ## Workflow Commands
 
 Session management and task management commands are available as prompts in `.github/prompts/`:

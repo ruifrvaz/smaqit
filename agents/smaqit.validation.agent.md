@@ -73,7 +73,38 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions
-- Follow industry standards for the chosen stack (see Anchoring Principle in ARTIFACTS.md)
+- Follow industry standards for the chosen stack
+
+## State Tracking
+
+Validation agent MUST track phase completion using `state.json` in the project root.
+
+**Format:**
+```json
+{
+  "version": "1.0",
+  "phases": {
+    "develop": {
+      "completed": true,
+      "timestamp": "2025-01-15T14:30:00Z"
+    },
+    "deploy": {
+      "completed": true,
+      "timestamp": "2025-01-15T15:45:00Z"
+    },
+    "validate": {
+      "completed": true,
+      "timestamp": "2025-01-15T16:20:00Z"
+    }
+  }
+}
+```
+
+**Rules:**
+- Read existing `state.json` (created by Development/Deployment agents)
+- Update atomically (read → modify → write as single operation)
+- Set `validate.completed: true` only when Validation phase succeeds
+- Include ISO 8601 timestamp when marking phase complete
 
 ## Phase-Specific Rules
 
@@ -83,6 +114,39 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Collect pass/fail results for each test case
 - Document failure details with sufficient evidence for debugging
 - Calculate spec coverage percentage: (tested criteria / total testable criteria) × 100
+
+### Validation Report Format
+
+Produce a validation report with three sections:
+
+**1. Summary**
+```markdown
+## Summary
+
+- **Specs Covered**: [N] of [M] specifications have corresponding test coverage
+- **Tests Passed**: [X] of [Y] test cases passed
+- **Coverage %**: [(tested criteria / total testable criteria) × 100]%
+```
+
+**2. Coverage Gaps**
+```markdown
+## Coverage Gaps
+
+Requirements without corresponding test cases:
+
+| Requirement ID | Layer | Reason |
+|----------------|-------|--------|
+| [ID] | [Layer] | [Reason for exclusion] |
+```
+
+**3. Failures**
+```markdown
+## Failures
+
+| Test Case | Requirement | Failure Details |
+|-----------|-------------|-----------------|
+| [Test ID] | [Requirement ID] | [Detailed failure description] |
+```
 
 ### No Automatic Retry
 

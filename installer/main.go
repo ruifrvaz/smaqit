@@ -11,9 +11,6 @@ import (
 	"time"
 )
 
-//go:embed framework/*.md
-var frameworkFiles embed.FS
-
 //go:embed templates/specs/*.md
 var templateFiles embed.FS
 
@@ -217,7 +214,6 @@ func cmdInit(targetDir string) {
 
 	// Create directory structure
 	dirs := []string{
-		".smaqit/framework",
 		".smaqit/templates/specs",
 		"specs/business",
 		"specs/functional",
@@ -233,12 +229,6 @@ func cmdInit(targetDir string) {
 			fmt.Printf("Error creating directory %s: %v\n", dir, err)
 			os.Exit(1)
 		}
-	}
-
-	// Copy framework files
-	if err := copyEmbeddedDir(frameworkFiles, "framework", ".smaqit/framework"); err != nil {
-		fmt.Printf("Error copying framework files: %v\n", err)
-		os.Exit(1)
 	}
 
 	// Copy spec templates
@@ -268,7 +258,6 @@ func cmdInit(targetDir string) {
 	}
 
 	fmt.Println("✓ Created .smaqit/ directory structure")
-	fmt.Println("✓ Copied framework files")
 	fmt.Println("✓ Copied templates")
 	fmt.Println("✓ Copied agent definitions")
 	fmt.Println("✓ Copied prompt files")
@@ -422,7 +411,6 @@ func cmdValidate() {
 
 	// Check directory structure
 	requiredDirs := []string{
-		".smaqit/framework",
 		".smaqit/templates/specs",
 		"specs/business",
 		"specs/functional",
@@ -441,24 +429,6 @@ func cmdValidate() {
 
 	if errors == 0 {
 		fmt.Println("✓ Directory structure is complete")
-	}
-
-	// Check framework files
-	frameworkFileNames := []string{
-		"SMAQIT.md", "LAYERS.md", "PHASES.md",
-		"TEMPLATES.md", "AGENTS.md", "ARTIFACTS.md",
-	}
-
-	for _, fileName := range frameworkFileNames {
-		filePath := filepath.Join(".smaqit", "framework", fileName)
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
-			fmt.Printf("✗ Missing framework file: %s\n", fileName)
-			errors++
-		}
-	}
-
-	if errors == 0 {
-		fmt.Println("✓ Framework files are present")
 	}
 
 	// Validate spec files (basic checks)

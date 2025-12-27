@@ -36,7 +36,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Produce output following `templates/specs/[LAYER].template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output
-- Use requirement IDs: `[LAYER_PREFIX]-[CONCEPT]-[NNN]` (see ARTIFACTS.md)
+- Use requirement IDs: `[LAYER_PREFIX]-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 
@@ -58,7 +58,86 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 ## Layer-Specific Rules
 
-[LAYER_SPECIFIC_RULES]
+These rules are specific to the [LAYER_NAME] layer and must be followed when producing specifications.
+
+### MUST
+
+[LAYER_SPECIFIC_MUST_RULES]
+
+### MUST NOT
+
+[LAYER_SPECIFIC_MUST_NOT_RULES]
+
+### Patterns
+
+[LAYER_SPECIFIC_PATTERNS]
+
+## Requirement ID Format
+
+All acceptance criteria must use this format for traceability:
+
+**Format:** `[LAYER_PREFIX]-[CONCEPT]-[NNN]`
+
+**Components:**
+- `[LAYER_PREFIX]` — Three-letter layer code: [LAYER_PREFIX]
+- `[CONCEPT]` — Descriptive concept name (e.g., LOGIN, AUTH, API-USER)
+- `[NNN]` — Sequential number with leading zeros (001, 002, 015)
+
+**Example:** `[LAYER_PREFIX]-LOGIN-001: User can authenticate with valid credentials`
+
+**Rules:**
+- IDs must be unique within the project
+- IDs must not be reused after deletion (deprecate instead)
+- IDs must remain stable—never rename an ID, only deprecate and create new
+- Related criteria should share the same CONCEPT segment
+
+## Acceptance Criteria Format
+
+Every specification must include testable acceptance criteria:
+
+**Format:**
+```markdown
+## Acceptance Criteria
+
+- [ ] [ID]: [Criterion statement]
+- [ ] [ID]: [Criterion statement]
+```
+
+**Testability Requirements:**
+
+Every criterion must be:
+
+| Property | Definition | Good Example | Bad Example |
+|----------|------------|--------------|-------------|
+| **Measurable** | Has quantifiable outcome | "Response time < 2 seconds" | "Response is fast" |
+| **Observable** | Can be verified externally | "Error message is displayed" | "System handles error gracefully" |
+| **Unambiguous** | Single interpretation | "User sees 'Invalid password' text" | "User understands the error" |
+
+**Untestable Criteria:**
+
+Some requirements cannot be automatically validated. Flag these:
+
+```markdown
+- [ ] [ID]: [Criterion] *(untestable)*
+  - **Flag**: [Why it cannot be tested]
+  - **Proposal**: [Measurable alternatives or resolution]
+  - **Resolution**: [How to handle (manual review, exclude from coverage)]
+```
+
+[TRACEABILITY_FORMAT]
+
+## File Organization
+
+**One Spec Per Concept:**
+
+Create one specification file per distinct concept:
+- ✅ Good: `login.md` — Single use case
+- ❌ Bad: `authentication.md` — Multiple use cases (login, logout, password reset, MFA)
+
+**Naming Conventions:**
+- Use lowercase with hyphens: `user-login.md`, `api-authentication.md`
+- Match the primary concept name
+- Avoid generic names: `misc.md`, `other.md`, `notes.md`
 
 ## Completion Criteria
 

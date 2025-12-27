@@ -39,6 +39,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Trace every implementation decision to a specification
 - Validate output against specification acceptance criteria
 - Report deviations or impossibilities rather than silently diverge
+- Write phase completion to `.smaqit/state.json` upon successful completion
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 
@@ -60,17 +61,33 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Skip validation steps defined in Coverage specs
 - Invent requirements not present in input
 - Proceed with unresolved cross-layer conflicts
+- Include secrets, passwords, API keys, tokens, or credentials in generated artifacts (use placeholder references like `${secrets.KEY_NAME}`)
 
 ### SHOULD
 
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions
-- Follow industry standards for the chosen stack (see Anchoring Principle in ARTIFACTS.md)
+- Follow industry standards for the chosen stack while satisfying spec-defined behavior
+- Ensure implementations are structurally recognizable and behaviorally equivalent to specs
 
 ## Phase-Specific Rules
 
 [PHASE_SPECIFIC_RULES]
+
+## State Tracking
+
+Upon successful phase completion, write to `.smaqit/state.json`:
+
+**Format:**
+```json
+{
+  "completed": true,
+  "timestamp": "2025-12-26T10:30:00Z"
+}
+```
+
+Update the appropriate phase key (`develop`, `deploy`, or `validate`). Use atomic writes (temp file + rename) to prevent corruption during concurrent access.
 
 ## Completion Criteria
 

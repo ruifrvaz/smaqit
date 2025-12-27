@@ -59,7 +59,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Produce output following `templates/specs/infrastructure.template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output
-- Use requirement IDs: `INF-[CONCEPT]-[NNN]` (see ARTIFACTS.md)
+- Use requirement IDs: `INF-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 
@@ -81,13 +81,106 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ## Layer-Specific Rules
 
-**Infrastructure specs MUST:**
+These rules are specific to the Infrastructure layer and must be followed when producing specifications.
+
+### MUST
+
 - Define compute resources (containers, serverless, VMs)
 - Specify networking topology and security boundaries
 - Include observability (logging, metrics, tracing)
 - Define scaling policies and resource limits
 - Specify secrets management approach
-- Reference stack specs for runtime requirements
+- Be consistent with Phase 1 specs regarding requirements and runtime constraints (validated at implementation)
+
+### MUST NOT
+
+- Redefine business logic or functional behaviors
+- Override technology choices from Stack layer
+- Include application code or configurations
+- Define test cases (those belong in Coverage)
+
+## Requirement ID Format
+
+All acceptance criteria must use this format for traceability:
+
+**Format:** `INF-[CONCEPT]-[NNN]`
+
+**Components:**
+- `INF` — Three-letter layer code for Infrastructure
+- `[CONCEPT]` — Descriptive concept name (e.g., SCALING, NETWORK, OBSERVABILITY)
+- `[NNN]` — Sequential number with leading zeros (001, 002, 015)
+
+**Example:** `INF-SCALING-001: Auto-scale at 80% CPU threshold`
+
+**Rules:**
+- IDs must be unique within the project
+- IDs must not be reused after deletion (deprecate instead)
+- IDs must remain stable—never rename an ID, only deprecate and create new
+- Related criteria should share the same CONCEPT segment
+
+## Acceptance Criteria Format
+
+Every specification must include testable acceptance criteria:
+
+**Format:**
+```markdown
+## Acceptance Criteria
+
+- [ ] [ID]: [Criterion statement]
+- [ ] [ID]: [Criterion statement]
+```
+
+**Testability Requirements:**
+
+Every criterion must be:
+
+| Property | Definition | Good Example | Bad Example |
+|----------|------------|--------------|-------------|
+| **Measurable** | Has quantifiable outcome | "Response time < 2 seconds" | "Response is fast" |
+| **Observable** | Can be verified externally | "Error message is displayed" | "System handles error gracefully" |
+| **Unambiguous** | Single interpretation | "User sees 'Invalid password' text" | "User understands the error" |
+
+**Untestable Criteria:**
+
+Some requirements cannot be automatically validated. Flag these:
+
+```markdown
+- [ ] [ID]: [Criterion] *(untestable)*
+  - **Flag**: [Why it cannot be tested]
+  - **Proposal**: [Measurable alternatives or resolution]
+  - **Resolution**: [How to handle (manual review, exclude from coverage)]
+```
+
+## Traceability
+
+Specs reference Phase 1 layers for coherence:
+
+**Format:**
+```markdown
+## References
+
+- [BUS-ANALYTICS](../business/analytics.md) — Availability requirements
+- [FUN-API](../functional/user-api.md) — API load patterns
+- [STK-BACKEND](../stack/backend-stack.md) — Runtime requirements
+```
+
+**Rules:**
+- Every spec must have a References section
+- References must use relative paths within `specs/`
+- References provide context for coherence, not requirements
+
+## File Organization
+
+**One Spec Per Concept:**
+
+Create one specification file per distinct concept:
+- ✅ Good: `scaling-policy.md` — Single infrastructure concern
+- ❌ Bad: `production-infrastructure.md` — Multiple concerns (compute, network, scaling)
+
+**Naming Conventions:**
+- Use lowercase with hyphens: `scaling-policy.md`, `network-topology.md`
+- Match the primary concept name
+- Avoid generic names: `misc.md`, `other.md`, `notes.md`
 
 **Infrastructure specs MUST NOT:**
 - Redefine business logic or functional behaviors

@@ -1,8 +1,19 @@
 # smaqit Framework
 
-Spec-driven agent orchestration where specifications are split into layers and phases. Users input requirements in prompt files, AI specification agents read from these prompt files to write specifications, then implementation agents generate outputs from those specifications.
+Spec-driven agent orchestration where specifications are split into layers and phases. **Phases are the primary workflow unit**—each phase includes both specification generation and implementation execution. Users input requirements in prompt files, AI specification agents read from these prompt files to write specifications, then implementation agents generate outputs from those specifications.
 
 ## Core Principles
+
+### Phase-First Workflow
+
+**Phases are the primary workflow unit. Each phase includes specifications and implementation together.**
+
+smaqit workflows execute in phases, not specification-then-implementation:
+- **Phase 1 (Develop)**: Generate Business, Functional, and Stack specs → implement → working application
+- **Phase 2 (Deploy)**: Generate Infrastructure spec → deploy → running system
+- **Phase 3 (Validate)**: Generate Coverage spec → validate → validation report
+
+Users CAN generate all specifications first (spec-first approach), but SHOULD complete phases sequentially (phase-first approach) for faster feedback and iterative validation.
 
 ### Specs Before Code
 
@@ -97,6 +108,24 @@ Layers are independent but must be coherent:
 - Flag assumptions explicitly
 
 ## Quick Reference
+
+### Workflow Approaches
+
+smaqit supports two approaches, with phase-first recommended:
+
+| Approach | Workflow | Feedback Cycle | Recommended For |
+|----------|----------|----------------|-----------------|
+| **Phase-First** (recommended) | Complete each phase (specs + implementation) before next phase | Fast (per phase) | Most projects, iterative development |
+| **Spec-First** (optional) | Generate all 5 specs, then implement in phases | Slower (at end) | Upfront design requirements, regulatory compliance |
+
+**Phase-First Workflow:**
+1. **Develop Phase**: Business spec → Functional spec → Stack spec → Development agent → working application
+2. **Deploy Phase**: Infrastructure spec → Deployment agent → running system
+3. **Validate Phase**: Coverage spec → Validation agent → validation report
+
+**Spec-First Workflow:**
+1. Generate all specs: Business → Functional → Stack → Infrastructure → Coverage
+2. Execute phases: Develop → Deploy → Validate
 
 ### Layers
 

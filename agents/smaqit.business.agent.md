@@ -171,6 +171,14 @@ Before declaring completion, verify:
 - [ ] No implementation details leaked into spec
 - [ ] Requirement IDs follow format: `BUS-[CONCEPT]-[NNN]`
 
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Next Step:** Create functional specifications with `/smaqit.functional`
+
+The Functional layer translates business requirements into precise behavioral specifications (user flows, data models, API contracts).
+
 ## Failure Handling
 
 | Situation | Action |

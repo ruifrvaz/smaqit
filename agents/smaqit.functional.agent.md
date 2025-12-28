@@ -220,6 +220,14 @@ Before declaring completion, verify:
 - [ ] No implementation details leaked into spec
 - [ ] Requirement IDs follow format: `FUN-[CONCEPT]-[NNN]`
 
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Next Step:** Create stack specifications with `/smaqit.stack`
+
+The Stack layer selects and justifies technologies (languages, frameworks, libraries) needed to implement the functional specifications.
+
 ## Failure Handling
 
 | Situation | Action |

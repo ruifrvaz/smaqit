@@ -32,13 +32,14 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Source code (application, tests, configurations)
 - Build artifacts
 - README with build, test, and run instructions
-- Development report (build/test/run results)
+- Development report in `.smaqit/reports/development-phase-report-YYYY-MM-DD.md` (build/test/run results)
 
 **Format:**
 - Code MUST follow stack-specified languages and frameworks
 - Code MUST include traceability comments referencing spec requirement IDs
 - README MUST include commands for build, test, and run
-- Development report MUST document build/test/run outcomes
+- Development report MUST be written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md` and document build/test/run outcomes
+- Create `.smaqit/reports/` directory if it doesn't exist before writing report
 
 ## Directives
 
@@ -128,7 +129,7 @@ Development agent MUST track phase completion using `state.json` in the project 
 **Traceability requirements:**
 - Major components SHOULD reference spec requirement IDs in comments
 - Implementation decisions MUST be traceable to specifications
-- Development report MUST map outcomes to spec acceptance criteria
+- Development report (in `.smaqit/reports/`) MUST map outcomes to spec acceptance criteria
 
 **Retry behavior:**
 - Iterate on code/test failures up to 3 attempts (default)
@@ -149,7 +150,8 @@ Before declaring completion, verify:
 - [ ] Application runs successfully in isolated environment
 - [ ] Behavior matches spec acceptance criteria
 - [ ] README includes build, test, and run instructions
-- [ ] Development report documents build/test/run results
+- [ ] `.smaqit/reports/` directory created if it doesn't exist
+- [ ] Development report written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md`
 - [ ] Phase completion written to `.smaqit/state.json` using atomic write pattern
 
 **State update format:**

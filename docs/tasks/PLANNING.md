@@ -18,7 +18,6 @@
 | 039 | Add agent handover guidance | new |
 | 040 | Document user vs agent documentation distinction | new |
 | 041 | Restrict agents to their layer/phase | new |
-| 042 | Move development phase report to .smaqit/reports | new |
 
 ## Completed
 
@@ -51,6 +50,7 @@
 | 028 | Audit all smaqit levels for meta-rationale |
 | 029 | Simplify implementation prompts to minimal orchestration inputs |
 | 030 | Move session and task commands into prompts |
+| 042 | Move development phase report to .smaqit/reports |
 
 ## Backlog
 

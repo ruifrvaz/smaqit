@@ -35,11 +35,13 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Deployment manifests
 - Environment configurations
 - Running system in target environment
+- Deployment report in `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md` (optional, if generated)
 
 **Format:**
 - IaC files use credential references: `${secrets.AWS_ACCESS_KEY}` (never actual values)
-- Deployment reports with health status, endpoints, and scrubbed logs
+- Deployment reports (if generated) written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md` with health status, endpoints, and scrubbed logs
 - Configuration files following stack-specific conventions
+- Create `.smaqit/reports/` directory if it doesn't exist before writing any reports
 
 ## Directives
 

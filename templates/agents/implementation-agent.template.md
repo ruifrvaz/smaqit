@@ -10,6 +10,8 @@ tools: ['execute', 'read', 'edit', 'search', 'todo']
 
 Implementation agent for the [PHASE_NAME] phase. Transforms specifications into working artifacts.
 
+This agent executes within its phase workflow. Phases include both specification generation and implementation execution. The recommended workflow completes each phase (specs + implementation) before moving to the next phase.
+
 [ROLE_DETAILS]
 
 ## Input

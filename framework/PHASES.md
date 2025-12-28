@@ -1,20 +1,6 @@
 # Phases
 
-Phases are the primary workflow unit in smaqit. Each phase includes both specification generation and implementation execution—not specification first, then implementation later. This document defines the three phases and their complete workflows.
-
-## Phase-First Workflow
-
-**Recommended approach:** Complete each phase (specifications + implementation) before moving to the next phase.
-
-```
-Phase 1: Business spec → Functional spec → Stack spec → Implement → Working app
-  ↓
-Phase 2: Infrastructure spec → Deploy → Running system
-  ↓
-Phase 3: Coverage spec → Validate → Validation report
-```
-
-**Alternative approach:** Generate all specifications first (Business → Functional → Stack → Infrastructure → Coverage), then execute implementation phases. This spec-first approach is valid but delays feedback until implementation.
+Phases are the sequential stages of software development in smaqit. Each phase includes both specification generation and implementation execution. The recommended workflow is to complete each phase before moving to the next, though specifications can be generated ahead if needed.
 
 ## Overview
 
@@ -32,9 +18,7 @@ Each phase:
 3. **Implements** — Implementation agent produces and executes artifacts
 4. **Verifies** — Implementation agent confirms success before phase completion
 
-**Phase completion is required before proceeding.** Deploy cannot begin until Develop completes. Validate cannot begin until Deploy completes. This ensures each phase produces working, validated output before downstream phases depend on it.
-
-**Note:** While phases must complete sequentially, specifications within a phase CAN be generated ahead of time (spec-first approach). However, the implementation agent will not execute until all required specifications for that phase are complete.
+Phases are strictly sequential. Deploy cannot begin until Develop completes. Validate cannot begin until Deploy completes. This constraint is subject to revision based on real-world usage (see [SMAQIT](SMAQIT.md)).
 
 ## Phase Definitions
 
@@ -63,7 +47,6 @@ If any prompt is empty or insufficient, agent halts and guides user: "Please fil
 
 **Workflow:**
 ```
-Phase-First (Recommended):
 1. Business agent produces business specifications
 2. Functional agent produces functional specifications
 3. Stack agent produces stack specifications
@@ -75,11 +58,6 @@ Phase-First (Recommended):
    e. Runs application in isolated environment
    f. Executes unit tests
    g. Verifies application works as specified
-
-Spec-First (Alternative):
-1. Business, Functional, Stack specs already generated
-2. Development agent reads all three specs
-3. Executes steps 4a-4g above
 ```
 
 **Environment:** Implicit — local developer machine or agent runner (e.g., GitHub Actions runner)
@@ -138,20 +116,11 @@ If prompt has content, agents interpret free-style requirements and request clar
 
 **Workflow:**
 ```
-Phase-First (Recommended):
 1. Infrastructure agent produces infrastructure specifications
 2. Deployment agent:
    a. Consolidates specs (infrastructure + stack coherence)
    b. Generates Infrastructure as Code (configurations as references only, per Isolation Principle)
    c. Triggers trusted execution layer with environment parameter
-   d. Receives outcome (success/failure, health status, endpoints)
-   e. Verifies system health in target environment
-
-Spec-First (Alternative):
-1. Infrastructure spec already generated (along with all other specs)
-2. Deployment agent reads infrastructure spec
-3. Executes steps 2a-2e above
-```
    d. Receives outcome (success/failure, health status, endpoints)
    e. Verifies system health in target environment
 ```
@@ -221,7 +190,6 @@ If prompt has content, agents interpret free-style requirements and request clar
 
 **Workflow:**
 ```
-Phase-First (Recommended):
 1. Coverage agent:
    a. Reads all upstream specs (business, functional, stack, infrastructure)
    b. Enumerates all acceptance criteria by ID
@@ -234,12 +202,6 @@ Phase-First (Recommended):
    b. Collects pass/fail results per test case
    c. Calculates spec coverage percentage
    d. Produces validation report
-
-Spec-First (Alternative):
-1. Coverage spec already generated (along with all other specs)
-2. Validation agent reads coverage spec
-3. Executes steps 2a-2d above
-```
 ```
 
 **Environment:** Same target environment as Deploy phase

@@ -67,6 +67,22 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
 
+## Scope Boundaries
+
+Stack agent executes only Stack layer specification work.
+
+### MUST NOT
+
+- Execute work assigned to Development, Deploy, or Validate phases
+- Execute work assigned to Business, Functional, Infrastructure, or Coverage specification layers
+
+### Boundary Enforcement
+
+When user requests implementation or other layer specs:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — "Stack specification is [status]. To proceed with [requested work], invoke the appropriate agent."
+3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.infrastructure` for infrastructure specs, `/smaqit.development` for implementation)
+
 ## Layer-Specific Rules
 
 These rules are specific to the Stack layer and must be followed when producing specifications.

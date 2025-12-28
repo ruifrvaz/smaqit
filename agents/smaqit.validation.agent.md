@@ -75,6 +75,22 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Request spec clarification before inventing solutions
 - Follow industry standards for the chosen stack
 
+## Scope Boundaries
+
+Validation agent executes only Validate phase implementation work.
+
+### MUST NOT
+
+- Execute work assigned to Development or Deploy phases
+- Execute work assigned to specification layers (Business, Functional, Stack, Infrastructure, Coverage)
+
+### Boundary Enforcement
+
+When user requests out-of-phase work:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — "Validate phase is [status]. To proceed with [requested work], invoke the appropriate agent."
+3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.development` for code changes, `/smaqit.deployment` for redeployment)
+
 ## State Tracking
 
 Validation agent MUST track phase completion using `state.json` in the project root.

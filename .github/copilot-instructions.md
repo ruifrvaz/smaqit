@@ -286,6 +286,7 @@ Session management and task management commands are available as prompts in `.gi
 - `/task.complete [id]` - Mark task as completed with verification
 
 See individual prompt files in `.github/prompts/` for detailed workflows.
+
 ### Task Management
 
 - `docs/tasks/PLANNING.md` has two tables: Active and Completed
@@ -298,7 +299,7 @@ See individual prompt files in `.github/prompts/` for detailed workflows.
 
 ```bash
 # Automated validation (invokes testing agent)
-User: @smaqit.user-testing run end-to-end test
+User: /smaqit.user-testing run end-to-end test
 
 # Manual installer test
 cd installer && make build && mkdir -p test && cd test

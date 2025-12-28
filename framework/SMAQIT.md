@@ -37,6 +37,12 @@ Traceability enables complete specification coverage: the Coverage layer traces 
 
 Agents are not fire-and-forget. Each agent has completion criteria and MUST verify them before finishing. This shifts quality assurance left—into the agent itself, not a separate review step.
 
+### Bounded Agents
+
+**Agents execute only their designated layer or phase.**
+
+Each agent has a single responsibility. Agents decline out-of-scope requests with clear redirection to the appropriate agent. This enforces separation of concerns and prevents scope creep across workflow boundaries.
+
 ### Template-Constrained Output
 
 **Templates are cognitive scaffolds, not suggestions.**

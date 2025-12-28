@@ -491,6 +491,27 @@ func cmdValidate() {
 	}
 }
 
+// printPhaseStatus outputs the phase completion status with optional timestamp
+// hasSpecs indicates if there are any specs in the phase's layers
+func printPhaseStatus(phase PhaseState, hasSpecs bool) {
+	if phase.Completed {
+		timestamp := phase.Timestamp
+		if timestamp != "" {
+			// Parse and format timestamp
+			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
+				timestamp = t.Format("2006-01-02")
+			}
+			fmt.Printf("✓ Complete (%s)\n", timestamp)
+		} else {
+			fmt.Println("✓ Complete")
+		}
+	} else if hasSpecs {
+		fmt.Println("In progress")
+	} else {
+		fmt.Println("Not started")
+	}
+}
+
 func cmdStatus() {
 	// Check if .smaqit exists
 	if _, err := os.Stat(".smaqit"); os.IsNotExist(err) {
@@ -529,63 +550,34 @@ func cmdStatus() {
 		totalSpecs += count
 	}
 
-	// Display layer coverage
-	fmt.Println("Specification Layers:")
+	// Display phases with nested layers
+	// Phase 1: Develop
+	developPhase := state.Phases["develop"]
+	developHasSpecs := layerCounts["business"] > 0 || layerCounts["functional"] > 0 || layerCounts["stack"] > 0
+	fmt.Print("Phase 1 (Develop): ")
+	printPhaseStatus(developPhase, developHasSpecs)
 	fmt.Printf("  Business:        %d spec(s)\n", layerCounts["business"])
 	fmt.Printf("  Functional:      %d spec(s)\n", layerCounts["functional"])
 	fmt.Printf("  Stack:           %d spec(s)\n", layerCounts["stack"])
-	fmt.Printf("  Infrastructure:  %d spec(s)\n", layerCounts["infrastructure"])
-	fmt.Printf("  Coverage:        %d spec(s)\n", layerCounts["coverage"])
-	fmt.Printf("\nTotal: %d specification(s)\n\n", totalSpecs)
+	fmt.Println()
 
-	// Display phase completion status from state.json
-	fmt.Println("Phase Status:")
-	
-	developPhase := state.Phases["develop"]
-	if developPhase.Completed {
-		timestamp := developPhase.Timestamp
-		if timestamp != "" {
-			// Parse and format timestamp
-			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
-				timestamp = t.Format("2006-01-02")
-			}
-			fmt.Printf("  ✓ Develop:  Complete (%s)\n", timestamp)
-		} else {
-			fmt.Println("  ✓ Develop:  Complete")
-		}
-	} else {
-		fmt.Println("  - Develop:  Not started")
-	}
-
+	// Phase 2: Deploy
 	deployPhase := state.Phases["deploy"]
-	if deployPhase.Completed {
-		timestamp := deployPhase.Timestamp
-		if timestamp != "" {
-			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
-				timestamp = t.Format("2006-01-02")
-			}
-			fmt.Printf("  ✓ Deploy:   Complete (%s)\n", timestamp)
-		} else {
-			fmt.Println("  ✓ Deploy:   Complete")
-		}
-	} else {
-		fmt.Println("  - Deploy:   Not started")
-	}
+	deployHasSpecs := layerCounts["infrastructure"] > 0
+	fmt.Print("Phase 2 (Deploy): ")
+	printPhaseStatus(deployPhase, deployHasSpecs)
+	fmt.Printf("  Infrastructure:  %d spec(s)\n", layerCounts["infrastructure"])
+	fmt.Println()
 
+	// Phase 3: Validate
 	validatePhase := state.Phases["validate"]
-	if validatePhase.Completed {
-		timestamp := validatePhase.Timestamp
-		if timestamp != "" {
-			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
-				timestamp = t.Format("2006-01-02")
-			}
-			fmt.Printf("  ✓ Validate: Complete (%s)\n", timestamp)
-		} else {
-			fmt.Println("  ✓ Validate: Complete")
-		}
-	} else {
-		fmt.Println("  - Validate: Not started")
-	}
+	validateHasSpecs := layerCounts["coverage"] > 0
+	fmt.Print("Phase 3 (Validate): ")
+	printPhaseStatus(validatePhase, validateHasSpecs)
+	fmt.Printf("  Coverage:        %d spec(s)\n", layerCounts["coverage"])
+	
+	// Display total
+	fmt.Printf("\nTotal: %d specification(s)\n", totalSpecs)
 
 	// Next steps based on phase completion
 	fmt.Println("\nNext steps:")

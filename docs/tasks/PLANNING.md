@@ -23,8 +23,6 @@
 
 | ID | Title |
 |----|-------|
-| 034 | Add use case identifiers to business specs |
-|----|-------|
 | 001 | Create Copilot prompt files |
 | 002 | Create specification agent template |
 | 003 | Create implementation agent template |
@@ -52,6 +50,8 @@
 | 028 | Audit all smaqit levels for meta-rationale |
 | 029 | Simplify implementation prompts to minimal orchestration inputs |
 | 030 | Move session and task commands into prompts |
+| 034 | Add use case identifiers to business specs |
+| 035 | Nest layers under phases in status display |
 
 ## Backlog
 

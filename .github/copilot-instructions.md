@@ -110,6 +110,7 @@ When performing work:
 - Keep framework files (`framework/`), templates (`templates/`), and agents (`agents/`) as pure instructions
 - Move rationale, examples, and "why" explanations to wiki (`docs/wiki/`)
 - Write execution instructions in framework files, context in wiki files
+- See [User vs Agent Documentation](docs/wiki/concepts/user-vs-agent-documentation.md) for complete guidance
 
 ### Don't:
 

@@ -492,7 +492,8 @@ func cmdValidate() {
 }
 
 // printPhaseStatus outputs the phase completion status with optional timestamp
-func printPhaseStatus(phase PhaseState) {
+// hasSpecs indicates if there are any specs in the phase's layers
+func printPhaseStatus(phase PhaseState, hasSpecs bool) {
 	if phase.Completed {
 		timestamp := phase.Timestamp
 		if timestamp != "" {
@@ -504,6 +505,8 @@ func printPhaseStatus(phase PhaseState) {
 		} else {
 			fmt.Println("✓ Complete")
 		}
+	} else if hasSpecs {
+		fmt.Println("In progress")
 	} else {
 		fmt.Println("Not started")
 	}
@@ -550,8 +553,9 @@ func cmdStatus() {
 	// Display phases with nested layers
 	// Phase 1: Develop
 	developPhase := state.Phases["develop"]
+	developHasSpecs := layerCounts["business"] > 0 || layerCounts["functional"] > 0 || layerCounts["stack"] > 0
 	fmt.Print("Phase 1 (Develop): ")
-	printPhaseStatus(developPhase)
+	printPhaseStatus(developPhase, developHasSpecs)
 	fmt.Printf("  Business:        %d spec(s)\n", layerCounts["business"])
 	fmt.Printf("  Functional:      %d spec(s)\n", layerCounts["functional"])
 	fmt.Printf("  Stack:           %d spec(s)\n", layerCounts["stack"])
@@ -559,15 +563,17 @@ func cmdStatus() {
 
 	// Phase 2: Deploy
 	deployPhase := state.Phases["deploy"]
+	deployHasSpecs := layerCounts["infrastructure"] > 0
 	fmt.Print("Phase 2 (Deploy): ")
-	printPhaseStatus(deployPhase)
+	printPhaseStatus(deployPhase, deployHasSpecs)
 	fmt.Printf("  Infrastructure:  %d spec(s)\n", layerCounts["infrastructure"])
 	fmt.Println()
 
 	// Phase 3: Validate
 	validatePhase := state.Phases["validate"]
+	validateHasSpecs := layerCounts["coverage"] > 0
 	fmt.Print("Phase 3 (Validate): ")
-	printPhaseStatus(validatePhase)
+	printPhaseStatus(validatePhase, validateHasSpecs)
 	fmt.Printf("  Coverage:        %d spec(s)\n", layerCounts["coverage"])
 	
 	// Display total

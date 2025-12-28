@@ -53,7 +53,7 @@ Specs explicitly state their sources:
 ## References
 
 ### Implements
-- [BUS-LOGIN](../business/login.md) — Implements login use case
+- [BUS-LOGIN](../business/uc1-login.md) — Implements login use case
 ```
 
 Not implicit "this relates to business somehow"—explicit relationship documented.

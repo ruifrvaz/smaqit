@@ -10,7 +10,6 @@
 | 031 | Review implementation artifacts | new |
 | 032 | Status command intelligent next step logic | new |
 | 033 | Fix state.json phase ordering | new |
-| 034 | Add use case identifiers to business specs | new |
 | 035 | Nest layers under phases in status display | new |
 | 036 | Implement prompt addendum for reproducibility | new |
 | 037 | Clarify phase-first workflow in framework | new |
@@ -23,6 +22,8 @@
 ## Completed
 
 | ID | Title |
+|----|-------|
+| 034 | Add use case identifiers to business specs |
 |----|-------|
 | 001 | Create Copilot prompt files |
 | 002 | Create specification agent template |

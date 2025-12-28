@@ -1,4 +1,11 @@
-# [CONCEPT_NAME]
+# UC[N]-[CONCEPT]: [USE_CASE_NAME]
+
+<!-- Use Case Identifier Format: UC[N]-[CONCEPT]
+     - UC: Use Case prefix
+     - [N]: Sequential number (UC1, UC2, UC3, ...)
+     - [CONCEPT]: Short uppercase descriptor matching acceptance criteria concept
+     - Example: UC1-LOGIN, UC2-CHECKOUT, UC3-PROFILE
+     - Use Case IDs are stable identifiers - never reuse after deletion -->
 
 ## Scope
 

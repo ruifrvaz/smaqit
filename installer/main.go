@@ -314,6 +314,139 @@ func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
 	})
 }
 
+// validateStateFile performs comprehensive validation of state.json structure
+// Returns the count of errors found
+func validateStateFile(path string) int {
+	errors := 0
+
+	// Check file exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		fmt.Printf("✗ Missing file: %s\n", path)
+		fmt.Println("  → Run 'smaqit init' to create state.json")
+		return 1
+	}
+
+	// Read and parse JSON
+	content, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Printf("✗ Cannot read %s: %v\n", path, err)
+		fmt.Println("  → Check file permissions")
+		return 1
+	}
+
+	// Parse JSON structure
+	var rawState map[string]interface{}
+	if err := json.Unmarshal(content, &rawState); err != nil {
+		fmt.Printf("✗ Invalid JSON in %s: %v\n", path, err)
+		fmt.Println("  → Fix JSON syntax or regenerate with 'smaqit init' (after backup)")
+		return 1
+	}
+
+	// Validate version field
+	version, versionExists := rawState["version"]
+	if !versionExists {
+		fmt.Printf("✗ Missing 'version' field in %s\n", path)
+		fmt.Println("  → Add: \"version\": \"1.0\"")
+		errors++
+	} else if versionStr, ok := version.(string); !ok {
+		fmt.Printf("✗ Invalid 'version' field type in %s (expected string)\n", path)
+		fmt.Println("  → Change to: \"version\": \"1.0\"")
+		errors++
+	} else if versionStr == "" {
+		fmt.Printf("✗ Empty 'version' field in %s\n", path)
+		fmt.Println("  → Set to: \"version\": \"1.0\"")
+		errors++
+	}
+
+	// Validate phases map exists
+	phasesRaw, phasesExists := rawState["phases"]
+	if !phasesExists {
+		fmt.Printf("✗ Missing 'phases' object in %s\n", path)
+		fmt.Println("  → Add phases object with develop, deploy, validate keys")
+		return errors + 1
+	}
+
+	phasesMap, ok := phasesRaw.(map[string]interface{})
+	if !ok {
+		fmt.Printf("✗ Invalid 'phases' field type in %s (expected object)\n", path)
+		fmt.Println("  → Change to object containing phase states")
+		return errors + 1
+	}
+
+	// Check phase keys exist and are ordered correctly
+	requiredPhases := []string{"develop", "deploy", "validate"}
+	
+	// Check each required phase exists
+	for _, phase := range requiredPhases {
+		phaseData, exists := phasesMap[phase]
+		if !exists {
+			fmt.Printf("✗ Missing phase '%s' in %s\n", phase, path)
+			fmt.Printf("  → Add: \"%s\": {\"completed\": false}\n", phase)
+			errors++
+			continue
+		}
+
+		// Validate phase object structure
+		phaseObj, ok := phaseData.(map[string]interface{})
+		if !ok {
+			fmt.Printf("✗ Phase '%s' is not an object in %s\n", phase, path)
+			fmt.Printf("  → Change to: \"%s\": {\"completed\": false}\n", phase)
+			errors++
+			continue
+		}
+
+		// Check 'completed' field exists
+		completed, completedExists := phaseObj["completed"]
+		if !completedExists {
+			fmt.Printf("✗ Phase '%s' missing 'completed' field in %s\n", phase, path)
+			fmt.Printf("  → Add 'completed' boolean to %s phase\n", phase)
+			errors++
+		} else if _, ok := completed.(bool); !ok {
+			fmt.Printf("✗ Phase '%s' has invalid 'completed' type in %s (expected boolean)\n", phase, path)
+			fmt.Printf("  → Change 'completed' to true or false in %s phase\n", phase)
+			errors++
+		}
+	}
+
+	// Check phase ordering in JSON
+	// Parse JSON preserving order by examining raw bytes
+	if err := validatePhaseOrdering(content, path); err != nil {
+		fmt.Printf("⚠ Phase ordering in %s: %v\n", path, err)
+		fmt.Println("  → Expected order: develop, deploy, validate")
+		fmt.Println("  → This is a semantic issue; functionality is not affected")
+		// Warning only, not an error
+	}
+
+	if errors == 0 {
+		fmt.Printf("✓ State file %s is valid\n", path)
+	}
+
+	return errors
+}
+
+// validatePhaseOrdering checks if phases appear in correct order in JSON text
+// This is a semantic check for readability, not a functional requirement
+func validatePhaseOrdering(jsonContent []byte, path string) error {
+	content := string(jsonContent)
+	
+	// Find position of each phase key in JSON text
+	developPos := strings.Index(content, "\"develop\"")
+	deployPos := strings.Index(content, "\"deploy\"")
+	validatePos := strings.Index(content, "\"validate\"")
+	
+	// If any phase is missing, ordering check is irrelevant (will be caught by earlier checks)
+	if developPos == -1 || deployPos == -1 || validatePos == -1 {
+		return nil
+	}
+	
+	// Check ordering: develop < deploy < validate
+	if developPos > deployPos || deployPos > validatePos {
+		return fmt.Errorf("phases not in workflow order (develop → deploy → validate)")
+	}
+	
+	return nil
+}
+
 func cmdUninstall() {
 	// Check if .smaqit exists
 	if _, err := os.Stat(".smaqit"); os.IsNotExist(err) {
@@ -431,6 +564,11 @@ func cmdValidate() {
 		fmt.Println("✓ Directory structure is complete")
 	}
 
+	// Validate state.json
+	stateFilePath := filepath.Join(".smaqit", "state.json")
+	stateErrors := validateStateFile(stateFilePath)
+	errors += stateErrors
+
 	// Validate spec files (basic checks)
 	layers := []string{"business", "functional", "stack", "infrastructure", "coverage"}
 	for _, layer := range layers {
@@ -491,6 +629,27 @@ func cmdValidate() {
 	}
 }
 
+// printPhaseStatus outputs the phase completion status with optional timestamp
+// hasSpecs indicates if there are any specs in the phase's layers
+func printPhaseStatus(phase PhaseState, hasSpecs bool) {
+	if phase.Completed {
+		timestamp := phase.Timestamp
+		if timestamp != "" {
+			// Parse and format timestamp
+			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
+				timestamp = t.Format("2006-01-02")
+			}
+			fmt.Printf("✓ Complete (%s)\n", timestamp)
+		} else {
+			fmt.Println("✓ Complete")
+		}
+	} else if hasSpecs {
+		fmt.Println("In progress")
+	} else {
+		fmt.Println("Not started")
+	}
+}
+
 func cmdStatus() {
 	// Check if .smaqit exists
 	if _, err := os.Stat(".smaqit"); os.IsNotExist(err) {
@@ -529,63 +688,34 @@ func cmdStatus() {
 		totalSpecs += count
 	}
 
-	// Display layer coverage
-	fmt.Println("Specification Layers:")
+	// Display phases with nested layers
+	// Phase 1: Develop
+	developPhase := state.Phases["develop"]
+	developHasSpecs := layerCounts["business"] > 0 || layerCounts["functional"] > 0 || layerCounts["stack"] > 0
+	fmt.Print("Phase 1 (Develop): ")
+	printPhaseStatus(developPhase, developHasSpecs)
 	fmt.Printf("  Business:        %d spec(s)\n", layerCounts["business"])
 	fmt.Printf("  Functional:      %d spec(s)\n", layerCounts["functional"])
 	fmt.Printf("  Stack:           %d spec(s)\n", layerCounts["stack"])
-	fmt.Printf("  Infrastructure:  %d spec(s)\n", layerCounts["infrastructure"])
-	fmt.Printf("  Coverage:        %d spec(s)\n", layerCounts["coverage"])
-	fmt.Printf("\nTotal: %d specification(s)\n\n", totalSpecs)
+	fmt.Println()
 
-	// Display phase completion status from state.json
-	fmt.Println("Phase Status:")
-	
-	developPhase := state.Phases["develop"]
-	if developPhase.Completed {
-		timestamp := developPhase.Timestamp
-		if timestamp != "" {
-			// Parse and format timestamp
-			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
-				timestamp = t.Format("2006-01-02")
-			}
-			fmt.Printf("  ✓ Develop:  Complete (%s)\n", timestamp)
-		} else {
-			fmt.Println("  ✓ Develop:  Complete")
-		}
-	} else {
-		fmt.Println("  - Develop:  Not started")
-	}
-
+	// Phase 2: Deploy
 	deployPhase := state.Phases["deploy"]
-	if deployPhase.Completed {
-		timestamp := deployPhase.Timestamp
-		if timestamp != "" {
-			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
-				timestamp = t.Format("2006-01-02")
-			}
-			fmt.Printf("  ✓ Deploy:   Complete (%s)\n", timestamp)
-		} else {
-			fmt.Println("  ✓ Deploy:   Complete")
-		}
-	} else {
-		fmt.Println("  - Deploy:   Not started")
-	}
+	deployHasSpecs := layerCounts["infrastructure"] > 0
+	fmt.Print("Phase 2 (Deploy): ")
+	printPhaseStatus(deployPhase, deployHasSpecs)
+	fmt.Printf("  Infrastructure:  %d spec(s)\n", layerCounts["infrastructure"])
+	fmt.Println()
 
+	// Phase 3: Validate
 	validatePhase := state.Phases["validate"]
-	if validatePhase.Completed {
-		timestamp := validatePhase.Timestamp
-		if timestamp != "" {
-			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
-				timestamp = t.Format("2006-01-02")
-			}
-			fmt.Printf("  ✓ Validate: Complete (%s)\n", timestamp)
-		} else {
-			fmt.Println("  ✓ Validate: Complete")
-		}
-	} else {
-		fmt.Println("  - Validate: Not started")
-	}
+	validateHasSpecs := layerCounts["coverage"] > 0
+	fmt.Print("Phase 3 (Validate): ")
+	printPhaseStatus(validatePhase, validateHasSpecs)
+	fmt.Printf("  Coverage:        %d spec(s)\n", layerCounts["coverage"])
+	
+	// Display total
+	fmt.Printf("\nTotal: %d specification(s)\n", totalSpecs)
 
 	// Next steps based on phase completion
 	fmt.Println("\nNext steps:")

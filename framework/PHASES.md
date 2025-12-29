@@ -1,6 +1,6 @@
 # Phases
 
-Phases are the sequential stages of software development in smaqit. Each phase follows the same pattern: specification agents produce specs, then an implementation agent consolidates and executes. This document defines the three phases and their workflows.
+Phases are the sequential stages of software development in smaqit. Each phase includes both specification generation and implementation execution. The recommended workflow is to complete each phase before moving to the next, though specifications can be generated ahead if needed.
 
 ## Overview
 

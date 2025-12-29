@@ -10,12 +10,7 @@
 | 031 | Review implementation artifacts | new |
 | 032 | Status command intelligent next step logic | new |
 | 033 | Fix state.json phase ordering | new |
-| 034 | Add use case identifiers to business specs | new |
-| 035 | Nest layers under phases in status display | new |
 | 036 | Implement prompt addendum for reproducibility | new |
-| 037 | Clarify phase-first workflow in framework | new |
-| 038 | Add state.json validation to validate command | new |
-| 039 | Add agent handover guidance | new |
 | 040 | Document user vs agent documentation distinction | new |
 | 041 | Restrict agents to their layer/phase | new |
 | 042 | Move development phase report to .smaqit/reports | new |
@@ -53,6 +48,11 @@
 | 028 | Audit all smaqit levels for meta-rationale |
 | 029 | Simplify implementation prompts to minimal orchestration inputs |
 | 030 | Move session and task commands into prompts |
+| 039 | Add agent handover guidance |
+| 038 | Add state.json validation to validate command |
+| 037 | Clarify phase-first workflow in framework |
+| 034 | Add use case identifiers to business specs |
+| 035 | Nest layers under phases in status display |
 
 ## Backlog
 

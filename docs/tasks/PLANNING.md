@@ -19,6 +19,8 @@
 | 040 | Document user vs agent documentation distinction | new |
 | 041 | Restrict agents to their layer/phase | new |
 | 042 | Move development phase report to .smaqit/reports | new |
+| 043 | Refine copilot instructions regarding example usage | new |
+| 044 | Clean up old prompt name references | new |
 
 ## Completed
 

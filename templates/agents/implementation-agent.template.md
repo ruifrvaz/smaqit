@@ -68,7 +68,7 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions
-- Follow industry standards for the chosen stack while satisfying spec-defined behavior
+- Follow industry standards for the chosen stack while satisfying spec-defined behavior, including folder structure conventions
 - Ensure implementations are structurally recognizable and behaviorally equivalent to specs
 
 ## Phase-Specific Rules

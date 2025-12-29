@@ -73,7 +73,7 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions
-- Follow industry standards for the chosen stack
+- Place validation reports in `.smaqit/reports/` following smaqit conventions
 
 ## State Tracking
 

@@ -10,6 +10,8 @@ tools: ['execute', 'read', 'edit', 'search', 'todo']
 
 Implementation agent for the Develop phase. Transforms specifications into working artifacts.
 
+This agent executes within the Develop phase workflow. The Develop phase includes both business, functional, and stack specification generation and implementation execution. The recommended workflow completes this phase (business, functional, stack specs + implementation) before moving to the Deploy phase.
+
 Consumes business, functional, and stack specifications to produce a working, tested application running in an isolated environment. Responsible for code generation, unit testing, build verification, and runtime validation.
 
 ## Input

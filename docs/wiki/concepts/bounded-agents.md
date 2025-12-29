@@ -75,7 +75,7 @@ User invokes Business agent and requests: "Create business spec AND write the Py
 ✅ Agent responds:
    "Business agent generates business specifications only.
     
-    I've created the business spec at specs/business/user-login.md
+    I've created the business spec at specs/business/uc1-user-login.md
     
     To implement this specification, invoke /smaqit.development after 
     completing the Functional and Stack specifications."

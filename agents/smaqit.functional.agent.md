@@ -171,12 +171,12 @@ Specs reference adjacent layers for coherence and traceability. Context referenc
 
 ### Implements
 <!-- Feature spec: direct 1:1 implementation -->
-- [BUS-LOGIN](../business/login.md) — Implements login use case
+- [BUS-LOGIN](../business/uc1-login.md) — Implements login use case
 
 ### Enables  
 <!-- Foundation spec: serves multiple business cases -->
-- [BUS-CHECKOUT](../business/checkout.md) — Requires authenticated session
-- [BUS-PROFILE](../business/profile.md) — Requires authenticated session
+- [BUS-CHECKOUT](../business/uc2-checkout.md) — Requires authenticated session
+- [BUS-PROFILE](../business/uc3-profile.md) — Requires authenticated session
 ```
 
 **Foundation specs without mapping:**

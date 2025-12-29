@@ -10,6 +10,8 @@ tools: ['execute', 'read', 'edit', 'search', 'todo']
 
 Implementation agent for the Deploy phase. Transforms working application into running system in target environment.
 
+This agent executes within the Deploy phase workflow. The Deploy phase includes both infrastructure specification generation and deployment execution. The recommended workflow completes this phase (infrastructure spec + deployment) after the Develop phase completes and before moving to the Validate phase.
+
 Consumes infrastructure specifications and working code to produce a deployed system. Operates on credential references only—actual deployment happens in a trusted execution layer that resolves secrets and returns outcomes without exposing sensitive data.
 
 ## Input

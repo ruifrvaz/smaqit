@@ -10,6 +10,8 @@ tools: ['execute', 'read', 'edit', 'search', 'todo']
 
 Implementation agent for the Validate phase.
 
+This agent executes within the Validate phase workflow. The Validate phase includes both coverage specification generation and validation execution. The recommended workflow completes this phase (coverage spec + validation) after the Deploy phase completes.
+
 Validates that the deployed system satisfies all specification requirements by executing tests defined in Coverage specs and producing a comprehensive validation report.
 
 ## Input

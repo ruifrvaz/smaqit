@@ -2,7 +2,24 @@
 
 ## What is it?
 
-A Spec-driven agent orchestration kit where AI agents write specifications, then implement from those specs.
+A Spec-driven agent orchestration kit where AI agents write specifications, then implement from those specs. **Work in phases**—each phase generates specs and implements them together for fast feedback.
+
+## How it Works
+
+**Phase-First Workflow (Recommended):**
+```
+Phase 1 (Develop):  Business → Functional → Stack specs → Build → Working app
+Phase 2 (Deploy):   Infrastructure spec → Deploy → Running system
+Phase 3 (Validate): Coverage spec → Test → Validation report
+```
+
+**Spec-First Workflow (Alternative):**
+```
+Generate all specs: Business → Functional → Stack → Infrastructure → Coverage
+Execute phases:     Develop → Deploy → Validate
+```
+
+Phase-first gives you faster feedback. Spec-first works for upfront design requirements.
 
 ## Getting Started
 
@@ -31,17 +48,35 @@ move smaqit_windows_amd64.exe C:\Windows\smaqit.exe
 
 ### Usage
 
+**Phase-First Workflow (Recommended):**
 ```bash
 # Initialize in your project
 smaqit init
 
-# Start developing
+# Phase 1: Develop
+# Generate specs, then build
 smaqit develop
 
-# Deploy
+# Phase 2: Deploy
+# Generate infrastructure spec, then deploy
 smaqit deploy
 
-# Validate
+# Phase 3: Validate
+# Generate coverage spec, then test
+smaqit validate
+```
+
+**Spec-First Workflow (Alternative):**
+```bash
+# Initialize
+smaqit init
+
+# Generate all specifications first
+# (invoke agents via GitHub Copilot chat)
+
+# Then execute phases
+smaqit develop
+smaqit deploy
 smaqit validate
 ```
 
@@ -67,9 +102,13 @@ smaqit validate
 
 ## Phases
 
-1. **Develop** — Write specs (business → functional → stack), then build
-2. **Deploy** — Write infrastructure spec, then deploy
-3. **Validate** — Write coverage spec, then test
+**Phases are the primary workflow unit.** Each phase includes specifications and implementation together.
+
+1. **Develop** — Generate specs (business → functional → stack), then build → working application
+2. **Deploy** — Generate infrastructure spec, then deploy → running system
+3. **Validate** — Generate coverage spec, then test → validation report
+
+**Phase-first is recommended** for faster feedback. Complete each phase before moving to the next. Alternatively, you can generate all specs first (spec-first), but implementation still happens in phases.
 
 ## Team Alignment
 

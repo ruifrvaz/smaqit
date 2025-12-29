@@ -199,6 +199,18 @@ Before declaring completion, verify:
 - [ ] No implementation details leaked into spec
 - [ ] Requirement IDs follow format: `INF-[CONCEPT]-[NNN]`
 
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Option 1 (Recommended):** Run the Deployment phase with `/smaqit.deployment`
+
+This completes Phase 2 (Deploy) by deploying your application to the target environment using your Infrastructure specifications.
+
+**Option 2:** Continue with Coverage specifications using `/smaqit.coverage`
+
+If you prefer to define all specifications before implementation, you can continue to the Coverage layer (Phase 3). However, the recommended workflow is to complete Phase 2 implementation before moving to Phase 3.
+
 ## Failure Handling
 
 | Situation | Action |

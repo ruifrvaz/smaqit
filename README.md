@@ -187,6 +187,8 @@ These files explain WHY the framework is designed this way:
 - `patterns/` — Common usage patterns
 - `workflows/` — Step-by-step processes
 
+**See [User vs Agent Documentation](docs/wiki/concepts/user-vs-agent-documentation.md) for detailed guidance on this distinction.**
+
 ---
 
 ## Contributors

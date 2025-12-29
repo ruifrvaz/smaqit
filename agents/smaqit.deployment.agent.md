@@ -182,6 +182,14 @@ Before declaring completion, verify:
 }
 ```
 
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Next Step:** Create coverage specifications with `/smaqit.coverage`
+
+Phase 2 (Deploy) is now complete with your application running in the target environment. The next step is Phase 3 (Validate), which begins by defining your test coverage and verification requirements.
+
 ## Failure Handling
 
 | Situation | Action |

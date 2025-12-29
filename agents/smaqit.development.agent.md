@@ -162,6 +162,14 @@ Before declaring completion, verify:
 }
 ```
 
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Next Step:** Create infrastructure specifications with `/smaqit.infrastructure`
+
+Phase 1 (Develop) is now complete with a working, tested application. The next step is Phase 2 (Deploy), which begins by defining your infrastructure requirements (compute, networking, scaling, observability).
+
 ## Failure Handling
 
 | Situation | Action |

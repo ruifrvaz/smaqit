@@ -186,6 +186,19 @@ Before declaring completion, verify:
 }
 ```
 
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Validation Complete:** The smaqit workflow cycle is complete!
+
+Review the validation report to assess:
+- **All tests pass:** Your system satisfies all specified requirements ✓
+- **Some tests fail:** Review failure details and decide next action (return to Development, Deployment, or investigate)
+- **Low coverage:** Review Coverage specs for gaps or add missing test cases
+
+If requirements change or new features are needed, update the relevant prompt files (`.github/prompts/smaqit.[layer].prompt.md`) and regenerate specifications.
+
 ## Failure Handling
 
 | Situation | Action |

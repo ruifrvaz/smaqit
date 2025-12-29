@@ -102,6 +102,12 @@ Before declaring completion, verify:
 - [ ] Cross-layer consolidation completed without conflicts
 - [ADDITIONAL_COMPLETION_CRITERIA]
 
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+[PROPOSE_NEXT_STEP]
+
 ## Failure Handling
 
 | Situation | Action |

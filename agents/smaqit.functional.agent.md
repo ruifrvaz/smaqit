@@ -112,10 +112,10 @@ All acceptance criteria must use this format for traceability:
 
 **Components:**
 - `FUN` — Three-letter layer code for Functional
-- `[CONCEPT]` — Descriptive concept name (e.g., AUTH, USER-FLOW, API-ORDER)
+- `[CONCEPT]` — Descriptive concept name (uppercase with hyphens)
 - `[NNN]` — Sequential number with leading zeros (001, 002, 015)
 
-**Example:** `FUN-AUTH-001: JWT token expires after 24 hours`
+**Format:** `FUN-[CONCEPT]-[NNN]: [Behavior or data model requirement]`
 
 **Rules:**
 - IDs must be unique within the project
@@ -171,12 +171,12 @@ Specs reference adjacent layers for coherence and traceability. Context referenc
 
 ### Implements
 <!-- Feature spec: direct 1:1 implementation -->
-- [BUS-LOGIN](../business/uc1-login.md) — Implements login use case
+- [BUS-[CONCEPT]-NNN](../business/[filename].md) — Implements [use case description]
 
 ### Enables  
 <!-- Foundation spec: serves multiple business cases -->
-- [BUS-CHECKOUT](../business/uc2-checkout.md) — Requires authenticated session
-- [BUS-PROFILE](../business/uc3-profile.md) — Requires authenticated session
+- [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
+- [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
 ```
 
 **Foundation specs without mapping:**

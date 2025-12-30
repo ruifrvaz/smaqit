@@ -147,11 +147,11 @@ Specs reference adjacent layers for coherence and traceability:
 ## References
 
 ### Implements
-- [FUN-API](../functional/user-api.md) — Technology choices for this API
+- [FUN-[CONCEPT]-NNN](../functional/[filename].md) — Technology choices for [feature]
 
 ### Enables
-- [FUN-AUTH](../functional/authentication.md) — Framework supports auth patterns
-- [FUN-DATA](../functional/data-model.md) — ORM supports data relationships
+- [FUN-[CONCEPT]-NNN](../functional/[filename].md) — Framework supports [capability]
+- [FUN-[CONCEPT]-NNN](../functional/[filename].md) — Technology supports [capability]
 ```
 
 **Rules:**

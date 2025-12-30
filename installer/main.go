@@ -173,9 +173,9 @@ func cmdHelp() {
 	fmt.Println("  smaqit version    Show smaqit version")
 	fmt.Println()
 	fmt.Println("Copilot Prompts (use in GitHub Copilot chat with /):")
-	fmt.Println("  /smaqit.develop       Run develop phase (business → functional → stack → build)")
-	fmt.Println("  /smaqit.deploy        Run deploy phase (infrastructure → deploy)")
-	fmt.Println("  /smaqit.validate      Run validate phase (coverage → validate)")
+	fmt.Println("  /smaqit.development   Run develop phase (business → functional → stack → build)")
+	fmt.Println("  /smaqit.deployment    Run deploy phase (infrastructure → deploy)")
+	fmt.Println("  /smaqit.validation    Run validate phase (coverage → validate)")
 	fmt.Println("  /smaqit.business      Create business layer specifications")
 	fmt.Println("  /smaqit.functional    Create functional layer specifications")
 	fmt.Println("  /smaqit.stack         Create stack layer specifications")
@@ -185,7 +185,7 @@ func cmdHelp() {
 	fmt.Println("Getting Started:")
 	fmt.Println("  1. Run 'smaqit init' in your project directory")
 	fmt.Println("  2. Open GitHub Copilot chat in VS Code")
-	fmt.Println("  3. Type '/smaqit.develop' to start the development phase")
+	fmt.Println("  3. Type '/smaqit.development' to start the development phase")
 	fmt.Println()
 	fmt.Println("Documentation: https://github.com/ruifrvaz/smaqit")
 }
@@ -264,7 +264,7 @@ func cmdInit(targetDir string) {
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
-	fmt.Println("  2. Type '/smaqit.develop' to start the development phase")
+	fmt.Println("  2. Type '/smaqit.development' to start the development phase")
 	fmt.Println("  3. Or type '/smaqit.business' to create business specifications")
 }
 

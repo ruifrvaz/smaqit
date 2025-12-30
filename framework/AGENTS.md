@@ -43,6 +43,22 @@ See [PROMPTS](PROMPTS.md) for complete prompt architecture and input record prin
 - Agents MUST NOT declare completion if any required criterion is unmet
 - Agents SHOULD iterate on output until validation passes
 
+### Scope Boundaries
+
+Each agent has a single responsibility defined by its layer or phase.
+
+**Agents MUST NOT:**
+- Execute work assigned to other phases
+- Execute work assigned to other layers (for specification agents)
+- Execute work assigned to other agents
+
+**Boundary Enforcement:**
+
+When user requests out-of-scope work:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — State current scope and required agent for requested work
+3. **Suggest next step** — Provide prompt file or agent invocation command
+
 ## Naming Convention
 
 Agents follow the pattern: `smaqit.[LAYER]` for specification agents, `smaqit.[PHASE]` for implementation agents, and `smaqit.orchestrator` for the orchestration agent.

@@ -1,7 +1,8 @@
 # Restrict Agents to Their Layer/Phase
 
-**Status:** Not Started  
-**Created:** 2025-12-28
+**Status:** Completed  
+**Created:** 2025-12-28  
+**Completed:** 2025-12-28
 
 ## Description
 
@@ -10,26 +11,26 @@ Agents should be explicitly forbidden from executing work belonging to other lay
 ## Acceptance Criteria
 
 **Level 0 (AGENTS.md):**
-- [ ] Add "Scope Boundaries" section with generic MUST NOT rules using placeholders
-- [ ] Add "Boundary Enforcement" pattern: Stop → Respond → Suggest
-- [ ] Use placeholders: `[PHASE]`, `[OTHER_PHASES]`, `[OTHER_AGENTS]`, `[LAYER]`, `[OTHER_LAYERS]`
+- [x] Add "Scope Boundaries" section with generic MUST NOT rules using placeholders
+- [x] Add "Boundary Enforcement" pattern: Stop → Respond → Suggest
+- [x] Use placeholders: `[PHASE]`, `[OTHER_PHASES]`, `[OTHER_AGENTS]`, `[LAYER]`, `[OTHER_LAYERS]`
 
 **Level 1 (Agent Templates):**
-- [ ] Specification agent template includes MUST NOT section with Develop/Deploy/Validate phase prohibition
-- [ ] Specification agent template includes other layer prohibition with `[OTHER_LAYERS]` placeholder
-- [ ] Implementation agent template includes MUST NOT section appropriate for impl agents
-- [ ] Both templates include enforcement pattern with populated placeholders
+- [x] Specification agent template includes MUST NOT section with Develop/Deploy/Validate phase prohibition
+- [x] Specification agent template includes other layer prohibition with `[OTHER_LAYERS]` placeholder
+- [x] Implementation agent template includes MUST NOT section appropriate for impl agents
+- [x] Both templates include enforcement pattern with populated placeholders
 
 **Level 2 (Agent Definitions):**
-- [ ] All 5 specification agents have layer-specific MUST NOT rules (Business, Functional, Stack, Infrastructure, Coverage)
-- [ ] All 3 implementation agents have phase-specific MUST NOT rules (Development, Deployment, Validation)
-- [ ] Each agent explicitly lists what phases/layers they cannot execute
-- [ ] Enforcement responses are contextual to each agent's scope
+- [x] All 5 specification agents have layer-specific MUST NOT rules (Business, Functional, Stack, Infrastructure, Coverage)
+- [x] All 3 implementation agents have phase-specific MUST NOT rules (Development, Deployment, Validation)
+- [x] Each agent explicitly lists what phases/layers they cannot execute
+- [x] Enforcement responses are contextual to each agent's scope
 
 **Validation:**
-- [ ] No placeholders remain in Level 2 agents
-- [ ] Each agent clearly states its single responsibility
-- [ ] Boundary violations result in helpful redirection, not execution
+- [x] No placeholders remain in Level 2 agents
+- [x] Each agent clearly states its single responsibility
+- [x] Boundary violations result in helpful redirection, not execution
 
 ## Impact
 
@@ -88,3 +89,25 @@ When user requests implementation or other specs:
 - Enforcement pattern preserves UX (helpful redirection, not silent failure)
 - Aligns with task 039 (agent handover guidance)
 - Preserves separation of concerns across all 4 levels while remaining maintainable
+
+## Implementation Summary
+
+**Files Modified:**
+- **Level 0 (1 file):** `framework/AGENTS.md` - Added Scope Boundaries section after Self-Validation Before Completion
+- **Level 1 (2 files):** 
+  - `templates/agents/specification-agent.template.md` - Added Scope Boundaries with placeholders for other layers
+  - `templates/agents/implementation-agent.template.md` - Added Scope Boundaries with placeholders for other phases
+- **Level 2 (8 files):** All specification agents (business, functional, stack, infrastructure, coverage) and implementation agents (development, deployment, validation)
+
+**Key Features:**
+- Each agent now has a "Scope Boundaries" section defining what work is out of scope
+- 3-step enforcement pattern: Stop → Respond → Suggest
+- Contextual responses include agent status and suggest appropriate next agent
+- Specification agents prohibited from: implementation phases + other layer specs
+- Implementation agents prohibited from: other phases + specification work
+
+**Validation:**
+- ✓ Installer builds successfully (version f0a295f)
+- ✓ CLI commands work (init, status, validate)
+- ✓ Agents installed with scope boundaries intact
+- ✓ No placeholders remain in Level 2 agents (grep verified)

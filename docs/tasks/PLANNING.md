@@ -11,7 +11,6 @@
 | 032 | Status command intelligent next step logic | new |
 | 033 | Fix state.json phase ordering | new |
 | 036 | Implement prompt addendum for reproducibility | new |
-| 041 | Restrict agents to their layer/phase | new |
 | 042 | Move development phase report to .smaqit/reports | new |
 | 043 | Refine copilot instructions regarding example usage | new |
 | 044 | Clean up old prompt name references | new |
@@ -47,6 +46,7 @@
 | 028 | Audit all smaqit levels for meta-rationale |
 | 029 | Simplify implementation prompts to minimal orchestration inputs |
 | 030 | Move session and task commands into prompts |
+| 041 | Restrict agents to their layer/phase |
 | 040 | Document user vs agent documentation distinction |
 | 039 | Add agent handover guidance |
 | 038 | Add state.json validation to validate command |

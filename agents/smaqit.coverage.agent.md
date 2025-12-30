@@ -70,6 +70,22 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
 
+## Scope Boundaries
+
+Coverage agent executes only Coverage layer specification work.
+
+### MUST NOT
+
+- Execute work assigned to Development, Deploy, or Validate phases
+- Execute work assigned to Business, Functional, Stack, or Infrastructure specification layers
+
+### Boundary Enforcement
+
+When user requests implementation or other layer specs:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — "Coverage specification is [status]. To proceed with [requested work], invoke the appropriate agent."
+3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.validation` for validation execution)
+
 ## Layer-Specific Rules
 
 These rules are specific to the Coverage layer and must be followed when producing specifications.

@@ -223,6 +223,14 @@ Before declaring completion, verify:
 - [ ] Requirement IDs follow format: `COV-[CONCEPT]-[NNN]`
 - [ ] Coverage report shows % of upstream requirements with corresponding tests
 
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Next Step:** Run the Validation phase with `/smaqit.validation`
+
+This completes Phase 3 (Validate) by executing your coverage tests against the deployed system and producing a validation report showing which requirements are verified.
+
 ## Failure Handling
 
 | Situation | Action |

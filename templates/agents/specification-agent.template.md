@@ -166,6 +166,12 @@ Before declaring completion, verify:
 - [ ] No implementation details leaked into spec
 - [ ] Requirement IDs follow format: `[LAYER_PREFIX]-[CONCEPT]-[NNN]`
 
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+[PROPOSE_NEXT_STEP]
+
 ## Failure Handling
 
 | Situation | Action |

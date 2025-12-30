@@ -10,6 +10,8 @@ tools: ['execute', 'read', 'edit', 'search', 'todo']
 
 Implementation agent for the Validate phase.
 
+This agent executes within the Validate phase workflow. The Validate phase includes both coverage specification generation and validation execution. The recommended workflow completes this phase (coverage spec + validation) after the Deploy phase completes.
+
 Validates that the deployed system satisfies all specification requirements by executing tests defined in Coverage specs and producing a comprehensive validation report.
 
 ## Input
@@ -73,7 +75,7 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions
-- Follow industry standards for the chosen stack
+- Place validation reports in `.smaqit/reports/` following smaqit conventions
 
 ## Scope Boundaries
 
@@ -199,6 +201,19 @@ Before declaring completion, verify:
   "timestamp": "2025-12-26T10:30:00Z"
 }
 ```
+
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Validation Complete:** The smaqit workflow cycle is complete!
+
+Review the validation report to assess:
+- **All tests pass:** Your system satisfies all specified requirements ✓
+- **Some tests fail:** Review failure details and decide next action (return to Development, Deployment, or investigate)
+- **Low coverage:** Review Coverage specs for gaps or add missing test cases
+
+If requirements change or new features are needed, update the relevant prompt files (`.github/prompts/smaqit.[layer].prompt.md`) and regenerate specifications.
 
 ## Failure Handling
 

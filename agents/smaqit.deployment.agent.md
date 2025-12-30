@@ -10,6 +10,8 @@ tools: ['execute', 'read', 'edit', 'search', 'todo']
 
 Implementation agent for the Deploy phase. Transforms working application into running system in target environment.
 
+This agent executes within the Deploy phase workflow. The Deploy phase includes both infrastructure specification generation and deployment execution. The recommended workflow completes this phase (infrastructure spec + deployment) after the Develop phase completes and before moving to the Validate phase.
+
 Consumes infrastructure specifications and working code to produce a deployed system. Operates on credential references only—actual deployment happens in a trusted execution layer that resolves secrets and returns outcomes without exposing sensitive data.
 
 ## Input
@@ -80,7 +82,7 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions
-- Follow industry standards for the chosen stack while satisfying spec-defined behavior
+- Follow industry standards for infrastructure code organization while satisfying spec-defined behavior, including folder structure conventions
 - Ensure implementations are structurally recognizable and behaviorally equivalent to specs
 - Verify deployment topology matches infrastructure specs
 
@@ -195,6 +197,14 @@ Before declaring completion, verify:
   "timestamp": "2025-12-26T10:30:00Z"
 }
 ```
+
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Next Step:** Create coverage specifications with `/smaqit.coverage`
+
+Phase 2 (Deploy) is now complete with your application running in the target environment. The next step is Phase 3 (Validate), which begins by defining your test coverage and verification requirements.
 
 ## Failure Handling
 

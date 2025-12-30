@@ -14,7 +14,6 @@
 | 041 | Restrict agents to their layer/phase | new |
 | 042 | Move development phase report to .smaqit/reports | new |
 | 043 | Refine copilot instructions regarding example usage | new |
-| 044 | Clean up old prompt name references | new |
 
 ## Completed
 
@@ -53,6 +52,7 @@
 | 037 | Clarify phase-first workflow in framework |
 | 034 | Add use case identifiers to business specs |
 | 035 | Nest layers under phases in status display |
+| 044 | Clean up old prompt name references |
 
 ## Backlog
 

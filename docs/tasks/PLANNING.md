@@ -5,7 +5,6 @@
 | ID | Title | Status |
 |----|-------|--------|
 | 014 | Define iterative development using smaqit | new |
-| 022 | Create GitHub Action for automated releases | new |
 | 025 | Integrate testing agent with CI/CD | new |
 | 031 | Review implementation artifacts | new |
 | 032 | Status command intelligent next step logic | new |
@@ -53,6 +52,7 @@
 | 034 | Add use case identifiers to business specs |
 | 035 | Nest layers under phases in status display |
 | 044 | Clean up old prompt name references |
+| 022 | Create GitHub Action for automated releases |
 
 ## Backlog
 

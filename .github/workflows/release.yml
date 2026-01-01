@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git describe
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: installer/go.sum
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build all platforms
+        working-directory: installer
+        run: |
+          echo "Building smaqit ${{ steps.version.outputs.VERSION }}..."
+          
+          # Prepare embedded files (required for go:embed)
+          make prepare
+          
+          # Build for all platforms with version embedded
+          VERSION=${{ steps.version.outputs.VERSION }} make build-all
+          
+          echo "Build complete. Binaries:"
+          ls -la dist/
+
+      - name: Generate checksums
+        working-directory: installer/dist
+        run: |
+          echo "Generating SHA256 checksums..."
+          sha256sum smaqit_* > checksums.txt
+          cat checksums.txt
+
+      - name: Extract release notes from tag
+        id: notes
+        run: |
+          # Get tag annotation message (if annotated tag)
+          TAG_MESSAGE=$(git tag -l --format='%(contents)' ${{ steps.version.outputs.VERSION }} 2>/dev/null || echo "")
+          
+          if [ -z "$TAG_MESSAGE" ]; then
+            TAG_MESSAGE="Release ${{ steps.version.outputs.VERSION }}"
+          fi
+          
+          # Write to file for multi-line support
+          echo "$TAG_MESSAGE" > release_notes.txt
+          echo "notes_file=release_notes.txt" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.version.outputs.VERSION }}
+          body_path: release_notes.txt
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
+          files: |
+            installer/dist/smaqit_linux_amd64
+            installer/dist/smaqit_darwin_amd64
+            installer/dist/smaqit_darwin_arm64
+            installer/dist/smaqit_windows_amd64.exe
+            installer/dist/checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

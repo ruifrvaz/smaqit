@@ -24,16 +24,34 @@ Create a GitHub Actions workflow that automatically builds and releases smaqit b
 
 ## Completion Summary
 
-Created `.github/workflows/release.yml` that:
-- Triggers on `v*.*.*` tag push
+Created `.github/workflows/release.yml` with automated release pipeline and AI-managed changelog system:
+
+**Release workflow features:**
+- Triggers on `v*.*.*` tag push or manual workflow dispatch
 - Uses existing Makefile `build-all` target to build all platforms
 - Generates SHA256 checksums for all binaries
-- Extracts release notes from annotated tag message
+- Extracts release notes from CHANGELOG.md (with fallbacks to tag annotation)
 - Creates GitHub release using `softprops/action-gh-release@v2`
 - Marks versions with `-` (e.g., `v0.3.0-beta`) as prereleases
 
+**Changelog management system:**
+- Created `/changelog.update` agent that reads session history files
+- Agent extracts user-facing changes and updates CHANGELOG.md
+- Follows Keep a Changelog format with proper categorization
+- Initialized CHANGELOG.md with historical releases (v0.0.1 through v0.3.0)
+- Documented release process in README.md
+
 **Files created:**
-- `.github/workflows/release.yml`
+- `.github/workflows/release.yml` — Automated release workflow
+- `.github/agents/changelog.update.agent.md` — Changelog update agent
+- `.github/prompts/changelog.update.prompt.md` — Changelog update prompt
+- `CHANGELOG.md` — Project changelog initialized with history
+
+**Files modified:**
+- `README.md` — Added Release Process section
+- `docs/tasks/PLANNING.md` — Moved task 022 to completed
+
+**Release verified:** v0.4.0-beta successfully released with proper changelog extraction.
 
 ## Notes
 

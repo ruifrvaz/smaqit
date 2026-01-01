@@ -1,16 +1,19 @@
 # Changelog
 
-All notable changes to smaqit will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
+
+## [0.4.0-beta] - 2026-01-01
 
 ### Added
 - GitHub Actions workflow for automated releases (Task 022)
+  - Automatic builds for Linux, macOS (Intel/ARM), Windows
+  - SHA256 checksums generation
+  - Release notes extracted from CHANGELOG.md
 - Manual workflow dispatch for releases via GitHub UI
 - Changelog management system using session history
+  - `/changelog.update` agent reads `docs/history/` and updates CHANGELOG.md
+  - AI-managed changelog following Keep a Changelog format
+  - Simplified release process documented in README
 
 ## [0.3.0] - 2025-12-28
 
@@ -94,7 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.4.0-beta...HEAD
+[0.4.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.3.0...v0.4.0-beta
 [0.3.0]: https://github.com/ruifrvaz/smaqit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ruifrvaz/smaqit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ruifrvaz/smaqit/compare/v0.0.1...v0.1.0

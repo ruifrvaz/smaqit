@@ -11,7 +11,6 @@
 | 033 | Fix state.json phase ordering | new |
 | 036 | Implement prompt addendum for reproducibility | new |
 | 042 | Move development phase report to .smaqit/reports | new |
-| 043 | Refine copilot instructions regarding example usage | new |
 
 ## Completed
 
@@ -51,6 +50,7 @@
 | 037 | Clarify phase-first workflow in framework |
 | 034 | Add use case identifiers to business specs |
 | 035 | Nest layers under phases in status display |
+| 043 | Refine copilot instructions regarding example usage |
 | 044 | Clean up old prompt name references |
 | 022 | Create GitHub Action for automated releases |
 

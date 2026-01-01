@@ -115,10 +115,10 @@ All acceptance criteria must use this format for traceability:
 
 **Components:**
 - `COV` — Three-letter layer code for Coverage
-- `[CONCEPT]` — Descriptive concept name (e.g., LOGIN, AUTH, API)
+- `[CONCEPT]` — Descriptive concept name (uppercase with hyphens)
 - `[NNN]` — Sequential number with leading zeros (001, 002, 015)
 
-**Example:** `COV-LOGIN-001: Test case for BUS-LOGIN-001`
+**Format:** `COV-[CONCEPT]-[NNN]: Test case for [upstream requirement ID]`
 
 **Rules:**
 - IDs must be unique within the project

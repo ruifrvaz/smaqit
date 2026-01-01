@@ -146,10 +146,10 @@ All acceptance criteria must use this format for traceability:
 
 **Components:**
 - `BUS` — Three-letter layer code for Business
-- `[CONCEPT]` — Descriptive concept name (e.g., LOGIN, CHECKOUT, USER-REGISTRATION)
+- `[CONCEPT]` — Descriptive concept name (uppercase with hyphens)
 - `[NNN]` — Sequential number with leading zeros (001, 002, 015)
 
-**Example:** `BUS-LOGIN-001: User can authenticate with valid credentials`
+**Format:** `BUS-[CONCEPT]-[NNN]: [Use case or actor goal description]`
 
 **Rules:**
 - IDs must be unique within the project

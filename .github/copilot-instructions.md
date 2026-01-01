@@ -145,6 +145,40 @@ When performing work:
 - Reference past projects or prior art
 - Put extended explanations in templates/agents
 
+### Example Usage Rules
+
+**Context:** Framework files, templates, and agents must use generic placeholders and abstract categories to maximize reusability. Specific examples can be misinterpreted as actual requirements or prescribed solutions.
+
+**Prohibited in framework/, templates/, agents/:**
+
+| Category | Prohibited Examples | Use Instead |
+|----------|-------------------|-------------|
+| **Requirement IDs** | `BUS-LOGIN-001`, `FUN-AUTH-001`, `STK-JWT-001` | `[LAYER_PREFIX]-[CONCEPT]-[NNN]`, `[ID]` |
+| **Technologies** | JWT, React, AWS, Docker, PostgreSQL | `[Technology]`, `[Framework]`, `[Database]` |
+| **Features/Domains** | login, authentication, checkout, payment | `[Feature name]`, `[Use case]`, `[Concept]` |
+| **Architecture** | microservices, REST API, message queue | `[Pattern]`, `[Architecture style]` |
+| **Data/Entities** | User, Order, Product, Customer | `[Entity]`, `[Data model]` |
+
+**Allowed examples:**
+
+| Location | Context | Format | Example |
+|----------|---------|--------|---------|
+| **Prompt files** | User guidance only | HTML comments | `<!-- Example: "Mario Fan - Users who love Nintendo" -->` |
+| **Wiki docs** | Human explanation | Plain text | "For instance, BUS-LOGIN-001 might represent..." |
+| **History files** | Session documentation | Plain text | "Cleaned specific examples like BUS-LOGIN-001" |
+| **Test cases** | Demonstration scenarios | Plain text | `docs/test-cases/mario-hello.md` |
+
+**Validation checklist:**
+
+Before committing changes to framework/, templates/, or agents/, verify:
+- [ ] No specific requirement IDs (BUS-LOGIN, FUN-AUTH, etc.)
+- [ ] No specific technology names (JWT, React, PostgreSQL, etc.)
+- [ ] No specific business domains (login, checkout, authentication, etc.)
+- [ ] All examples use generic placeholders in `[BRACKETS]`
+- [ ] HTML comment examples in prompts are for guidance only (agents ignore these)
+
+**Exception:** When demonstrating format structure (like in ARTIFACTS.md showing ID format), examples must be wrapped in clear context: "Format: `[PREFIX]-[CONCEPT]-[NNN]`" without presenting as actual requirements.
+
 ### When Editing Specification Templates
 
 Location: `templates/specs/`

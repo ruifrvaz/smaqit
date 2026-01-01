@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v0.3.1)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -27,7 +33,12 @@ jobs:
 
       - name: Get version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build all platforms
         working-directory: installer
@@ -50,19 +61,42 @@ jobs:
           sha256sum smaqit_* > checksums.txt
           cat checksums.txt
 
-      - name: Extract release notes from tag
+      - name: Extract release notes from CHANGELOG
         id: notes
         run: |
-          # Get tag annotation message (if annotated tag)
-          TAG_MESSAGE=$(git tag -l --format='%(contents)' ${{ steps.version.outputs.VERSION }} 2>/dev/null || echo "")
+          VERSION="${{ steps.version.outputs.VERSION }}"
           
-          if [ -z "$TAG_MESSAGE" ]; then
-            TAG_MESSAGE="Release ${{ steps.version.outputs.VERSION }}"
+          # Extract section for this version from CHANGELOG.md
+          if [ -f "CHANGELOG.md" ]; then
+            # Try to extract the section for this version
+            SECTION=$(sed -n "/^## \[${VERSION#v}\]/,/^## \[/p" CHANGELOG.md | sed '$d')
+            
+            if [ -n "$SECTION" ]; then
+              echo "$SECTION" > release_notes.txt
+              echo "✓ Extracted release notes from CHANGELOG.md"
+            else
+              # Fallback: try Unreleased section
+              UNRELEASED=$(sed -n '/^## \[Unreleased\]/,/^## \[/p' CHANGELOG.md | sed '$d')
+              if [ -n "$UNRELEASED" ] && [ "$UNRELEASED" != "## [Unreleased]" ]; then
+                echo "$UNRELEASED" > release_notes.txt
+                echo "⚠ Using Unreleased section from CHANGELOG.md"
+              else
+                echo "Release $VERSION" > release_notes.txt
+                echo "⚠ No changelog entry found, using default"
+              fi
+            fi
+          else
+            # CHANGELOG.md doesn't exist, try tag annotation
+            TAG_MESSAGE=$(git tag -l --format='%(contents)' $VERSION 2>/dev/null || echo "")
+            if [ -z "$TAG_MESSAGE" ]; then
+              TAG_MESSAGE="Release $VERSION"
+            fi
+            echo "$TAG_MESSAGE" > release_notes.txt
+            echo "⚠ No CHANGELOG.md, using tag annotation"
           fi
           
-          # Write to file for multi-line support
-          echo "$TAG_MESSAGE" > release_notes.txt
-          echo "notes_file=release_notes.txt" >> $GITHUB_OUTPUT
+          echo "Release notes:"
+          cat release_notes.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

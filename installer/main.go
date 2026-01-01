@@ -173,9 +173,9 @@ func cmdHelp() {
 	fmt.Println("  smaqit version    Show smaqit version")
 	fmt.Println()
 	fmt.Println("Copilot Prompts (use in GitHub Copilot chat with /):")
-	fmt.Println("  /smaqit.develop       Run develop phase (business → functional → stack → build)")
-	fmt.Println("  /smaqit.deploy        Run deploy phase (infrastructure → deploy)")
-	fmt.Println("  /smaqit.validate      Run validate phase (coverage → validate)")
+	fmt.Println("  /smaqit.development   Run Development implementation agent (build from specs)")
+	fmt.Println("  /smaqit.deployment    Run Deployment implementation agent (deploy from specs)")
+	fmt.Println("  /smaqit.validation    Run Validation implementation agent (test from specs)")
 	fmt.Println("  /smaqit.business      Create business layer specifications")
 	fmt.Println("  /smaqit.functional    Create functional layer specifications")
 	fmt.Println("  /smaqit.stack         Create stack layer specifications")
@@ -185,7 +185,7 @@ func cmdHelp() {
 	fmt.Println("Getting Started:")
 	fmt.Println("  1. Run 'smaqit init' in your project directory")
 	fmt.Println("  2. Open GitHub Copilot chat in VS Code")
-	fmt.Println("  3. Type '/smaqit.develop' to start the development phase")
+	fmt.Println("  3. Type '/smaqit.development' to run the Development implementation step")
 	fmt.Println()
 	fmt.Println("Documentation: https://github.com/ruifrvaz/smaqit")
 }
@@ -264,7 +264,7 @@ func cmdInit(targetDir string) {
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
-	fmt.Println("  2. Type '/smaqit.develop' to start the development phase")
+	fmt.Println("  2. Type '/smaqit.development' to run the Development implementation step")
 	fmt.Println("  3. Or type '/smaqit.business' to create business specifications")
 }
 
@@ -720,11 +720,11 @@ func cmdStatus() {
 	// Next steps based on phase completion
 	fmt.Println("\nNext steps:")
 	if !developPhase.Completed {
-		fmt.Println("  • Type '/smaqit.development' in GitHub Copilot chat to start Develop phase")
+		fmt.Println("  • Type '/smaqit.development' in GitHub Copilot chat to run Development implementation step")
 	} else if !deployPhase.Completed {
-		fmt.Println("  • Type '/smaqit.deployment' in GitHub Copilot chat to start Deploy phase")
+		fmt.Println("  • Type '/smaqit.deployment' in GitHub Copilot chat to run Deployment implementation step")
 	} else if !validatePhase.Completed {
-		fmt.Println("  • Type '/smaqit.validation' in GitHub Copilot chat to start Validate phase")
+		fmt.Println("  • Type '/smaqit.validation' in GitHub Copilot chat to run Validation implementation step")
 	} else {
 		fmt.Println("  • All phases complete. Run '/smaqit.orchestrate' to iterate or extend.")
 	}

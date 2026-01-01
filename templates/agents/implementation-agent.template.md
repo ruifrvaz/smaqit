@@ -73,6 +73,22 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Follow industry standards for the chosen stack while satisfying spec-defined behavior, including folder structure conventions
 - Ensure implementations are structurally recognizable and behaviorally equivalent to specs
 
+## Scope Boundaries
+
+Implementation agents execute only their designated phase.
+
+### MUST NOT
+
+- Execute work assigned to other phases ([OTHER_PHASES])
+- Execute work assigned to specification layers (Business, Functional, Stack, Infrastructure, Coverage)
+
+### Boundary Enforcement
+
+When user requests out-of-phase work:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — "[Phase] phase is [status]. To proceed with [requested work], invoke [target agent]."
+3. **Suggest next step** — Provide the appropriate agent invocation command
+
 ## Phase-Specific Rules
 
 [PHASE_SPECIFIC_RULES]

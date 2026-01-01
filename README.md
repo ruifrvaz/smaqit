@@ -231,13 +231,36 @@ make uninstall
 make help
 ```
 
-## Testing
+### Testing
 
 **Test location:** `installer/test/` (standardized test directory)
 
 **Automated end-to-end testing:** See `.github/agents/smaqit.user-testing.agent.md`
 
 **Testing philosophy and manual workflows:** See `docs/wiki/workflows/testing-smaqit.md`
+
+### Releases
+
+1. **Generate changelog for new version:**
+   ```
+   /changelog.update
+   ```
+   Fill in target version (e.g., `v0.4.0`). Agent reads `docs/history/` since last release and creates a dated CHANGELOG section.
+
+2. **Review, commit, and tag:**
+   ```bash
+   git add CHANGELOG.md
+   git commit -m "Release v0.4.0"
+   git tag -a v0.4.0 -m "Release v0.4.0"
+   git push origin main v0.4.0
+   ```
+
+3. **GitHub Actions automatically:**
+   - Builds binaries for all platforms
+   - Extracts release notes from CHANGELOG.md
+   - Creates GitHub release with binaries
+
+**Optional:** To preview changes before release, run `/changelog.update` without version to update the `[Unreleased]` section only.
 
 ## License
 

@@ -20,9 +20,10 @@
 ### Options Under Consideration
 
 **Option 1: Phase prompts orchestrate entire phases (current)**
-- `/smaqit.develop` → Development agent → orchestrates Business → Functional → Stack → builds
-- `/smaqit.deploy` → Deployment agent → orchestrates Infrastructure → deploys
-- `/smaqit.validate` → Validation agent → orchestrates Coverage → tests
+- `/smaqit.development` → Development agent → orchestrates Business → Functional → Stack → builds
+- `/smaqit.deployment` → Deployment agent → orchestrates Infrastructure → deploys
+- `/smaqit.validation` → Validation agent → orchestrates Coverage → tests
+**(Note: Final names use full names for consistency with agent names)**
 
 **Option 2: Implementation prompts trigger implementation agents only**
 - `/smaqit.development` → Development agent (reads Business + Functional + Stack specs, builds)
@@ -136,7 +137,7 @@ Current state:
 **Minimal structure:**
 ```markdown
 ---
-name: smaqit.develop
+name: smaqit.development
 description: Orchestrate development phase
 agent: smaqit.development
 ---
@@ -150,6 +151,7 @@ agent: smaqit.development
 
 [User's orchestration preferences here, if any]
 ```
+**(Note: Final prompt names use full names: development, deployment, validation)**
 
 **Not this:**
 ```markdown

@@ -86,6 +86,22 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Ensure implementations are structurally recognizable and behaviorally equivalent to specs
 - Verify deployment topology matches infrastructure specs
 
+## Scope Boundaries
+
+Deployment agent executes only Deploy phase implementation work.
+
+### MUST NOT
+
+- Execute work assigned to Development or Validate phases
+- Execute work assigned to specification layers (Business, Functional, Stack, Infrastructure, Coverage)
+
+### Boundary Enforcement
+
+When user requests out-of-phase work:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — "Deploy phase is [status]. To proceed with [requested work], invoke the appropriate agent."
+3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.validation` for validation, `/smaqit.development` for code changes)
+
 ## State Tracking
 
 Deployment agent MUST track phase completion using `state.json` in the project root.

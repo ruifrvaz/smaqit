@@ -43,7 +43,7 @@ Implement the smaqit CLI executable for scaffolding, status checking, validation
   ```
 - [x] Handle existing directories: error if `.smaqit/` already exists, prompt user to uninstall first
 - [x] Embed smaqit version in `.smaqit/VERSION` file for compatibility checking
-- [x] Print success message with next steps (run `/smaqit.develop` in Copilot chat)
+- [x] Print success message with next steps (run `/smaqit.development` in Copilot chat) **(Note: Task 029 renamed prompt)**
 - [x] Accept optional directory parameter: `smaqit init [dir]` (added in session 009)
 
 ### Status Command
@@ -82,15 +82,16 @@ Implement the smaqit CLI executable for scaffolding, status checking, validation
 - [x] List CLI commands with descriptions
 - [x] List Copilot prompts with `/smaqit.*` prefix:
   ```
-  /smaqit.develop          Run develop phase
-  /smaqit.deploy           Run deploy phase
-  /smaqit.validate         Run validate phase
+  /smaqit.development      Run develop phase
+  /smaqit.deployment       Run deploy phase
+  /smaqit.validation       Run validate phase
   /smaqit.business         Create business layer specifications
   /smaqit.functional       Create functional layer specifications
   /smaqit.stack            Create stack layer specifications
   /smaqit.infrastructure   Create infrastructure layer specifications
   /smaqit.coverage         Create coverage layer specifications
   ```
+  **(Note: Task 029 renamed phase prompts for consistency with agent names)**
 - [x] Include usage example and documentation link
 
 ### Uninstall Command

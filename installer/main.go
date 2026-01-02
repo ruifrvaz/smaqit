@@ -125,7 +125,7 @@ func main() {
 		cmdHelp()
 	case "uninstall":
 		cmdUninstall()
-	case "version":
+	case "version", "--version", "-v":
 		fmt.Printf("smaqit %s\n", Version)
 	default:
 		printUsage()

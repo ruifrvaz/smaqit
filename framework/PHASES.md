@@ -8,9 +8,9 @@ smaqit operates in three sequential phases:
 
 | Phase | Name | Specification Artifacts | Implementation Artifacts |
 |-------|------|------------------------|-------------------------|
-| Phase 1 | Develop | Business, Functional, Stack | Code, README, Development report |
+| Phase 1 | Develop | Business, Functional, Stack | Code, README, Development report in `.smaqit/reports/` |
 | Phase 2 | Deploy | Infrastructure | Running system |
-| Phase 3 | Validate | Coverage | Validation report |
+| Phase 3 | Validate | Coverage | Validation report in `.smaqit/reports/` |
 
 Each phase:
 1. **Specifies** — One or more specification agents produce layer specs
@@ -76,7 +76,7 @@ If any prompt is empty or insufficient, agent halts and guides user: "Please fil
 - [ ] Application runs successfully in isolated environment
 - [ ] Behavior matches spec acceptance criteria
 - [ ] README includes build, test, and run instructions
-- [ ] Development report documents build/test/run results
+- [ ] Development report written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md`
 - [ ] Phase completion written to `.smaqit/state.json` with timestamp
 
 ---
@@ -206,7 +206,7 @@ If prompt has content, agents interpret free-style requirements and request clar
 
 **Environment:** Same target environment as Deploy phase
 
-**Output:** Validation report containing:
+**Output:** Validation report in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` containing:
 - Spec coverage percentage
 - Pass/fail status per requirement
 - Unverified requirements with justification
@@ -223,7 +223,7 @@ If prompt has content, agents interpret free-style requirements and request clar
 **Completion Criteria:**
 - [ ] Coverage specs produced with all testable criteria mapped
 - [ ] Tests executed against deployed system
-- [ ] Validation report generated
+- [ ] Validation report written to `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`
 - [ ] Spec coverage percentage calculated
 - [ ] Untestable criteria documented with justification
 - [ ] Phase completion written to `.smaqit/state.json` with timestamp

@@ -9,7 +9,7 @@ smaqit operates in three sequential phases:
 | Phase | Name | Specification Artifacts | Implementation Artifacts |
 |-------|------|------------------------|-------------------------|
 | Phase 1 | Develop | Business, Functional, Stack | Code, README, Development report in `.smaqit/reports/` |
-| Phase 2 | Deploy | Infrastructure | Running system |
+| Phase 2 | Deploy | Infrastructure | Running system, Deployment report in `.smaqit/reports/` |
 | Phase 3 | Validate | Coverage | Validation report in `.smaqit/reports/` |
 
 Each phase:
@@ -164,6 +164,7 @@ See [ARTIFACTS](ARTIFACTS.md) for the Isolation Principle.
 - [ ] Deployment executed successfully
 - [ ] Health checks pass
 - [ ] System accessible at expected endpoints
+- [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
 - [ ] Phase completion written to `.smaqit/state.json` with timestamp
 
 ---

@@ -304,6 +304,7 @@ public async Task<AuthResult> Login(LoginRequest request)
 **Deploy Phase → Infrastructure:**
 - Infrastructure code (Terraform, etc.)
 - Deployment manifests, environment configs
+- Deployment report in `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md` with health status and endpoints
 - Phase completion in `.smaqit/state.json`
 - MUST NOT hardcode secrets (Isolation Principle)
 

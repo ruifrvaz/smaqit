@@ -24,9 +24,9 @@ Implemented two major features: (1) Copilot prompt files enabling users to invok
 - `prompts/smaqit.stack.prompt.md` - Stack specification prompt
 - `prompts/smaqit.infrastructure.prompt.md` - Infrastructure specification prompt
 - `prompts/smaqit.coverage.prompt.md` - Coverage specification prompt
-- `prompts/smaqit.develop.prompt.md` - Development phase orchestration
-- `prompts/smaqit.deploy.prompt.md` - Deployment phase orchestration
-- `prompts/smaqit.validate.prompt.md` - Validation phase orchestration
+- `prompts/smaqit.develop.prompt.md` - Development phase orchestration (renamed to .development in Task 029)
+- `prompts/smaqit.deploy.prompt.md` - Deployment phase orchestration (renamed to .deployment in Task 029)
+- `prompts/smaqit.validate.prompt.md` - Validation phase orchestration (renamed to .validation in Task 029)
 
 **Integration:**
 - Modified `installer/main.go` to embed and copy prompts to `.github/prompts/` in user projects

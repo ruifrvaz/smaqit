@@ -66,6 +66,22 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
 
+## Scope Boundaries
+
+Functional agent executes only Functional layer specification work.
+
+### MUST NOT
+
+- Execute work assigned to Development, Deploy, or Validate phases
+- Execute work assigned to Business, Stack, Infrastructure, or Coverage specification layers
+
+### Boundary Enforcement
+
+When user requests implementation or other layer specs:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — "Functional specification is [status]. To proceed with [requested work], invoke the appropriate agent."
+3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.stack` for stack specs, `/smaqit.development` for implementation)
+
 ## Layer-Specific Rules
 
 These rules are specific to the Functional layer and must be followed when producing specifications.
@@ -112,10 +128,10 @@ All acceptance criteria must use this format for traceability:
 
 **Components:**
 - `FUN` — Three-letter layer code for Functional
-- `[CONCEPT]` — Descriptive concept name (e.g., AUTH, USER-FLOW, API-ORDER)
+- `[CONCEPT]` — Descriptive concept name (uppercase with hyphens)
 - `[NNN]` — Sequential number with leading zeros (001, 002, 015)
 
-**Example:** `FUN-AUTH-001: JWT token expires after 24 hours`
+**Format:** `FUN-[CONCEPT]-[NNN]: [Behavior or data model requirement]`
 
 **Rules:**
 - IDs must be unique within the project
@@ -171,12 +187,12 @@ Specs reference adjacent layers for coherence and traceability. Context referenc
 
 ### Implements
 <!-- Feature spec: direct 1:1 implementation -->
-- [BUS-LOGIN](../business/login.md) — Implements login use case
+- [BUS-[CONCEPT]-NNN](../business/[filename].md) — Implements [use case description]
 
 ### Enables  
 <!-- Foundation spec: serves multiple business cases -->
-- [BUS-CHECKOUT](../business/checkout.md) — Requires authenticated session
-- [BUS-PROFILE](../business/profile.md) — Requires authenticated session
+- [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
+- [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
 ```
 
 **Foundation specs without mapping:**
@@ -219,6 +235,14 @@ Before declaring completion, verify:
 - [ ] Scope boundaries explicitly stated
 - [ ] No implementation details leaked into spec
 - [ ] Requirement IDs follow format: `FUN-[CONCEPT]-[NNN]`
+
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Next Step:** Create stack specifications with `/smaqit.stack`
+
+The Stack layer selects and justifies technologies (languages, frameworks, libraries) needed to implement the functional specifications.
 
 ## Failure Handling
 

@@ -70,6 +70,22 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
 
+## Scope Boundaries
+
+Coverage agent executes only Coverage layer specification work.
+
+### MUST NOT
+
+- Execute work assigned to Development, Deploy, or Validate phases
+- Execute work assigned to Business, Functional, Stack, or Infrastructure specification layers
+
+### Boundary Enforcement
+
+When user requests implementation or other layer specs:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — "Coverage specification is [status]. To proceed with [requested work], invoke the appropriate agent."
+3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.validation` for validation execution)
+
 ## Layer-Specific Rules
 
 These rules are specific to the Coverage layer and must be followed when producing specifications.
@@ -99,10 +115,10 @@ All acceptance criteria must use this format for traceability:
 
 **Components:**
 - `COV` — Three-letter layer code for Coverage
-- `[CONCEPT]` — Descriptive concept name (e.g., LOGIN, AUTH, API)
+- `[CONCEPT]` — Descriptive concept name (uppercase with hyphens)
 - `[NNN]` — Sequential number with leading zeros (001, 002, 015)
 
-**Example:** `COV-LOGIN-001: Test case for BUS-LOGIN-001`
+**Format:** `COV-[CONCEPT]-[NNN]: Test case for [upstream requirement ID]`
 
 **Rules:**
 - IDs must be unique within the project
@@ -206,6 +222,14 @@ Before declaring completion, verify:
 - [ ] No implementation details leaked into spec
 - [ ] Requirement IDs follow format: `COV-[CONCEPT]-[NNN]`
 - [ ] Coverage report shows % of upstream requirements with corresponding tests
+
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Next Step:** Run the Validation phase with `/smaqit.validation`
+
+This completes Phase 3 (Validate) by executing your coverage tests against the deployed system and producing a validation report showing which requirements are verified.
 
 ## Failure Handling
 

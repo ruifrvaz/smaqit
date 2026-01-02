@@ -2,13 +2,39 @@
 
 ## What is it?
 
-A Spec-driven agent orchestration kit where AI agents write specifications, then implement from those specs.
+A Spec-driven agent orchestration kit where AI agents write specifications, then implement from those specs. **Work in phases**—each phase generates specs and implements them together for fast feedback.
+
+## How it Works
+
+**Phase-First Workflow (Recommended):**
+```
+Phase 1 (Develop):  Business → Functional → Stack specs → Build → Working app
+Phase 2 (Deploy):   Infrastructure spec → Deploy → Running system
+Phase 3 (Validate): Coverage spec → Test → Validation report
+```
+
+**Spec-First Workflow (Alternative):**
+```
+Generate all specs: Business → Functional → Stack → Infrastructure → Coverage
+Execute phases:     Develop → Deploy → Validate
+```
+
+Phase-first gives you faster feedback. Spec-first works for upfront design requirements.
 
 ## Getting Started
 
 ### Installation
 
-**Download the latest release for your platform:**
+**Quick install (recommended):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit/main/install.sh | bash
+```
+
+This installs the latest release to `~/.local/bin/smaqit`.
+
+<details>
+<summary>Manual download</summary>
 
 Visit [Releases](https://github.com/ruifrvaz/smaqit/releases) and download the appropriate binary:
 
@@ -20,28 +46,46 @@ Visit [Releases](https://github.com/ruifrvaz/smaqit/releases) and download the a
 **Make it executable (Linux/macOS):**
 ```bash
 chmod +x smaqit_*
-mv smaqit_* /usr/local/bin/smaqit
+mv smaqit_* ~/.local/bin/smaqit
 ```
 
 **Or add to PATH (Windows):**
 ```powershell
-# Move to a directory in your PATH
 move smaqit_windows_amd64.exe C:\Windows\smaqit.exe
 ```
+</details>
 
 ### Usage
 
+**Phase-First Workflow (Recommended):**
 ```bash
 # Initialize in your project
 smaqit init
 
-# Start developing
+# Phase 1: Develop
+# Generate specs, then build
 smaqit develop
 
-# Deploy
+# Phase 2: Deploy
+# Generate infrastructure spec, then deploy
 smaqit deploy
 
-# Validate
+# Phase 3: Validate
+# Generate coverage spec, then test
+smaqit validate
+```
+
+**Spec-First Workflow (Alternative):**
+```bash
+# Initialize
+smaqit init
+
+# Generate all specifications first
+# (invoke agents via GitHub Copilot chat)
+
+# Then execute phases
+smaqit develop
+smaqit deploy
 smaqit validate
 ```
 
@@ -67,9 +111,13 @@ smaqit validate
 
 ## Phases
 
-1. **Develop** — Write specs (business → functional → stack), then build
-2. **Deploy** — Write infrastructure spec, then deploy
-3. **Validate** — Write coverage spec, then test
+**Phases are the primary workflow unit.** Each phase includes specifications and implementation together.
+
+1. **Develop** — Generate specs (business → functional → stack), then build → working application
+2. **Deploy** — Generate infrastructure spec, then deploy → running system
+3. **Validate** — Generate coverage spec, then test → validation report
+
+**Phase-first is recommended** for faster feedback. Complete each phase before moving to the next. Alternatively, you can generate all specs first (spec-first), but implementation still happens in phases.
 
 ## Team Alignment
 
@@ -148,6 +196,8 @@ These files explain WHY the framework is designed this way:
 - `patterns/` — Common usage patterns
 - `workflows/` — Step-by-step processes
 
+**See [User vs Agent Documentation](docs/wiki/concepts/user-vs-agent-documentation.md) for detailed guidance on this distinction.**
+
 ---
 
 ## Contributors
@@ -190,13 +240,36 @@ make uninstall
 make help
 ```
 
-## Testing
+### Testing
 
 **Test location:** `installer/test/` (standardized test directory)
 
 **Automated end-to-end testing:** See `.github/agents/smaqit.user-testing.agent.md`
 
 **Testing philosophy and manual workflows:** See `docs/wiki/workflows/testing-smaqit.md`
+
+### Releases
+
+1. **Generate changelog for new version:**
+   ```
+   /changelog.update
+   ```
+   Fill in target version (e.g., `v0.4.0`). Agent reads `docs/history/` since last release and creates a dated CHANGELOG section.
+
+2. **Review, commit, and tag:**
+   ```bash
+   git add CHANGELOG.md
+   git commit -m "Release v0.4.0"
+   git tag -a v0.4.0 -m "Release v0.4.0"
+   git push origin main v0.4.0
+   ```
+
+3. **GitHub Actions automatically:**
+   - Builds binaries for all platforms
+   - Extracts release notes from CHANGELOG.md
+   - Creates GitHub release with binaries
+
+**Optional:** To preview changes before release, run `/changelog.update` without version to update the `[Unreleased]` section only.
 
 ## License
 

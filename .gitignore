@@ -9,6 +9,9 @@ installer/dist/
 # Test artifacts
 installer/test/
 
+# Releases
+releases/
+
 # Embedded copies (installer needs local copies for go:embed)
 installer/framework/
 installer/templates/

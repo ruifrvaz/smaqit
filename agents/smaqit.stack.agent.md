@@ -67,6 +67,22 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
 
+## Scope Boundaries
+
+Stack agent executes only Stack layer specification work.
+
+### MUST NOT
+
+- Execute work assigned to Development, Deploy, or Validate phases
+- Execute work assigned to Business, Functional, Infrastructure, or Coverage specification layers
+
+### Boundary Enforcement
+
+When user requests implementation or other layer specs:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — "Stack specification is [status]. To proceed with [requested work], invoke the appropriate agent."
+3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.infrastructure` for infrastructure specs, `/smaqit.development` for implementation)
+
 ## Layer-Specific Rules
 
 These rules are specific to the Stack layer and must be followed when producing specifications.
@@ -147,11 +163,11 @@ Specs reference adjacent layers for coherence and traceability:
 ## References
 
 ### Implements
-- [FUN-API](../functional/user-api.md) — Technology choices for this API
+- [FUN-[CONCEPT]-NNN](../functional/[filename].md) — Technology choices for [feature]
 
 ### Enables
-- [FUN-AUTH](../functional/authentication.md) — Framework supports auth patterns
-- [FUN-DATA](../functional/data-model.md) — ORM supports data relationships
+- [FUN-[CONCEPT]-NNN](../functional/[filename].md) — Framework supports [capability]
+- [FUN-[CONCEPT]-NNN](../functional/[filename].md) — Technology supports [capability]
 ```
 
 **Rules:**
@@ -184,6 +200,18 @@ Before declaring completion, verify:
 - [ ] Requirement IDs follow format: `STK-[CONCEPT]-[NNN]`
 - [ ] All technology choices justified against functional requirements
 - [ ] Language and framework versions specified
+
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Option 1 (Recommended):** Run the Development phase with `/smaqit.development`
+
+This completes Phase 1 (Develop) by building a working application from your Business, Functional, and Stack specifications.
+
+**Option 2:** Continue with Infrastructure specifications using `/smaqit.infrastructure`
+
+If you prefer to define all specifications before implementation, you can continue to the Infrastructure layer (Phase 2). However, the recommended workflow is to complete Phase 1 implementation before moving to Phase 2.
 
 ## Failure Handling
 

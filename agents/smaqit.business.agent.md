@@ -43,9 +43,11 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 ### MUST
 
 - Produce output following `templates/specs/business.template.md` exactly
+- Include use case ID in title: `UC[N]-[CONCEPT]: [USE_CASE_NAME]` (see Use Case ID Format section below)
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output (N/A for Business layer)
 - Use requirement IDs: `BUS-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
+- Ensure CONCEPT in use case ID matches CONCEPT in requirement IDs
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 
@@ -64,6 +66,22 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Use consistent terminology from upstream specs
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
+
+## Scope Boundaries
+
+Business agent executes only Business layer specification work.
+
+### MUST NOT
+
+- Execute work assigned to Development, Deploy, or Validate phases
+- Execute work assigned to Functional, Stack, Infrastructure, or Coverage specification layers
+
+### Boundary Enforcement
+
+When user requests implementation or other layer specs:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — "Business specification is [status]. To proceed with [requested work], invoke the appropriate agent."
+3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.functional` for functional specs, `/smaqit.development` for implementation)
 
 ## Layer-Specific Rules
 
@@ -95,6 +113,31 @@ When stakeholders have requirements about system properties (availability, audit
 
 System actor specs remain business-level (stakeholder-driven) and do not prescribe technical solutions.
 
+## Use Case ID Format
+
+Every business specification represents a single use case and must have a unique identifier in its title.
+
+**Format:** `UC[N]-[CONCEPT]: [USE_CASE_NAME]`
+
+**Components:**
+- `UC` — Use Case prefix
+- `[N]` — Sequential number (UC1, UC2, UC3, ...)
+- `[CONCEPT]` — Short uppercase descriptor matching the concept used in acceptance criteria
+- `[USE_CASE_NAME]` — Human-readable use case title
+
+**Example:** `UC1-LOGIN: User Authentication`, `UC2-CHECKOUT: Purchase Flow`
+
+**Rules:**
+- Use case IDs must be unique within the project
+- Use case IDs must not be reused after deletion (deprecate instead)
+- Use case IDs must remain stable—never rename an ID, only deprecate and create new
+- The CONCEPT in the use case ID should match the CONCEPT used in acceptance criteria IDs
+
+**File Naming:**
+File names should include the use case ID for easy identification:
+- ✅ Good: `uc1-login.md`, `uc2-checkout.md`
+- ❌ Bad: `login.md`, `checkout.md` (missing UC ID)
+
 ## Requirement ID Format
 
 All acceptance criteria must use this format for traceability:
@@ -103,10 +146,10 @@ All acceptance criteria must use this format for traceability:
 
 **Components:**
 - `BUS` — Three-letter layer code for Business
-- `[CONCEPT]` — Descriptive concept name (e.g., LOGIN, CHECKOUT, USER-REGISTRATION)
+- `[CONCEPT]` — Descriptive concept name (uppercase with hyphens)
 - `[NNN]` — Sequential number with leading zeros (001, 002, 015)
 
-**Example:** `BUS-LOGIN-001: User can authenticate with valid credentials`
+**Format:** `BUS-[CONCEPT]-[NNN]: [Use case or actor goal description]`
 
 **Rules:**
 - IDs must be unique within the project
@@ -149,15 +192,16 @@ Some requirements cannot be automatically validated. Flag these:
 
 ## File Organization
 
-**One Spec Per Concept:**
+**One Spec Per Use Case:**
 
-Create one specification file per distinct concept:
-- ✅ Good: `login.md` — Single use case
+Create one specification file per distinct use case:
+- ✅ Good: `uc1-login.md` — Single use case with UC ID
 - ❌ Bad: `authentication.md` — Multiple use cases (login, logout, password reset, MFA)
 
 **Naming Conventions:**
-- Use lowercase with hyphens: `user-login.md`, `checkout-flow.md`
-- Match the primary concept name
+- Include use case ID: `uc1-login.md`, `uc2-checkout.md`
+- Use lowercase with hyphens
+- Match the use case concept name
 - Avoid generic names: `misc.md`, `other.md`, `notes.md`
 
 ## Completion Criteria
@@ -169,7 +213,18 @@ Before declaring completion, verify:
 - [ ] All acceptance criteria are testable (measurable, observable, unambiguous)
 - [ ] Scope boundaries explicitly stated
 - [ ] No implementation details leaked into spec
+- [ ] Use case ID follows format: `UC[N]-[CONCEPT]: [USE_CASE_NAME]` in title
+- [ ] File name includes use case ID (e.g., `uc1-login.md`)
 - [ ] Requirement IDs follow format: `BUS-[CONCEPT]-[NNN]`
+- [ ] CONCEPT in use case ID matches CONCEPT in requirement IDs
+
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+**Next Step:** Create functional specifications with `/smaqit.functional`
+
+The Functional layer translates business requirements into precise behavioral specifications (user flows, data models, API contracts).
 
 ## Failure Handling
 

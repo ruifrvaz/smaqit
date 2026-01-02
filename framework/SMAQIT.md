@@ -4,6 +4,12 @@ Spec-driven agent orchestration where specifications are split into layers and p
 
 ## Core Principles
 
+### Phases as Workflow Units
+
+**Each phase includes specifications and implementation together.**
+
+Phases are the primary workflow units in smaqit. Users can generate all specifications first, but the recommended approach is to complete each phase (specifications + implementation) before moving to the next. This provides faster feedback and validates the system incrementally.
+
 ### Specs Before Code
 
 **Never write implementation without a corresponding specification.**

@@ -31,13 +31,13 @@ Every acceptance criterion MUST have a unique identifier for traceability.
 
 **Examples:**
 
-| Layer | Requirement ID | Description |
-|-------|----------------|-------------|
-| Business | `BUS-LOGIN-001` | User can authenticate with valid credentials |
-| Functional | `FUN-AUTH-TOKEN-001` | JWT token expires after 24 hours |
-| Stack | `STK-FRAMEWORK-001` | Use React 18+ for frontend |
-| Infrastructure | `INF-SCALING-001` | Auto-scale at 80% CPU threshold |
-| Coverage | `COV-LOGIN-001` | Test case for BUS-LOGIN-001 |
+| Layer | Requirement ID Format | Description Pattern |
+|-------|----------------------|---------------------|
+| Business | `BUS-[CONCEPT]-001` | [Use case or actor goal description] |
+| Functional | `FUN-[CONCEPT]-001` | [Behavior or data model requirement] |
+| Stack | `STK-[CONCEPT]-001` | [Technology choice or tool requirement] |
+| Infrastructure | `INF-[CONCEPT]-001` | [Deployment or scaling requirement] |
+| Coverage | `COV-[CONCEPT]-001` | Test case for [upstream requirement ID] |
 
 **Rules:**
 - IDs MUST be unique within the project
@@ -126,12 +126,12 @@ Specs reference adjacent layers for coherence and traceability. Context referenc
 
 ### Implements
 <!-- Feature spec: direct 1:1 implementation -->
-- [BUS-LOGIN](../business/login.md) — Implements login use case
+- [BUS-[CONCEPT]-NNN](../business/[filename].md) — Implements [use case description]
 
 ### Enables  
 <!-- Foundation spec: serves multiple business cases -->
-- [BUS-CHECKOUT](../business/checkout.md) — Requires authenticated session
-- [BUS-PROFILE](../business/profile.md) — Requires authenticated session
+- [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
+- [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
 ```
 
 **Foundation specs without mapping:**
@@ -160,7 +160,7 @@ For complex projects, maintain traceability across layers:
 
 | Business | Functional | Stack | Infrastructure | Coverage |
 |----------|------------|-------|----------------|----------|
-| BUS-LOGIN-001 | FUN-AUTH-001 | STK-JWT-001 | — | COV-LOGIN-001 |
+| BUS-[CONCEPT]-001 | FUN-[CONCEPT]-001 | STK-[CONCEPT]-001 | — | COV-[CONCEPT]-001 |
 
 ### Coverage Translation
 
@@ -170,17 +170,17 @@ The Coverage layer translates acceptance criteria into executable test definitio
 
 Source (Functional spec):
 ```markdown
-- [ ] FUN-AUTH-001: User receives JWT token upon successful login
+- [ ] FUN-[CONCEPT]-001: [Behavior description]
 ```
 
 Coverage translation:
 ```gherkin
-# COV-AUTH-001: Maps to FUN-AUTH-001
-Feature: Authentication Token
-  Scenario: Successful login returns JWT token
-    Given a registered user with valid credentials
-    When the user submits login request
-    Then the response contains a JWT token
+# COV-[CONCEPT]-001: Maps to FUN-[CONCEPT]-001
+Feature: [Feature Name]
+  Scenario: [Scenario description]
+    Given [precondition]
+    When [action]
+    Then [expected outcome]
 ```
 
 **Coverage Rules:**
@@ -273,10 +273,10 @@ Implementation code SHOULD include references to specifications:
 
 ```csharp
 /// <summary>
-/// Authenticates user and returns JWT token.
-/// Implements: FUN-AUTH-001, FUN-AUTH-002
+/// [Method description].
+/// Implements: [REQ-ID-001], [REQ-ID-002]
 /// </summary>
-public async Task<AuthResult> Login(LoginRequest request)
+public async Task<Result> MethodName(Request request)
 ```
 
 **Rules:**
@@ -350,12 +350,12 @@ Agents use atomic writes (temp file + rename) to prevent corruption. The `smaqit
 ## Coverage Gaps
 | Requirement | Reason |
 |-------------|--------|
-| BUS-UX-002 | Untestable: subjective criterion |
+| [REQ-ID] | Untestable: [reason] |
 
 ## Failures
 | Test | Requirement | Result | Details |
 |------|-------------|--------|---------|
-| COV-AUTH-005 | FUN-AUTH-003 | FAIL | Token expiration is 48h, spec requires 24h |
+| [TEST-ID] | [REQ-ID] | FAIL | [Failure description] |
 ```
 
 ### Implementation Completeness

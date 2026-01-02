@@ -28,11 +28,11 @@ Specs reference upstream specs explicitly:
 ## References
 
 ### Implements
-- [BUS-LOGIN](../business/login.md) — Implements login use case
+- [BUS-LOGIN](../business/uc1-login.md) — Implements login use case
 
 ### Enables
-- [BUS-CHECKOUT](../business/checkout.md) — Requires authenticated session
-- [BUS-PROFILE](../business/profile.md) — Requires authenticated session
+- [BUS-CHECKOUT](../business/uc2-checkout.md) — Requires authenticated session
+- [BUS-PROFILE](../business/uc3-profile.md) — Requires authenticated session
 ```
 
 This creates an explicit chain: Business → Functional → Stack → Infrastructure → Coverage
@@ -43,7 +43,7 @@ Coverage specs create explicit mappings:
 
 | Requirement ID | Source Spec | Test Case ID | Expected Outcome |
 |----------------|-------------|--------------|------------------|
-| BUS-LOGIN-001 | business/login.md | COV-LOGIN-001 | User can authenticate |
+| BUS-LOGIN-001 | business/uc1-login.md | COV-LOGIN-001 | User can authenticate |
 | FUN-AUTH-TOKEN-001 | functional/auth.md | COV-TOKEN-001 | Token expires after 24h |
 
 ## Why Traceability Matters

@@ -100,25 +100,84 @@ When performing work:
 
 ## Content Guidelines
 
+### Agent-Facing Instructions vs User-Facing Documentation
+
+**Agent-facing files** (framework/, templates/, agents/, specs/) contain ONLY execution instructions:
+
+**Include in agent-facing files:**
+- What to do (directives, rules, structure)
+- How to structure output (templates, formats)
+- When to execute (conditions, triggers)
+- Where to find input and write output (file paths)
+- Validation criteria (MUST/MUST NOT/SHOULD rules)
+
+**Exclude from agent-facing files:**
+- Why decisions were made (rationale, trade-offs)
+- Historical context (past attempts, evolution)
+- Human identities (stakeholder names, team members)
+- Business context (delivery dates, politics, budgets)
+- Extended examples showing alternatives
+- Design philosophy or thought process
+
+**User-facing files** (docs/wiki/, README.md, docs/tasks/, docs/history/) contain context and rationale:
+- Why the framework is designed this way
+- Trade-offs between alternatives
+- Examples with multiple scenarios
+- Historical decisions and evolution
+- Business context when relevant
+- Design rationale and philosophy
+
+**Key principle:** If content helps agents execute tasks, it's an instruction. If content helps humans understand decisions, it's documentation. Never mix these in the same file.
+
 ### When documenting framework concepts
 
-### Do:
-
+**Do:**
 - Prefer abstract categories over specific examples
-- Describe the purpose or kind of information needed
-- Use generic placeholders when examples are necessary
-- Keep framework files (`framework/`), templates (`templates/`), and agents (`agents/`) as pure instructions
-- Move rationale, examples, and "why" explanations to wiki (`docs/wiki/`)
-- Write execution instructions in framework files, context in wiki files
+- Use generic placeholders (`[LAYER]`, `[CONCEPT]`) when examples needed
+- Write clear directives (MUST/MUST NOT/SHOULD)
+- State what to validate before completion
+- Keep instructions concise and actionable
 
-### Don't:
+**Don't:**
+- Explain why rules exist (save for wiki)
+- Include specific technologies, vendors, or architectures
+- Add historical context or design evolution
+- Reference past projects or prior art
+- Put extended explanations in templates/agents
 
-- List specific technologies, vendors, or architectures
-- Include examples that assume cloud/containers/web apps
-- Prescribe solutions that may not fit all project types
-- Add meta-rationale or "why" explanations to framework files
-- Include historical context or design evolution in framework files
-- Put examples or extended explanations in template/agent files
+### Example Usage Rules
+
+**Context:** Framework files, templates, and agents must use generic placeholders and abstract categories to maximize reusability. Specific examples can be misinterpreted as actual requirements or prescribed solutions.
+
+**Prohibited in framework/, templates/, agents/:**
+
+| Category | Prohibited Examples | Use Instead |
+|----------|-------------------|-------------|
+| **Requirement IDs** | `BUS-LOGIN-001`, `FUN-AUTH-001`, `STK-JWT-001` | `[LAYER_PREFIX]-[CONCEPT]-[NNN]`, `[ID]` |
+| **Technologies** | JWT, React, AWS, Docker, PostgreSQL | `[Technology]`, `[Framework]`, `[Database]` |
+| **Features/Domains** | login, authentication, checkout, payment | `[Feature name]`, `[Use case]`, `[Concept]` |
+| **Architecture** | microservices, REST API, message queue | `[Pattern]`, `[Architecture style]` |
+| **Data/Entities** | User, Order, Product, Customer | `[Entity]`, `[Data model]` |
+
+**Allowed examples:**
+
+| Location | Context | Format | Example |
+|----------|---------|--------|---------|
+| **Prompt files** | User guidance only | HTML comments | `<!-- Example: "Mario Fan - Users who love Nintendo" -->` |
+| **Wiki docs** | Human explanation | Plain text | "For instance, BUS-LOGIN-001 might represent..." |
+| **History files** | Session documentation | Plain text | "Cleaned specific examples like BUS-LOGIN-001" |
+| **Test cases** | Demonstration scenarios | Plain text | `docs/test-cases/mario-hello.md` |
+
+**Validation checklist:**
+
+Before committing changes to framework/, templates/, or agents/, verify:
+- [ ] No specific requirement IDs (BUS-LOGIN, FUN-AUTH, etc.)
+- [ ] No specific technology names (JWT, React, PostgreSQL, etc.)
+- [ ] No specific business domains (login, checkout, authentication, etc.)
+- [ ] All examples use generic placeholders in `[BRACKETS]`
+- [ ] HTML comment examples in prompts are for guidance only (agents ignore these)
+
+**Exception:** When demonstrating format structure (like in ARTIFACTS.md showing ID format), examples must be wrapped in clear context: "Format: `[PREFIX]-[CONCEPT]-[NNN]`" without presenting as actual requirements.
 
 ### When Editing Specification Templates
 

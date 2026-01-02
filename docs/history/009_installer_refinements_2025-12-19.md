@@ -85,7 +85,7 @@ user-project/
 ### Prompt Command Naming
 
 **Added smaqit. prefix to all prompt commands:**
-- `/develop` → `/smaqit.develop`
+- `/develop` → `/smaqit.development` (Note: Later renamed in Task 029 for consistency)
 - `/business` → `/smaqit.business`
 - Etc. for all phase and layer prompts
 
@@ -95,7 +95,7 @@ user-project/
 - Reduces collision risk in multi-tool projects
 
 **Updated:**
-- Task 001 (prompt file names: `smaqit.develop.prompt.md`)
+- Task 001 (prompt file names: initially `smaqit.develop.prompt.md`, renamed in Task 029)
 - Task 023 (installer CLI references)
 - installer/main.go (help output, init message, status next steps)
 

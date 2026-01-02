@@ -56,6 +56,22 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
 
+## Scope Boundaries
+
+Specification agents execute only their designated layer.
+
+### MUST NOT
+
+- Execute work assigned to Development, Deploy, or Validate phases
+- Execute work assigned to other specification layers ([OTHER_LAYERS])
+
+### Boundary Enforcement
+
+When user requests implementation or other layer specs:
+1. **Stop immediately** — Do not plan, create todos, or execute
+2. **Respond clearly** — "[Layer] specification is [status]. To proceed with [requested work], invoke [target agent]."
+3. **Suggest next step** — Provide the appropriate agent invocation command
+
 ## Layer-Specific Rules
 
 These rules are specific to the [LAYER_NAME] layer and must be followed when producing specifications.
@@ -149,6 +165,12 @@ Before declaring completion, verify:
 - [ ] Scope boundaries explicitly stated
 - [ ] No implementation details leaked into spec
 - [ ] Requirement IDs follow format: `[LAYER_PREFIX]-[CONCEPT]-[NNN]`
+
+## Workflow Handover
+
+Upon successful completion, guide the user to the next step in the workflow:
+
+[PROPOSE_NEXT_STEP]
 
 ## Failure Handling
 

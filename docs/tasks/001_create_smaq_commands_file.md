@@ -5,7 +5,9 @@
 
 ## Context
 
-Create VS Code Copilot prompt files (`.prompt.md`) for smaqit phase and layer operations. These prompts enable users to invoke smaqit workflows via GitHub Copilot chat using `/smaqit.` commands (e.g., `/smaqit.develop`, `/smaqit.business`). Prompts are stored in `.github/prompts/` and follow VS Code prompt file conventions.
+Create VS Code Copilot prompt files (`.prompt.md`) for smaqit phase and layer operations. These prompts enable users to invoke smaqit workflows via GitHub Copilot chat using `/smaqit.` commands (e.g., `/smaqit.development`, `/smaqit.business`). Prompts are stored in `.github/prompts/` and follow VS Code prompt file conventions.
+
+**(Historical note: Initial implementation used shorter names `.develop`, `.deploy`, `.validate` which were later renamed in Task 029 to `.development`, `.deployment`, `.validation` for consistency with agent names.)**
 
 ## Acceptance Criteria
 
@@ -39,6 +41,11 @@ Each prompt file MUST include:
 - [x] Layer prompts pass user input to agents as context
 
 ## Notes
+
+**Historical Note (Task 029):** These phase prompts were later renamed for consistency with agent names:
+- `smaqit.develop.prompt.md` → `smaqit.development.prompt.md`
+- `smaqit.deploy.prompt.md` → `smaqit.deployment.prompt.md`
+- `smaqit.validate.prompt.md` → `smaqit.validation.prompt.md`
 
 **VS Code Prompt File Conventions:**
 - Extension: `.prompt.md`

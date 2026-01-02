@@ -296,7 +296,7 @@ public async Task<Result> MethodName(Request request)
 **Develop Phase:**
 - Source code, tests, configurations, build files
 - README with build, test, and run instructions
-- Development report (build/test/run results)
+- Development report in `.smaqit/reports/development-phase-report-YYYY-MM-DD.md` (build/test/run results)
 - Phase completion in `.smaqit/state.json`
 - MUST satisfy all spec acceptance criteria
 - MUST follow stack-specific standards
@@ -304,11 +304,12 @@ public async Task<Result> MethodName(Request request)
 **Deploy Phase → Infrastructure:**
 - Infrastructure code (Terraform, etc.)
 - Deployment manifests, environment configs
+- Deployment report in `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md` with health status and endpoints
 - Phase completion in `.smaqit/state.json`
 - MUST NOT hardcode secrets (Isolation Principle)
 
 **Validate Phase → Reports:**
-- Test results, coverage report, validation summary
+- Test results, coverage report in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`, validation summary
 - Phase completion in `.smaqit/state.json`
 - MUST map results to Coverage spec test cases
 - MUST include spec coverage percentage

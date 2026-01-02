@@ -29,14 +29,14 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 ## Output
 
 **Artifacts:**
-- Validation report containing:
+- Validation report in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` containing:
   - Spec coverage percentage
   - Pass/fail status per requirement
   - Unverified requirements with justification
   - Failure details for failed tests
 
 **Format:**
-- Markdown document following validation report format (see ARTIFACTS.md)
+- Markdown document written to `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` following validation report format (see below)
 - Maps test results to Coverage spec test cases
 - Includes traceability to source requirements
 
@@ -189,6 +189,7 @@ Before declaring completion, verify:
 - [ ] No unspecified features were added
 - [ ] Cross-layer consolidation completed without conflicts
 - [ ] All Coverage spec test cases executed
+- [ ] Validation report written to `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`
 - [ ] Validation report includes spec coverage percentage
 - [ ] Unverified requirements documented with justification
 - [ ] Failure details include sufficient evidence for debugging

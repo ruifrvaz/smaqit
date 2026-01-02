@@ -120,31 +120,29 @@ download_binary() {
     fi
     
     local download_url="https://github.com/${REPO}/releases/download/${VERSION}/${binary_name}"
-    local temp_file="/tmp/smaqit_${VERSION}"
+    TEMP_FILE="/tmp/smaqit_${VERSION}"
     
     info "Downloading from ${download_url}..."
     
-    if ! curl -fsSL -o "$temp_file" "$download_url"; then
+    if ! curl -fsSL -o "$TEMP_FILE" "$download_url"; then
         error "Failed to download binary"
     fi
     
     info "Download complete"
-    echo "$temp_file"
 }
 
 # Install binary
 install_binary() {
-    local temp_file=$1
     local target="${INSTALL_DIR}/smaqit"
     
     # Create install directory if it doesn't exist
     mkdir -p "$INSTALL_DIR"
     
     # Make executable
-    chmod +x "$temp_file"
+    chmod +x "$TEMP_FILE"
     
     # Move to install directory
-    mv "$temp_file" "$target"
+    mv "$TEMP_FILE" "$target"
     
     info "Installed to ${target}"
 }
@@ -184,8 +182,8 @@ main() {
     detect_platform
     get_latest_version
     
-    local temp_file=$(download_binary)
-    install_binary "$temp_file"
+    download_binary
+    install_binary
     verify_installation
     check_path
     

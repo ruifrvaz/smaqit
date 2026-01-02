@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1-beta] - 2026-01-02
+
+### Added
+- One-liner installation script (`install.sh`)
+  - Platform detection for Linux, macOS, and Windows
+  - Automatic installation to `~/.local/bin`
+  - Version selection via `SMAQIT_VERSION` environment variable (latest/prerelease/vX.Y.Z)
+  - Installation verification and PATH checking
+- Standard CLI flag support
+  - `--version` and `-v` flags now work alongside `version` subcommand
+  - `--help` and `-h` flags work alongside `help` subcommand
+  - Consistent with standard tools (go, python, etc.)
+
+### Fixed
+- Install script stdout contamination from info messages during download
+- Repository visibility (made public for install script access)
+
 ## [0.4.0-beta] - 2026-01-01
 
 ### Added
@@ -102,7 +119,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.4.0-beta...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.4.1-beta...HEAD
+[0.4.1-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.4.0-beta...v0.4.1-beta
 [0.4.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.3.0...v0.4.0-beta
 [0.3.0]: https://github.com/ruifrvaz/smaqit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ruifrvaz/smaqit/compare/v0.1.0...v0.2.0

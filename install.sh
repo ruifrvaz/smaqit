@@ -1,6 +1,16 @@
 #!/bin/bash
 # smaqit installer script
 # Usage: curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit/main/install.sh | bash
+# 
+# Options (set as environment variables):
+#   SMAQIT_VERSION=latest      Install latest stable release (default)
+#   SMAQIT_VERSION=prerelease  Install latest pre-release (beta, alpha, etc.)
+#   SMAQIT_VERSION=v0.4.0      Install specific version
+#
+# Examples:
+#   curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit/main/install.sh | SMAQIT_VERSION=prerelease bash
+#   curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit/main/install.sh | SMAQIT_VERSION=v0.3.0 bash
 
 set -e
 
@@ -13,6 +23,7 @@ NC='\033[0m' # No Color
 # Configuration
 REPO="ruifrvaz/smaqit"
 INSTALL_DIR="${HOME}/.local/bin"
+SMAQIT_VERSION="${SMAQIT_VERSION:-latest}"  # Default to latest stable
 
 # Helper functions
 info() {
@@ -65,16 +76,39 @@ detect_platform() {
 
 # Get latest release version from GitHub API
 get_latest_version() {
-    info "Fetching latest release..."
+    info "Fetching release version..."
     
-    local api_url="https://api.github.com/repos/${REPO}/releases/latest"
-    VERSION=$(curl -fsSL "$api_url" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+    local api_url="https://api.github.com/repos/${REPO}/releases"
+    
+    case "$SMAQIT_VERSION" in
+        latest)
+            # Get latest stable release (excludes pre-releases)
+            VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' || echo "")
+            
+            # Fallback: if no stable release, get most recent (including pre-release)
+            if [ -z "$VERSION" ]; then
+                warn "No stable release found, using latest pre-release"
+                VERSION=$(curl -fsSL "$api_url" | grep '"tag_name"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+            fi
+            ;;
+        prerelease)
+            # Get most recent release (including pre-releases)
+            VERSION=$(curl -fsSL "$api_url" | grep '"tag_name"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+            ;;
+        v*.*.*)
+            # Use specific version provided
+            VERSION="$SMAQIT_VERSION"
+            ;;
+        *)
+            error "Invalid SMAQIT_VERSION: $SMAQIT_VERSION (use 'latest', 'prerelease', or 'vX.Y.Z')"
+            ;;
+    esac
     
     if [ -z "$VERSION" ]; then
-        error "Failed to fetch latest version"
+        error "Failed to fetch release version"
     fi
     
-    info "Latest version: ${VERSION}"
+    info "Installing version: ${VERSION}"
 }
 
 # Download binary

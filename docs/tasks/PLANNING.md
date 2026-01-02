@@ -7,8 +7,6 @@
 | 014 | Define iterative development using smaqit | new |
 | 025 | Integrate testing agent with CI/CD | new |
 | 031 | Review implementation artifacts | new |
-| 032 | Status command intelligent next step logic | new |
-| 033 | Fix state.json phase ordering | new |
 | 036 | Implement prompt addendum for reproducibility | new |
 | 042 | Move development phase report to .smaqit/reports | new |
 
@@ -53,6 +51,8 @@
 | 043 | Refine copilot instructions regarding example usage |
 | 044 | Clean up old prompt name references |
 | 022 | Create GitHub Action for automated releases |
+| 033 | Fix state.json phase ordering |
+| 032 | Status command intelligent next step logic |
 
 ## Backlog
 

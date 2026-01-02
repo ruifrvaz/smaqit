@@ -29,20 +29,27 @@ type PhaseState struct {
 	Timestamp string `json:"timestamp,omitempty"`
 }
 
+// Phases represents the ordered phases structure
+type Phases struct {
+	Develop  PhaseState `json:"develop"`
+	Deploy   PhaseState `json:"deploy"`
+	Validate PhaseState `json:"validate"`
+}
+
 // StateFile represents the .smaqit/state.json structure
 type StateFile struct {
-	Version string                `json:"version"`
-	Phases  map[string]PhaseState `json:"phases"`
+	Version string `json:"version"`
+	Phases  Phases `json:"phases"`
 }
 
 // initStateFile creates a new state.json with all phases marked incomplete
 func initStateFile() StateFile {
 	return StateFile{
 		Version: "1.0",
-		Phases: map[string]PhaseState{
-			"develop":  {Completed: false},
-			"deploy":   {Completed: false},
-			"validate": {Completed: false},
+		Phases: Phases{
+			Develop:  PhaseState{Completed: false},
+			Deploy:   PhaseState{Completed: false},
+			Validate: PhaseState{Completed: false},
 		},
 	}
 }
@@ -63,20 +70,9 @@ func readStateFile(path string) StateFile {
 	}
 
 	// Validate schema
-	if state.Version == "" || state.Phases == nil {
+	if state.Version == "" {
 		fmt.Println("⚠ Warning: state.json has invalid schema, using default state")
 		return initStateFile()
-	}
-
-	// Ensure all phases exist
-	if _, ok := state.Phases["develop"]; !ok {
-		state.Phases["develop"] = PhaseState{Completed: false}
-	}
-	if _, ok := state.Phases["deploy"]; !ok {
-		state.Phases["deploy"] = PhaseState{Completed: false}
-	}
-	if _, ok := state.Phases["validate"]; !ok {
-		state.Phases["validate"] = PhaseState{Completed: false}
 	}
 
 	return state
@@ -690,7 +686,7 @@ func cmdStatus() {
 
 	// Display phases with nested layers
 	// Phase 1: Develop
-	developPhase := state.Phases["develop"]
+	developPhase := state.Phases.Develop
 	developHasSpecs := layerCounts["business"] > 0 || layerCounts["functional"] > 0 || layerCounts["stack"] > 0
 	fmt.Print("Phase 1 (Develop): ")
 	printPhaseStatus(developPhase, developHasSpecs)
@@ -700,7 +696,7 @@ func cmdStatus() {
 	fmt.Println()
 
 	// Phase 2: Deploy
-	deployPhase := state.Phases["deploy"]
+	deployPhase := state.Phases.Deploy
 	deployHasSpecs := layerCounts["infrastructure"] > 0
 	fmt.Print("Phase 2 (Deploy): ")
 	printPhaseStatus(deployPhase, deployHasSpecs)
@@ -708,7 +704,7 @@ func cmdStatus() {
 	fmt.Println()
 
 	// Phase 3: Validate
-	validatePhase := state.Phases["validate"]
+	validatePhase := state.Phases.Validate
 	validateHasSpecs := layerCounts["coverage"] > 0
 	fmt.Print("Phase 3 (Validate): ")
 	printPhaseStatus(validatePhase, validateHasSpecs)
@@ -717,14 +713,42 @@ func cmdStatus() {
 	// Display total
 	fmt.Printf("\nTotal: %d specification(s)\n", totalSpecs)
 
-	// Next steps based on phase completion
+	// Next steps based on actual spec content and phase state
 	fmt.Println("\nNext steps:")
+
+	// Phase 1: Develop
 	if !developPhase.Completed {
-		fmt.Println("  • Type '/smaqit.development' in GitHub Copilot chat to run Development implementation step")
+		hasAnyPhase1 := layerCounts["business"] > 0 || layerCounts["functional"] > 0 || layerCounts["stack"] > 0
+
+		if !hasAnyPhase1 {
+			fmt.Println("  • Type '/smaqit.business' to start with business specifications")
+		} else {
+			// Suggest missing layers first
+			if layerCounts["business"] == 0 {
+				fmt.Println("  • Type '/smaqit.business' to add business specifications")
+			} else if layerCounts["functional"] == 0 {
+				fmt.Println("  • Type '/smaqit.functional' to add functional specifications")
+			} else if layerCounts["stack"] == 0 {
+				fmt.Println("  • Type '/smaqit.stack' to add technical stack specifications")
+			} else {
+				// All Phase 1 specs exist
+				fmt.Println("  • Type '/smaqit.development' to implement from specifications")
+			}
+		}
 	} else if !deployPhase.Completed {
-		fmt.Println("  • Type '/smaqit.deployment' in GitHub Copilot chat to run Deployment implementation step")
+		// Phase 2: Deploy
+		if layerCounts["infrastructure"] == 0 {
+			fmt.Println("  • Type '/smaqit.infrastructure' to define infrastructure specifications")
+		} else {
+			fmt.Println("  • Type '/smaqit.deployment' to deploy the implementation")
+		}
 	} else if !validatePhase.Completed {
-		fmt.Println("  • Type '/smaqit.validation' in GitHub Copilot chat to run Validation implementation step")
+		// Phase 3: Validate
+		if layerCounts["coverage"] == 0 {
+			fmt.Println("  • Type '/smaqit.coverage' to define test coverage specifications")
+		} else {
+			fmt.Println("  • Type '/smaqit.validation' to validate the deployment")
+		}
 	} else {
 		fmt.Println("  • All phases complete. Run '/smaqit.orchestrate' to iterate or extend.")
 	}

@@ -27,9 +27,11 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 **Artifacts:**
 - [OUTPUT_ARTIFACTS]
+- Phase report in `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md`
 
 **Format:**
 - [OUTPUT_FORMAT]
+- Phase report MUST be written to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md` documenting phase outcomes
 
 ## Directives
 
@@ -98,6 +100,7 @@ Before declaring completion, verify:
 - [ ] Output is traceable to input specifications
 - [ ] No unspecified features were added
 - [ ] Cross-layer consolidation completed without conflicts
+- [ ] Phase report written to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md`
 - [ADDITIONAL_COMPLETION_CRITERIA]
 
 ## Failure Handling

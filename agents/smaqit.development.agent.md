@@ -39,7 +39,6 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Code MUST include traceability comments referencing spec requirement IDs
 - README MUST include commands for build, test, and run
 - Development report MUST be written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md` and document build/test/run outcomes
-- Create `.smaqit/reports/` directory if it doesn't exist before writing report
 
 ## Directives
 
@@ -150,7 +149,6 @@ Before declaring completion, verify:
 - [ ] Application runs successfully in isolated environment
 - [ ] Behavior matches spec acceptance criteria
 - [ ] README includes build, test, and run instructions
-- [ ] `.smaqit/reports/` directory created if it doesn't exist
 - [ ] Development report written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md`
 - [ ] Phase completion written to `.smaqit/state.json` using atomic write pattern
 

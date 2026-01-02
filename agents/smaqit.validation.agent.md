@@ -35,7 +35,6 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 **Format:**
 - Markdown document written to `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` following validation report format (see below)
-- Create `.smaqit/reports/` directory if it doesn't exist before writing report
 - Maps test results to Coverage spec test cases
 - Includes traceability to source requirements
 
@@ -172,7 +171,6 @@ Before declaring completion, verify:
 - [ ] No unspecified features were added
 - [ ] Cross-layer consolidation completed without conflicts
 - [ ] All Coverage spec test cases executed
-- [ ] `.smaqit/reports/` directory created if it doesn't exist
 - [ ] Validation report written to `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`
 - [ ] Validation report includes spec coverage percentage
 - [ ] Unverified requirements documented with justification

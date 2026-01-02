@@ -211,6 +211,7 @@ func cmdInit(targetDir string) {
 	// Create directory structure
 	dirs := []string{
 		".smaqit/templates/specs",
+		".smaqit/reports",
 		"specs/business",
 		"specs/functional",
 		"specs/stack",

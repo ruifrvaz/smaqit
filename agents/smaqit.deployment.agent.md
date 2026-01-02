@@ -37,10 +37,11 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Deployment manifests
 - Environment configurations
 - Running system in target environment
+- Deployment report in `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md` with health status, endpoints, and scrubbed logs
 
 **Format:**
 - IaC files use credential references: `${secrets.AWS_ACCESS_KEY}` (never actual values)
-- Deployment reports with health status, endpoints, and scrubbed logs
+- Deployment report MUST be written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md` with health status, endpoints, and scrubbed logs
 - Configuration files following stack-specific conventions
 
 ## Directives
@@ -188,6 +189,7 @@ Before declaring completion, verify:
 - [ ] System accessible at expected endpoints
 - [ ] Deployment topology verified against infrastructure specs
 - [ ] Observability configured per infrastructure specs
+- [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
 - [ ] Phase completion written to `.smaqit/state.json` using atomic write pattern
 
 **State update format:**

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2-beta] - 2026-01-02
+
+### Added
+- Intelligent next-step suggestions in `smaqit status` command
+  - Progressive guidance based on actual spec file presence
+  - Suggests missing spec layers before implementation (business → functional → stack)
+  - Only suggests `/smaqit.development` when all Phase 1 specs exist
+  - Phase-aware suggestions for infrastructure and coverage layers
+
+### Fixed
+- State.json phase ordering now consistent (develop → deploy → validate)
+- Status command no longer suggests premature implementation steps
+
 ## [0.4.1-beta] - 2026-01-02
 
 ### Added
@@ -119,10 +132,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.4.1-beta...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.4.2-beta...HEAD
+[0.4.2-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.4.1-beta...v0.4.2-beta
 [0.4.1-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.4.0-beta...v0.4.1-beta
 [0.4.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.3.0...v0.4.0-beta
-[0.3.0]: https://github.com/ruifrvaz/smaqit/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/ruifrvaz/smaqit/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/ruifrvaz/smaqit/compare/v0.0.1...v0.1.0
-[0.0.1]: https://github.com/ruifrvaz/smaqit/releases/tag/v0.0.1
+[0.3.2-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.2.0...v0.3.2-beta

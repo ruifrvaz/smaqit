@@ -25,7 +25,16 @@ Phase-first gives you faster feedback. Spec-first works for upfront design requi
 
 ### Installation
 
-**Download the latest release for your platform:**
+**Quick install (recommended):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit/main/install.sh | bash
+```
+
+This installs the latest release to `~/.local/bin/smaqit`.
+
+<details>
+<summary>Manual download</summary>
 
 Visit [Releases](https://github.com/ruifrvaz/smaqit/releases) and download the appropriate binary:
 
@@ -37,14 +46,14 @@ Visit [Releases](https://github.com/ruifrvaz/smaqit/releases) and download the a
 **Make it executable (Linux/macOS):**
 ```bash
 chmod +x smaqit_*
-mv smaqit_* /usr/local/bin/smaqit
+mv smaqit_* ~/.local/bin/smaqit
 ```
 
 **Or add to PATH (Windows):**
 ```powershell
-# Move to a directory in your PATH
 move smaqit_windows_amd64.exe C:\Windows\smaqit.exe
 ```
+</details>
 
 ### Usage
 

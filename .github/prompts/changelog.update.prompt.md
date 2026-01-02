@@ -13,8 +13,6 @@ Update CHANGELOG.md by extracting user-facing changes from session history files
 <!-- If provided, moves Unreleased section to this version -->
 <!-- Example: v0.4.0 -->
 
-v0.4.0-beta
-
 ## Date Range (Optional)
 
 <!-- Limit session history analysis to specific date range -->

@@ -288,23 +288,15 @@ Specs become stale when content changes after implementation. Detection is **use
 
 **State Aggregation:**
 
-Phase state in `.smaqit/state.json` aggregates individual spec states:
+The CLI aggregates phase status by scanning spec frontmatter. Run `smaqit status` to view:
 
-```json
-{
-  "phases": {
-    "develop": {
-      "completed": true,
-      "timestamp": "2026-01-02T10:30:00Z",
-      "specs_processed": 20,
-      "specs_succeeded": 18,
-      "specs_failed": 2
-    }
-  }
-}
+```
+Develop: 18 implemented, 2 failed
+Deploy: 15 deployed, 3 draft
+Validate: 12 validated, 5 draft
 ```
 
-Implementation agents MUST update both spec frontmatter AND state.json counts.
+Implementation agents update individual spec frontmatter. The CLI reads all specs and calculates aggregate counts.
 
 ---
 
@@ -379,7 +371,7 @@ public async Task<Result> MethodName(Request request)
 - Source code, tests, configurations, build files
 - README with build, test, and run instructions
 - Development report in `.smaqit/reports/development-phase-report-YYYY-MM-DD.md` (build/test/run results)
-- Phase completion in `.smaqit/state.json`
+- Spec frontmatter: `status: implemented`, `implemented: [ISO8601_TIMESTAMP]`
 - MUST satisfy all spec acceptance criteria
 - MUST follow stack-specific standards
 
@@ -387,36 +379,32 @@ public async Task<Result> MethodName(Request request)
 - Infrastructure code (Terraform, etc.)
 - Deployment manifests, environment configs
 - Deployment report in `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md` with health status and endpoints
-- Phase completion in `.smaqit/state.json`
+- Spec frontmatter: `status: deployed`, `deployed: [ISO8601_TIMESTAMP]`
 - MUST NOT hardcode secrets (Isolation Principle)
 
 **Validate Phase → Reports:**
 - Test results, coverage report in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`, validation summary
-- Phase completion in `.smaqit/state.json`
+- Spec frontmatter: `status: validated`, `validated: [ISO8601_TIMESTAMP]`
+- Acceptance criteria checkboxes: `[ ]` → `[x]` or `[!]`
 - MUST map results to Coverage spec test cases
 - MUST include spec coverage percentage
 
 **Phase State Tracking:**
 
-Implementation agents write phase completion to `.smaqit/state.json`:
+Implementation agents update spec frontmatter. CLI aggregates status across all specs.
 
-```json
-{
-  "version": "1.0",
-  "phases": {
-    "develop": {
-      "completed": true,
-      "timestamp": "2025-12-26T10:30:00Z"
-    },
-    "deploy": {
-      "completed": true,
-      "timestamp": "2025-12-26T14:15:00Z"
-    },
-    "validate": {
-      "completed": false
-    }
-  }
-}
+Frontmatter example:
+
+```yaml
+---
+id: BUS-LOGIN-001
+status: validated
+created: 2025-12-26T10:00:00Z
+implemented: 2025-12-26T10:30:00Z
+deployed: 2025-12-26T11:00:00Z
+validated: 2025-12-26T11:30:00Z
+prompt_version: abc123
+---
 ```
 
 Agents use atomic writes (temp file + rename) to prevent corruption. The `smaqit status` command reads this file to display project state.

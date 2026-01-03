@@ -130,33 +130,36 @@ Implementation agents transform specifications into working software, deployed s
 ### Directives
 
 **Implementation agents MUST:**
+- Determine which specs to process using `smaqit plan --phase=[PHASE]` (outputs spec file paths, one per line)
+- Process only specs with `status: draft` or `status: failed` by default
+- Support regeneration mode via `--regen` flag to process all specs regardless of status
+- Report completion when no specs require processing and suggest `--regen` flag if appropriate
 - Comply with all referenced specifications
 - Trace every implementation decision to a specification
 - Validate output against specification acceptance criteria
 - Report deviations or impossibilities rather than silently diverge
 - Update spec frontmatter status and timestamps during processing
-- Write phase completion and spec counts to `.smaqit/state.json` using atomic write pattern
 
-**State tracking responsibilities:**
+**Frontmatter tracking:**
 
-| Agent | Updates Spec Frontmatter | Updates state.json |
-|-------|-------------------------|--------------------|
-| Development | `status: implemented` or `failed`<br>`implemented: [timestamp]` | `specs_processed`, `specs_succeeded`, `specs_failed` |
-| Deployment | `status: deployed` or `failed`<br>`deployed: [timestamp]` | `specs_processed`, `specs_succeeded`, `specs_failed` |
-| Validation | `status: validated` or `failed`<br>`validated: [timestamp]`<br>Update checkboxes: `[ ]` → `[x]` or `[!]` | `specs_processed`, `specs_succeeded`, `specs_failed` |
+| Agent | Updates Spec Frontmatter |
+|-------|--------------------------|
+| Development | `status: implemented` or `failed`<br>`implemented: [ISO8601_TIMESTAMP]` |
+| Deployment | `status: deployed` or `failed`<br>`deployed: [ISO8601_TIMESTAMP]` |
+| Validation | `status: validated` or `failed`<br>`validated: [ISO8601_TIMESTAMP]`<br>Update checkboxes: `[ ]` → `[x]` or `[!]` |
 
-**Phase state format:**
-```json
-{
-  "completed": true,
-  "timestamp": "2026-01-02T10:30:00Z",
-  "specs_processed": 20,
-  "specs_succeeded": 18,
-  "specs_failed": 2
-}
+**Frontmatter example:**
+```yaml
+---
+id: BUS-LOGIN-001
+status: implemented
+created: 2025-12-26T10:00:00Z
+implemented: 2025-12-26T10:30:00Z
+prompt_version: abc123
+---
 ```
 
-Agents use atomic writes (temp file + rename) to prevent corruption during concurrent access.
+The CLI aggregates phase status by scanning spec frontmatter. Agents only update individual spec files.
 
 **Implementation agents MUST NOT:**
 - Modify specifications (request changes through proper channels)

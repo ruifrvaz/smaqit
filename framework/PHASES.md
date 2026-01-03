@@ -70,14 +70,15 @@ If any prompt is empty or insufficient, agent halts and guides user: "Please fil
 - Escalate to human review when threshold exceeded
 
 **Completion Criteria:**
-- [ ] All layer specs produced and complete
+- [ ] All three layer specs produced and complete (Business, Functional, Stack)
+- [ ] All specs have `status: implemented` or higher
 - [ ] Code generated and compiles without errors
 - [ ] Unit tests pass
 - [ ] Application runs successfully in isolated environment
 - [ ] Behavior matches spec acceptance criteria
 - [ ] README includes build, test, and run instructions
 - [ ] Development report written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md`
-- [ ] Phase completion written to `.smaqit/state.json` with timestamp
+- [ ] Spec frontmatter updated: `status: implemented`, `implemented: [ISO8601_TIMESTAMP]`
 
 ---
 
@@ -160,12 +161,13 @@ See [ARTIFACTS](ARTIFACTS.md) for the Isolation Principle.
 
 **Completion Criteria:**
 - [ ] Infrastructure specs produced and complete
+- [ ] All infrastructure specs have `status: deployed` or higher
 - [ ] IaC generated with reference-only secrets
 - [ ] Deployment executed successfully
 - [ ] Health checks pass
 - [ ] System accessible at expected endpoints
 - [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
-- [ ] Phase completion written to `.smaqit/state.json` with timestamp
+- [ ] Spec frontmatter updated: `status: deployed`, `deployed: [ISO8601_TIMESTAMP]`
 
 ---
 
@@ -223,11 +225,13 @@ If prompt has content, agents interpret free-style requirements and request clar
 
 **Completion Criteria:**
 - [ ] Coverage specs produced with all testable criteria mapped
+- [ ] All coverage specs have `status: validated`
 - [ ] Tests executed against deployed system
 - [ ] Validation report written to `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`
 - [ ] Spec coverage percentage calculated
 - [ ] Untestable criteria documented with justification
-- [ ] Phase completion written to `.smaqit/state.json` with timestamp
+- [ ] Spec frontmatter updated: `status: validated`, `validated: [ISO8601_TIMESTAMP]`
+- [ ] Acceptance criteria checkboxes updated: `[ ]` → `[x]` or `[!]`
 
 ---
 
@@ -328,39 +332,42 @@ smaqit supports incremental workflows where specs are added and implemented iter
 
 **Spec State Tracking:**
 
-Each spec carries state through phases:
+Each spec carries state through phases via frontmatter:
 - Draft → Implemented → Deployed → Validated
 
-Implementation agents update both:
-1. **Spec frontmatter**: Individual spec status and timestamps
-2. **Phase state** (`.smaqit/state.json`): Aggregate counts per phase
+**Determining Work:**
+
+Implementation agents run `smaqit plan --phase=[PHASE]` to get paths to specs needing processing:
+
+| Mode | Command | Processes |
+|------|---------|-----------|
+| Incremental | `smaqit plan --phase=develop` | Only specs with `status: draft` or `status: failed` |
+| Regeneration | `smaqit plan --phase=develop --regen` | All specs regardless of status |
 
 **Adding Features:**
 
 ```
 1. User adds requirements to prompt file
 2. Spec agent generates new specs (status: draft)
-3. Implementation agents process new specs only
-4. Existing implemented specs remain unchanged
-5. Tests validate new + existing functionality
+3. Implementation agent runs `smaqit plan --phase=develop`
+4. CLI returns only new draft specs (existing implemented specs skipped)
+5. Agent processes returned paths
+6. Tests validate new + existing functionality
 ```
 
-**Spec Counts in State:**
+**Checking Status:**
 
-```json
-{
-  "phases": {
-    "develop": {
-      "completed": true,
-      "specs_processed": 20,
-      "specs_succeeded": 18,
-      "specs_failed": 2
-    }
-  }
-}
+```bash
+# View aggregate phase status
+smaqit status
+
+# Shows per-phase spec counts:
+Develop: 18 implemented, 2 failed
+Deploy: 15 deployed, 3 draft
+Validate: 12 validated, 5 draft
 ```
 
-Agents MUST update spec counts when processing specs.
+CLI aggregates status by scanning all spec frontmatter. No centralized state file.
 
 ---
 

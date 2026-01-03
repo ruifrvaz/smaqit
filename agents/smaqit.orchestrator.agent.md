@@ -120,9 +120,8 @@ Before declaring workflow complete, verify:
 - [ ] No unhandled errors remain
 - [ ] Output artifacts exist in expected locations
 - [ ] Orchestration report documents full execution
-- [ ] Workflow metadata written to `.smaqit/state.json` (optional: tracks which phases were orchestrated vs invoked individually)
 
-**State tracking note:** Orchestrator MAY write workflow-level metadata to state.json to distinguish orchestrated runs from individual phase invocations. This is supplementary to phase-level completion tracking performed by implementation agents.
+**State tracking:** Implementation agents update spec frontmatter. The CLI aggregates phase status from these files.
 
 ## Failure Handling
 

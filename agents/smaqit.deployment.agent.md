@@ -48,6 +48,9 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### MUST
 
+- Determine which specs to process using `smaqit plan --phase=deploy`
+- Process only specs with `status: draft` or `status: failed` by default
+- Report completion when no specs require processing and suggest `--regen` flag
 - Comply with all referenced specifications
 - Trace every implementation decision to a specification
 - Validate output against specification acceptance criteria
@@ -93,7 +96,7 @@ Deployment agent executes only Deploy phase implementation work.
 
 ### MUST NOT
 
-- Execute work assigned to Development or Validate phases
+- Execute work assigned to Develop or Validate phases
 - Execute work assigned to specification layers (Business, Functional, Stack, Infrastructure, Coverage)
 
 ### Boundary Enforcement
@@ -101,25 +104,19 @@ Deployment agent executes only Deploy phase implementation work.
 When user requests out-of-phase work:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — "Deploy phase is [status]. To proceed with [requested work], invoke the appropriate agent."
-3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.validation` for validation, `/smaqit.development` for code changes)
+3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.development` for development, `/smaqit.infrastructure` for infrastructure specs)
 
 ## State Tracking
 
 Deployment agent MUST update both spec frontmatter and phase state.
 
-**For each infrastructure spec processed:**
+**For each spec processed:**
 
 1. Update spec YAML frontmatter:
    - Set `status: deployed` (success) or `status: failed`
    - Add `deployed: [ISO8601_TIMESTAMP]`
 
-2. Update `.smaqit/state.json` phase counts:
-   - `specs_processed` = total specs from `specs/infrastructure/`
-   - `specs_succeeded` = specs with `status: deployed`
-   - `specs_failed` = specs with `status: failed`
-   - Set `completed: true` when all specs processed
-   - Add `timestamp: [ISO8601_TIMESTAMP]`
-   - Use atomic writes (temp file + rename)
+**The CLI aggregates phase status from spec frontmatter.** The agent updates individual spec files only.
    - Configure health checks and monitoring endpoints
 
 ## Phase-Specific Rules
@@ -178,15 +175,7 @@ Before declaring completion, verify:
 - [ ] Deployment topology verified against infrastructure specs
 - [ ] Observability configured per infrastructure specs
 - [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
-- [ ] Phase completion written to `.smaqit/state.json` using atomic write pattern
-
-**State update format:**
-```json
-{
-  "completed": true,
-  "timestamp": "2025-12-26T10:30:00Z"
-}
-```
+- [ ] Spec frontmatter updated: `status: deployed`, `deployed: YYYY-MM-DDTHH:MM:SSZ`
 
 ## Workflow Handover
 

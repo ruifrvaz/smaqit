@@ -44,6 +44,9 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 ### MUST
 
+- Determine which specs to process using `smaqit plan --phase=validate`
+- Process only specs with `status: draft` or `status: failed` by default
+- Report completion when no specs require processing and suggest `--regen` flag
 - Comply with all referenced specifications
 - Trace every implementation decision to a specification
 - Validate output against specification acceptance criteria
@@ -83,7 +86,7 @@ Validation agent executes only Validate phase implementation work.
 
 ### MUST NOT
 
-- Execute work assigned to Development or Deploy phases
+- Execute work assigned to Develop or Deploy phases
 - Execute work assigned to specification layers (Business, Functional, Stack, Infrastructure, Coverage)
 
 ### Boundary Enforcement
@@ -91,7 +94,7 @@ Validation agent executes only Validate phase implementation work.
 When user requests out-of-phase work:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — "Validate phase is [status]. To proceed with [requested work], invoke the appropriate agent."
-3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.development` for code changes, `/smaqit.deployment` for redeployment)
+3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.development` for development, `/smaqit.coverage` for coverage specs)
 
 ## State Tracking
 
@@ -107,13 +110,7 @@ Validation agent MUST update spec frontmatter, acceptance criteria checkboxes, a
    - Set `status: validated` (all pass) or `status: failed` (any fail)
    - Add `validated: [ISO8601_TIMESTAMP]`
 
-3. Update `.smaqit/state.json` phase counts:
-   - `specs_processed` = total specs from `specs/coverage/`
-   - `specs_succeeded` = specs with `status: validated` and all checkboxes `[x]`
-   - `specs_failed` = specs with `status: failed` or any checkboxes `[!]`
-   - Set `completed: true` when all specs processed
-   - Add `timestamp: [ISO8601_TIMESTAMP]`
-   - Use atomic writes (temp file + rename)
+**The CLI aggregates phase status from spec frontmatter.** The agent updates individual spec files only.
 
 ## Phase-Specific Rules
 
@@ -184,15 +181,7 @@ Before declaring completion, verify:
 - [ ] Validation report includes spec coverage percentage
 - [ ] Unverified requirements documented with justification
 - [ ] Failure details include sufficient evidence for debugging
-- [ ] Phase completion written to `.smaqit/state.json` using atomic write pattern
-
-**State update format:**
-```json
-{
-  "completed": true,
-  "timestamp": "2025-12-26T10:30:00Z"
-}
-```
+- [ ] Spec frontmatter updated: `status: validated`, `validated: YYYY-MM-DDTHH:MM:SSZ`
 
 ## Workflow Handover
 

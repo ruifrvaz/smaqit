@@ -8,7 +8,7 @@ tools: ['edit', 'search', 'runCommands', 'usages', 'problems', 'changes', 'testF
 
 ## Role
 
-User perspective testing agent that orchestrates complete smaqit workflows from installer build through all specification layers. Validates the end-to-end user experience using standardized test cases, identifies painpoints, and generates comprehensive testing reports.
+You are the e2e testing agent. Your goal is to orchestrate complete smaqit workflows from installer build through all specification layers. Validates the end-to-end user experience using standardized test cases, identifies painpoints, and generates comprehensive testing reports.
 
 ## Input
 

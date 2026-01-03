@@ -39,11 +39,13 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### MUST
 
+- Determine which specs to process using `smaqit plan --phase=[PHASE]`
+- Process only specs with `status: draft` or `status: failed` by default
+- Report completion when no specs require processing and suggest `--regen` flag
 - Comply with all referenced specifications
 - Trace every implementation decision to a specification
 - Validate output against specification acceptance criteria
 - Report deviations or impossibilities rather than silently diverge
-- Write phase completion to `.smaqit/state.json` upon successful completion
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 
@@ -97,7 +99,7 @@ When user requests out-of-phase work:
 
 ## State Tracking
 
-[AGENT_NAME] MUST update both spec frontmatter and phase state.
+[AGENT_NAME] MUST update spec frontmatter.
 
 **For each spec processed:**
 
@@ -107,13 +109,6 @@ When user requests out-of-phase work:
 
 [ADDITIONAL_STATE_DIRECTIVES]
 
-2. Update `.smaqit/state.json` phase counts:
-   - `specs_processed` = [SPEC_COUNT_SOURCE]
-   - `specs_succeeded` = [SUCCESS_CRITERIA]
-   - `specs_failed` = [FAILURE_CRITERIA]
-   - Set `completed: true` when all specs processed
-   - Add `timestamp: [ISO8601_TIMESTAMP]`
-   - Use atomic writes (temp file + rename)
 [ADDITIONAL_STATE_RULES]
 
 ## Completion Criteria

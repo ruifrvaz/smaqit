@@ -2,13 +2,11 @@ package main
 
 import (
 	"embed"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 //go:embed templates/specs/*.md
@@ -23,86 +21,6 @@ var promptFiles embed.FS
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
 var Version = "dev"
 
-// PhaseState represents the completion state of a phase
-type PhaseState struct {
-	Completed      bool   `json:"completed"`
-	Timestamp      string `json:"timestamp,omitempty"`
-	SpecsProcessed int    `json:"specs_processed,omitempty"`
-	SpecsSucceeded int    `json:"specs_succeeded,omitempty"`
-	SpecsFailed    int    `json:"specs_failed,omitempty"`
-}
-
-// Phases represents the ordered phases structure
-type Phases struct {
-	Develop  PhaseState `json:"develop"`
-	Deploy   PhaseState `json:"deploy"`
-	Validate PhaseState `json:"validate"`
-}
-
-// StateFile represents the .smaqit/state.json structure
-type StateFile struct {
-	Version string `json:"version"`
-	Phases  Phases `json:"phases"`
-}
-
-// initStateFile creates a new state.json with all phases marked incomplete
-func initStateFile() StateFile {
-	return StateFile{
-		Version: "1.0",
-		Phases: Phases{
-			Develop:  PhaseState{Completed: false, SpecsProcessed: 0, SpecsSucceeded: 0, SpecsFailed: 0},
-			Deploy:   PhaseState{Completed: false, SpecsProcessed: 0, SpecsSucceeded: 0, SpecsFailed: 0},
-			Validate: PhaseState{Completed: false, SpecsProcessed: 0, SpecsSucceeded: 0, SpecsFailed: 0},
-		},
-	}
-}
-
-// readStateFile reads and validates state.json, returning default state on error
-func readStateFile(path string) StateFile {
-	content, err := os.ReadFile(path)
-	if err != nil {
-		// File doesn't exist or can't be read - return default
-		return initStateFile()
-	}
-
-	var state StateFile
-	if err := json.Unmarshal(content, &state); err != nil {
-		// Corrupted JSON - warn and return default
-		fmt.Println("⚠ Warning: state.json is corrupted, using default state")
-		return initStateFile()
-	}
-
-	// Validate schema
-	if state.Version == "" {
-		fmt.Println("⚠ Warning: state.json has invalid schema, using default state")
-		return initStateFile()
-	}
-
-	return state
-}
-
-// writeStateFile writes state.json using atomic write pattern (temp + rename)
-func writeStateFile(path string, state StateFile) error {
-	data, err := json.MarshalIndent(state, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshaling state: %w", err)
-	}
-
-	// Write to temporary file
-	tempPath := path + ".tmp"
-	if err := os.WriteFile(tempPath, data, 0644); err != nil {
-		return fmt.Errorf("writing temp file: %w", err)
-	}
-
-	// Atomic rename
-	if err := os.Rename(tempPath, path); err != nil {
-		os.Remove(tempPath) // Clean up temp file on failure
-		return fmt.Errorf("renaming temp file: %w", err)
-	}
-
-	return nil
-}
-
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -116,6 +34,8 @@ func main() {
 			targetDir = os.Args[2]
 		}
 		cmdInit(targetDir)
+	case "plan":
+		cmdPlan()
 	case "status":
 		cmdStatus()
 	case "validate":
@@ -140,6 +60,7 @@ Usage: smaqit <command>
 Commands:
   init [dir] Scaffold .smaqit/ and .github/ directories
              Optional: specify target directory (default: current)
+  plan       Show specs to process (for agents)
   status     Show project state and spec coverage
   validate   Verify project structure integrity
   help       Show detailed command help
@@ -156,6 +77,11 @@ func cmdHelp() {
 	fmt.Println("                    Creates .smaqit/ and .github/ directories with")
 	fmt.Println("                    framework files, templates, and agent definitions")
 	fmt.Println("                    Optional: specify target directory (created if needed)")
+	fmt.Println()
+	fmt.Println("  smaqit plan       Show work plan for current phase")
+	fmt.Println("    --phase=X       Specify phase: develop, deploy, or validate")
+	fmt.Println("    --verbose       Show detailed information")
+	fmt.Println("    --regen         Mark all specs for regeneration")
 	fmt.Println()
 	fmt.Println("  smaqit status     Show project state and spec coverage")
 	fmt.Println("                    Reports number of specs per layer and phase status")
@@ -187,6 +113,162 @@ func cmdHelp() {
 	fmt.Println("  3. Type '/smaqit.development' to run the Development implementation step")
 	fmt.Println()
 	fmt.Println("Documentation: https://github.com/ruifrvaz/smaqit")
+}
+
+func cmdPlan() {
+	// Check if .smaqit exists
+	if _, err := os.Stat(".smaqit"); os.IsNotExist(err) {
+		fmt.Println("Error: .smaqit/ directory not found")
+		fmt.Println("Run 'smaqit init' to initialize smaqit in this project")
+		os.Exit(1)
+	}
+
+	// Parse flags
+	phase := ""
+	verbose := false
+	regen := false
+
+	for i := 2; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		if strings.HasPrefix(arg, "--phase=") {
+			phase = strings.TrimPrefix(arg, "--phase=")
+		} else if arg == "--verbose" {
+			verbose = true
+		} else if arg == "--regen" {
+			regen = true
+		}
+	}
+
+	// Scan all specs
+	allSpecs, err := scanSpecs()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error scanning specs: %v\n", err)
+		os.Exit(1)
+	}
+
+	// If no phase specified, show summary of all phases
+	if phase == "" {
+		fmt.Println("smaqit Work Plan")
+		fmt.Println("================\n")
+
+		phases := []struct {
+			name   string
+			layers []string
+		}{
+			{"develop", []string{"business", "functional", "stack"}},
+			{"deploy", []string{"infrastructure"}},
+			{"validate", []string{"coverage"}},
+		}
+
+		for i, p := range phases {
+			specs := getPhaseSpecs(allSpecs, p.name)
+			toProcess := filterSpecsByStatus(specs, p.name, false)
+			completed := len(specs) - len(toProcess)
+
+			fmt.Printf("Phase %d (%s): %d pending, %d completed\n",
+				i+1, strings.Title(p.name), len(toProcess), completed)
+		}
+
+		fmt.Println("\nRun `smaqit plan --phase=<phase>` for details")
+		return
+	}
+
+	// Validate phase
+	validPhases := map[string]bool{"develop": true, "deploy": true, "validate": true}
+	if !validPhases[phase] {
+		fmt.Fprintf(os.Stderr, "Error: invalid phase '%s' (must be: develop, deploy, or validate)\n", phase)
+		os.Exit(1)
+	}
+
+	// Get specs for the specified phase
+	phaseSpecs := getPhaseSpecs(allSpecs, phase)
+	toProcess := filterSpecsByStatus(phaseSpecs, phase, regen)
+	completed := []Spec{}
+
+	for _, spec := range phaseSpecs {
+		isProcessing := false
+		for _, tp := range toProcess {
+			if tp.Path == spec.Path {
+				isProcessing = true
+				break
+			}
+		}
+		if !isProcessing {
+			completed = append(completed, spec)
+		}
+	}
+
+	// Verbose output (human-readable)
+	if verbose {
+		if regen {
+			fmt.Println("REGENERATION MODE: All specs marked for reprocessing\n")
+		}
+
+		fmt.Printf("Phase: %s\n\n", strings.Title(phase))
+
+		if len(toProcess) > 0 {
+			fmt.Printf("To Process (%d):\n", len(toProcess))
+			for _, spec := range toProcess {
+				if regen && spec.Frontmatter.Status != "draft" {
+					fmt.Printf("  [%s→regen] %s", spec.Frontmatter.Status, spec.Path)
+				} else {
+					fmt.Printf("  [%s] %s", spec.Frontmatter.Status, spec.Path)
+				}
+				if spec.Frontmatter.ID != "" {
+					fmt.Printf(" (%s)", spec.Frontmatter.ID)
+				}
+				fmt.Println()
+			}
+			fmt.Println()
+		}
+
+		if len(completed) > 0 {
+			fmt.Printf("Completed (%d):\n", len(completed))
+			for _, spec := range completed {
+				fmt.Printf("  [%s] %s", spec.Frontmatter.Status, spec.Path)
+				if spec.Frontmatter.ID != "" {
+					fmt.Printf(" (%s)", spec.Frontmatter.ID)
+				}
+				fmt.Println()
+			}
+			fmt.Println()
+		}
+
+		if len(toProcess) == 0 {
+			fmt.Println("All specs already processed.")
+			if !regen {
+				fmt.Printf("Use `smaqit plan --phase=%s --regen` to regenerate.\n", phase)
+			}
+		} else {
+			fmt.Printf("Next: Run /smaqit.%s to process %d spec(s)\n",
+				getAgentName(phase), len(toProcess))
+		}
+
+		return
+	}
+
+	// Default output (agent-friendly): just paths, one per line
+	if len(toProcess) == 0 {
+		// Empty output means nothing to process
+		os.Exit(0)
+	}
+
+	for _, spec := range toProcess {
+		fmt.Println(spec.Path)
+	}
+}
+
+func getAgentName(phase string) string {
+	switch phase {
+	case "develop":
+		return "development"
+	case "deploy":
+		return "deployment"
+	case "validate":
+		return "validation"
+	default:
+		return phase
+	}
 }
 
 func cmdInit(targetDir string) {
@@ -249,14 +331,6 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
-	// Initialize state.json
-	stateFilePath := filepath.Join(".smaqit", "state.json")
-	initialState := initStateFile()
-	if err := writeStateFile(stateFilePath, initialState); err != nil {
-		fmt.Printf("Error writing state.json: %v\n", err)
-		os.Exit(1)
-	}
-
 	fmt.Println("✓ Created .smaqit/ directory structure")
 	fmt.Println("✓ Copied templates")
 	fmt.Println("✓ Copied agent definitions")
@@ -312,139 +386,6 @@ func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
 
 		return nil
 	})
-}
-
-// validateStateFile performs comprehensive validation of state.json structure
-// Returns the count of errors found
-func validateStateFile(path string) int {
-	errors := 0
-
-	// Check file exists
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		fmt.Printf("✗ Missing file: %s\n", path)
-		fmt.Println("  → Run 'smaqit init' to create state.json")
-		return 1
-	}
-
-	// Read and parse JSON
-	content, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Printf("✗ Cannot read %s: %v\n", path, err)
-		fmt.Println("  → Check file permissions")
-		return 1
-	}
-
-	// Parse JSON structure
-	var rawState map[string]interface{}
-	if err := json.Unmarshal(content, &rawState); err != nil {
-		fmt.Printf("✗ Invalid JSON in %s: %v\n", path, err)
-		fmt.Println("  → Fix JSON syntax or regenerate with 'smaqit init' (after backup)")
-		return 1
-	}
-
-	// Validate version field
-	version, versionExists := rawState["version"]
-	if !versionExists {
-		fmt.Printf("✗ Missing 'version' field in %s\n", path)
-		fmt.Println("  → Add: \"version\": \"1.0\"")
-		errors++
-	} else if versionStr, ok := version.(string); !ok {
-		fmt.Printf("✗ Invalid 'version' field type in %s (expected string)\n", path)
-		fmt.Println("  → Change to: \"version\": \"1.0\"")
-		errors++
-	} else if versionStr == "" {
-		fmt.Printf("✗ Empty 'version' field in %s\n", path)
-		fmt.Println("  → Set to: \"version\": \"1.0\"")
-		errors++
-	}
-
-	// Validate phases map exists
-	phasesRaw, phasesExists := rawState["phases"]
-	if !phasesExists {
-		fmt.Printf("✗ Missing 'phases' object in %s\n", path)
-		fmt.Println("  → Add phases object with develop, deploy, validate keys")
-		return errors + 1
-	}
-
-	phasesMap, ok := phasesRaw.(map[string]interface{})
-	if !ok {
-		fmt.Printf("✗ Invalid 'phases' field type in %s (expected object)\n", path)
-		fmt.Println("  → Change to object containing phase states")
-		return errors + 1
-	}
-
-	// Check phase keys exist and are ordered correctly
-	requiredPhases := []string{"develop", "deploy", "validate"}
-
-	// Check each required phase exists
-	for _, phase := range requiredPhases {
-		phaseData, exists := phasesMap[phase]
-		if !exists {
-			fmt.Printf("✗ Missing phase '%s' in %s\n", phase, path)
-			fmt.Printf("  → Add: \"%s\": {\"completed\": false}\n", phase)
-			errors++
-			continue
-		}
-
-		// Validate phase object structure
-		phaseObj, ok := phaseData.(map[string]interface{})
-		if !ok {
-			fmt.Printf("✗ Phase '%s' is not an object in %s\n", phase, path)
-			fmt.Printf("  → Change to: \"%s\": {\"completed\": false}\n", phase)
-			errors++
-			continue
-		}
-
-		// Check 'completed' field exists
-		completed, completedExists := phaseObj["completed"]
-		if !completedExists {
-			fmt.Printf("✗ Phase '%s' missing 'completed' field in %s\n", phase, path)
-			fmt.Printf("  → Add 'completed' boolean to %s phase\n", phase)
-			errors++
-		} else if _, ok := completed.(bool); !ok {
-			fmt.Printf("✗ Phase '%s' has invalid 'completed' type in %s (expected boolean)\n", phase, path)
-			fmt.Printf("  → Change 'completed' to true or false in %s phase\n", phase)
-			errors++
-		}
-	}
-
-	// Check phase ordering in JSON
-	// Parse JSON preserving order by examining raw bytes
-	if err := validatePhaseOrdering(content, path); err != nil {
-		fmt.Printf("⚠ Phase ordering in %s: %v\n", path, err)
-		fmt.Println("  → Expected order: develop, deploy, validate")
-		fmt.Println("  → This is a semantic issue; functionality is not affected")
-		// Warning only, not an error
-	}
-
-	if errors == 0 {
-		fmt.Printf("✓ State file %s is valid\n", path)
-	}
-
-	return errors
-}
-
-// validatePhaseOrdering checks if phases appear in correct order in JSON text
-// This is a semantic check for readability, not a functional requirement
-func validatePhaseOrdering(jsonContent []byte, path string) error {
-	content := string(jsonContent)
-
-	// Find position of each phase key in JSON text
-	developPos := strings.Index(content, "\"develop\"")
-	deployPos := strings.Index(content, "\"deploy\"")
-	validatePos := strings.Index(content, "\"validate\"")
-
-	// If any phase is missing, ordering check is irrelevant (will be caught by earlier checks)
-	if developPos == -1 || deployPos == -1 || validatePos == -1 {
-		return nil
-	}
-
-	// Check ordering: develop < deploy < validate
-	if developPos > deployPos || deployPos > validatePos {
-		return fmt.Errorf("phases not in workflow order (develop → deploy → validate)")
-	}
-
-	return nil
 }
 
 func cmdUninstall() {
@@ -564,11 +505,6 @@ func cmdValidate() {
 		fmt.Println("✓ Directory structure is complete")
 	}
 
-	// Validate state.json
-	stateFilePath := filepath.Join(".smaqit", "state.json")
-	stateErrors := validateStateFile(stateFilePath)
-	errors += stateErrors
-
 	// Validate spec files (basic checks)
 	layers := []string{"business", "functional", "stack", "infrastructure", "coverage"}
 	for _, layer := range layers {
@@ -629,35 +565,6 @@ func cmdValidate() {
 	}
 }
 
-// printPhaseStatus outputs the phase completion status with optional timestamp and spec counts
-// hasSpecs indicates if there are any specs in the phase's layers
-func printPhaseStatus(phase PhaseState, hasSpecs bool) {
-	if phase.Completed {
-		timestamp := phase.Timestamp
-		if timestamp != "" {
-			// Parse and format timestamp
-			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
-				timestamp = t.Format("2006-01-02")
-			}
-			fmt.Printf("✓ Complete (%s)", timestamp)
-		} else {
-			fmt.Print("✓ Complete")
-		}
-		// Show spec counts if available
-		if phase.SpecsProcessed > 0 {
-			fmt.Printf(" - %d processed, %d succeeded", phase.SpecsProcessed, phase.SpecsSucceeded)
-			if phase.SpecsFailed > 0 {
-				fmt.Printf(", %d failed", phase.SpecsFailed)
-			}
-		}
-		fmt.Println()
-	} else if hasSpecs {
-		fmt.Println("In progress")
-	} else {
-		fmt.Println("Not started")
-	}
-}
-
 func cmdStatus() {
 	// Check if .smaqit exists
 	if _, err := os.Stat(".smaqit"); os.IsNotExist(err) {
@@ -669,67 +576,140 @@ func cmdStatus() {
 	fmt.Println("smaqit Project Status")
 	fmt.Println("=====================\n")
 
-	// Read state.json
-	stateFilePath := filepath.Join(".smaqit", "state.json")
-	state := readStateFile(stateFilePath)
+	// Scan all specs
+	allSpecs, err := scanSpecs()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error scanning specs: %v\n", err)
+		os.Exit(1)
+	}
 
-	// Scan specs by layer
-	layers := []string{"business", "functional", "stack", "infrastructure", "coverage"}
+	// Count specs by layer and status
 	layerCounts := make(map[string]int)
+	layerStatusCounts := make(map[string]map[string]int)
+
+	for layer, specs := range allSpecs {
+		layerCounts[layer] = len(specs)
+		layerStatusCounts[layer] = make(map[string]int)
+
+		for _, spec := range specs {
+			layerStatusCounts[layer][spec.Frontmatter.Status]++
+		}
+	}
+
 	totalSpecs := 0
-
-	for _, layer := range layers {
-		specDir := filepath.Join("specs", layer)
-		entries, err := os.ReadDir(specDir)
-		if err != nil {
-			layerCounts[layer] = 0
-			continue
-		}
-
-		count := 0
-		for _, entry := range entries {
-			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
-				count++
-			}
-		}
-		layerCounts[layer] = count
+	for _, count := range layerCounts {
 		totalSpecs += count
 	}
 
+	// Determine phase completion status
+	// A phase is ONLY complete when:
+	// 1. ALL required layers have at least one spec, AND
+	// 2. ALL specs in those layers have reached the target status
+	
+	// Phase 1: Develop (requires business, functional, stack)
+	developSpecs := getPhaseSpecs(allSpecs, "develop")
+	developImplemented := 0
+	for _, spec := range developSpecs {
+		if spec.Frontmatter.Status == "implemented" ||
+			spec.Frontmatter.Status == "deployed" ||
+			spec.Frontmatter.Status == "validated" {
+			developImplemented++
+		}
+	}
+	// Require all three layers present
+	hasAllDevelopLayers := layerCounts["business"] > 0 && 
+	                        layerCounts["functional"] > 0 && 
+	                        layerCounts["stack"] > 0
+	developCompleted := hasAllDevelopLayers && 
+	                    len(developSpecs) > 0 && 
+	                    developImplemented == len(developSpecs)
+
+	// Phase 2: Deploy (requires infrastructure)
+	deploySpecs := getPhaseSpecs(allSpecs, "deploy")
+	deployDeployed := 0
+	for _, spec := range deploySpecs {
+		if spec.Frontmatter.Status == "deployed" ||
+			spec.Frontmatter.Status == "validated" {
+			deployDeployed++
+		}
+	}
+	deployCompleted := layerCounts["infrastructure"] > 0 && 
+	                   len(deploySpecs) > 0 && 
+	                   deployDeployed == len(deploySpecs)
+
+	// Phase 3: Validate (requires coverage)
+	validateSpecs := getPhaseSpecs(allSpecs, "validate")
+	validateValidated := 0
+	for _, spec := range validateSpecs {
+		if spec.Frontmatter.Status == "validated" {
+			validateValidated++
+		}
+	}
+	validateCompleted := layerCounts["coverage"] > 0 && 
+	                     len(validateSpecs) > 0 && 
+	                     validateValidated == len(validateSpecs)
+
+	// Calculate pending counts for in-progress display
+	developPending := len(filterSpecsByStatus(developSpecs, "develop", false))
+	deployPending := len(filterSpecsByStatus(deploySpecs, "deploy", false))
+	validatePending := len(filterSpecsByStatus(validateSpecs, "validate", false))
+
 	// Display phases with nested layers
 	// Phase 1: Develop
-	developPhase := state.Phases.Develop
-	developHasSpecs := layerCounts["business"] > 0 || layerCounts["functional"] > 0 || layerCounts["stack"] > 0
 	fmt.Print("Phase 1 (Develop): ")
-	printPhaseStatus(developPhase, developHasSpecs)
-	fmt.Printf("  Business:        %d spec(s)\n", layerCounts["business"])
-	fmt.Printf("  Functional:      %d spec(s)\n", layerCounts["functional"])
-	fmt.Printf("  Stack:           %d spec(s)\n", layerCounts["stack"])
+	if developCompleted {
+		fmt.Println("✓ Complete")
+	} else if len(developSpecs) > 0 {
+		fmt.Printf("⚙ In progress (%d pending)\n", developPending)
+	} else {
+		fmt.Println("✗ Not started")
+	}
+
+	// Show status breakdown for each layer
+	businessStatusSummary := getStatusSummary(layerStatusCounts["business"], layerCounts["business"])
+	functionalStatusSummary := getStatusSummary(layerStatusCounts["functional"], layerCounts["functional"])
+	stackStatusSummary := getStatusSummary(layerStatusCounts["stack"], layerCounts["stack"])
+
+	fmt.Printf("  Business:        %d spec(s)%s\n", layerCounts["business"], businessStatusSummary)
+	fmt.Printf("  Functional:      %d spec(s)%s\n", layerCounts["functional"], functionalStatusSummary)
+	fmt.Printf("  Stack:           %d spec(s)%s\n", layerCounts["stack"], stackStatusSummary)
 	fmt.Println()
 
 	// Phase 2: Deploy
-	deployPhase := state.Phases.Deploy
-	deployHasSpecs := layerCounts["infrastructure"] > 0
 	fmt.Print("Phase 2 (Deploy): ")
-	printPhaseStatus(deployPhase, deployHasSpecs)
-	fmt.Printf("  Infrastructure:  %d spec(s)\n", layerCounts["infrastructure"])
+	if deployCompleted {
+		fmt.Println("✓ Complete")
+	} else if len(deploySpecs) > 0 {
+		fmt.Printf("⚙ In progress (%d pending)\n", deployPending)
+	} else {
+		fmt.Println("✗ Not started")
+	}
+
+	infraStatusSummary := getStatusSummary(layerStatusCounts["infrastructure"], layerCounts["infrastructure"])
+	fmt.Printf("  Infrastructure:  %d spec(s)%s\n", layerCounts["infrastructure"], infraStatusSummary)
 	fmt.Println()
 
 	// Phase 3: Validate
-	validatePhase := state.Phases.Validate
-	validateHasSpecs := layerCounts["coverage"] > 0
 	fmt.Print("Phase 3 (Validate): ")
-	printPhaseStatus(validatePhase, validateHasSpecs)
-	fmt.Printf("  Coverage:        %d spec(s)\n", layerCounts["coverage"])
+	if validateCompleted {
+		fmt.Println("✓ Complete")
+	} else if len(validateSpecs) > 0 {
+		fmt.Printf("⚙ In progress (%d pending)\n", validatePending)
+	} else {
+		fmt.Println("✗ Not started")
+	}
+
+	coverageStatusSummary := getStatusSummary(layerStatusCounts["coverage"], layerCounts["coverage"])
+	fmt.Printf("  Coverage:        %d spec(s)%s\n", layerCounts["coverage"], coverageStatusSummary)
 
 	// Display total
 	fmt.Printf("\nTotal: %d specification(s)\n", totalSpecs)
 
-	// Next steps based on actual spec content and phase state
+	// Next steps based on actual spec content and status
 	fmt.Println("\nNext steps:")
 
 	// Phase 1: Develop
-	if !developPhase.Completed {
+	if !developCompleted {
 		hasAnyPhase1 := layerCounts["business"] > 0 || layerCounts["functional"] > 0 || layerCounts["stack"] > 0
 
 		if !hasAnyPhase1 {
@@ -744,24 +724,57 @@ func cmdStatus() {
 				fmt.Println("  • Type '/smaqit.stack' to add technical stack specifications")
 			} else {
 				// All Phase 1 specs exist
+				fmt.Println("  • Run 'smaqit plan --phase=develop' to see work plan")
 				fmt.Println("  • Type '/smaqit.development' to implement from specifications")
 			}
 		}
-	} else if !deployPhase.Completed {
+	} else if !deployCompleted {
 		// Phase 2: Deploy
 		if layerCounts["infrastructure"] == 0 {
 			fmt.Println("  • Type '/smaqit.infrastructure' to define infrastructure specifications")
 		} else {
+			fmt.Println("  • Run 'smaqit plan --phase=deploy' to see work plan")
 			fmt.Println("  • Type '/smaqit.deployment' to deploy the implementation")
 		}
-	} else if !validatePhase.Completed {
+	} else if !validateCompleted {
 		// Phase 3: Validate
 		if layerCounts["coverage"] == 0 {
 			fmt.Println("  • Type '/smaqit.coverage' to define test coverage specifications")
 		} else {
+			fmt.Println("  • Run 'smaqit plan --phase=validate' to see work plan")
 			fmt.Println("  • Type '/smaqit.validation' to validate the deployment")
 		}
 	} else {
 		fmt.Println("  • All phases complete. Run '/smaqit.orchestrate' to iterate or extend.")
 	}
+}
+
+// getStatusSummary returns a formatted string showing status breakdown
+func getStatusSummary(statusCounts map[string]int, total int) string {
+	if total == 0 {
+		return ""
+	}
+
+	parts := []string{}
+	if draft := statusCounts["draft"]; draft > 0 {
+		parts = append(parts, fmt.Sprintf("%d draft", draft))
+	}
+	if failed := statusCounts["failed"]; failed > 0 {
+		parts = append(parts, fmt.Sprintf("%d failed", failed))
+	}
+	if impl := statusCounts["implemented"]; impl > 0 {
+		parts = append(parts, fmt.Sprintf("%d implemented", impl))
+	}
+	if deployed := statusCounts["deployed"]; deployed > 0 {
+		parts = append(parts, fmt.Sprintf("%d deployed", deployed))
+	}
+	if validated := statusCounts["validated"]; validated > 0 {
+		parts = append(parts, fmt.Sprintf("%d validated", validated))
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	return " (" + strings.Join(parts, ", ") + ")"
 }

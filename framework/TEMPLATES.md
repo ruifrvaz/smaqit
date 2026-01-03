@@ -80,11 +80,38 @@ Every specification template MUST include:
 
 | Section | Purpose |
 |---------|---------|
+| Frontmatter | YAML metadata with state tracking |
 | Title | Concept name |
 | References | Upstream spec links (except Business) |
 | Scope | What's included and excluded |
 | [Layer-specific content] | Varies by layer |
 | Acceptance Criteria | Testable requirements with IDs |
+
+**Frontmatter Requirements:**
+
+All spec templates MUST begin with YAML frontmatter:
+
+```yaml
+---
+id: [LAYER_PREFIX]-[CONCEPT]
+status: draft
+created: [TIMESTAMP]
+prompt_version: [GIT_HASH]
+---
+```
+
+**Required frontmatter fields:**
+- `id`: Spec identifier (e.g., `BUS-LOGIN`, `FUN-AUTH-FLOW`)
+- `status`: Initial state is always `draft`
+- `created`: ISO8601 timestamp when spec generated
+- `prompt_version`: Git commit hash of prompt file at generation
+
+**Optional frontmatter fields** (added by implementation agents):
+- `implemented`: Timestamp when Development agent completed
+- `deployed`: Timestamp when Deployment agent completed
+- `validated`: Timestamp when Validation agent completed
+
+Specification agents MUST generate frontmatter with required fields. Implementation agents update frontmatter as specs progress through phases.
 
 ### Compliance Rules
 

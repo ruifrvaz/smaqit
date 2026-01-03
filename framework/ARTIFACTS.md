@@ -224,6 +224,88 @@ A specification is complete when:
 - Scope boundaries are explicitly stated
 - No implementation details are present (except Stack layer)
 
+### Specification State
+
+Specifications carry state through implementation phases via frontmatter metadata.
+
+**Frontmatter Schema:**
+
+```yaml
+---
+id: [LAYER_PREFIX]-[CONCEPT]
+status: draft | implemented | deployed | validated | failed | deprecated
+created: [ISO8601_TIMESTAMP]
+implemented: [ISO8601_TIMESTAMP]
+deployed: [ISO8601_TIMESTAMP]
+validated: [ISO8601_TIMESTAMP]
+prompt_version: [GIT_COMMIT_HASH]
+---
+```
+
+**Required Fields:**
+- `id`: Unique spec identifier (format: `BUS-LOGIN`, `FUN-AUTH`, etc.)
+- `status`: Current lifecycle state
+- `created`: Timestamp when spec was generated
+- `prompt_version`: Git commit hash of prompt file at spec generation time
+
+**Optional Fields (set by implementation agents):**
+- `implemented`: When Development agent completed code generation
+- `deployed`: When Deployment agent completed deployment
+- `validated`: When Validation agent verified acceptance criteria
+
+**State Transitions:**
+
+| From State | To State | Triggered By | Agent |
+|------------|----------|--------------|-------|
+| (none) | `draft` | Spec generation | Specification agents |
+| `draft` | `implemented` | Code generated, tests pass | Development agent |
+| `draft` | `failed` | Code generation failed | Development agent |
+| `implemented` | `deployed` | Deployment succeeded | Deployment agent |
+| `implemented` | `failed` | Deployment failed | Deployment agent |
+| `deployed` | `validated` | All tests passed | Validation agent |
+| `deployed` | `failed` | Tests failed | Validation agent |
+| Any | `deprecated` | Feature removed | Manual/Specification agents |
+
+**Acceptance Criteria State:**
+
+Validation agent updates checkboxes:
+- `[ ]` = Not yet validated
+- `[x]` = Passed validation
+- `[!]` = Failed validation (include reason)
+
+Example:
+```markdown
+## Acceptance Criteria
+
+- [x] BUS-LOGIN-001: User can authenticate with valid credentials
+- [x] BUS-LOGIN-002: Invalid credentials show error message
+- [!] BUS-LOGIN-003: Password complexity enforced (FAILED: regex bug)
+```
+
+**Stale Specs:**
+
+Specs become stale when content changes after implementation. Detection is **user responsibility**.
+
+**State Aggregation:**
+
+Phase state in `.smaqit/state.json` aggregates individual spec states:
+
+```json
+{
+  "phases": {
+    "develop": {
+      "completed": true,
+      "timestamp": "2026-01-02T10:30:00Z",
+      "specs_processed": 20,
+      "specs_succeeded": 18,
+      "specs_failed": 2
+    }
+  }
+}
+```
+
+Implementation agents MUST update both spec frontmatter AND state.json counts.
+
 ---
 
 ## Implementation Artifacts

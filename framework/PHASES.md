@@ -322,6 +322,48 @@ Coverage phase always re-runs when any upstream spec changes to ensure test cove
 
 ---
 
+## Incremental Development
+
+smaqit supports incremental workflows where specs are added and implemented iteratively.
+
+**Spec State Tracking:**
+
+Each spec carries state through phases:
+- Draft → Implemented → Deployed → Validated
+
+Implementation agents update both:
+1. **Spec frontmatter**: Individual spec status and timestamps
+2. **Phase state** (`.smaqit/state.json`): Aggregate counts per phase
+
+**Adding Features:**
+
+```
+1. User adds requirements to prompt file
+2. Spec agent generates new specs (status: draft)
+3. Implementation agents process new specs only
+4. Existing implemented specs remain unchanged
+5. Tests validate new + existing functionality
+```
+
+**Spec Counts in State:**
+
+```json
+{
+  "phases": {
+    "develop": {
+      "completed": true,
+      "specs_processed": 20,
+      "specs_succeeded": 18,
+      "specs_failed": 2
+    }
+  }
+}
+```
+
+Agents MUST update spec counts when processing specs.
+
+---
+
 ## Current Assumptions
 
 These assumptions are explicitly stated and subject to revision per [SMAQIT](SMAQIT.md):
@@ -330,4 +372,3 @@ These assumptions are explicitly stated and subject to revision per [SMAQIT](SMA
 |------------|--------|------------------|
 | Phases are strictly sequential | Active | Incremental deployment proves valuable |
 | Validation failures require human decision | Active | Patterns emerge for automated routing |
-| New features trigger new cycle | Active | Addressed in task 014 |

@@ -87,6 +87,17 @@ Layers are independent but must be coherent:
 - No layer derives requirements from another—each reads from its own prompt file
 - Implementation agents validate cross-layer coherence before execution
 
+### Stateful Specifications
+
+**Specifications track their lifecycle state through implementation phases.**
+
+Specs are not static documents—they evolve through phases with tracked states:
+- **Draft**: Spec generated, ready for implementation
+- **Implemented**: Code generated, tests pass
+- **Deployed**: Running in target environment
+- **Validated**: All acceptance criteria verified
+- **Failed**: Processing failed at some phase
+
 ### Explicit Over Implicit
 
 **When in doubt, make it explicit.**

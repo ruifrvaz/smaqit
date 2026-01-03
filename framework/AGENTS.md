@@ -87,6 +87,8 @@ Each layer reads from its own prompt file. Upstream layers provide context for c
 
 **Specification agents MUST:**
 - Produce one specification file per distinct concept (e.g., one use case, one API contract)
+- Generate YAML frontmatter with required fields: `id`, `status: draft`, `created`, `prompt_version`
+- Capture git commit hash of prompt file at generation time for `prompt_version` field
 - Include testable acceptance criteria in every specification
 - Reference context specs used for coherence and traceability
 - Validate output against layer template before completion
@@ -132,17 +134,29 @@ Implementation agents transform specifications into working software, deployed s
 - Trace every implementation decision to a specification
 - Validate output against specification acceptance criteria
 - Report deviations or impossibilities rather than silently diverge
-- Write phase completion to `.smaqit/state.json` using atomic write pattern upon successful completion
+- Update spec frontmatter status and timestamps during processing
+- Write phase completion and spec counts to `.smaqit/state.json` using atomic write pattern
 
-**State tracking format:**
+**State tracking responsibilities:**
+
+| Agent | Updates Spec Frontmatter | Updates state.json |
+|-------|-------------------------|--------------------|
+| Development | `status: implemented` or `failed`<br>`implemented: [timestamp]` | `specs_processed`, `specs_succeeded`, `specs_failed` |
+| Deployment | `status: deployed` or `failed`<br>`deployed: [timestamp]` | `specs_processed`, `specs_succeeded`, `specs_failed` |
+| Validation | `status: validated` or `failed`<br>`validated: [timestamp]`<br>Update checkboxes: `[ ]` → `[x]` or `[!]` | `specs_processed`, `specs_succeeded`, `specs_failed` |
+
+**Phase state format:**
 ```json
 {
   "completed": true,
-  "timestamp": "2025-12-26T10:30:00Z"
+  "timestamp": "2026-01-02T10:30:00Z",
+  "specs_processed": 20,
+  "specs_succeeded": 18,
+  "specs_failed": 2
 }
 ```
 
-Agents update the appropriate phase key (`develop`, `deploy`, or `validate`) in `.smaqit/state.json`. Use atomic writes (temp file + rename) to prevent corruption during concurrent access.
+Agents use atomic writes (temp file + rename) to prevent corruption during concurrent access.
 
 **Implementation agents MUST NOT:**
 - Modify specifications (request changes through proper channels)

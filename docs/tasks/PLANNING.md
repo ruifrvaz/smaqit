@@ -50,12 +50,12 @@
 | 043 | Refine copilot instructions regarding example usage |
 | 044 | Clean up old prompt name references |
 | 014 | Define iterative development using smaqit |
-| 045 | Validate stateful specifications infrastructure |
 | 022 | Create GitHub Action for automated releases |
 | 033 | Fix state.json phase ordering |
 | 032 | Status command intelligent next step logic |
 | 046 | Document iterative development quick start |
 | 047 | Implement incremental processing in implementation agents |
+| 045 | Validate stateful specifications infrastructure |
 
 ## Backlog
 

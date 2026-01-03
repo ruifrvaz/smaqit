@@ -1,7 +1,7 @@
 ---
 name: smaqit.[PHASE]
 description: [AGENT_DESCRIPTION]
-tools: ['execute', 'read', 'edit', 'search', 'todo']
+tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests']
 ---
 
 # [AGENT_NAME]

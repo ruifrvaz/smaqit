@@ -1,7 +1,7 @@
 ---
 name: smaqit.orchestrator
 description: [ORCHESTRATOR_DESCRIPTION]
-tools: ['agent', 'execute', 'read', 'edit', 'search', 'todo']
+tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runSubagent', 'runTests']
 ---
 
 # Orchestrator Agent

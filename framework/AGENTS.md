@@ -186,18 +186,24 @@ Implementation agents require execution capabilities that specification agents d
 
 | Agent Type | Tools | Rationale |
 |------------|-------|-----------|
-| Specification | `read`, `edit`, `search` | Produce documents only |
-| Implementation | `execute`, `read`, `edit`, `search`, `todo` | Build, run, test applications |
+| Specification | `edit`, `search`, `usages`, `fetch`, `todos` | Produce documents only |
+| Implementation | `edit`, `search`, `runCommands`, `problems`, `changes`, `testFailure`, `todos`, `runTests` | Build, run, test applications |
 
 **Tool descriptions:**
 
 | Tool | Purpose |
 |------|---------|
-| `execute` | Run terminal commands (build, test, deploy) |
-| `read` | Read files and specifications |
 | `edit` | Create and modify files |
 | `search` | Search codebase and specifications |
-| `todo` | Track multi-step task progress |
+| `usages` | Find code references and usages |
+| `fetch` | Fetch web content |
+| `todos` | Track multi-step task progress |
+| `runCommands` | Run terminal commands (build, test, deploy) |
+| `problems` | Get compilation and lint errors |
+| `changes` | Get git diffs and file changes |
+| `testFailure` | Get test failure information |
+| `runTests` | Execute unit tests |
+| `runSubagent` | Invoke other agents (orchestrator only) |
 
 Agents MUST NOT proceed with implementation while unresolved conflicts exist.
 
@@ -246,16 +252,19 @@ The orchestrator agent coordinates full workflow execution from specifications t
 
 ### Tooling
 
-Orchestrator agent requires the `agent` tool to invoke other agents:
+Orchestrator agent requires all implementation tools plus the ability to invoke other agents:
 
 | Tool | Purpose |
 |------|----------|
-| `agent` | Invoke specification and implementation agents |
-| `execute` | Run validation commands |
-| `read` | Read prompts and orchestration parameters |
 | `edit` | Create orchestration reports |
 | `search` | Locate prompt files and verify completeness |
-| `todo` | Track multi-phase workflow progress |
+| `runCommands` | Run validation commands |
+| `problems` | Check for compilation/lint errors |
+| `changes` | Monitor git state |
+| `testFailure` | Get test failure information |
+| `todos` | Track multi-phase workflow progress |
+| `runSubagent` | Invoke specification and implementation agents |
+| `runTests` | Execute tests |
 
 ### Orchestrator Agent Mapping
 

@@ -1,7 +1,7 @@
 ---
 name: smaqit.[LAYER]
 description: [AGENT_DESCRIPTION]
-tools: ["read", "edit", "search"]
+tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 ---
 
 # [LAYER_NAME] Agent

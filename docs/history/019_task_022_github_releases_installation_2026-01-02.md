@@ -196,18 +196,61 @@ case "help", "--help", "-h":
 3. **Package Managers:** Evaluate adding Homebrew tap or other package manager support if demand exists
 4. **Installation Documentation:** Add troubleshooting section to README based on user feedback
 
+## Additional Work: Tasks 032 and 033
+
+After completing the release workflow and installation system, addressed two open tasks identified from user testing:
+
+### Task 033: Fix state.json Phase Ordering
+
+**Problem:** JSON map ordering was unpredictable, phases appeared as deploy/develop/validate instead of develop/deploy/validate.
+
+**Solution:** Changed from `map[string]PhaseState` to ordered struct with explicit fields:
+```go
+type Phases struct {
+    Develop  PhaseState `json:"develop"`
+    Deploy   PhaseState `json:"deploy"`
+    Validate PhaseState `json:"validate"`
+}
+```
+
+**Result:** JSON now consistently outputs phases in workflow order. Simplified code by removing map key existence checks (struct fields always exist, zero values work correctly).
+
+### Task 032: Status Command Intelligent Next Step Logic
+
+**Problem:** `smaqit status` suggested `/smaqit.development` even with 0 specs or incomplete Phase 1 specs, misleading users.
+
+**Solution:** Implemented spec-aware suggestion logic:
+- Empty project → `/smaqit.business`
+- Only business → `/smaqit.functional`
+- Business + functional → `/smaqit.stack`
+- All Phase 1 specs → `/smaqit.development`
+- Phase 1 complete, no infra → `/smaqit.infrastructure`
+- Phase 1 complete, has infra → `/smaqit.deployment`
+- Similar logic for Phase 3
+
+**Testing:** 6 test scenarios passed, verified progressive guidance works correctly.
+
+### Release v0.4.2-beta
+
+Created third release of the session with fixes from Tasks 032 and 033:
+- Intelligent status suggestions based on actual spec file presence
+- Consistent phase ordering in state.json
+- Progressive workflow guidance
+
 ## Session Metrics
 
-**Duration:** ~3 hours (including Go installation)  
-**Tasks Completed:** 1 (Task 022 + extended scope)  
+**Duration:** ~4 hours (including Go installation and task fixes)  
+**Tasks Completed:** 3 (Task 022 + extended scope, Task 033, Task 032)  
 **Files Created:** 5 (workflow, changelog, agents, prompts, install script)  
-**Files Modified:** 3 (main.go, README.md, task file)  
-**Releases Created:** 2 (v0.4.0-beta, v0.4.1-beta)  
+**Files Modified:** 5 (main.go, README.md, task files x3, PLANNING.md)  
+**Releases Created:** 3 (v0.4.0-beta, v0.4.1-beta, v0.4.2-beta)  
 **Key Outcomes:**
 - Fully automated release workflow operational
 - One-line installation command working
-- Standard CLI conventions adopted
+- Standard CLI conventions adopted (--version, -v flags)
 - Repository now public for easy distribution
+- Intelligent status command guidance prevents premature implementation
+- Consistent phase ordering in state.json
 
 ## Technical Notes
 

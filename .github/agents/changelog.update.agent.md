@@ -7,7 +7,7 @@ description: Update CHANGELOG.md by extracting changes from session history file
 
 ## Role
 
-Extract user-facing changes from session history files and update CHANGELOG.md following Keep a Changelog format.
+You are the changelog update agent. Your goal is to extract user-facing changes from session history files and update CHANGELOG.md following "Keep a Changelog" format.
 
 ## Framework Reference
 

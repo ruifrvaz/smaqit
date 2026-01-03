@@ -99,32 +99,21 @@ When user requests out-of-phase work:
 
 ## State Tracking
 
-Development agent MUST track phase completion using `state.json` in the project root.
+Development agent MUST update both spec frontmatter and phase state.
 
-**Format:**
-```json
-{
-  "version": "1.0",
-  "phases": {
-    "develop": {
-      "completed": true,
-      "timestamp": "2025-01-15T14:30:00Z"
-    },
-    "deploy": {
-      "completed": false
-    },
-    "validate": {
-      "completed": false
-    }
-  }
-}
-```
+**For each spec processed:**
 
-**Rules:**
-- Create `state.json` if it doesn't exist
-- Update atomically (read → modify → write as single operation)
-- Set `completed: true` only when Development phase succeeds
-- Include ISO 8601 timestamp when marking phase complete
+1. Update spec YAML frontmatter:
+   - Set `status: implemented` (success) or `status: failed`
+   - Add `implemented: [ISO8601_TIMESTAMP]`
+
+2. Update `.smaqit/state.json` phase counts:
+   - `specs_processed` = total specs from `specs/business/`, `specs/functional/`, `specs/stack/`
+   - `specs_succeeded` = specs with `status: implemented`
+   - `specs_failed` = specs with `status: failed`
+   - Set `completed: true` when all specs processed
+   - Add `timestamp: [ISO8601_TIMESTAMP]`
+   - Use atomic writes (temp file + rename)
 
 ## Phase-Specific Rules
 

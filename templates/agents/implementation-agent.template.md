@@ -97,17 +97,24 @@ When user requests out-of-phase work:
 
 ## State Tracking
 
-Upon successful phase completion, write to `.smaqit/state.json`:
+[AGENT_NAME] MUST update both spec frontmatter and phase state.
 
-**Format:**
-```json
-{
-  "completed": true,
-  "timestamp": "2025-12-26T10:30:00Z"
-}
-```
+**For each spec processed:**
 
-Update the appropriate phase key (`develop`, `deploy`, or `validate`). Use atomic writes (temp file + rename) to prevent corruption during concurrent access.
+1. Update spec YAML frontmatter:
+   - [FRONTMATTER_STATUS_DIRECTIVE]
+   - [FRONTMATTER_TIMESTAMP_DIRECTIVE]
+
+[ADDITIONAL_STATE_DIRECTIVES]
+
+2. Update `.smaqit/state.json` phase counts:
+   - `specs_processed` = [SPEC_COUNT_SOURCE]
+   - `specs_succeeded` = [SUCCESS_CRITERIA]
+   - `specs_failed` = [FAILURE_CRITERIA]
+   - Set `completed: true` when all specs processed
+   - Add `timestamp: [ISO8601_TIMESTAMP]`
+   - Use atomic writes (temp file + rename)
+[ADDITIONAL_STATE_RULES]
 
 ## Completion Criteria
 

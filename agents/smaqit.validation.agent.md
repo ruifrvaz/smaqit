@@ -95,34 +95,25 @@ When user requests out-of-phase work:
 
 ## State Tracking
 
-Validation agent MUST track phase completion using `state.json` in the project root.
+Validation agent MUST update spec frontmatter, acceptance criteria checkboxes, and phase state.
 
-**Format:**
-```json
-{
-  "version": "1.0",
-  "phases": {
-    "develop": {
-      "completed": true,
-      "timestamp": "2025-01-15T14:30:00Z"
-    },
-    "deploy": {
-      "completed": true,
-      "timestamp": "2025-01-15T15:45:00Z"
-    },
-    "validate": {
-      "completed": true,
-      "timestamp": "2025-01-15T16:20:00Z"
-    }
-  }
-}
-```
+**For each coverage spec processed:**
 
-**Rules:**
-- Read existing `state.json` (created by Development/Deployment agents)
-- Update atomically (read → modify → write as single operation)
-- Set `validate.completed: true` only when Validation phase succeeds
-- Include ISO 8601 timestamp when marking phase complete
+1. Update acceptance criteria checkboxes:
+   - `[ ]` → `[x]` (test passed)
+   - `[ ]` → `[!]` (test failed, include reason)
+
+2. Update spec YAML frontmatter:
+   - Set `status: validated` (all pass) or `status: failed` (any fail)
+   - Add `validated: [ISO8601_TIMESTAMP]`
+
+3. Update `.smaqit/state.json` phase counts:
+   - `specs_processed` = total specs from `specs/coverage/`
+   - `specs_succeeded` = specs with `status: validated` and all checkboxes `[x]`
+   - `specs_failed` = specs with `status: failed` or any checkboxes `[!]`
+   - Set `completed: true` when all specs processed
+   - Add `timestamp: [ISO8601_TIMESTAMP]`
+   - Use atomic writes (temp file + rename)
 
 ## Phase-Specific Rules
 

@@ -4,7 +4,7 @@
 
 | ID | Title | Status |
 |----|-------|--------|
-| 014 | Define iterative development using smaqit | new |
+| 047 | Implement incremental processing in implementation agents | new |
 | 025 | Integrate testing agent with CI/CD | new |
 | 031 | Review implementation artifacts | new |
 | 036 | Implement prompt addendum for reproducibility | new |
@@ -50,9 +50,12 @@
 | 035 | Nest layers under phases in status display |
 | 043 | Refine copilot instructions regarding example usage |
 | 044 | Clean up old prompt name references |
+| 014 | Define iterative development using smaqit |
+| 045 | Validate stateful specifications infrastructure |
 | 022 | Create GitHub Action for automated releases |
 | 033 | Fix state.json phase ordering |
 | 032 | Status command intelligent next step logic |
+| 046 | Document iterative development quick start |
 
 ## Backlog
 

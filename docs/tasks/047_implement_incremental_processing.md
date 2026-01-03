@@ -1,7 +1,8 @@
 # Implement Incremental Processing in Implementation Agents
 
-**Status:** New  
+**Status:** Completed  
 **Created:** 2026-01-03  
+**Completed:** 2026-01-03  
 **Related:** Task 014 (Stateful Specifications), Task 045 (Validation/Testing), Task 046 (Workflow Docs)  
 **Depends On:** Task 046 (workflow documentation defines requirements)
 
@@ -346,3 +347,65 @@ The user-testing agent's preliminary analysis identified the implementation appr
 - Agent-specific directory mappings
 
 This assessment should inform but not prescribe the actual implementation. Apply critical review to verify alignment with framework principles, user workflows, and technical feasibility.
+
+## Implementation Summary
+
+**Completed:** 2026-01-03
+
+**Final Architecture:**
+- **Single source of truth:** Frontmatter only (state.json removed entirely)
+- **Deterministic scanning:** Go CLI (`spec.go` + `main.go`) parses YAML frontmatter
+- **Directive-based agents:** Pure MUST/MUST NOT lists, no procedural workflows
+- **Phase completion rules:** ALL required layers + ALL specs at target status
+
+**Files Created:**
+- `installer/spec.go` (195 lines) - Spec scanning, frontmatter parsing, status filtering
+
+**Files Modified:**
+- `installer/main.go` - Added `plan` command, rewrote `status` command (~300 lines state.json removed)
+- `installer/go.mod` - Added gopkg.in/yaml.v3 v3.0.1 dependency
+- `framework/AGENTS.md` - Replaced procedural workflows with directive requirements
+- `framework/PHASES.md` - Documented `plan` command, explicit completion criteria for all phases
+- `framework/ARTIFACTS.md` - Removed state.json references, CLI aggregation only
+- `agents/smaqit.development.agent.md` - Pure directives, removed workflow section
+- `agents/smaqit.deployment.agent.md` - Pure directives, removed workflow section
+- `agents/smaqit.validation.agent.md` - Pure directives, removed workflow section
+- `agents/smaqit.orchestrator.agent.md` - Removed state.json metadata tracking
+- `templates/agents/implementation-agent.template.md` - Directive-based pattern
+
+**Key Commands:**
+```bash
+# Get specs to process (draft/failed)
+smaqit plan --phase=[develop|deploy|validate]
+
+# Regenerate all specs
+smaqit plan --phase=develop --regen
+
+# View status with phase completion
+smaqit status
+```
+
+**Critical Decisions:**
+1. **Removed state.json** - Eliminated dual system complexity, frontmatter is sole truth
+2. **CLI scanning** - Go parses YAML deterministically vs agents doing non-deterministic parsing
+3. **Directive-based** - Rejected procedural workflows, folded all requirements into MUST lists
+4. **Strict phase completion** - Requires ALL layers present (e.g., develop needs business+functional+stack)
+5. **Generic examples only** - Removed specific IDs (BUS-LOGIN-001) to prevent template pollution
+
+**Testing:**
+- ✅ `smaqit plan` outputs correct paths (incremental mode)
+- ✅ `smaqit plan --regen` includes all specs
+- ✅ `smaqit status` shows accurate phase completion
+- ✅ Phase completion requires all layers + correct status
+- ✅ Compiles successfully, all builds pass
+
+**Alignment with Acceptance Criteria:**
+- ✅ Agent updates: All 3 implementation agents have directive-based incremental processing
+- ✅ Framework updates: AGENTS.md, PHASES.md, ARTIFACTS.md updated
+- ✅ Template updates: implementation-agent.template.md has directive pattern
+- ✅ Validation: Tested with multiple scenarios (draft, implemented, missing layers)
+- ⚠️ Note: Implementation diverged from original design (removed procedural workflows entirely)
+
+**Documentation:**
+- Session history: `docs/history/024_stateful_specifications_2026-01-03.md`
+- Related: Task 014 (stateful specs), Task 046 (workflow docs)

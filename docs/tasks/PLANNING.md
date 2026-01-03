@@ -4,7 +4,6 @@
 
 | ID | Title | Status |
 |----|-------|--------|
-| 047 | Implement incremental processing in implementation agents | new |
 | 025 | Integrate testing agent with CI/CD | new |
 | 031 | Review implementation artifacts | new |
 | 036 | Implement prompt addendum for reproducibility | new |
@@ -56,6 +55,7 @@
 | 033 | Fix state.json phase ordering |
 | 032 | Status command intelligent next step logic |
 | 046 | Document iterative development quick start |
+| 047 | Implement incremental processing in implementation agents |
 
 ## Backlog
 

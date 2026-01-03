@@ -98,9 +98,9 @@ When regenerating specs after prompt amendments:
 - Deprecated features → Mark spec as deprecated → No re-implementation
 
 **Progress tracking:**
-- Check `.smaqit/state.json` for phase completion status
-- Regenerated specs that reset to `draft` decrement phase success counts
-- Re-implementation updates counts when specs transition back to `implemented`
+- Use `smaqit status` to check phase completion
+- Regenerated specs that reset to `draft` require re-implementation
+- Re-implementation updates status when specs transition back to `implemented`
 
 See [Stateful Specifications](../concepts/stateful-specifications.md) for lifecycle details.
 

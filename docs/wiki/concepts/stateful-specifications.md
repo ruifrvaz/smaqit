@@ -53,37 +53,6 @@ State tracking enables:
 3. **Targeted regeneration** — Regenerate only failed specs
 4. **Progress visibility** — See which specs are done vs. pending
 
-## Phase State Aggregation
-
-Implementation agents update `.smaqit/state.json` with aggregate counts:
-
-```json
-{
-  "version": "1.0",
-  "phases": {
-    "develop": {
-      "completed": true,
-      "timestamp": "2025-01-04T12:00:00Z",
-      "specs_processed": 15,
-      "specs_succeeded": 14,
-      "specs_failed": 1
-    },
-    "deploy": {
-      "completed": false,
-      "specs_processed": 0,
-      "specs_succeeded": 0,
-      "specs_failed": 0
-    },
-    "validate": {
-      "completed": false,
-      "specs_processed": 0,
-      "specs_succeeded": 0,
-      "specs_failed": 0
-    }
-  }
-}
-```
-
 ## Prompt Version Tracking
 
 `prompt_version` field captures the git commit hash of the prompt used to generate the spec:
@@ -107,11 +76,11 @@ Implementation agents update `.smaqit/state.json` with aggregate counts:
 - **Fragmentation**: State separated from content (harder to review)
 - **Merge complexity**: Two-file updates for every state change
 
-### Why Aggregate to state.json?
+### How Does CLI Track Phase Status?
 
-- **CLI efficiency**: Single file read for phase status
-- **Progress visibility**: Quick overview without scanning all specs
-- **Phase tracking**: Unified view of completion across layers
+- **Scanning**: CLI scans all spec files and parses frontmatter on demand
+- **Aggregation**: Counts specs by layer and status to determine phase completion
+- **No cache**: Always reads current state from spec files (source of truth)
 
 ## Related
 

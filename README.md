@@ -61,18 +61,6 @@ move smaqit_windows_amd64.exe C:\Windows\smaqit.exe
 ```bash
 # Initialize in your project
 smaqit init
-
-# Phase 1: Develop
-# Generate specs, then build
-smaqit develop
-
-# Phase 2: Deploy
-# Generate infrastructure spec, then deploy
-smaqit deploy
-
-# Phase 3: Validate
-# Generate coverage spec, then test
-smaqit validate
 ```
 
 **Spec-First Workflow (Alternative):**
@@ -82,11 +70,6 @@ smaqit init
 
 # Generate all specifications first
 # (invoke agents via GitHub Copilot chat)
-
-# Then execute phases
-smaqit develop
-smaqit deploy
-smaqit validate
 ```
 
 ## Commands
@@ -94,9 +77,6 @@ smaqit validate
 | Command | Description |
 |---------|-------------|
 | `smaqit init` | Scaffold `.smaqit/` and `.github/agents/` |
-| `smaqit develop` | Run develop phase |
-| `smaqit deploy` | Run deploy phase |
-| `smaqit validate` | Run validate phase |
 | `smaqit status` | Show current state |
 
 ---

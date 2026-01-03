@@ -73,8 +73,20 @@ Users may adopt patterns like:
 
 This is optional. Agents should tolerate varied styles.
 
+## State Tracking Integration
+
+When prompts evolve, specifications track their source version:
+
+- **Prompt version captured**: Each spec records the git commit hash of the prompt used to generate it (`prompt_version` field)
+- **Staleness detection**: Compare spec's `prompt_version` to current prompt commit
+- **Regeneration decision**: Users decide whether prompt changes warrant spec regeneration
+
+See [Stateful Specifications](../concepts/stateful-specifications.md) for lifecycle details.
+
 ## Related
 
 - [Prompts as Input Records](../concepts/prompts-as-input-records.md) — Why prompts are versioned
 - [Amending Requirements](../workflows/amending-requirements.md) — How to update prompts
 - [Archiving Prompts](archiving-prompts.md) — Managing historical versions
+- [Stateful Specifications](../concepts/stateful-specifications.md) — How specs track their lifecycle
+- [Managing Stale Specs](../workflows/managing-stale-specs.md) — Detecting and handling outdated specs

@@ -29,6 +29,8 @@ Agent actions:
 - Reads amended prompt
 - Regenerates specs incorporating changes
 - Updates existing specs or creates new ones
+- Updates `prompt_version` to current git commit
+- Preserves existing state (implemented/deployed/validated) if spec structure unchanged
 
 ### 4. Review Generated Specs
 
@@ -81,8 +83,31 @@ Prompt Amendment → Agent Re-invocation → Spec Regeneration → Implementatio
 
 Each step is explicit and traceable through version control.
 
+## State Implications
+
+When regenerating specs after prompt amendments:
+
+**State preservation:**
+- If spec structure unchanged, state preserved (e.g., `status: implemented` stays implemented)
+- If spec structure changed significantly, state resets to `draft`
+- `prompt_version` always updates to current commit
+
+**Re-implementation needed:**
+- New acceptance criteria → Code must be updated → Run `/smaqit.development`
+- Modified requirements → Verify existing code still satisfies → May need re-implementation
+- Deprecated features → Mark spec as deprecated → No re-implementation
+
+**Progress tracking:**
+- Check `.smaqit/state.json` for phase completion status
+- Regenerated specs that reset to `draft` decrement phase success counts
+- Re-implementation updates counts when specs transition back to `implemented`
+
+See [Stateful Specifications](../concepts/stateful-specifications.md) for lifecycle details.
+
 ## Related
 
 - [Prompts as Input Records](../concepts/prompts-as-input-records.md) — Why prompts are versioned
 - [Prompt Evolution](../patterns/prompt-evolution.md) — How prompts grow with projects
 - [Archiving Prompts](../patterns/archiving-prompts.md) — Managing historical versions
+- [Stateful Specifications](../concepts/stateful-specifications.md) — How specs track their lifecycle
+- [Managing Stale Specs](../workflows/managing-stale-specs.md) — Detecting and handling outdated specs

@@ -1,7 +1,7 @@
 ---
 name: smaqit.infrastructure
 description: Specification agent for Infrastructure layer.
-tools: ["read", "edit", "search"]
+tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests']
 ---
 
 # Infrastructure Agent
@@ -126,8 +126,6 @@ All acceptance criteria must use this format for traceability:
 - `[CONCEPT]` — Descriptive concept name (e.g., SCALING, NETWORK, OBSERVABILITY)
 - `[NNN]` — Sequential number with leading zeros (001, 002, 015)
 
-**Example:** `INF-SCALING-001: Auto-scale at 80% CPU threshold`
-
 **Rules:**
 - IDs must be unique within the project
 - IDs must not be reused after deletion (deprecate instead)
@@ -175,9 +173,9 @@ Specs reference Phase 1 layers for coherence:
 ```markdown
 ## References
 
-- [BUS-ANALYTICS](../business/analytics.md) — Availability requirements
-- [FUN-API](../functional/user-api.md) — API load patterns
-- [STK-BACKEND](../stack/backend-stack.md) — Runtime requirements
+- [BUS-[CONCEPT]](../business/[concept].md) — [Business context]
+- [FUN-[CONCEPT]](../functional/[concept].md) — [Functional constraint]
+- [STK-[CONCEPT]](../stack/[concept].md) — [Runtime requirement]
 ```
 
 **Rules:**
@@ -190,11 +188,11 @@ Specs reference Phase 1 layers for coherence:
 **One Spec Per Concept:**
 
 Create one specification file per distinct concept:
-- ✅ Good: `scaling-policy.md` — Single infrastructure concern
-- ❌ Bad: `production-infrastructure.md` — Multiple concerns (compute, network, scaling)
+- ✅ Good: `[concern].md` — Single infrastructure concern
+- ❌ Bad: `[environment]-infrastructure.md` — Multiple concerns
 
 **Naming Conventions:**
-- Use lowercase with hyphens: `scaling-policy.md`, `network-topology.md`
+- Use lowercase with hyphens: `[concern].md`, `[component]-config.md`
 - Match the primary concept name
 - Avoid generic names: `misc.md`, `other.md`, `notes.md`
 

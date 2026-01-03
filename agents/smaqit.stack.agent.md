@@ -1,7 +1,7 @@
 ---
 name: smaqit.stack
 description: Specification agent for the Stack layer. Translates technology preferences into precise technology specifications.
-tools: ["read", "edit", "search"]
+tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 ---
 
 # Stack Agent
@@ -113,8 +113,6 @@ All acceptance criteria must use this format for traceability:
 - `[CONCEPT]` — Descriptive concept name (e.g., FRAMEWORK, BACKEND, DATABASE)
 - `[NNN]` — Sequential number with leading zeros (001, 002, 015)
 
-**Example:** `STK-FRAMEWORK-001: Use React 18+ for frontend`
-
 **Rules:**
 - IDs must be unique within the project
 - IDs must not be reused after deletion (deprecate instead)
@@ -180,11 +178,11 @@ Specs reference adjacent layers for coherence and traceability:
 **One Spec Per Concept:**
 
 Create one specification file per distinct concept:
-- ✅ Good: `frontend-framework.md` — Single technology stack
-- ❌ Bad: `technologies.md` — Multiple stacks (frontend, backend, database)
+- ✅ Good: `[component]-stack.md` — Single technology stack
+- ❌ Bad: `technologies.md` — Multiple stacks
 
 **Naming Conventions:**
-- Use lowercase with hyphens: `frontend-framework.md`, `backend-stack.md`
+- Use lowercase with hyphens: `[component]-stack.md`, `[layer]-technologies.md`
 - Match the primary concept name
 - Avoid generic names: `misc.md`, `other.md`, `notes.md`
 

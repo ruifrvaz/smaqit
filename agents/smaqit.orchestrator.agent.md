@@ -1,7 +1,7 @@
 ---
 name: smaqit.orchestrator
 description: Orchestrates full workflow from specifications through validation, coordinating sequential agent execution across all layers and phases.
-tools: ['agent', 'execute', 'read', 'edit', 'search', 'todo']
+tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runSubagent', 'runTests']
 ---
 
 # Orchestrator Agent

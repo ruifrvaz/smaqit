@@ -1,7 +1,7 @@
 ---
 name: smaqit.functional
 description: Specification agent for the Functional layer. Translates user experience requirements into precise behavioral specifications.
-tools: ["read", "edit", "search"]
+tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 ---
 
 # Functional Agent
@@ -217,11 +217,11 @@ When a foundation spec precedes Business specs or serves anticipated needs:
 **One Spec Per Concept:**
 
 Create one specification file per distinct concept:
-- ✅ Good: `user-authentication-flow.md` — Single flow
-- ❌ Bad: `user-management.md` — Multiple flows (auth, profile, settings)
+- ✅ Good: `[flow-name].md` — Single flow
+- ❌ Bad: `[broad-area].md` — Multiple flows
 
 **Naming Conventions:**
-- Use lowercase with hyphens: `user-authentication-flow.md`, `order-api.md`
+- Use lowercase with hyphens: `[concept]-flow.md`, `[entity]-api.md`
 - Match the primary concept name
 - Avoid generic names: `misc.md`, `other.md`, `notes.md`
 

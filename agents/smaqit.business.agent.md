@@ -1,7 +1,7 @@
 ---
 name: smaqit.business
 description: Specification agent for the Business layer. Translates prompt file requirements into precise, testable business specifications.
-tools: ["read", "edit", "search"]
+tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 ---
 
 # Business Agent
@@ -125,8 +125,6 @@ Every business specification represents a single use case and must have a unique
 - `[CONCEPT]` — Short uppercase descriptor matching the concept used in acceptance criteria
 - `[USE_CASE_NAME]` — Human-readable use case title
 
-**Example:** `UC1-LOGIN: User Authentication`, `UC2-CHECKOUT: Purchase Flow`
-
 **Rules:**
 - Use case IDs must be unique within the project
 - Use case IDs must not be reused after deletion (deprecate instead)
@@ -135,8 +133,8 @@ Every business specification represents a single use case and must have a unique
 
 **File Naming:**
 File names should include the use case ID for easy identification:
-- ✅ Good: `uc1-login.md`, `uc2-checkout.md`
-- ❌ Bad: `login.md`, `checkout.md` (missing UC ID)
+- ✅ Good: `uc1-[concept].md`, `uc2-[concept].md`
+- ❌ Bad: `[concept].md` (missing UC ID)
 
 ## Requirement ID Format
 
@@ -195,11 +193,11 @@ Some requirements cannot be automatically validated. Flag these:
 **One Spec Per Use Case:**
 
 Create one specification file per distinct use case:
-- ✅ Good: `uc1-login.md` — Single use case with UC ID
-- ❌ Bad: `authentication.md` — Multiple use cases (login, logout, password reset, MFA)
+- ✅ Good: `uc1-[concept].md` — Single use case with UC ID
+- ❌ Bad: `[broad-topic].md` — Multiple use cases without UC IDs
 
 **Naming Conventions:**
-- Include use case ID: `uc1-login.md`, `uc2-checkout.md`
+- Include use case ID: `uc1-[concept].md`, `uc2-[concept].md`
 - Use lowercase with hyphens
 - Match the use case concept name
 - Avoid generic names: `misc.md`, `other.md`, `notes.md`
@@ -214,7 +212,7 @@ Before declaring completion, verify:
 - [ ] Scope boundaries explicitly stated
 - [ ] No implementation details leaked into spec
 - [ ] Use case ID follows format: `UC[N]-[CONCEPT]: [USE_CASE_NAME]` in title
-- [ ] File name includes use case ID (e.g., `uc1-login.md`)
+- [ ] File name includes use case ID (e.g., `uc1-[concept].md`)
 - [ ] Requirement IDs follow format: `BUS-[CONCEPT]-[NNN]`
 - [ ] CONCEPT in use case ID matches CONCEPT in requirement IDs
 

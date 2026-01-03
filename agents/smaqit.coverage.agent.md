@@ -1,7 +1,7 @@
 ---
 name: smaqit.coverage
 description: Specification agent for the Coverage layer. Ensures all upstream requirements are testable and traceable.
-tools: ["read", "edit", "search"]
+tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 ---
 
 # Coverage Agent
@@ -199,17 +199,17 @@ Coverage specs reference all upstream layers:
 **One Spec Per Concept:**
 
 Create one specification file per distinct concept:
-- ✅ Good: `login-tests.md` — Tests for login feature
+- ✅ Good: `[feature]-tests.md` — Tests for single feature
 - ❌ Bad: `all-tests.md` — Tests for multiple features
 
 **Naming Conventions:**
-- Use lowercase with hyphens: `login-tests.md`, `api-integration-tests.md`
+- Use lowercase with hyphens: `[feature]-tests.md`, `[component]-tests.md`
 - Match the primary concept name
 - Avoid generic names: `misc.md`, `other.md`, `notes.md`
 
 **File Organization:**
 - One file per test suite or verification plan
-- Naming: lowercase with hyphens (e.g., `user-authentication-tests.md`, `api-integration-tests.md`)
+- Naming: lowercase with hyphens (e.g., `[feature]-tests.md`, `[component]-tests.md`)
 
 ## Completion Criteria
 

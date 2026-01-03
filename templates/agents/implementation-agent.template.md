@@ -49,17 +49,6 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 
-#### Cross-Layer Consolidation
-
-Before implementation, consolidate specs from multiple layers:
-
-1. **Coherence check** — Verify specs across layers are compatible
-2. **Conflict detection** — Identify contradictions between layers
-3. **Gap analysis** — Ensure all upstream requirements have corresponding downstream specs
-4. **Amendment request** — If conflicts or gaps exist, request spec amendments before proceeding
-
-MUST NOT proceed with implementation while unresolved conflicts exist.
-
 ### MUST NOT
 
 - Modify specifications (request changes through proper channels)
@@ -76,6 +65,17 @@ MUST NOT proceed with implementation while unresolved conflicts exist.
 - Request spec clarification before inventing solutions
 - Follow industry standards for the chosen stack while satisfying spec-defined behavior, including folder structure conventions
 - Ensure implementations are structurally recognizable and behaviorally equivalent to specs
+
+## Cross-Layer Consolidation
+
+Before implementation, consolidate specs from multiple layers:
+
+1. **Coherence check** — Verify specs across layers are compatible
+2. **Conflict detection** — Identify contradictions between layers
+3. **Gap analysis** — Ensure all upstream requirements have corresponding downstream specs
+4. **Amendment request** — If conflicts or gaps exist, request spec amendments before proceeding
+
+MUST NOT proceed with implementation while unresolved conflicts exist.
 
 ## Scope Boundaries
 

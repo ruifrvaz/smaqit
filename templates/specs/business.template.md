@@ -1,3 +1,10 @@
+---
+id: BUS-[CONCEPT]
+status: draft
+created: [TIMESTAMP]
+prompt_version: [GIT_HASH]
+---
+
 # UC[N]-[CONCEPT]: [USE_CASE_NAME]
 
 <!-- Use Case Identifier Format: UC[N]-[CONCEPT]

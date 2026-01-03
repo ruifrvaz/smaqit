@@ -1,8 +1,9 @@
 # Validate Stateful Specifications Infrastructure
 
-**Status:** Phase 1 Complete, Phase 2 Blocked  
+**Status:** Phase 1 Complete, Phase 2 Ready  
 **Created:** 2026-01-03  
 **Phase 1 Completed:** 2026-01-03  
+**Phase 2 Starting:** 2026-01-03 (v0.5.0-beta)  
 **Related:** Task 014 (Stateful Specifications Implementation), Task 047 (Incremental Processing Implementation)
 
 ## Description
@@ -10,9 +11,9 @@
 Comprehensive validation and testing of the stateful specifications system introduced in Task 014. This task is split into two phases:
 
 **Phase 1: Infrastructure Validation** ✅ Complete - Validate state tracking mechanisms (documentation review)
-**Phase 2: Incremental Workflow Testing** ⏸️ Blocked - Test agents with incremental processing (runtime execution)
+**Phase 2: Incremental Workflow Testing** 🚀 Ready - Test agents with incremental processing (runtime execution)
 
-This task completed Phase 1 with all infrastructure validation passing. Phase 2 deferred pending Task 047 (incremental processing implementation).
+This task completed Phase 1 with all infrastructure validation passing. Phase 2 unblocked after Task 047 completion (incremental processing fully implemented).
 
 ## Context
 
@@ -100,43 +101,211 @@ cd test/stateful-test-$(date +%s)
 - Status display errors → Fix before Phase 2
 - Agent files have syntax issues → Fix before Phase 2
 
-## Phase 2: Incremental Workflow Testing (Deferred)
+## Phase 2: Incremental Workflow Testing
 
-**Note:** Phase 2 involves actual runtime testing (building installer, executing commands, verifying behavior).
+**Status:** Ready to execute with v0.5.0-beta
 
-**Depends on:** Phase 1 completion + incremental processing verification
+**Unblocked by:** Task 047 completion (incremental processing fully implemented)
 
-### Pre-Phase 2 Requirements
+### Pre-Phase 2 Verification
 
-Before starting Phase 2, verify:
-1. [ ] Agent files contain logic to check `status` field
-2. [ ] Agents skip specs with `status: implemented|deployed|validated`
-3. [ ] Agents process only specs with `status: draft` or `failed`
-4. [ ] Documentation describes incremental processing behavior
+✅ **All requirements satisfied:**
+- [x] Agent files contain `smaqit plan --phase=[PHASE]` directives
+- [x] Agents have MUST directives to process only draft/failed specs
+- [x] CLI implements `filterSpecsByStatus()` function
+- [x] Documentation describes incremental processing behavior (framework/PHASES.md)
+- [x] `smaqit plan` command operational with --regen flag
 
-**If verification fails:** Create enhancement task for incremental processing implementation before Phase 2.
+### Test Environment Setup
 
-### Test Scenarios (Tentative)
+**Version:** v0.5.0-beta (tagged and built)
 
-#### Scenario 1: Add New Feature
-1. Initialize project with minimal requirements
-2. Generate and implement initial specs
-3. Add new requirements to prompt file
-4. Regenerate specs (should create only new specs)
-5. Implement (should process only new specs)
-6. Verify existing specs unchanged
+**Test Directory:** `installer/test/phase2-incremental-{timestamp}/`
 
-#### Scenario 2: Fix Failed Spec
-1. Simulate failed spec (manually set `status: failed`)
-2. Run implementation phase
-3. Verify agent reprocesses failed spec
-4. Verify successful specs untouched
+**Setup Commands:**
+```bash
+cd installer
+make build
+mkdir -p test/phase2-incremental-$(date +%s)
+cd test/phase2-incremental-$(date +%s)
+../../dist/smaqit init
+```
 
-#### Scenario 3: Full Regeneration
-1. Delete all specs
-2. Regenerate from prompts
-3. Verify all specs created with `status: draft`
-4. Implement and verify state progression
+**Cleanup:** Remove test directory after completion or keep for inspection
+
+### Test Scenarios
+
+#### Scenario 1: Add New Feature (Incremental Spec Generation)
+
+**Objective:** Verify specs are generated incrementally without regenerating existing specs
+
+**Steps:**
+1. Create initial minimal business prompt with 1 use case
+2. Invoke business agent to generate spec(s)
+3. Verify spec(s) created with `status: draft`, `prompt_version` set
+4. Add second use case to business prompt
+5. Invoke business agent again
+6. Verify: NEW spec created for second use case, EXISTING spec unchanged (same prompt_version)
+7. Check `smaqit plan --phase=develop` outputs both specs
+
+**Expected Outcome:**
+- Initial spec retained with original timestamps
+- New spec added with current timestamp
+- Both specs have `status: draft`
+- Plan command returns both paths
+
+**Success Criteria:**
+- [ ] Existing spec unchanged (compare prompt_version, created timestamp)
+- [ ] New spec created with current timestamp
+- [ ] Both specs appear in plan output
+- [ ] No duplicate specs created
+
+#### Scenario 2: Incremental Implementation (Skip Completed Specs)
+
+**Objective:** Verify development agent processes only draft specs, skips implemented specs
+
+**Prerequisites:** Scenario 1 completed with 2 business specs
+
+**Steps:**
+1. Run `smaqit plan --phase=develop` before implementation
+2. Manually set first spec to `status: implemented`, add `implemented: [timestamp]`
+3. Run `smaqit plan --phase=develop` again
+4. Verify plan now returns only the second spec (still draft)
+5. (Simulated) Development agent would process only returned spec
+6. Manually set second spec to `status: implemented`
+7. Run `smaqit plan --phase=develop` again
+8. Verify plan returns empty output (all specs implemented)
+
+**Expected Outcome:**
+- Plan command filters based on status field
+- Only draft/failed specs returned
+- Implemented specs skipped
+- Empty output when all specs complete
+
+**Success Criteria:**
+- [ ] Plan returns only draft specs initially
+- [ ] Plan excludes specs with `status: implemented`
+- [ ] Plan returns empty when all specs implemented
+- [ ] CLI suggests `--regen` flag when empty (check status command output)
+
+#### Scenario 3: Failed Spec Reprocessing
+
+**Objective:** Verify failed specs are reprocessed while successful specs remain untouched
+
+**Prerequisites:** 2 specs exist, both implemented
+
+**Steps:**
+1. Manually change first spec to `status: failed`
+2. Run `smaqit plan --phase=develop`
+3. Verify only failed spec returned
+4. Manually change failed spec back to `status: implemented`
+5. Run plan again, verify empty output
+
+**Expected Outcome:**
+- Failed specs treated same as draft specs (reprocessed)
+- Implemented specs skipped
+- Agent can retry failed work without touching successful work
+
+**Success Criteria:**
+- [ ] Plan returns failed spec
+- [ ] Plan excludes implemented spec
+- [ ] Failed spec can be corrected and marked implemented
+- [ ] Plan respects corrected status
+
+#### Scenario 4: Full Regeneration with --regen Flag
+
+**Objective:** Verify --regen flag processes all specs regardless of status
+
+**Prerequisites:** Multiple specs with mixed statuses (draft, implemented, failed)
+
+**Steps:**
+1. Create test scenario with 3 specs:
+   - Spec 1: `status: implemented`
+   - Spec 2: `status: draft`
+   - Spec 3: `status: failed`
+2. Run `smaqit plan --phase=develop` (without --regen)
+3. Verify returns only draft and failed specs (2 paths)
+4. Run `smaqit plan --phase=develop --regen`
+5. Verify returns ALL specs (3 paths)
+
+**Expected Outcome:**
+- Default mode: incremental (draft + failed only)
+- Regen mode: all specs regardless of status
+- Users can force full regeneration when needed
+
+**Success Criteria:**
+- [ ] Default plan excludes implemented specs
+- [ ] --regen flag includes all specs
+- [ ] Path output correct in both modes
+
+#### Scenario 5: Phase Status Display with Spec Counts
+
+**Objective:** Verify `smaqit status` shows accurate phase completion based on spec states
+
+**Prerequisites:** Specs in various states across layers
+
+**Steps:**
+1. Create business spec (draft), functional spec (draft), stack spec (draft)
+2. Run `smaqit status`
+3. Verify Phase 1 (Develop) shows "⚙ In progress - 0 implemented, 3 draft"
+4. Change all 3 specs to `status: implemented`
+5. Run `smaqit status` again
+6. Verify Phase 1 shows "✓ Complete - 3 implemented"
+
+**Expected Outcome:**
+- Status command scans spec frontmatter
+- Aggregates counts by phase
+- Shows completion when ALL required layers present + ALL specs at target status
+
+**Success Criteria:**
+- [ ] Status correctly identifies incomplete phases
+- [ ] Status shows Complete only when all layers + correct status
+- [ ] Spec counts accurate per phase
+- [ ] Partial layer coverage shows "In progress" not "Complete"
+
+#### Scenario 6: Cross-Phase State Progression
+
+**Objective:** Verify specs progress through lifecycle states across all three phases
+
+**Steps:**
+1. Create 1 spec in each layer (business, functional, stack, infrastructure, coverage)
+2. Verify all start with `status: draft`
+3. Mark Phase 1 specs as `implemented`, verify status command shows Phase 1 complete
+4. Mark infrastructure spec as `deployed`, verify Phase 2 complete
+5. Mark coverage spec as `validated`, verify Phase 3 complete
+6. Check `smaqit plan --phase=validate` returns empty (all validated)
+
+**Expected Outcome:**
+- Specs transition through expected lifecycle
+- Phase completion detection works across all phases
+- Timestamps added at each transition
+
+**Success Criteria:**
+- [ ] Each phase respects its target status (implemented/deployed/validated)
+- [ ] Status command shows accurate phase completion
+- [ ] Timestamps added to frontmatter at each phase
+- [ ] Plan command respects phase-specific status filtering
+
+### Test Artifacts
+
+**Location:** `docs/user-testing/2026-01-03_phase2-incremental-workflow-testing.md`
+
+**Contents:**
+- Test execution log (commands run, outputs)
+- Screenshots/output samples for each scenario
+- Pass/fail results per scenario
+- Issues identified (if any)
+- Recommendations for improvements
+
+### Validation Approach
+
+**Manual testing** (not automated agents):
+- Execute commands directly via terminal
+- Manually edit spec frontmatter to simulate agent behavior
+- Verify CLI output matches expectations
+- Document results with evidence
+
+**Rationale:** Phase 2 validates the INFRASTRUCTURE (CLI commands, frontmatter parsing, status aggregation). Actual agent behavior testing is separate (would be Task 046 or future work).
 
 ## Acceptance Criteria
 
@@ -150,11 +319,20 @@ Before starting Phase 2, verify:
 
 **Phase 1 Result:** ✅ **PASS** - All infrastructure components validated successfully
 
-### Phase 2 (Future)
-- [ ] Pre-Phase 2 verification completed
-- [ ] Incremental workflow testing scenarios executed (runtime)
-- [ ] Test report created: `docs/user-testing/2026-01-03_stateful-specs-incremental-testing.md`
-- [ ] Task 014 marked as fully validated and tested
+### Phase 2: Incremental Workflow Testing
+- [ ] Pre-Phase 2 verification completed (Task 047 completion confirmed)
+- [ ] v0.5.0-beta release created with incremental processing
+- [ ] Test environment setup successful
+- [ ] Scenario 1 executed: Add New Feature (incremental spec generation)
+- [ ] Scenario 2 executed: Incremental Implementation (skip completed)
+- [ ] Scenario 3 executed: Failed Spec Reprocessing
+- [ ] Scenario 4 executed: Full Regeneration with --regen
+- [ ] Scenario 5 executed: Phase Status Display with Spec Counts
+- [ ] Scenario 6 executed: Cross-Phase State Progression
+- [ ] Test report created: `docs/user-testing/2026-01-03_phase2-incremental-workflow-testing.md`
+- [ ] All scenarios passed OR issues documented with recommendations
+- [ ] Task 045 marked complete in PLANNING.md
+- [ ] Task 014 marked as fully validated
 
 ## Notes
 

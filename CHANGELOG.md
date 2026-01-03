@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0-beta] - 2026-01-03
+
+### Added
+- **Stateful Specifications** (Task 014)
+  - YAML frontmatter state tracking in all specs (id, status, created, timestamps, prompt_version)
+  - Spec lifecycle states: draft → implemented → deployed → validated → failed/deprecated
+  - Acceptance criteria checkbox updates: `[ ]` → `[x]` (passed) or `[!]` (failed)
+  - Phase reports generated in `.smaqit/reports/` directory
+  - Stale spec detection via prompt_version tracking (git commit hash)
+  - Wiki documentation for stateful specifications and stale management workflows
+
+- **Incremental Processing** (Task 047)
+  - `smaqit plan --phase=[develop|deploy|validate]` command
+    - Outputs spec file paths requiring processing (one per line)
+    - Default: returns only specs with `status: draft` or `status: failed`
+    - `--regen` flag: returns all specs regardless of status
+  - Implementation agents now skip already-completed specs
+  - Frontmatter as single source of truth (removed dual state system)
+  - CLI scans specs on-demand and aggregates status
+  - Strict phase completion rules: requires ALL layers present + ALL specs at target status
+
+### Changed
+- Agents refactored to directive-based instructions (pure MUST/MUST NOT rules)
+  - Removed procedural "State-Based Processing" workflows
+  - Simplified agent instructions for better LLM interpretation
+- Phase completion detection now requires all layers present
+  - Develop: business + functional + stack specs required
+  - Deploy: infrastructure specs required
+  - Validate: coverage specs required
+- Framework documentation updated to remove example pollution
+  - Generic placeholders ([ID], [CONCEPT]) replace specific examples
+  - Templates remain abstract and reusable
+
+### Removed
+- state.json aggregate state file (replaced by on-demand CLI scanning)
+- Dual state system complexity (frontmatter is sole source of truth)
+- Example pollution from templates (BUS-LOGIN-001, etc.)
+
 ## [0.4.2-beta] - 2026-01-02
 
 ### Added

@@ -25,8 +25,11 @@ var Version = "dev"
 
 // PhaseState represents the completion state of a phase
 type PhaseState struct {
-	Completed bool   `json:"completed"`
-	Timestamp string `json:"timestamp,omitempty"`
+	Completed      bool   `json:"completed"`
+	Timestamp      string `json:"timestamp,omitempty"`
+	SpecsProcessed int    `json:"specs_processed,omitempty"`
+	SpecsSucceeded int    `json:"specs_succeeded,omitempty"`
+	SpecsFailed    int    `json:"specs_failed,omitempty"`
 }
 
 // Phases represents the ordered phases structure
@@ -47,9 +50,9 @@ func initStateFile() StateFile {
 	return StateFile{
 		Version: "1.0",
 		Phases: Phases{
-			Develop:  PhaseState{Completed: false},
-			Deploy:   PhaseState{Completed: false},
-			Validate: PhaseState{Completed: false},
+			Develop:  PhaseState{Completed: false, SpecsProcessed: 0, SpecsSucceeded: 0, SpecsFailed: 0},
+			Deploy:   PhaseState{Completed: false, SpecsProcessed: 0, SpecsSucceeded: 0, SpecsFailed: 0},
+			Validate: PhaseState{Completed: false, SpecsProcessed: 0, SpecsSucceeded: 0, SpecsFailed: 0},
 		},
 	}
 }
@@ -269,7 +272,7 @@ func cmdInit(targetDir string) {
 // If dstDir contains "templates/specs", performs version substitution
 func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
 	substituteVersion := strings.Contains(dstDir, "templates/specs")
-	
+
 	return fs.WalkDir(embeddedFS, srcDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -372,7 +375,7 @@ func validateStateFile(path string) int {
 
 	// Check phase keys exist and are ordered correctly
 	requiredPhases := []string{"develop", "deploy", "validate"}
-	
+
 	// Check each required phase exists
 	for _, phase := range requiredPhases {
 		phaseData, exists := phasesMap[phase]
@@ -425,22 +428,22 @@ func validateStateFile(path string) int {
 // This is a semantic check for readability, not a functional requirement
 func validatePhaseOrdering(jsonContent []byte, path string) error {
 	content := string(jsonContent)
-	
+
 	// Find position of each phase key in JSON text
 	developPos := strings.Index(content, "\"develop\"")
 	deployPos := strings.Index(content, "\"deploy\"")
 	validatePos := strings.Index(content, "\"validate\"")
-	
+
 	// If any phase is missing, ordering check is irrelevant (will be caught by earlier checks)
 	if developPos == -1 || deployPos == -1 || validatePos == -1 {
 		return nil
 	}
-	
+
 	// Check ordering: develop < deploy < validate
 	if developPos > deployPos || deployPos > validatePos {
 		return fmt.Errorf("phases not in workflow order (develop → deploy → validate)")
 	}
-	
+
 	return nil
 }
 
@@ -626,7 +629,7 @@ func cmdValidate() {
 	}
 }
 
-// printPhaseStatus outputs the phase completion status with optional timestamp
+// printPhaseStatus outputs the phase completion status with optional timestamp and spec counts
 // hasSpecs indicates if there are any specs in the phase's layers
 func printPhaseStatus(phase PhaseState, hasSpecs bool) {
 	if phase.Completed {
@@ -636,10 +639,18 @@ func printPhaseStatus(phase PhaseState, hasSpecs bool) {
 			if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
 				timestamp = t.Format("2006-01-02")
 			}
-			fmt.Printf("✓ Complete (%s)\n", timestamp)
+			fmt.Printf("✓ Complete (%s)", timestamp)
 		} else {
-			fmt.Println("✓ Complete")
+			fmt.Print("✓ Complete")
 		}
+		// Show spec counts if available
+		if phase.SpecsProcessed > 0 {
+			fmt.Printf(" - %d processed, %d succeeded", phase.SpecsProcessed, phase.SpecsSucceeded)
+			if phase.SpecsFailed > 0 {
+				fmt.Printf(", %d failed", phase.SpecsFailed)
+			}
+		}
+		fmt.Println()
 	} else if hasSpecs {
 		fmt.Println("In progress")
 	} else {
@@ -710,7 +721,7 @@ func cmdStatus() {
 	fmt.Print("Phase 3 (Validate): ")
 	printPhaseStatus(validatePhase, validateHasSpecs)
 	fmt.Printf("  Coverage:        %d spec(s)\n", layerCounts["coverage"])
-	
+
 	// Display total
 	fmt.Printf("\nTotal: %d specification(s)\n", totalSpecs)
 

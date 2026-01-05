@@ -102,17 +102,15 @@ Validation agent MUST update spec frontmatter, acceptance criteria checkboxes, a
 
 **For each spec validated (applies to all layers: business, functional, stack, infrastructure, coverage):**
 
-1. Update acceptance criteria checkboxes in validated spec:
+1. Update acceptance criteria checkboxes in coverage spec corresponding to the running validation:
    - `[ ]` → `[x]` (test passed)
    - `[ ]` → `[!]` (test failed, include reason)
 
-2. Update spec YAML frontmatter in validated spec:
+2. Update spec YAML frontmatter in validated spec when all corresponding acceptance criteria are validated:
    - Set `status: validated` (all pass) or `status: failed` (any fail)
    - Add `validated: [ISO8601_TIMESTAMP]`
 
 **MUST update ALL validated spec frontmatter, not just coverage specs.** The validation agent validates requirements across all layers (business, functional, stack, infrastructure) through coverage spec test cases. When a test case validates an upstream requirement, that upstream spec's frontmatter MUST be updated to reflect validated state.
-
-**The CLI aggregates phase status from spec frontmatter.** The agent updates individual spec files only.
 
 ## Phase-Specific Rules
 
@@ -183,8 +181,8 @@ Before declaring completion, verify:
 - [ ] Validation report includes spec coverage percentage
 - [ ] Unverified requirements documented with justification
 - [ ] Failure details include sufficient evidence for debugging
-- [ ] All validated spec frontmatter updated: `status: validated`, `validated: YYYY-MM-DDTHH:MM:SSZ` (applies to all layers: business, functional, stack, infrastructure, coverage)
-- [ ] Acceptance criteria checkboxes updated in all validated specs: `[ ]` → `[x]` or `[!]`
+- [ ] All validated spec frontmatter updated: `status: validated`, `validated: YYYY-MM-DDTHH:MM:SSZ`
+- [ ] Acceptance criteria checkboxes updated in corresponding coverage specs: `[ ]` → `[x]` or `[!]`
 
 ## Workflow Handover
 

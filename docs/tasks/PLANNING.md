@@ -20,7 +20,6 @@
 
 | ID | Title |
 |----|-------|
-| 054 | Strengthen Stack Agent Code Directive |
 | 001 | Create Copilot prompt files |
 | 002 | Create specification agent template |
 | 003 | Create implementation agent template |
@@ -66,7 +65,7 @@
 | 047 | Implement incremental processing in implementation agents |
 | 045 | Validate stateful specifications infrastructure |
 | 053 | Fix Validation Frontmatter Updates |
-| 054 | Strengthen Stack Agent Code Directive | new | Medium |
+| 054 | Strengthen Stack Agent Code Directive |
 
 ## Backlog
 

@@ -52,6 +52,38 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 **Format:** One specification file per distinct concept (e.g., one deployment topology, one scaling policy)
 
+## Template Structure
+
+The template includes a "Base Requirements (if applicable)" section in the References block:
+
+```markdown
+## References
+
+### Base Requirements (if applicable)
+
+<!-- Same-layer reference: use when extending existing infrastructure spec without duplication -->
+<!-- Omit this section if no same-layer dependencies exist -->
+
+- [INF-[BASE-CONCEPT]](./[BASE-FILENAME].md) — [Shared requirements referenced here]
+
+### Enables
+
+#### Business
+- [BUS-CONCEPT](../business/[FILENAME].md) — [Business requirement this infrastructure enables]
+
+#### Functional
+- [FUN-CONCEPT](../functional/[FILENAME].md) — [Functional behavior this infrastructure supports]
+
+#### Stack
+- [STK-CONCEPT](../stack/[FILENAME].md) — [Technology constraint this infrastructure accommodates]
+```
+
+**Purpose:** Avoid duplicating shared requirements by referencing existing Infrastructure specs. Use when:
+- Extending an existing infrastructure concept (e.g., adding monitoring to existing deployment topology)
+- New spec shares base infrastructure with existing spec (e.g., common networking, shared security policies)
+
+**Omit when:** The spec has no dependencies on other Infrastructure specs (completely independent infrastructure).
+
 ## Directives
 
 ### MUST

@@ -39,6 +39,30 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 **Format:** One specification file per distinct concept (e.g., one user flow, one API contract, one data model)
 
+## Template Structure
+
+The template includes a "Base Requirements (if applicable)" section in the References block:
+
+```markdown
+## References
+
+### Base Requirements (if applicable)
+
+<!-- Same-layer reference: use when extending existing functional spec without duplication -->
+<!-- Omit this section if no same-layer dependencies exist -->
+
+- [FUN-[BASE-CONCEPT]](./[BASE-FILENAME].md) — [Shared requirements referenced here]
+
+### Implements
+- [BUS-CONCEPT](../business/[FILENAME].md) — [Business use case this is consistent with]
+```
+
+**Purpose:** Avoid duplicating shared requirements by referencing existing Functional specs. Use when:
+- Extending an existing functional concept (e.g., adding authentication flow variant to existing auth spec)
+- New spec shares base behaviors with existing spec (e.g., common data models, shared API patterns)
+
+**Omit when:** The spec has no dependencies on other Functional specs (completely independent behavior).
+
 ## Directives
 
 ### MUST

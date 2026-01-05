@@ -40,6 +40,30 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 **Format:** One specification file per distinct concept (e.g., one technology stack, one build configuration)
 
+## Template Structure
+
+The template includes a "Base Requirements (if applicable)" section in the References block:
+
+```markdown
+## References
+
+### Base Requirements (if applicable)
+
+<!-- Same-layer reference: use when extending existing stack without duplication -->
+<!-- Omit this section if no same-layer dependencies exist -->
+
+- [STK-[BASE-CONCEPT]](./[BASE-FILENAME].md) — [Shared requirements referenced here]
+
+### Enables
+- [FUN-CONCEPT](../functional/[FILENAME].md) — [How this stack enables the functional behavior]
+```
+
+**Purpose:** Avoid duplicating shared requirements by referencing existing Stack specs. Use when:
+- Extending an existing technology stack (e.g., adding CLI parsing to Python console app)
+- New spec shares base requirements with existing spec (e.g., Python version, build tools)
+
+**Omit when:** The spec has no dependencies on other Stack specs (completely independent stack).
+
 ## Directives
 
 ### MUST
@@ -70,7 +94,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Check for existing Stack specs before creating new specs
 - Update existing specs when adding to an existing technology stack (e.g., adding library to existing platform)
 - Create new specs only for distinct new technology stacks or build configurations
-- Reference existing specs for shared information using cross-references (e.g., "See [STK-CONSOLE](./python-console-stack.md) for base Python requirements")
+- Reference existing specs for shared information using cross-references <!-- Example: "See [STK-CONSOLE](./python-console-stack.md) for base Python requirements" -->
 
 ## Scope Boundaries
 

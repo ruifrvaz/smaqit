@@ -51,7 +51,8 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### MUST NOT
 
-- Modify specifications (request changes through proper channels)
+- Modify specification requirements or structure (request changes through proper channels)
+  - **Note:** Updating frontmatter status and acceptance criteria checkboxes is expected as part of implementation tracking
 - Implement features not defined in specifications
 - Skip validation steps defined in Coverage specs
 - Invent requirements not present in input
@@ -121,6 +122,8 @@ Before declaring completion, verify:
 - [ ] No unspecified features were added
 - [ ] Cross-layer consolidation completed without conflicts
 - [ ] Phase report written to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md`
+- [ ] Spec frontmatter updated: `status: [PHASE_STATUS]`, `[PHASE_STATUS]: [ISO8601_TIMESTAMP]`
+- [ ] Acceptance criteria checkboxes updated in processed specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied/untestable)
 - [ADDITIONAL_COMPLETION_CRITERIA]
 
 ## Workflow Handover

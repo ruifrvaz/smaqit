@@ -1,6 +1,6 @@
 # Task 056: Document Context Pollution Workaround
 
-**Status:** new  
+**Status:** Completed (2026-01-05)  
 **Priority:** Low  
 **Created:** 2026-01-05  
 **Related:** Task 048 (E2E Testing), Issue 1
@@ -27,18 +27,17 @@ When switching between layer agents in the same Copilot session (e.g., `/smaqit.
 ## Acceptance Criteria
 
 ### Agent Improvements
-- [ ] Updated all 5 specification agents to explicitly state layer at start of execution
-- [ ] Added directive: "Begin response by stating: 'I am the [LAYER_NAME] Agent, operating in [LAYER] layer mode.'"
-- [ ] Agents explicitly ignore context from other layers in their response
-- [ ] Pattern consistent across Business, Functional, Stack, Infrastructure, Coverage agents
+- [x] Updated all 5 specification agents to explicitly state layer at start of execution
+- [x] Added directive: "Begin response by stating: 'I am the [LAYER_NAME] Agent, operating in [LAYER] layer mode.'"
+- [x] Agents explicitly ignore context from other layers in their response
+- [x] Pattern consistent across Business, Functional, Stack, Infrastructure, Coverage agents
 
 ### Documentation
-- [ ] Created troubleshooting section in README.md or docs/wiki/troubleshooting.md
-- [ ] Documented context pollution issue with clear description
-- [ ] Documented workaround: Start fresh Copilot chat session between layers
-- [ ] Provided guidance on when fresh session is recommended vs required
-- [ ] Mentioned future solution: Orchestrator agent pattern (v0.6.0)
-- [ ] Optional: Added note to agent prompt files reminding users of this limitation
+- [x] Created troubleshooting section in docs/wiki/troubleshooting.md
+- [x] Documented context pollution issue with clear description
+- [x] Documented workaround: Start fresh Copilot chat session between layers
+- [x] Provided guidance on when fresh session is recommended vs required
+- [x] Mentioned future solution: Orchestrator agent pattern (v0.6.0)
 
 ## Implementation Plan
 
@@ -198,3 +197,44 @@ None (documentation-only task)
 3. **User guidance only:** Document workaround (current approach)—pragmatic and sufficient for v0.5.0
 
 **Troubleshooting section value:** Adding troubleshooting documentation benefits all users, not just for context pollution. Can include other common issues in future (spec frontmatter errors, YAML parsing, etc.).
+
+## Completion Summary
+
+**Completed:** 2026-01-05
+
+### Changes Made
+
+**Agent files (5 modified):**
+- `agents/smaqit.business.agent.md` — Added Agent Awareness section
+- `agents/smaqit.functional.agent.md` — Added Agent Awareness section
+- `agents/smaqit.stack.agent.md` — Added Agent Awareness section
+- `agents/smaqit.infrastructure.agent.md` — Added Agent Awareness section
+- `agents/smaqit.coverage.agent.md` — Added Agent Awareness section
+
+**Documentation (1 created):**
+- `docs/wiki/troubleshooting.md` — Created with context pollution workaround guidance
+
+### Agent Awareness Pattern
+
+Each specification agent now includes:
+1. **Agent Awareness section** — Explicit layer identity statement and context isolation directive
+2. **MUST directive** — "State layer identity at the start of every response"
+3. **MUST NOT directive** — "Reference or carry over context from other layer agents executed in the same session"
+
+### Troubleshooting Documentation
+
+Created comprehensive troubleshooting guide including:
+- Clear problem description with symptoms
+- Root cause explanation (GitHub Copilot platform limitation)
+- Workaround steps (fresh chat session)
+- Guidance on when fresh session is recommended vs required
+- Reference to agent awareness feature
+- Future solution mention (orchestrator pattern in v0.6.0)
+
+### Outcome
+
+Two-pronged mitigation strategy successfully implemented:
+1. **Agent-level:** Explicit layer identity statements reduce confusion
+2. **User-level:** Documentation provides workaround when confusion occurs
+
+This defense-in-depth approach addresses the issue within current platform constraints while maintaining good UX.

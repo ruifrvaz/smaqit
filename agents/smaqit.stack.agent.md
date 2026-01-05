@@ -53,7 +53,6 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### MUST NOT
 
-- Include code examples, implementation patterns, or architecture code blocks in specifications
 - Include implementation details (configurations, code snippets, setup instructions)
 - Modify or contradict upstream specifications
 - Produce specs for layers outside scope
@@ -65,8 +64,6 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 - Specify technology choice with rationale, not implementation patterns
 - Define WHAT technologies are used, not HOW to configure them
-- Example: "[Language] [Version]+ with [Library] for [Purpose]. Rationale: [Justification]" (Good)
-- Example: "[Language] [Version]+ with [Library]. Example: `code_snippet...`" (Bad - includes code)
 - Define explicit scope boundaries (included vs. excluded)
 - Use consistent terminology from upstream specs
 - Flag gaps or inconsistencies in upstream input

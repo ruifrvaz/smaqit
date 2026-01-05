@@ -65,8 +65,8 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 - Specify technology choice with rationale, not implementation patterns
 - Define WHAT technologies are used, not HOW to configure them
-- Example: "Python 3.8+ with argparse for CLI parsing. Rationale: Built-in, no dependencies" (Good)
-- Example: "Python 3.8+ with argparse. Example: `parser = argparse.ArgumentParser()...`" (Bad - includes code)
+- Example: "[Language] [Version]+ with [Library] for [Purpose]. Rationale: [Justification]" (Good)
+- Example: "[Language] [Version]+ with [Library]. Example: `code_snippet...`" (Bad - includes code)
 - Define explicit scope boundaries (included vs. excluded)
 - Use consistent terminology from upstream specs
 - Flag gaps or inconsistencies in upstream input

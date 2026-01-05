@@ -34,12 +34,13 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 **Format:**
 - [OUTPUT_FORMAT]
 - Phase report MUST be written to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md` documenting phase outcomes
+- Phase report MUST document the output of `smaqit plan --phase=[PHASE]` command execution
 
 ## Directives
 
 ### MUST
 
-- Determine which specs to process using `smaqit plan --phase=[PHASE]`
+- Execute `smaqit plan --phase=[PHASE]` as the first action and process ONLY the specs returned
 - Process only specs with `status: draft` or `status: failed` by default
 - Report completion when no specs require processing and suggest `--regen` flag
 - Comply with all referenced specifications

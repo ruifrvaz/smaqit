@@ -41,12 +41,13 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Code MUST include traceability comments referencing spec requirement IDs
 - README MUST include commands for build, test, and run
 - Development report MUST be written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md` and document build/test/run outcomes
+- Development report MUST document the output of `smaqit plan --phase=develop` command execution
 
 ## Directives
 
 ### MUST
 
-- Determine which specs to process using `smaqit plan --phase=develop`
+- Execute `smaqit plan --phase=develop` as the first action and process ONLY the specs returned
 - Process only specs with `status: draft` or `status: failed` by default
 - Report completion when no specs require processing and suggest `--regen` flag
 - Comply with all referenced specifications

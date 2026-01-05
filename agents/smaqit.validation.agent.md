@@ -39,12 +39,13 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Markdown document written to `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` following validation report format (see below)
 - Maps test results to Coverage spec test cases
 - Includes traceability to source requirements
+- Validation report MUST document the output of `smaqit plan --phase=validate` command execution
 
 ## Directives
 
 ### MUST
 
-- Determine which specs to process using `smaqit plan --phase=validate`
+- Execute `smaqit plan --phase=validate` as the first action and process ONLY the specs returned
 - Process only specs with `status: draft` or `status: failed` by default
 - Report completion when no specs require processing and suggest `--regen` flag
 - Comply with all referenced specifications

@@ -8,7 +8,6 @@
 | 050 | Redesign Coverage Prompt | new | High (Blocker) |
 | 051 | Fix Validation Agent CLI Directive | new | High (Blocker) |
 | 052 | Fix Deployment Agent CLI Directive (Preventive) | new | High |
-| 054 | Strengthen Stack Agent Code Directive | new | Medium |
 | 055 | Formalize Single Source of Truth Principle | new | Medium |
 | 056 | Document Context Pollution Workaround | new | Low |
 | 057 | Add Checkbox Updates to Validation Agent | new | Low |
@@ -21,6 +20,7 @@
 
 | ID | Title |
 |----|-------|
+| 054 | Strengthen Stack Agent Code Directive |
 | 001 | Create Copilot prompt files |
 | 002 | Create specification agent template |
 | 003 | Create implementation agent template |
@@ -66,6 +66,7 @@
 | 047 | Implement incremental processing in implementation agents |
 | 045 | Validate stateful specifications infrastructure |
 | 053 | Fix Validation Frontmatter Updates |
+| 054 | Strengthen Stack Agent Code Directive | new | Medium |
 
 ## Backlog
 

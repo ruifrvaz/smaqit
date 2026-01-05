@@ -92,16 +92,40 @@ Each layer reads from its own prompt file. Upstream layers provide context for c
 - Include testable acceptance criteria in every specification
 - Reference context specs used for coherence and traceability
 - Validate output against layer template before completion
+- Check for existing specs in the same layer before creating new specs
 
 **Specification agents MUST NOT:**
 - Include implementation details (code, technology choices outside Stack layer)
 - Create inconsistencies with context layer specifications
 - Produce specs for layers outside their scope
+- Duplicate information present in existing specs—use cross-references instead
 
 **Specification agents SHOULD:**
 - Define explicit scope boundaries (what is included vs. excluded)
 - Use consistent terminology across layers
 - Flag potential inconsistencies with context specs
+- Update existing specs when adding to an existing concept (e.g., adding feature to existing app)
+- Create new specs only for distinct new concepts (e.g., separate service/component)
+- Reference existing specs for shared information using cross-references
+
+### Incremental Spec Updates vs New Specs
+
+When users add requirements that could extend existing specifications, agents decide whether to update existing specs or create new ones:
+
+| Scenario | Action | Rationale |
+|----------|--------|-----------|
+| **Feature extends existing concept** | Update existing spec | Consolidates related requirements, maintains single source of truth |
+| **Feature is distinct new concept** | Create new spec with cross-references | Preserves separation of concerns, references shared requirements |
+| **Shared infrastructure/base requirements** | Reference existing spec, don't duplicate | Avoids conflicting sources of truth |
+| **Uncertainty** | Favor updating existing spec | Prevents duplication, easier to refactor later if needed |
+
+**Examples:**
+
+| Requirement | Existing Spec | Decision | Cross-Reference Pattern |
+|-------------|---------------|----------|-------------------------|
+| Add argparse CLI to Python console app | `python-console-stack.md` exists | **Update** existing spec | N/A (same spec) |
+| Add authentication service to app | `app-stack.md` exists | **Create** `auth-service-stack.md` | "See [APP-STACK](./app-stack.md) for base Python requirements" |
+| Add logging to existing feature | `feature-functional.md` exists | **Update** existing spec | N/A (same spec) |
 
 ### Specification Agent Mappings
 

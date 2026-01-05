@@ -119,8 +119,9 @@ Specs reference adjacent layers for coherence and traceability. Context referenc
 |----------------|---------|---------|
 | **Implements** | Feature spec with 1:1 mapping to business case | Feature spec → Single use case |
 | **Enables** | Foundation spec serving multiple business cases | Shared component → Multiple use cases |
+| **Same-Layer Reference** | Spec references another spec in same layer to avoid duplication | New spec → Existing spec for shared information |
 
-**Format:**
+**Cross-Layer Format:**
 ```markdown
 ## References
 
@@ -133,6 +134,24 @@ Specs reference adjacent layers for coherence and traceability. Context referenc
 - [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
 - [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
 ```
+
+**Same-Layer Reference Format (for avoiding duplication):**
+```markdown
+## References
+
+### Base Requirements
+<!-- Same-layer reference: shared information -->
+- [STK-[CONCEPT]](./base-stack.md) — See for base Python requirements
+
+### Implements
+- [FUN-[CONCEPT]-NNN](../functional/feature.md) — Implements feature functionality
+```
+
+**Same-Layer Reference Rules:**
+- Use when extending an existing concept with new distinct component
+- Reference shared requirements to avoid duplication
+- Example: "See [STK-CONSOLE](./python-console-stack.md) for base Python 3.8+ and development environment requirements. This spec adds CLI argument parsing."
+- Prefer updating existing spec over creating new spec with references when concept is not distinct
 
 **Foundation specs without mapping:**
 

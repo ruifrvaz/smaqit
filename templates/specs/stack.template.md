@@ -11,6 +11,15 @@ prompt_version: [GIT_HASH]
 
 <!-- References establish traceability and coherence, not requirement derivation -->
 <!-- Stack specs typically enable multiple Functional specs -->
+<!-- Use same-layer references to avoid duplicating shared requirements -->
+
+### Base Requirements (if applicable)
+
+<!-- Same-layer reference: use when extending existing stack without duplication -->
+<!-- Example: "See [STK-CONSOLE](./python-console-stack.md) for base Python requirements" -->
+<!-- Omit this section if no same-layer dependencies exist -->
+
+- [STK-[BASE-CONCEPT]](./[BASE-FILENAME].md) — [Shared requirements referenced here]
 
 ### Enables
 

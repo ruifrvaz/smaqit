@@ -11,6 +11,15 @@ prompt_version: [GIT_HASH]
 
 <!-- References establish traceability and coherence, not requirement derivation -->
 <!-- Infrastructure specs enable the entire application to run in a target environment -->
+<!-- Use same-layer references to avoid duplicating shared requirements -->
+
+### Base Requirements (if applicable)
+
+<!-- Same-layer reference: use when extending existing infrastructure spec without duplication -->
+<!-- Example: "See [INF-NETWORKING](./base-network.md) for base network configuration" -->
+<!-- Omit this section if no same-layer dependencies exist -->
+
+- [INF-[BASE-CONCEPT]](./[BASE-FILENAME].md) — [Shared requirements referenced here]
 
 ### Enables
 

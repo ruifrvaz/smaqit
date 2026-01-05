@@ -71,6 +71,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
+- Duplicate information from existing specs—use cross-references instead
 
 ### SHOULD
 
@@ -78,6 +79,10 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Use consistent terminology from upstream specs
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
+- Check for existing Infrastructure specs before creating new specs
+- Update existing specs when adding to an existing infrastructure concept (e.g., adding monitoring to existing deployment)
+- Create new specs only for distinct new infrastructure components or environments
+- Reference existing specs for shared information using cross-references
 
 ## Scope Boundaries
 

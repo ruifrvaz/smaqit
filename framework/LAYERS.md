@@ -140,6 +140,7 @@ The Stack layer selects and justifies the technologies used to implement functio
 - Be consistent with Functional specs (validated at implementation)
 
 **Stack specs MUST NOT:**
+- Include code examples, implementation patterns, or architecture code blocks
 - Define deployment topology or infrastructure
 - Include compute, networking, or scaling decisions
 - Specify cloud providers or hosting platforms

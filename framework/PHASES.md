@@ -233,7 +233,6 @@ If prompt has content, agents interpret free-style requirements and request clar
 - [ ] Spec coverage percentage calculated
 - [ ] Untestable criteria documented with justification
 - [ ] Spec frontmatter updated: `status: validated`, `validated: [ISO8601_TIMESTAMP]`
-- [ ] Acceptance criteria checkboxes updated in Coverage specs: `[ ]` → `[x]` or `[!]`
 
 ---
 
@@ -338,7 +337,6 @@ Each implementation agent updates checkboxes in the specs it processes as part o
 |-------|-------|----------------------|-----------|
 | Develop | Development | Business, Functional, Stack specs | Agent implements these requirements and confirms satisfaction |
 | Deploy | Deployment | Infrastructure specs | Agent deploys to environment and confirms infrastructure requirements met |
-| Validate | Validation | Coverage specs | Agent executes tests and confirms test cases passed/failed |
 
 **Checkbox States:**
 

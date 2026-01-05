@@ -387,7 +387,6 @@ public async Task<Result> MethodName(Request request)
 **Validate Phase → Reports:**
 - Test results, coverage report in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`, validation summary
 - Spec frontmatter: `status: validated`, `validated: [ISO8601_TIMESTAMP]`
-- Acceptance criteria checkboxes updated in Coverage specs: `[ ]` → `[x]` or `[!]`
 - MUST map results to Coverage spec test cases
 - MUST include spec coverage percentage
 

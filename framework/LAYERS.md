@@ -182,9 +182,9 @@ The Coverage layer ensures all requirements are testable and traceable. It reads
 
 **Purpose:** Enumerate every acceptance criterion and map it to a verification test.
 
-**Input:** User verification requirements (test scope, performance benchmarks, security requirements)
+**Input:** User test requirements (test scope, test environment, integration points, acceptance thresholds)
 
-**Context:** All layer specs (Business, Functional, Stack, Infrastructure)
+**Context:** All layer specs (Business, Functional, Stack, Infrastructure) — source of upstream acceptance criteria to verify
 
 **Directives:**
 
@@ -197,9 +197,9 @@ The Coverage layer ensures all requirements are testable and traceable. It reads
 - Report spec coverage (% of requirements with corresponding tests)
 
 **Coverage specs MUST NOT:**
-- Add requirements not present in upstream specs
+- Add acceptance criteria not present in upstream specs
+- Skip upstream acceptance criteria without justification
 - Modify or reinterpret upstream acceptance criteria
-- Skip requirements without explicit justification
 - Define unit tests (those are implementation details)
 
 ## Dependency Graph

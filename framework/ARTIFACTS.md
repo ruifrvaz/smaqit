@@ -109,7 +109,7 @@ Every requirement traces to the prompt file for that layer:
 - Functional: experience requirements  
 - Stack: technology preferences
 - Infrastructure: deployment requirements
-- Coverage: verification requirements
+- Coverage: test requirements (scope, environment, integration points, thresholds)
 
 **Context References:**
 

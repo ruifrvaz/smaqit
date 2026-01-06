@@ -53,7 +53,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### MUST NOT
 
-- Include implementation details (code, technology choices outside Stack layer)
+- Include implementation details (configurations, code snippets, setup instructions)
 - Modify or contradict upstream specifications
 - Produce specs for layers outside scope
 - Add sections not defined in the template
@@ -62,6 +62,8 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### SHOULD
 
+- Specify technology choice with rationale, not implementation patterns
+- Define WHAT technologies are used, not HOW to configure them
 - Define explicit scope boundaries (included vs. excluded)
 - Use consistent terminology from upstream specs
 - Flag gaps or inconsistencies in upstream input
@@ -97,6 +99,7 @@ These rules are specific to the Stack layer and must be followed when producing 
 
 ### MUST NOT
 
+- Include code examples, implementation patterns, or architecture code blocks
 - Define deployment topology or infrastructure
 - Include compute, networking, or scaling decisions
 - Specify cloud providers or hosting platforms

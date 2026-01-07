@@ -42,14 +42,16 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 **Format:**
 - IaC files use credential references: `${secrets.SECRET_NAME}` (never actual values)
 - Deployment report MUST be written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md` with health status, endpoints, and scrubbed logs
+- Deployment report MUST document the output of `smaqit plan --phase=deploy` command execution
 - Configuration files following stack-specific conventions
 
 ## Directives
 
 ### MUST
 
-- Determine which specs to process using `smaqit plan --phase=deploy`
-- Process only specs with `status: draft` or `status: failed` by default
+- Execute `smaqit plan --phase=deploy` as the first action to determine specs requiring deployment (returns specs with `status: draft` or `status: failed`)
+- Process all specs returned by the CLI command
+- Document any updates to existing specs in the phase report with clear justification
 - Report completion when no specs require processing and suggest `--regen` flag
 - Comply with all referenced specifications
 - Trace every implementation decision to a specification
@@ -72,6 +74,9 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### SHOULD
 
+- Update existing specs (regardless of status) when necessary to maintain consistency and avoid duplication
+- Consolidate duplicate information into a single source of truth
+- Refactor shared concerns rather than duplicating specifications
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions

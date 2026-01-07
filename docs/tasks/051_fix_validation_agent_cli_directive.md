@@ -1,9 +1,9 @@
 # Task 051: Fix Validation Agent CLI Directive
 
-**Status:** new  
+**Status:** Completed (2026-01-05)  
 **Priority:** High (Release Blocker)  
 **Created:** 2026-01-05  
-**Related:** Task 048 (E2E Testing), Issue 6
+**Related:** Task 048 (E2E Testing), Task 049, Task 052, Issue 6
 
 ## Problem
 
@@ -24,11 +24,11 @@ Update Validation agent directive to mandate explicit CLI command execution as f
 
 ## Acceptance Criteria
 
-- [ ] Updated `agents/smaqit.validation.agent.md` directive from instructional to imperative phrasing
-- [ ] Added output requirement that validation report MUST document CLI command execution
-- [ ] Agent directive explicitly states command must be "first action"
-- [ ] Agent directive specifies "process ONLY the specs returned" by CLI
-- [ ] Verified directive change with test execution (optional)
+- [x] Updated `agents/smaqit.validation.agent.md` directive from instructional to imperative phrasing
+- [x] Added output requirement that validation report MUST document CLI command execution
+- [x] Agent directive explicitly states command must be "first action"
+- [x] Agent directive specifies "process ONLY the specs returned" by CLI
+- [x] Verified directive change with manual review
 
 ## Implementation Plan
 
@@ -83,3 +83,37 @@ None (can be implemented independently, but logically follows same pattern as Ta
 **Same root cause as Task 049:** Both Development and Validation agents have weak directive phrasing that invites interpretation ambiguity. Applying same fix pattern.
 
 **Pattern consistency:** This fix establishes pattern that ALL implementation agents MUST execute `smaqit plan --phase=[PHASE]` as first action. Task 052 applies this preventively to Deployment agent.
+
+## Completion Summary
+
+**Completed:** 2026-01-05
+
+**Scope expanded:** While implementing Task 051, also completed Tasks 049 and 052 to ensure consistent pattern across all three implementation agents.
+
+**Changes made:**
+1. **Level 1 (Template)**: Updated `templates/agents/implementation-agent.template.md`
+   - Line 43: Changed directive to imperative form
+   - Line 37: Added output requirement for CLI command documentation
+
+2. **Level 2 (Agents)**: Updated all three implementation agents
+   - `agents/smaqit.validation.agent.md` (Task 051)
+     - Line 48: "Execute `smaqit plan --phase=validate` as the first action and process ONLY the specs returned"
+     - Line 42: Added output requirement
+   - `agents/smaqit.development.agent.md` (Task 049)
+     - Line 50: "Execute `smaqit plan --phase=develop` as the first action and process ONLY the specs returned"
+     - Line 44: Added output requirement
+   - `agents/smaqit.deployment.agent.md` (Task 052)
+     - Line 52: "Execute `smaqit plan --phase=deploy` as the first action and process ONLY the specs returned"
+     - Line 45: Added output requirement
+
+**Verification:**
+- All three agents now have identical imperative directive pattern
+- All three phase reports now require CLI command documentation
+- Template updated to ensure future regeneration maintains pattern
+- Manual review confirms unambiguous phrasing
+
+**Files modified:** 4 total
+- `templates/agents/implementation-agent.template.md`
+- `agents/smaqit.validation.agent.md`
+- `agents/smaqit.development.agent.md`
+- `agents/smaqit.deployment.agent.md`

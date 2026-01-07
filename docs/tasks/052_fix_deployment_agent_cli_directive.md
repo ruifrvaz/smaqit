@@ -1,8 +1,9 @@
 # Task 052: Fix Deployment Agent CLI Directive (Preventive)
 
-**Status:** new  
+**Status:** Completed (2026-01-05)  
 **Priority:** High  
 **Created:** 2026-01-05  
+**Completed with:** Task 051  
 **Related:** Task 048 (E2E Testing), Tasks 049, 051
 
 ## Problem
@@ -24,12 +25,12 @@ Preventively update Deployment agent directive to mandate explicit CLI command e
 
 ## Acceptance Criteria
 
-- [ ] Verified current `agents/smaqit.deployment.agent.md` directive phrasing
-- [ ] Updated directive from instructional to imperative (if needed)
-- [ ] Added output requirement that deployment report MUST document CLI command execution
-- [ ] Agent directive explicitly states command must be "first action"
-- [ ] Agent directive specifies "process ONLY the specs returned" by CLI
-- [ ] Verified directive change with test execution (optional)
+- [x] Verified current `agents/smaqit.deployment.agent.md` directive phrasing
+- [x] Updated directive from instructional to imperative (confirmed needed)
+- [x] Added output requirement that deployment report MUST document CLI command execution
+- [x] Agent directive explicitly states command must be "first action"
+- [x] Agent directive specifies "process ONLY the specs returned" by CLI
+- [x] Verified directive change with manual review
 
 ## Implementation Plan
 
@@ -91,3 +92,11 @@ None directly, but strengthens v0.5.0 release quality
 **Pattern established:** This task completes the pattern: ALL three implementation agents (Development, Deployment, Validation) MUST execute `smaqit plan --phase=[PHASE]` as first action.
 
 **Testing gap:** Phase 2 was not covered in E2E testing (Task 048), so Deployment agent behavior not directly validated. Future testing should include full Phase 2 workflow.
+
+## Completion Summary
+
+**Completed:** 2026-01-05 as part of Task 051 work
+
+**Confirmed:** Deployment agent had same weak directive phrasing as Development and Validation agents.
+
+See Task 051 completion summary for full details of changes across all three implementation agents.

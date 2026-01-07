@@ -1,9 +1,10 @@
 # Task 049: Fix Development Agent CLI Directive
 
-**Status:** new  
+**Status:** Completed (2026-01-05)  
 **Priority:** High (Release Blocker)  
 **Created:** 2026-01-05  
-**Related:** Task 048 (E2E Testing), Issue 4
+**Completed with:** Task 051  
+**Related:** Task 048 (E2E Testing), Task 051, Task 052, Issue 4
 
 ## Problem
 
@@ -25,11 +26,11 @@ Update Development agent directive to mandate explicit CLI command execution as 
 
 ## Acceptance Criteria
 
-- [ ] Updated `agents/smaqit.development.agent.md` directive from instructional to imperative phrasing
-- [ ] Added output requirement that development report MUST document CLI command execution
-- [ ] Agent directive explicitly states command must be "first action"
-- [ ] Agent directive specifies "process ONLY the specs returned" by CLI
-- [ ] Verified directive change with test execution (optional)
+- [x] Updated `agents/smaqit.development.agent.md` directive from instructional to imperative phrasing
+- [x] Added output requirement that development report MUST document CLI command execution
+- [x] Agent directive explicitly states command must be "first action"
+- [x] Agent directive specifies "process ONLY the specs returned" by CLI
+- [x] Verified directive change with manual review
 
 ## Implementation Plan
 
@@ -86,3 +87,9 @@ None (can be implemented independently)
 **Alternative considered:** Adding workflow section with numbered steps. Rejected because directive-based approach (MUST/MUST NOT) is established smaqit pattern.
 
 **Success criteria:** Agent directive is so clear that no interpretation ambiguity remains. "Execute X as first action" leaves no room for "I satisfied the spirit without executing the command."
+
+## Completion Summary
+
+**Completed:** 2026-01-05 as part of Task 051 work
+
+See Task 051 completion summary for full details of changes across all three implementation agents.

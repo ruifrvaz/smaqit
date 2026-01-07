@@ -59,7 +59,6 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 ### MUST NOT
 
 - Modify specification requirements or structure (request changes through proper channels)
-  - **Note:** Updating frontmatter status and acceptance criteria checkboxes is expected as part of implementation tracking
 - Implement features not defined in specifications
 - Skip validation steps defined in Coverage specs
 - Invent requirements not present in input
@@ -110,8 +109,6 @@ Development agent MUST update both spec frontmatter and phase state.
 1. Update spec YAML frontmatter:
    - Set `status: implemented` (success) or `status: failed`
    - Add `implemented: [ISO8601_TIMESTAMP]`
-
-**The CLI aggregates phase status from spec frontmatter.** The agent updates individual spec files only.
 
 ## Phase-Specific Rules
 

@@ -419,3 +419,79 @@ grep -n "report MUST document the output of.*plan" agents/*.agent.md templates/a
 **Critical assessment approach validated:** Questioning scope and checking all three agents together was more efficient and thorough than sequential individual fixes.
 
 **Level hierarchy respected:** User requested "respect smaqit levels: work first on level 0 then cascade to subsequent levels" - followed by updating Level 1 (template) before Level 2 (agents).
+
+---
+
+## Post-Completion Refinement (2026-01-07)
+
+### Critical Assessment: Cross-Spec Update Constraint
+
+**Problem identified:** The directive "process ONLY the specs returned" inadvertently blocked legitimate cross-spec updates needed for maintaining single source of truth.
+
+**Real-world scenario:**
+- Agent generates new spec that duplicates information from existing implemented spec
+- Original directive: "process ONLY the specs returned" prevents updating existing spec
+- Result: Duplication persists, violating single source of truth principle (Task 055, Issue 3)
+
+**Root cause:** Overly restrictive "ONLY" constraint prioritized CLI authority at expense of consistency maintenance.
+
+### Refined Solution
+
+**Changed from:**
+```markdown
+### MUST
+- Execute `smaqit plan --phase=[PHASE]` as the first action and process ONLY the specs returned
+- Process only specs with `status: draft` or `status: failed` by default
+```
+
+**Changed to:**
+```markdown
+### MUST
+- Execute `smaqit plan --phase=[PHASE]` as the first action to determine specs requiring [phase work]
+- Process all specs returned by the CLI command
+- Document any updates to existing specs in the phase report with clear justification
+- Process only specs with `status: draft` or `status: failed` by default (via CLI filtering)
+
+### SHOULD
+- Update existing specs (regardless of status) when necessary to maintain consistency and avoid duplication
+- Consolidate duplicate information into a single source of truth
+- Refactor shared concerns rather than duplicating specifications
+```
+
+### Key Improvements
+
+1. **Removed "ONLY" restriction** — Allows legitimate cross-spec updates
+2. **Preserved CLI authority** — Still mandates CLI execution as first action
+3. **Required all CLI specs** — Must process everything CLI returns
+4. **Added accountability** — Must document any existing spec updates with justification
+5. **Proper directive structure** — MUST for mandatory, SHOULD for recommended
+6. **No redundant prefixes** — Clean "MUST" section without nested "MUST" statements
+
+### Design Balance
+
+| Aspect | Implementation |
+|--------|----------------|
+| **CLI Authority** | ✅ Preserved — CLI execution still mandatory first action |
+| **Spec Processing** | ✅ Preserved — All CLI-returned specs must be processed |
+| **Cross-Spec Updates** | ✅ Enabled — Can update existing specs for consistency |
+| **Accountability** | ✅ Required — Must document updates with justification |
+| **Single Source of Truth** | ✅ Supported — Consolidation explicitly encouraged |
+
+### Files Updated (Refinement)
+
+1. `templates/agents/implementation-agent.template.md`
+2. `agents/smaqit.development.agent.md`
+3. `agents/smaqit.deployment.agent.md`
+4. `agents/smaqit.validation.agent.md`
+
+All four files updated with balanced directive structure.
+
+### Rationale
+
+**User insight:** "With this phrasing 'process ONLY the specs returned' we risk blocking the agent from updating existing specs, no?"
+
+**Analysis confirmed:** Yes — iterative development requires updating existing specs to avoid redundant information. Restrictive "ONLY" blocked this legitimate work.
+
+**Solution:** Replace absolute restriction with balanced approach: mandate CLI authority while permitting justified cross-spec updates.
+
+**Context timing:** Fixed immediately in current session to preserve perfect context. User correctly identified that context loss between sessions creates implementation risk.

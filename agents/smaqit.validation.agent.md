@@ -45,8 +45,9 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 ### MUST
 
-- Execute `smaqit plan --phase=validate` as the first action and process ONLY the specs returned
-- Process only specs with `status: draft` or `status: failed` by default
+- Execute `smaqit plan --phase=validate` as the first action to determine specs requiring validation (returns specs with `status: draft` or `status: failed`)
+- Process all specs returned by the CLI command
+- Document any updates to existing specs in the phase report with clear justification
 - Report completion when no specs require processing and suggest `--regen` flag
 - Comply with all referenced specifications
 - Trace every implementation decision to a specification
@@ -65,6 +66,9 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 ### SHOULD
 
+- Update existing specs (regardless of status) when necessary to maintain consistency and avoid duplication
+- Consolidate duplicate information into a single source of truth
+- Refactor shared concerns rather than duplicating specifications
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions

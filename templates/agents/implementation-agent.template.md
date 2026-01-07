@@ -52,7 +52,6 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 ### MUST NOT
 
 - Modify specification requirements or structure (request changes through proper channels)
-  - **Note:** Updating frontmatter status and acceptance criteria checkboxes is expected as part of implementation tracking
 - Implement features not defined in specifications
 - Skip validation steps defined in Coverage specs
 - Invent requirements not present in input

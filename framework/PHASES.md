@@ -79,6 +79,7 @@ If any prompt is empty or insufficient, agent halts and guides user: "Please fil
 - [ ] README includes build, test, and run instructions
 - [ ] Development report written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md`
 - [ ] Spec frontmatter updated: `status: implemented`, `implemented: [ISO8601_TIMESTAMP]`
+- [ ] Acceptance criteria checkboxes updated in Business, Functional, Stack specs: `[ ]` → `[x]` or `[!]`
 
 ---
 
@@ -168,6 +169,7 @@ See [ARTIFACTS](ARTIFACTS.md) for the Isolation Principle.
 - [ ] System accessible at expected endpoints
 - [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
 - [ ] Spec frontmatter updated: `status: deployed`, `deployed: [ISO8601_TIMESTAMP]`
+- [ ] Acceptance criteria checkboxes updated in Infrastructure specs: `[ ]` → `[x]` or `[!]`
 
 ---
 
@@ -231,7 +233,6 @@ If prompt has content, agents interpret free-style requirements and request clar
 - [ ] Spec coverage percentage calculated
 - [ ] Untestable criteria documented with justification
 - [ ] Spec frontmatter updated: `status: validated`, `validated: [ISO8601_TIMESTAMP]`
-- [ ] Acceptance criteria checkboxes updated: `[ ]` → `[x]` or `[!]`
 
 ---
 
@@ -323,6 +324,31 @@ When any layer spec changes, downstream phases must re-run:
 | Coverage | Validate |
 
 Coverage phase always re-runs when any upstream spec changes to ensure test coverage remains current.
+
+---
+
+## Acceptance Criteria Checkboxes
+
+Each implementation agent updates checkboxes in the specs it processes as part of its self-validation process.
+
+**Checkbox Responsibility by Phase:**
+
+| Phase | Agent | Updates Checkboxes In | Rationale |
+|-------|-------|----------------------|-----------|
+| Develop | Development | Business, Functional, Stack specs | Agent implements these requirements and confirms satisfaction |
+| Deploy | Deployment | Infrastructure specs | Agent deploys to environment and confirms infrastructure requirements met |
+
+**Checkbox States:**
+
+- `[ ]` — Not yet implemented/validated
+- `[x]` — Satisfied (implementation complete or test passed)
+- `[!]` — Failed, untestable, or not satisfied
+
+**Self-Validation Principle:**
+
+Checkbox updates are part of the implementation agent's self-validation process, confirming that requirements were addressed during execution. This creates an audit trail showing which phase satisfied which requirements.
+
+**Note:** Checkbox updates are implementation tracking, not specification modification. They reflect work done, not changes to requirements.
 
 ---
 

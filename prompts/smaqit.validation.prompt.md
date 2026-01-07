@@ -8,8 +8,8 @@ agent: smaqit.validation
 
 ## Parameters
 
-### Test Scope
-[Any test execution preferences?]
+### Execution Scope
+[Which tests should be executed?]
 
 <!-- Example: "Run only smoke tests (quick validation)" -->
 <!-- Example: "Run full test suite including performance tests" -->

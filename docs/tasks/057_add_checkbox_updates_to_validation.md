@@ -1,9 +1,11 @@
 # Task 057: Add Checkbox Updates to Validation Agent
 
-**Status:** new  
+**Status:** Superseded by Task 058 (2026-01-05)  
 **Priority:** Low  
 **Created:** 2026-01-05  
 **Related:** Task 048 (E2E Testing), Issue 8
+
+**Note:** This task was superseded by Task 058, which implemented a more comprehensive solution where each implementation agent updates checkboxes for its own specs (Development → Business/Functional/Stack, Deployment → Infrastructure, Validation → Coverage) rather than having Validation update all specs.
 
 ## Problem
 

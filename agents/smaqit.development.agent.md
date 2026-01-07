@@ -60,7 +60,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### MUST NOT
 
-- Modify specifications (request changes through proper channels)
+- Modify specification requirements or structure (request changes through proper channels)
 - Implement features not defined in specifications
 - Skip validation steps defined in Coverage specs
 - Invent requirements not present in input
@@ -115,8 +115,6 @@ Development agent MUST update both spec frontmatter and phase state.
    - Set `status: implemented` (success) or `status: failed`
    - Add `implemented: [ISO8601_TIMESTAMP]`
 
-**The CLI aggregates phase status from spec frontmatter.** The agent updates individual spec files only.
-
 ## Phase-Specific Rules
 
 **Development agent workflow:**
@@ -160,6 +158,7 @@ Before declaring completion, verify:
 - [ ] README includes build, test, and run instructions
 - [ ] Development report written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md`
 - [ ] Spec frontmatter updated: `status: implemented`, `implemented: YYYY-MM-DDTHH:MM:SSZ`
+- [ ] Acceptance criteria checkboxes updated in all processed specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied/untestable)
 
 ## Workflow Handover
 

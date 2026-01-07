@@ -65,7 +65,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### MUST NOT
 
-- Modify specifications (request changes through proper channels)
+- Modify specification requirements or structure (request changes through proper channels)
 - Implement features not defined in specifications
 - Skip validation steps defined in Coverage specs
 - Invent requirements not present in input
@@ -120,9 +120,6 @@ Deployment agent MUST update both spec frontmatter and phase state.
 1. Update spec YAML frontmatter:
    - Set `status: deployed` (success) or `status: failed`
    - Add `deployed: [ISO8601_TIMESTAMP]`
-
-**The CLI aggregates phase status from spec frontmatter.** The agent updates individual spec files only.
-   - Configure health checks and monitoring endpoints
 
 ## Phase-Specific Rules
 
@@ -181,6 +178,7 @@ Before declaring completion, verify:
 - [ ] Observability configured per infrastructure specs
 - [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
 - [ ] Spec frontmatter updated: `status: deployed`, `deployed: YYYY-MM-DDTHH:MM:SSZ`
+- [ ] Acceptance criteria checkboxes updated in Infrastructure specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied)
 
 ## Workflow Handover
 

@@ -103,19 +103,17 @@ When user requests out-of-phase work:
 
 ## State Tracking
 
-Validation agent MUST update spec frontmatter, acceptance criteria checkboxes, and phase state.
+For each spec validated (applies to all layers: business, functional, stack, infrastructure, coverage):
 
-**For each coverage spec processed:**
-
-1. Update acceptance criteria checkboxes:
+1. Update acceptance criteria checkboxes in coverage spec corresponding to the running validation:
    - `[ ]` → `[x]` (test passed)
    - `[ ]` → `[!]` (test failed, include reason)
 
-2. Update spec YAML frontmatter:
+2. Update spec YAML frontmatter in validated spec when all corresponding acceptance criteria are validated:
    - Set `status: validated` (all pass) or `status: failed` (any fail)
    - Add `validated: [ISO8601_TIMESTAMP]`
 
-**The CLI aggregates phase status from spec frontmatter.** The agent updates individual spec files only.
+**MUST update ALL validated spec frontmatter, not just coverage specs.**
 
 ## Phase-Specific Rules
 
@@ -186,7 +184,8 @@ Before declaring completion, verify:
 - [ ] Validation report includes spec coverage percentage
 - [ ] Unverified requirements documented with justification
 - [ ] Failure details include sufficient evidence for debugging
-- [ ] Spec frontmatter updated: `status: validated`, `validated: YYYY-MM-DDTHH:MM:SSZ`
+- [ ] All validated spec frontmatter updated: `status: validated`, `validated: YYYY-MM-DDTHH:MM:SSZ`
+- [ ] Acceptance criteria checkboxes updated in corresponding coverage specs: `[ ]` → `[x]` or `[!]`
 
 ## Workflow Handover
 

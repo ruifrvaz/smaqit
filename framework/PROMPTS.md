@@ -115,7 +115,7 @@ Capture requirements for single specification layer:
 | `smaqit.functional.prompt.md` | Functional | Behaviors, data, contracts | Functional Agent |
 | `smaqit.stack.prompt.md` | Stack | Technologies, tools, rationale | Stack Agent |
 | `smaqit.infrastructure.prompt.md` | Infrastructure | Deployment, scaling, observability | Infrastructure Agent |
-| `smaqit.coverage.prompt.md` | Coverage | Test scope, verification requirements | Coverage Agent |
+| `smaqit.coverage.prompt.md` | Coverage | Test scope, environment, thresholds | Coverage Agent |
 
 ### Implementation Prompts
 
@@ -125,7 +125,7 @@ Trigger single implementation agent with optional execution parameters:
 |--------|-------|----------|---------|
 | `smaqit.development.prompt.md` | Development | Build options, output preferences | Development Agent |
 | `smaqit.deployment.prompt.md` | Deployment | Deployment target, verification | Deployment Agent |
-| `smaqit.validation.prompt.md` | Validation | Test scope, failure handling | Validation Agent |
+| `smaqit.validation.prompt.md` | Validation | Execution scope, failure handling | Validation Agent |
 
 Implementation prompts collect minimal runtime parameters (watch mode, verbosity, skip flags). Agents handle orchestration, validation, and error handling.
 

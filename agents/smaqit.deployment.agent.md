@@ -63,7 +63,8 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### MUST NOT
 
-- Modify specifications (request changes through proper channels)
+- Modify specification requirements or structure (request changes through proper channels)
+  - **Note:** Updating frontmatter status and acceptance criteria checkboxes is expected as part of implementation tracking
 - Implement features not defined in specifications
 - Skip validation steps defined in Coverage specs
 - Invent requirements not present in input
@@ -176,6 +177,7 @@ Before declaring completion, verify:
 - [ ] Observability configured per infrastructure specs
 - [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
 - [ ] Spec frontmatter updated: `status: deployed`, `deployed: YYYY-MM-DDTHH:MM:SSZ`
+- [ ] Acceptance criteria checkboxes updated in Infrastructure specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied)
 
 ## Workflow Handover
 

@@ -98,9 +98,7 @@ When user requests out-of-phase work:
 
 ## State Tracking
 
-Validation agent MUST update spec frontmatter, acceptance criteria checkboxes, and phase state.
-
-**For each spec validated (applies to all layers: business, functional, stack, infrastructure, coverage):**
+For each spec validated (applies to all layers: business, functional, stack, infrastructure, coverage):
 
 1. Update acceptance criteria checkboxes in coverage spec corresponding to the running validation:
    - `[ ]` → `[x]` (test passed)
@@ -110,7 +108,7 @@ Validation agent MUST update spec frontmatter, acceptance criteria checkboxes, a
    - Set `status: validated` (all pass) or `status: failed` (any fail)
    - Add `validated: [ISO8601_TIMESTAMP]`
 
-**MUST update ALL validated spec frontmatter, not just coverage specs.** The validation agent validates requirements across all layers (business, functional, stack, infrastructure) through coverage spec test cases. When a test case validates an upstream requirement, that upstream spec's frontmatter MUST be updated to reflect validated state.
+**MUST update ALL validated spec frontmatter, not just coverage specs.**
 
 ## Phase-Specific Rules
 

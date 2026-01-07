@@ -10,7 +10,6 @@
 | 052 | Fix Deployment Agent CLI Directive (Preventive) | new | High |
 | 055 | Formalize Single Source of Truth Principle | new | Medium |
 | 056 | Document Context Pollution Workaround | new | Low |
-| 057 | Add Checkbox Updates to Validation Agent | new | Low |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
 | 031 | Review implementation artifacts | new | Medium |
 | 036 | Implement prompt addendum for reproducibility | new | Medium |
@@ -66,6 +65,8 @@
 | 045 | Validate stateful specifications infrastructure |
 | 053 | Fix Validation Frontmatter Updates |
 | 054 | Strengthen Stack Agent Code Directive |
+| 057 | Add Checkbox Updates to Validation Agent (superseded by 058) |
+| 058 | Implementation Agents Should Update Acceptance Criteria Checkboxes |
 
 ## Backlog
 

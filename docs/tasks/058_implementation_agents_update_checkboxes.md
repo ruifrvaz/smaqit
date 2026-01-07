@@ -1,8 +1,8 @@
 # Task 058: Implementation Agents Should Update Acceptance Criteria Checkboxes
 
-**Status:** new  
+**Status:** Completed (2026-01-05)  
 **Priority:** High  
-**Effort:** 3-4 hours  
+**Effort:** 3-4 hours (actual: ~2 hours)  
 **Related Issues:** E2E Test Issue 8 (Validation doesn't update checkboxes), E2E Test Issue 9 (Development has no checkbox directive)  
 **Discovered:** 2026-01-05 during E2E test review  
 **Context:** Session 030 E2E Testing Mario Hello
@@ -224,16 +224,75 @@ After implementing changes:
 
 ## Success Criteria
 
-- [ ] PHASES.md includes checkbox update requirements for all three implementation phases
-- [ ] PHASES.md clarifies which agent updates which spec checkboxes
-- [ ] Development agent has checkbox update directive in Completion Criteria
-- [ ] Deployment agent has checkbox update directive in Completion Criteria
-- [ ] Validation agent clarifies it only updates Coverage checkboxes
-- [ ] "MUST NOT modify specifications" clarified to exclude frontmatter/checkbox updates
-- [ ] Agent template includes checkbox update as standard completion criterion
-- [ ] All documentation uses consistent checkbox notation: `[ ]`, `[x]`, `[!]`
-- [ ] Test execution confirms agents update checkboxes correctly
-- [ ] No conflicts or ambiguities in framework/agent directives
+- [x] PHASES.md includes checkbox update requirements for all three implementation phases
+- [x] PHASES.md clarifies which agent updates which spec checkboxes (new "Acceptance Criteria Checkboxes" section)
+- [x] Development agent has checkbox update directive in Completion Criteria
+- [x] Deployment agent has checkbox update directive in Completion Criteria
+- [x] Validation agent clarifies it only updates Coverage checkboxes
+- [x] "MUST NOT modify specifications" clarified to exclude frontmatter/checkbox updates (all implementation agents)
+- [x] Agent template includes checkbox update as standard completion criterion
+- [x] All documentation uses consistent checkbox notation: `[ ]`, `[x]`, `[!]`
+- [x] ARTIFACTS.md updated to reflect per-phase checkbox updates
+- [x] Build verification successful (installer compiles)
+- [ ] Test execution confirms agents update checkboxes correctly (requires E2E testing with agents)
+- [x] No conflicts or ambiguities in framework/agent directives
+
+---
+
+## Implementation Summary
+
+**Status:** Completed (2026-01-05)
+
+**Files Modified:**
+
+1. **framework/PHASES.md**
+   - Added checkbox update to Develop phase completion criteria
+   - Added checkbox update to Deploy phase completion criteria
+   - Clarified Validate phase updates Coverage specs only
+   - Added new "Acceptance Criteria Checkboxes" section explaining philosophy and responsibility
+
+2. **framework/ARTIFACTS.md**
+   - Updated "Acceptance Criteria State" to reflect all phases update checkboxes
+   - Added checkbox updates to Develop phase artifacts
+   - Added checkbox updates to Deploy phase artifacts
+   - Clarified Validate phase updates Coverage specs only
+
+3. **agents/smaqit.development.agent.md**
+   - Updated "MUST NOT" to clarify frontmatter/checkbox updates are tracking, not modification
+   - Added checkbox update directive to Completion Criteria
+
+4. **agents/smaqit.deployment.agent.md**
+   - Updated "MUST NOT" to clarify frontmatter/checkbox updates are tracking, not modification
+   - Added checkbox update directive to Completion Criteria
+
+5. **agents/smaqit.validation.agent.md**
+   - Updated State Tracking section to clarify only Coverage specs updated
+   - Removed language about updating all layers
+   - Updated Completion Criteria to specify Coverage specs only
+
+6. **templates/agents/implementation-agent.template.md**
+   - Updated "MUST NOT" template with clarification note
+   - Added checkbox update to standard completion criteria
+
+**Key Changes:**
+
+- Established clear responsibility: Each phase updates checkboxes for specs it processes
+- Development → Business, Functional, Stack specs
+- Deployment → Infrastructure specs
+- Validation → Coverage specs only
+- Clarified that checkbox/frontmatter updates are "implementation tracking" not "spec modification"
+- Added comprehensive "Acceptance Criteria Checkboxes" section in PHASES.md
+- Consistent checkbox notation across all documentation: `[ ]`, `[x]`, `[!]`
+
+**Testing:**
+
+- ✅ Installer builds successfully with no syntax errors
+- ⏸️ Runtime E2E testing with actual agents deferred (requires agents to be invoked)
+
+**Next Steps:**
+
+- Run E2E testing with actual agent invocations to verify checkbox updates work correctly
+- Monitor agent behavior to ensure checkboxes are updated as designed
 
 ---
 

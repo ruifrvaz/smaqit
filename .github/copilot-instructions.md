@@ -69,35 +69,6 @@ When performing work:
 
 **Be verbose and educational** — Help the user understand the process, not just the outcome.
 
-### Critical Assessment First
-
-**MANDATORY for EVERY request** — Before taking any action, apply critical assessment:
-
-1. **Question the premise** — Is this request necessary? Does it duplicate existing work? Could it create maintenance burden?
-2. **Check existing state** — Read relevant files FIRST to understand what already exists before proposing changes
-3. **Identify trade-offs** — What are the downsides? What alternatives exist? Which is better and why?
-4. **Flag problems upfront** — If you see flaws, redundancy, or better approaches, state them clearly BEFORE proceeding
-5. **Propose, don't assume** — Present your assessment and ask for confirmation, even for simple requests
-
-**This applies to ALL requests, not just questionable ones:**
-- Simple refactorings → Check if they duplicate existing patterns
-- Documentation updates → Verify target location and check for existing content
-- New features → Question whether they're needed or if existing solutions suffice
-- "Clean up X" requests → Ask "Clean up relative to what? What's the duplication source?"
-
-**Critical assessment failures to avoid:**
-- Immediately executing without checking existing files
-- Assuming user's framing is complete/correct
-- Creating new content before verifying it doesn't already exist
-- Treating normal-seeming requests as safe to execute without analysis
-
-**Stop and explain risks before implementing anything that:**
-- Modifies user configuration files (dotfiles, shell configs)
-- Violates security best practices
-- Breaks established conventions without clear justification
-- Could affect system stability or user experience negatively
-- Duplicates existing functionality in another location
-
 ## Content Guidelines
 
 ### Agent-Facing Instructions vs User-Facing Documentation
@@ -246,7 +217,7 @@ Keep `installer/main.go` Version const in sync with SMAQIT.md version.
 
 When implementing features that transition from Level 0 (framework) → Level 1 (templates) → Level 2 (agents):
 
-### Critical Assessment Phase
+### Assessment Phase
 
 **Before any implementation:**
 
@@ -337,6 +308,7 @@ Session management and task management commands are available as prompts in `.gi
 
 **Session commands:**
 - `/session.start` - Load full project context for new chat
+- `/session.assess` - Analyze request before implementation
 - `/session.finish` - Document session history at completion
 
 **Task commands:**

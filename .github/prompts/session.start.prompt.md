@@ -1,9 +1,9 @@
 ---
-name: session.recap
+name: session.start
 description: Start a new chat with full project context
 ---
 
-# Session Recap
+# Session Start
 
 Start a new chat with full project context. Execute these steps IN ORDER:
 
@@ -23,7 +23,7 @@ Start a new chat with full project context. Execute these steps IN ORDER:
 
 3. **Read task planning file:** `docs/tasks/PLANNING.md` (NOT individual task files)
 
-4. **Synthesize and present** a recap covering:
+4. **Synthesize and present** a summary covering:
    - Current project state (from READMEs)
    - Recent changes and decisions (from history)
    - Open tasks sorted by priority

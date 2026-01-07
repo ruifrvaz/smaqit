@@ -116,7 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Renamed for consistency with agent names
   - Reduced to minimal orchestration inputs
 - Session and task commands moved to prompts (Task 030)
-  - `/session.recap`, `/session.wrap`, `/task.*` now in `.github/prompts/`
+  - `/session.start`, `/session.finish`, `/task.*` now in `.github/prompts/`
 
 ### Fixed
 - Prompt name references in installer and documentation (Task 044)

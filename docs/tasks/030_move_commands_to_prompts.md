@@ -6,7 +6,7 @@
 
 ## Description
 
-Session commands (session.wrap, session.recap) and task commands (task.create, task.list, task.complete) are currently defined in `.github/copilot-instructions.md`. Moving them into GitHub Copilot prompts would:
+Session commands (session.finish, session.start) and task commands (task.create, task.list, task.complete) are currently defined in `.github/copilot-instructions.md`. Moving them into GitHub Copilot prompts would:
 
 1. Free up copilot-instructions.md space for project-specific development guidelines
 2. Make commands more discoverable (users can see them in prompt panel)
@@ -16,8 +16,8 @@ Session commands (session.wrap, session.recap) and task commands (task.create, t
 ## Current State
 
 **Session commands in copilot-instructions.md:**
-- `session.recap` - Loads full project context for new chat
-- `session.wrap` - Documents session history at end of work
+- `session.start` - Loads full project context for new chat
+- `session.finish` - Documents session history at end of work
 
 **Task commands in copilot-instructions.md:**
 - `task.create [title]` - Create new task file
@@ -27,8 +27,8 @@ Session commands (session.wrap, session.recap) and task commands (task.create, t
 ## Proposed Structure
 
 **Session prompts:**
-- `.github/prompts/session.recap.prompt.md` - Context loading for new sessions
-- `.github/prompts/session.wrap.prompt.md` - Session documentation at completion
+- `.github/prompts/session.start.prompt.md` - Context loading for new sessions
+- `.github/prompts/session.finish.prompt.md` - Session documentation at completion
 
 **Task prompts (optional):**
 - `.github/prompts/task.create.prompt.md` - Task creation workflow
@@ -36,14 +36,14 @@ Session commands (session.wrap, session.recap) and task commands (task.create, t
 - `.github/prompts/task.complete.prompt.md` - Task completion workflow
 
 **Invocation:**
-Users would invoke via: `/session.recap`, `/session.wrap`, `/task.create`, etc.
+Users would invoke via: `/session.start`, `/session.finish`, `/task.create`, etc.
 
 ## Scope
 
 ### Must Have
 
-- [x] Create `session.recap.prompt.md` with full context loading logic
-- [x] Create `session.wrap.prompt.md` with session documentation logic
+- [x] Create `session.start.prompt.md` with full context loading logic
+- [x] Create `session.finish.prompt.md` with session documentation workflow
 - [x] Remove session commands from copilot-instructions.md
 - [x] Verify prompts work via / invocation
 
@@ -60,7 +60,7 @@ Users would invoke via: `/session.recap`, `/session.wrap`, `/task.create`, etc.
 
 ## Acceptance Criteria
 
-- [x] Session commands work via prompt invocation (/session.recap, /session.wrap)
+- [x] Session commands work via prompt invocation (/session.start, /session.finish)
 - [x] Session command logic removed from copilot-instructions.md
 - [x] Task commands work via prompt invocation
 - [x] Task command logic removed from copilot-instructions.md
@@ -76,7 +76,7 @@ Users would invoke via: `/session.recap`, `/session.wrap`, `/task.create`, etc.
 - Command logic version controlled separately
 
 **Disadvantages:**
-- Slightly more verbose invocation (`/session.wrap` vs `session.wrap`)
+- Slightly more verbose invocation (`/session.finish` vs `session.finish`)
 - Commands are now "just prompts" not "special commands"
 - May need education for users expecting keyword commands
 

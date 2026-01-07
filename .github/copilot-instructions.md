@@ -336,8 +336,8 @@ When implementing features that transition from Level 0 (framework) → Level 1 
 Session management and task management commands are available as prompts in `.github/prompts/`:
 
 **Session commands:**
-- `/session.recap` - Load full project context for new chat
-- `/session.wrap` - Document session history at completion
+- `/session.start` - Load full project context for new chat
+- `/session.finish` - Document session history at completion
 
 **Task commands:**
 - `/task.create [title]` - Create new task with auto-numbering
@@ -348,10 +348,11 @@ See individual prompt files in `.github/prompts/` for detailed workflows.
 
 ### Task Management
 
-- `docs/tasks/PLANNING.md` has two tables: Active and Completed
+- `docs/tasks/PLANNING.md` has three tables: Active, Completed, and Abandoned
 - New tasks go in Active table with status `new`
 - When starting a task, update status to `in progress`
 - When completing a task, move from Active to Completed table
+- When abandoning a task (superseded, no longer relevant, incorrect approach), move from Active to Abandoned table with reason
 - Individual task files in `docs/tasks/{id}_{title}.md` contain details
 
 **Quick commands:**

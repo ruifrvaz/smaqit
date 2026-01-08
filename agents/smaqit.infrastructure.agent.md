@@ -86,7 +86,7 @@ Foundation specs (base networking, shared security policies, common observabilit
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
-- Duplicate information from existing specs—use Foundation Reference for same-layer or Implements/Enables for upstream specs
+- Duplicate information from existing specs — use Foundation Reference for same-layer or Implements/Enables for upstream specs
 
 ### SHOULD
 

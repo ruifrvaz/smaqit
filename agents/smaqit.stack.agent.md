@@ -74,7 +74,7 @@ Foundation specs (base language environments, shared build tools, common depende
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
-- Duplicate information from existing specs—use Foundation Reference for same-layer or Implements/Enables for upstream specs
+- Duplicate information from existing specs in the same layer
 
 ### SHOULD
 

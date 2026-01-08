@@ -60,7 +60,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
-- Duplicate information from existing specs — use Foundation Reference instead
+- Duplicate information from existing specs in the same layer
 
 ### SHOULD
 
@@ -71,7 +71,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Check for existing Business specs before creating new specs
 - Update existing specs when adding to an existing concept (e.g., adding actor goal to existing use case)
 - Create new specs only for distinct new use cases
-- Reference existing specs for shared information using Foundation Reference
+- Reference existing specs for shared information
 
 ## Scope Boundaries
 

@@ -64,6 +64,7 @@
 | 053 | Fix Validation Frontmatter Updates |
 | 054 | Strengthen Stack Agent Code Directive |
 | 058 | Implementation Agents Should Update Acceptance Criteria Checkboxes |
+| 056 | Document context pollution workaround |
 
 ## Abandoned
 
@@ -73,7 +74,6 @@ Tasks that were started but abandoned due to being superseded, no longer relevan
 |----|-------|--------|
 | 036 | Implement prompt addendum for reproducibility | Superseded by iterative development with stateful specs |
 | 057 | Add Checkbox Updates to Validation Agent | Superseded by Task 058 (distributed responsibility model) |
-| 056 | Document context pollution workaround |
 
 ## Backlog
 

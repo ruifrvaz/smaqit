@@ -8,8 +8,9 @@ tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 
 ## Role
 
-Specification agent for the Coverage layer. Translates prompt file requirements into precise, testable specifications. Uses all layer specs for traceability and coherence.
+You are now operating as the **Coverage Agent**. Your goal is to translate test requirements into precise, testable Coverage specifications.
 
+**Context:** You operate in the **Coverage** layer. Test requirements come from the prompt file. All upstream specifications (Business, Functional, Stack, Infrastructure) provide the acceptance criteria to verify.
 
 ## Input
 

@@ -93,7 +93,8 @@ The Functional layer defines the behaviors, contracts, and data models required 
 - Specify data models with attributes and relationships
 - Define API contracts (inputs, outputs, error conditions)
 - Include state transitions where applicable
-- Reference business specs for traceability
+- Reference business specs for traceability using Implements (1:1 feature) or Enables (1:many foundation)
+- Include justification when foundation spec has no Business references
 
 **Functional specs MUST NOT:**
 - Specify technology choices (languages, frameworks, databases)
@@ -114,9 +115,9 @@ Foundation specs (shared components, cross-cutting concerns, common contracts) a
 
 **Foundation spec rules:**
 - SHOULD reference all Business specs they enable
-- MAY precede or parallel Business specs when engineering judgment requires
 - MUST flag absence of Business references with justification
-- Orphaned foundations (no Business references, no justification) indicate scope creep
+
+**Note:** Orphaned foundations (no Business references, no justification) indicate scope creep.
 
 ---
 
@@ -138,6 +139,8 @@ The Stack layer selects and justifies the technologies used to implement functio
 - Specify libraries and their purposes
 - Include build tools and development environment setup
 - Be consistent with Functional specs (validated at implementation)
+- Reference Functional specs using Enables (foundation serving multiple) or direct reference (feature serving one)
+- Include justification when foundation spec has no Functional references
 
 **Stack specs MUST NOT:**
 - Include code examples, implementation patterns, or architecture code blocks
@@ -145,6 +148,23 @@ The Stack layer selects and justifies the technologies used to implement functio
 - Include compute, networking, or scaling decisions
 - Specify cloud providers or hosting platforms
 - Contradict functional requirements
+
+**Foundation vs Feature Specs:**
+
+Stack specs come in two categories:
+
+| Type | Purpose | Functional Reference |
+|------|---------|--------------------|
+| **Feature specs** | Technology choices for a specific feature | 1:1 mapping (Enables) |
+| **Foundation specs** | Base technologies enabling multiple features | 1:many mapping (Enables) |
+
+Foundation specs (base language environments, shared build tools, common dependencies) are legitimate engineering artifacts that serve multiple functional requirements.
+
+**Foundation spec rules:**
+- SHOULD reference all Functional specs they enable
+- MUST flag absence of Functional references with justification
+
+**Note:** Orphaned foundations (no Functional references, no justification) indicate scope creep.
 
 ---
 
@@ -167,12 +187,31 @@ The Infrastructure layer defines where and how the application runs in productio
 - Define scaling policies and resource limits
 - Specify secrets management approach
 - Be consistent with Phase 1 specs regarding requirements and runtime constraints (validated at implementation)
+- Reference Phase 1 specs using Enables (foundation serving multiple) or direct reference (feature serving one)
+- Include justification when foundation spec has no Phase 1 references
 
 **Infrastructure specs MUST NOT:**
 - Redefine business logic or functional behaviors
 - Override technology choices from Stack layer
 - Include application code or configurations
 - Define test cases (those belong in Coverage)
+
+**Foundation vs Feature Specs:**
+
+Infrastructure specs come in two categories:
+
+| Type | Purpose | Phase 1 Reference |
+|------|---------|--------------------|
+| **Feature specs** | Infrastructure for a specific feature/component | 1:1 mapping (Enables) |
+| **Foundation specs** | Base infrastructure enabling multiple features | 1:many mapping (Enables) |
+
+Foundation specs (base networking, shared security policies, common observability configuration) are legitimate operational artifacts that serve multiple application components.
+
+**Foundation spec rules:**
+- SHOULD reference all Phase 1 specs (Business, Functional, Stack) they enable
+- MUST flag absence of Phase 1 references with justification
+
+**Note:** Orphaned foundations (no Phase 1 references, no justification) indicate scope creep.
 
 ---
 

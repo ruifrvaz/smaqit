@@ -110,7 +110,7 @@ Each layer reads from its own prompt file. Upstream layers provide context for c
 - Include implementation details (code, technology choices outside Stack layer)
 - Create inconsistencies with context layer specifications
 - Produce specs for layers outside their scope
-- Duplicate information present in existing specs—use cross-references instead
+- Duplicate information present in existing specs—use Foundation Reference for same-layer or Implements/Enables for upstream
 
 **Specification agents SHOULD:**
 - Define explicit scope boundaries (what is included vs. excluded)
@@ -118,7 +118,7 @@ Each layer reads from its own prompt file. Upstream layers provide context for c
 - Flag potential inconsistencies with context specs
 - Update existing specs when adding to an existing concept (e.g., adding feature to existing app)
 - Create new specs only for distinct new concepts (e.g., separate service/component)
-- Reference existing specs for shared information using cross-references
+- Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
 
 ### Incremental Spec Updates vs New Specs
 
@@ -127,16 +127,16 @@ When users add requirements that could extend existing specifications, agents de
 | Scenario | Action | Rationale |
 |----------|--------|-----------|
 | **Feature extends existing concept** | Update existing spec | Consolidates related requirements, maintains single source of truth |
-| **Feature is distinct new concept** | Create new spec with cross-references | Preserves separation of concerns, references shared requirements |
-| **Shared infrastructure/base requirements** | Reference existing spec, don't duplicate | Avoids conflicting sources of truth |
+| **Feature is distinct new concept** | Create new spec with Foundation Reference | Preserves separation of concerns, references shared requirements |
+| **Shared infrastructure/base requirements** | Create foundation spec, reference from feature specs | Avoids conflicting sources of truth |
 | **Uncertainty** | Favor updating existing spec | Prevents duplication, easier to refactor later if needed |
 
 **Examples:**
 
-| Requirement | Existing Spec | Decision | Cross-Reference Pattern |
-|-------------|---------------|----------|-------------------------|
+| Requirement | Existing Spec | Decision | Foundation Reference Pattern |
+|-------------|---------------|----------|------------------------------|
 | Add argparse CLI to Python console app | `python-console-stack.md` exists | **Update** existing spec | N/A (same spec) |
-| Add authentication service to app | `app-stack.md` exists | **Create** `auth-service-stack.md` | "See [APP-STACK](./app-stack.md) for base Python requirements" |
+| Add authentication service to app | `app-stack.md` exists | **Create** `auth-service-stack.md` | Reference `[STK-APP](./app-stack.md)` for base requirements |
 | Add logging to existing feature | `feature-functional.md` exists | **Update** existing spec | N/A (same spec) |
 
 ### Specification Agent Mappings

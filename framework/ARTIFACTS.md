@@ -117,9 +117,9 @@ Specs reference adjacent layers for coherence and traceability. Context referenc
 
 | Reference Type | Meaning | Example |
 |----------------|---------|---------|
-| **Implements** | Feature spec with 1:1 mapping to business case | Feature spec → Single use case |
-| **Enables** | Foundation spec serving multiple business cases | Shared component → Multiple use cases |
-| **Same-Layer Reference** | Spec references another spec in same layer to avoid duplication | New spec → Existing spec for shared information |
+| **Implements** | Feature spec with 1:1 mapping to upstream spec | Feature spec → Single upstream requirement |
+| **Enables** | Foundation spec serving multiple upstream specs | Foundation spec → Multiple upstream requirements |
+| **Foundation Reference** | Feature spec references foundation spec in same layer | Feature spec → Foundation spec for shared requirements |
 
 **Cross-Layer Format:**
 ```markdown
@@ -135,23 +135,23 @@ Specs reference adjacent layers for coherence and traceability. Context referenc
 - [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
 ```
 
-**Same-Layer Reference Format (for avoiding duplication):**
+**Foundation Reference Format (for avoiding duplication):**
 ```markdown
 ## References
 
-### Base Requirements
-<!-- Same-layer reference: shared information -->
-- [STK-[CONCEPT]](./base-stack.md) — See for base Python requirements
+### Foundation Reference
+<!-- Same-layer reference: feature spec extends foundation spec -->
+- [STK-[FOUNDATION-CONCEPT]](./base-stack.md) — Shared requirements referenced here
 
 ### Implements
 - [FUN-[CONCEPT]-NNN](../functional/feature.md) — Implements feature functionality
 ```
 
-**Same-Layer Reference Rules:**
-- Use when extending an existing concept with new distinct component
-- Reference shared requirements to avoid duplication
-- Example: "See [STK-CONSOLE](./python-console-stack.md) for base Python 3.8+ and development environment requirements. This spec adds CLI argument parsing."
-- Prefer updating existing spec over creating new spec with references when concept is not distinct
+**Foundation Reference Rules:**
+- Use when a feature spec extends a foundation spec in the same layer
+- Foundation specs contain shared requirements that multiple feature specs depend on
+- Example: Feature spec "[STK-CLI]" references foundation spec "[STK-PYTHON-BASE]" for base Python 3.8+ and development environment requirements
+- Prefer updating existing spec over creating new spec with foundation reference when concept is not distinct
 
 **Foundation specs without mapping:**
 

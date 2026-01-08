@@ -54,37 +54,16 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 **Format:** One specification file per distinct concept (e.g., one deployment topology, one scaling policy)
 
-## Template Structure
+## Foundation vs Feature Specs
 
-The template includes a "Base Requirements (if applicable)" section in the References block:
+Infrastructure specs come in two categories:
 
-```markdown
-## References
+| Type | Purpose | Phase 1 Reference |
+|------|---------|--------------------| |
+| **Feature specs** | Infrastructure for a specific feature/component | 1:1 mapping (Implements) |
+| **Foundation specs** | Base infrastructure enabling multiple features | 1:many mapping (Enables) |
 
-### Base Requirements (if applicable)
-
-<!-- Same-layer reference: use when extending existing infrastructure spec without duplication -->
-<!-- Omit this section if no same-layer dependencies exist -->
-
-- [INF-[BASE-CONCEPT]](./[BASE-FILENAME].md) — [Shared requirements referenced here]
-
-### Enables
-
-#### Business
-- [BUS-CONCEPT](../business/[FILENAME].md) — [Business requirement this infrastructure enables]
-
-#### Functional
-- [FUN-CONCEPT](../functional/[FILENAME].md) — [Functional behavior this infrastructure supports]
-
-#### Stack
-- [STK-CONCEPT](../stack/[FILENAME].md) — [Technology constraint this infrastructure accommodates]
-```
-
-**Purpose:** Avoid duplicating shared requirements by referencing existing Infrastructure specs. Use when:
-- Extending an existing infrastructure concept (e.g., adding monitoring to existing deployment topology)
-- New spec shares base infrastructure with existing spec (e.g., common networking, shared security policies)
-
-**Omit when:** The spec has no dependencies on other Infrastructure specs (completely independent infrastructure).
+Foundation specs (base networking, shared security policies, common observability configuration) are legitimate operational artifacts that serve multiple application components. Their rules are integrated into the directives below.
 
 ## Directives
 
@@ -93,6 +72,8 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Produce output following `templates/specs/infrastructure.template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output
+- Reference Phase 1 specs using Enables (foundation serving multiple) or Implements (feature serving one)
+- Include justification when foundation spec has no Phase 1 references
 - Use requirement IDs: `INF-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
@@ -105,7 +86,7 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
-- Duplicate information from existing specs—use cross-references instead
+- Duplicate information from existing specs—use Foundation Reference for same-layer or Implements/Enables for upstream specs
 
 ### SHOULD
 
@@ -116,7 +97,10 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Check for existing Infrastructure specs before creating new specs
 - Update existing specs when adding to an existing infrastructure concept
 - Create new specs only for distinct new infrastructure components or environments
-- Reference existing specs for shared information using cross-references
+- Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
+- Reference all Phase 1 specs (Business, Functional, Stack) when creating foundation infrastructure serving multiple components
+
+**Note:** Foundation infrastructure without Phase 1 references and without justification indicates scope creep.
 
 ## Scope Boundaries
 

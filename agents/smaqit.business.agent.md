@@ -55,12 +55,12 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### MUST NOT
 
-- Include implementation details (code, technology choices)iness layer)
+- Include implementation details (code, technology choices)
 - Produce specs for layers outside scope
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
-- Duplicate information from existing specs—use cross-references instead
+- Duplicate information from existing specs — use Foundation Reference instead
 
 ### SHOULD
 
@@ -71,7 +71,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Check for existing Business specs before creating new specs
 - Update existing specs when adding to an existing concept (e.g., adding actor goal to existing use case)
 - Create new specs only for distinct new use cases
-- Reference existing specs for shared information using cross-references
+- Reference existing specs for shared information using Foundation Reference
 
 ## Scope Boundaries
 

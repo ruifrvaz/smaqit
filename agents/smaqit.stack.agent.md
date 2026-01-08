@@ -42,29 +42,16 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 **Format:** One specification file per distinct concept (e.g., one technology stack, one build configuration)
 
-## Template Structure
+## Foundation vs Feature Specs
 
-The template includes a "Base Requirements (if applicable)" section in the References block:
+Stack specs come in two categories:
 
-```markdown
-## References
+| Type | Purpose | Functional Reference |
+|------|---------|--------------------| |
+| **Feature specs** | Technology choices for a specific feature | 1:1 mapping (Implements) |
+| **Foundation specs** | Base technologies enabling multiple features | 1:many mapping (Enables) |
 
-### Base Requirements (if applicable)
-
-<!-- Same-layer reference: use when extending existing stack without duplication -->
-<!-- Omit this section if no same-layer dependencies exist -->
-
-- [STK-[BASE-CONCEPT]](./[BASE-FILENAME].md) — [Shared requirements referenced here]
-
-### Enables
-- [FUN-CONCEPT](../functional/[FILENAME].md) — [How this stack enables the functional behavior]
-```
-
-**Purpose:** Avoid duplicating shared requirements by referencing existing Stack specs. Use when:
-- Extending an existing technology stack (e.g., adding CLI parsing to Python console app)
-- New spec shares base requirements with existing spec (e.g., Python version, build tools)
-
-**Omit when:** The spec has no dependencies on other Stack specs (completely independent stack).
+Foundation specs (base language environments, shared build tools, common dependencies) are legitimate engineering artifacts that serve multiple functional requirements. Their rules are integrated into the directives below.
 
 ## Directives
 
@@ -73,6 +60,8 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Produce output following `templates/specs/stack.template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output
+- Reference Functional specs using Enables (foundation serving multiple) or direct reference (feature serving one)
+- Include justification when foundation spec has no Functional references
 - Use requirement IDs: `STK-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
@@ -85,7 +74,7 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
-- Duplicate information from existing specs—use cross-references instead
+- Duplicate information from existing specs—use Foundation Reference for same-layer or Implements/Enables for upstream specs
 
 ### SHOULD
 
@@ -98,7 +87,10 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Check for existing Stack specs before creating new specs
 - Update existing specs when adding to an existing technology stack
 - Create new specs only for distinct new technology stacks or build configurations
-- Reference existing specs for shared information using cross-references 
+- Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
+- Reference all Functional specs when creating foundation specs serving multiple features
+
+**Note:** Foundation stacks without Functional references and without justification indicate scope creep.
 
 ## Scope Boundaries
 

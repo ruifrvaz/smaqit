@@ -10,16 +10,20 @@ prompt_version: [GIT_HASH]
 ## References
 
 <!-- References establish traceability and coherence, not requirement derivation -->
-<!-- Stack specs typically enable multiple Functional specs -->
-<!-- Use same-layer references to avoid duplicating shared requirements -->
+<!-- Use Implements for feature specs (1:1 mapping) -->
+<!-- Use Enables for foundation specs (1:many mapping) -->
+<!-- Use same-layer references when feature specs extend foundation specs -->
 
-### Base Requirements (if applicable)
+### Foundation Reference
 
-<!-- Same-layer reference: use when extending existing stack without duplication -->
-<!-- Example: "See [STK-CONSOLE](./python-console-stack.md) for base Python requirements" -->
-<!-- Omit this section if no same-layer dependencies exist -->
+<!-- Same-layer reference: use when this feature spec extends a foundation spec -->
+<!-- Omit this section if this spec doesn't depend on a foundation spec in the same layer -->
 
-- [STK-[BASE-CONCEPT]](./[BASE-FILENAME].md) — [Shared requirements referenced here]
+- [STK-[FOUNDATION-CONCEPT]](./[FOUNDATION-FILENAME].md) — [Shared requirements referenced here]
+
+### Implements
+
+- [FUN-CONCEPT](../functional/[FILENAME].md) — [How this stack implements the functional behavior]
 
 ### Enables
 

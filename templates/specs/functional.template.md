@@ -12,15 +12,14 @@ prompt_version: [GIT_HASH]
 <!-- References establish traceability and coherence, not requirement derivation -->
 <!-- Use Implements for feature specs (1:1 mapping) -->
 <!-- Use Enables for foundation specs (1:many mapping) -->
-<!-- Use same-layer references to avoid duplicating shared requirements -->
+<!-- Use same-layer references when feature specs extend foundation specs -->
 
-### Base Requirements (if applicable)
+### Foundation Reference
 
-<!-- Same-layer reference: use when extending existing functional spec without duplication -->
-<!-- Example: "See [FUN-AUTH](./auth-flow.md) for base authentication requirements" -->
-<!-- Omit this section if no same-layer dependencies exist -->
+<!-- Same-layer reference: use when this feature spec extends a foundation spec -->
+<!-- Omit this section if this spec doesn't depend on a foundation spec in the same layer -->
 
-- [FUN-[BASE-CONCEPT]](./[BASE-FILENAME].md) — [Shared requirements referenced here]
+- [FUN-[FOUNDATION-CONCEPT]](./[FOUNDATION-FILENAME].md) — [Shared requirements referenced here]
 
 ### Implements
 

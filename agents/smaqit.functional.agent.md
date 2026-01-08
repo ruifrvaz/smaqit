@@ -41,29 +41,16 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 **Format:** One specification file per distinct concept (e.g., one user flow, one API contract, one data model)
 
-## Template Structure
+## Foundation vs Feature Specs
 
-The template includes a "Base Requirements (if applicable)" section in the References block:
+Functional specs come in two categories:
 
-```markdown
-## References
+| Type | Purpose | Business Reference |
+|------|---------|--------------------||
+| **Feature specs** | Implement a specific business use case | 1:1 mapping (Implements) |
+| **Foundation specs** | Enable multiple business use cases | 1:many mapping (Enables) |
 
-### Base Requirements (if applicable)
-
-<!-- Same-layer reference: use when extending existing functional spec without duplication -->
-<!-- Omit this section if no same-layer dependencies exist -->
-
-- [FUN-[BASE-CONCEPT]](./[BASE-FILENAME].md) — [Shared requirements referenced here]
-
-### Implements
-- [BUS-CONCEPT](../business/[FILENAME].md) — [Business use case this is consistent with]
-```
-
-**Purpose:** Avoid duplicating shared requirements by referencing existing Functional specs. Use when:
-- Extending an existing functional concept (e.g., adding authentication flow variant to existing auth spec)
-- New spec shares base behaviors with existing spec (e.g., common data models, shared API patterns)
-
-**Omit when:** The spec has no dependencies on other Functional specs (completely independent behavior).
+Foundation specs (shared components, cross-cutting concerns, common contracts) are legitimate engineering artifacts that serve multiple business goals. Their rules are integrated into the directives below.
 
 ## Directives
 
@@ -84,7 +71,7 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
-- Duplicate information from existing specs—use cross-references instead
+- Duplicate information from existing specs—use Foundation Reference for same-layer or Implements/Enables for upstream specs
 
 ### SHOULD
 
@@ -95,7 +82,7 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Check for existing Functional specs before creating new specs
 - Update existing specs when adding to an existing concept
 - Create new specs only for distinct new behaviors or contracts
-- Reference existing specs for shared information using cross-references
+- Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
 
 ## Scope Boundaries
 
@@ -123,7 +110,8 @@ These rules are specific to the Functional layer and must be followed when produ
 - Specify data models with attributes and relationships
 - Define API contracts (inputs, outputs, error conditions)
 - Include state transitions where applicable
-- Reference business specs for traceability
+- Reference business specs for traceability using Implements (1:1 feature) or Enables (1:many foundation)
+- Include justification when foundation spec has no Business references
 
 ### MUST NOT
 
@@ -132,24 +120,9 @@ These rules are specific to the Functional layer and must be followed when produ
 - Define performance benchmarks (those belong in Infrastructure)
 - Prescribe implementation patterns
 
-### Patterns
+### SHOULD
 
-**Foundation vs Feature Specs:**
-
-Functional specs come in two categories:
-
-| Type | Purpose | Business Reference |
-|------|---------|--------------------|
-| **Feature specs** | Implement a specific business use case | 1:1 mapping (Implements) |
-| **Foundation specs** | Enable multiple business use cases | 1:many mapping (Enables) |
-
-Foundation specs (shared components, cross-cutting concerns, common contracts) are legitimate engineering artifacts that serve multiple business goals.
-
-**Foundation spec rules:**
-- SHOULD reference all Business specs they enable
-- MAY precede or parallel Business specs when engineering judgment requires
-- MUST flag absence of Business references with justification
-- Orphaned foundations (no Business references, no justification) indicate scope creep
+- Reference all Business specs when creating foundation specs serving multiple use cases
 
 ## Requirement ID Format
 

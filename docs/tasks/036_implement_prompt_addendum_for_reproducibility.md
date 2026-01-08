@@ -1,6 +1,7 @@
 # Implement Prompt Addendum for Reproducibility
 
-**Status:** Not Started  
+**Status:** Abandoned (2026-01-07)  
+**Reason:** Superseded by iterative development with stateful specs  
 **Created:** 2025-12-28  
 **Source:** User Testing Report Issue #5 (2025-12-27)
 

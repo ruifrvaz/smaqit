@@ -4,17 +4,9 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 049 | Fix Development Agent CLI Directive | new | High (Blocker) |
-| 050 | Redesign Coverage Prompt | new | High (Blocker) |
-| 051 | Fix Validation Agent CLI Directive | new | High (Blocker) |
-| 052 | Fix Deployment Agent CLI Directive (Preventive) | new | High |
-| 053 | Fix Validation Frontmatter Updates | new | High (Blocker) |
-| 054 | Strengthen Stack Agent Code Directive | new | Medium |
-| 056 | Document Context Pollution Workaround | new | Low |
-| 057 | Add Checkbox Updates to Validation Agent | new | Low |
+| 055 | Formalize Single Source of Truth Principle | new | Medium |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
 | 031 | Review implementation artifacts | new | Medium |
-| 036 | Implement prompt addendum for reproducibility | new | Medium |
 | 048 | End-to-end agent workflow testing | new | High |
 
 ## Completed
@@ -65,7 +57,23 @@
 | 046 | Document iterative development quick start |
 | 047 | Implement incremental processing in implementation agents |
 | 045 | Validate stateful specifications infrastructure |
-| 055 | Formalize Single Source of Truth Principle |
+| 049 | Fix Development Agent CLI Directive |
+| 050 | Redesign Coverage Prompt |
+| 051 | Fix Validation Agent CLI Directive |
+| 052 | Fix Deployment Agent CLI Directive (Preventive) |
+| 053 | Fix Validation Frontmatter Updates |
+| 054 | Strengthen Stack Agent Code Directive |
+| 058 | Implementation Agents Should Update Acceptance Criteria Checkboxes |
+| 056 | Document context pollution workaround |
+
+## Abandoned
+
+Tasks that were started but abandoned due to being superseded, no longer relevant, or incorrect approach identified.
+
+| ID | Title | Reason |
+|----|-------|--------|
+| 036 | Implement prompt addendum for reproducibility | Superseded by iterative development with stateful specs |
+| 057 | Add Checkbox Updates to Validation Agent | Superseded by Task 058 (distributed responsibility model) |
 
 ## Backlog
 

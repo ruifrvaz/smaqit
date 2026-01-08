@@ -1,9 +1,9 @@
 ---
-name: session.wrap
+name: session.finish
 description: End session by documenting the entire conversation
 ---
 
-# Session Wrap
+# Session Finish
 
 End a session by documenting the **entire session** (not just recent activity).
 

@@ -1,8 +1,9 @@
 # Task 054: Strengthen Stack Agent Code Directive
 
-**Status:** new  
+**Status:** completed  
 **Priority:** Medium  
 **Created:** 2026-01-05  
+**Completed:** 2026-01-05  
 **Related:** Task 048 (E2E Testing), Issue 2
 
 ## Problem
@@ -25,11 +26,11 @@ Strengthen Stack agent directive to explicitly prohibit code examples, implement
 
 ## Acceptance Criteria
 
-- [ ] Added explicit directive to `agents/smaqit.stack.agent.md`: "MUST NOT include code examples, implementation patterns, or architecture code blocks"
-- [ ] Reviewed `templates/specs/stack.template.md` for sections that invite code inclusion
-- [ ] Removed or modified inviting sections (e.g., "Architecture Notes") from template
-- [ ] Added guidance on what Stack specs SHOULD contain (technology choice + rationale only)
-- [ ] Verified directive change with test execution (optional)
+- [x] Added explicit directive to `agents/smaqit.stack.agent.md`: "MUST NOT include code examples, implementation patterns, or architecture code blocks"
+- [x] Reviewed `templates/specs/stack.template.md` for sections that invite code inclusion
+- [x] Removed or modified inviting sections (e.g., "Architecture Notes") from template
+- [x] Added guidance on what Stack specs SHOULD contain (technology choice + rationale only)
+- [x] Verified directive change with test execution (optional)
 
 ## Implementation Plan
 
@@ -95,3 +96,44 @@ None directly, but improves framework principle enforcement for v0.5.0
 **User impact:** Code in Stack specs creates false expectation that implementation MUST follow specific patterns. This constrains Development agent unnecessarily and undermines spec as contract (WHAT) vs implementation (HOW).
 
 **Alternative approach considered:** Could add validation tooling (`smaqit validate --specs`) to flag code blocks in Stack specs. Rejected as secondary—better to prevent at agent level first.
+
+## Implementation Summary
+
+**Date Completed:** 2026-01-05
+
+**Changes Made:**
+
+1. **Level 0 (Framework):** Updated `framework/LAYERS.md`
+   - Added to Stack specs MUST NOT: "Include code examples, implementation patterns, or architecture code blocks"
+   - Lines 142-147: Explicit code prohibition now matches Infrastructure layer pattern
+
+2. **Level 1 (Template):** Reviewed `templates/specs/stack.template.md`
+   - No changes needed - template structure is clean
+   - No inviting sections like "Architecture Notes", "Implementation Guidance", or "Code Examples"
+   - Template appropriately focuses on: Technology Stack (versions), Constraints, Acceptance Criteria
+
+3. **Level 2 (Agent):** Updated `agents/smaqit.stack.agent.md`
+   - Added to MUST NOT (General Directives): "Include code examples, implementation patterns, or architecture code blocks in specifications"
+   - Expanded MUST NOT: "Include implementation details (configurations, code snippets, setup instructions)"
+   - Added to SHOULD: Positive guidance with good/bad examples
+     - Good: "Python 3.8+ with argparse for CLI parsing. Rationale: Built-in, no dependencies"
+     - Bad: "Python 3.8+ with argparse. Example: `parser = argparse.ArgumentParser()...`"
+   - Added to Layer-Specific Rules MUST NOT: Same code prohibition
+
+**Verification:**
+- Built installer successfully (version 6b5be3b-dirty)
+- Tested `smaqit init` in clean directory
+- Verified Stack agent embedded with correct prohibitions in all 3 locations
+- Confirmed positive guidance examples included in SHOULD section
+
+**Impact:**
+- Framework Level 0 now explicitly prohibits code in Stack specs (aligns with Infrastructure pattern)
+- Agent Level 2 has strengthened directives in 3 locations (MUST NOT general, MUST NOT layer-specific, SHOULD positive guidance)
+- Template Level 1 confirmed clean (no changes needed)
+
+**Total Changes:**
+- Files modified: 2 (framework/LAYERS.md, agents/smaqit.stack.agent.md)
+- Lines added: 10 (1 in framework, 9 in agent)
+- Lines removed: 0
+- Build: Successful
+- Test: Successful

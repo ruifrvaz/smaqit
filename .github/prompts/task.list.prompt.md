@@ -15,3 +15,8 @@ Show current tasks from the Active table.
 ## Note
 
 The central planning file `docs/tasks/PLANNING.md` contains status of all tasks (sorted by ID) and is the single source of truth for task overview.
+
+**Structure:**
+- **Active** — Current work (in progress or not started)
+- **Completed** — Successfully finished
+- **Abandoned** — Discontinued (superseded, no longer relevant, incorrect approach)

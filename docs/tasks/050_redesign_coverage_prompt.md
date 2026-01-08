@@ -1,45 +1,36 @@
 # Task 050: Redesign Coverage Prompt
 
-**Status:** new  
+**Status:** Completed (2026-01-06)  
 **Priority:** High (Release Blocker)  
 **Created:** 2026-01-05  
 **Related:** Task 048 (E2E Testing), Issue 5
 
 ## Problem
 
-Coverage prompt (`.github/prompts/smaqit.coverage.prompt.md`) asks users to specify requirements (performance benchmarks, security requirements, test scope) that should already exist in upstream specs. This creates logical contradiction with Coverage agent directive: "MUST NOT add requirements not present in upstream specs."
+Coverage prompt design was ambiguous about whether Coverage layer adds requirements or purely maps upstream requirements to tests. First attempt (Session 027, 2026-01-05) made Coverage "preferences only" which was too restrictive.
 
-**Root Cause:** Coverage layer design ambiguity between:
-- **Interpretation 1 (correct):** Coverage is pure traceability mapping—no user input needed beyond tooling preferences
-- **Interpretation 2 (incorrect):** Coverage is hybrid—adds verification-specific requirements not in upstream specs
+**Corrected Understanding:** Coverage has TWO input sources:
+1. **Test requirements from prompt:** HOW to test (test scope, environment, integration points, thresholds)
+2. **Acceptance criteria from upstream specs:** WHAT to test (all criteria from Business, Functional, Stack, Infrastructure)
 
-**Evidence:**
-- `framework/LAYERS.md` states Coverage must "Reference every acceptance criterion from upstream specs by ID" and "MUST NOT add requirements not present in upstream specs"
-- Coverage agent directives align with Interpretation 1 (pure mapping)
-- Coverage prompt structure aligns with Interpretation 2 (adds requirements)
-- E2E testing proved Coverage agent CAN work with minimal prompt (tooling/thresholds only), generating 652-line spec with 100% traceability from 7 upstream specs
-
-**Impact:**
-- Creates requirement duplication/conflict risk (prompt says one thing, upstream specs say another)
-- Violates Coverage layer purpose as "meta-spec" that maps existing requirements to tests
-- Forces users to duplicate information already specified in Business/Functional/Infrastructure layers
-- Undermines traceability—unclear if tests verify prompt requirements or spec requirements
+**Root Cause:** Confusion between "test requirements" (legitimate Coverage concerns) and "functional requirements" (what system does—comes from upstream).
 
 ## Objective
 
-Redesign Coverage prompt to focus ONLY on verification preferences (test environment, tooling, thresholds), removing sections that ask for requirements already present in upstream specs.
+Clarify Coverage layer's dual input model: test requirements from prompt + upstream acceptance criteria to verify.
 
 ## Acceptance Criteria
 
-- [ ] Removed "Performance Benchmarks" section (requirements should be in Business/Infrastructure specs)
-- [ ] Removed "Security Requirements" section (requirements should be in Functional/Infrastructure specs)
-- [ ] Removed "Integration Points" section (requirements should be in upstream specs)
-- [ ] Kept "Test Environment" section (tooling/platform preferences)
-- [ ] Kept "Acceptance Thresholds" section (coverage percentage goals)
-- [ ] Updated prompt description to clarify Coverage derives verification strategy from upstream specs
-- [ ] Added guidance that prompt is optional—agent can work with minimal or empty input
-- [ ] Updated `agents/smaqit.coverage.agent.md` to emphasize deriving from upstream specs
-- [ ] Updated `framework/LAYERS.md` Coverage section to clarify prompt provides preferences, not requirements
+- [x] Clarified Coverage Input in framework/LAYERS.md: "test requirements" from prompt, "upstream acceptance criteria to verify" from context
+- [x] Updated Coverage MUST directives to use precise terminology ("upstream acceptance criteria" not "functional requirements")
+- [x] Kept 4 test requirement sections in Coverage prompt: Test Scope, Test Environment, Integration Points, Acceptance Thresholds
+- [x] Removed functional requirement sections that belong in upstream layers: Performance Benchmarks (→ Business/Infrastructure), Security Requirements (→ Functional/Infrastructure)
+- [x] Updated agents/smaqit.coverage.agent.md with dual-input model: prompt for test requirements, upstream specs for acceptance criteria
+- [x] Updated agent MUST directive: "Scan ALL upstream specs and map every upstream acceptance criterion by ID to a test case"
+- [x] Added Prompt File section to agent Input (handles HTML comments, validation, prompt reading)
+- [x] Disambiguated Validation prompt: Renamed "Test Scope" → "Execution Scope" to distinguish from Coverage "Test Scope"
+- [x] Updated templates/prompts/ to reflect Coverage and Validation changes
+- [x] Updated framework/PROMPTS.md and framework/ARTIFACTS.md with clarified terminology
 
 ## Implementation Plan
 
@@ -98,23 +89,38 @@ None (can be implemented independently)
 
 ## Notes
 
-**Validation from E2E testing:** Coverage agent successfully generated 652-line spec with 100% traceability (92/92 testable requirements mapped) from minimal prompt input (tooling and thresholds only). This proves Coverage CAN work as pure traceability mapping layer.
+**First Attempt (Session 027, 2026-01-05):** Made Coverage "preferences only" which was too restrictive. Coverage DOES have requirements—test requirements (how to test), not functional requirements (what to test).
 
-**Framework alignment:** This fix aligns Coverage layer with its stated purpose: "Enumerate every acceptance criterion and map it to a verification test." Coverage is a meta-layer that validates completeness, not a requirements-adding layer.
+**Corrected Approach (Session 031, 2026-01-06):** Coverage has dual inputs: test requirements from prompt + upstream acceptance criteria to verify.
 
-**User experience improvement:** Simplifying prompt reduces cognitive load—users don't need to re-specify requirements they already documented in Business/Functional layers.
+**Validation from E2E testing:** Coverage agent successfully generated 652-line spec with 100% traceability (92/92 testable requirements mapped), proving dual-input model works.
+
+**Framework alignment:** Coverage layer has legitimate test requirements (test scope, environment, integration points, thresholds) separate from functional requirements (which come from upstream specs).
 
 **Correct workflow:**
 ```
-# User fills minimal Coverage prompt (optional)
-Test Environment: unittest, local execution
+# User fills Coverage prompt with test requirements
+Test Scope: Integration testing, E2E testing
+Test Environment: pytest on GitHub Actions
+Integration Points: None (standalone app)
 Acceptance Thresholds: 100% of testable criteria must have test cases
 
 # Coverage agent executes
-1. Scan ALL upstream specs (specs/business/, specs/functional/, specs/stack/, specs/infrastructure/)
-2. Extract ALL acceptance criteria with IDs (BUS-*, FUN-*, STK-*, INF-*)
-3. For each criterion, define test case: COV-[ID] → Test → Expected Outcome
-4. Calculate coverage: (mapped criteria / total testable criteria) × 100%
-5. Flag untestable criteria with justification
-6. Output: Coverage spec is comprehensive test plan proving 100% traceability
+1. Read test requirements from prompt (HOW to test)
+2. Scan ALL upstream specs for acceptance criteria (WHAT to test)
+3. Map each upstream criterion to test case using prompt's test requirements
+4. Format: Upstream Requirement ID → Test Case → Expected Outcome
+5. Calculate coverage: (mapped criteria / total testable criteria) × 100%
+6. Flag untestable criteria with justification
+7. Output: Coverage spec proving 100% traceability
 ```
+
+## Completion Summary
+
+**Completed:** 2026-01-06 (Corrected approach after Session 027's overly restrictive attempt)
+
+**Key Insight:** Coverage layer has test requirements (how to test) but not functional requirements (what to test).
+
+**Files Modified:** 7 (3 framework + 2 templates + 2 agents/prompts)
+
+**Testing:** ✅ Build successful, terminology consistent, all levels aligned

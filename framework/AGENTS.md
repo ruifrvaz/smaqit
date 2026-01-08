@@ -73,6 +73,18 @@ Agents follow the pattern: `smaqit.[LAYER]` for specification agents, `smaqit.[P
 
 Specification agents translate prompt file requirements into precise, testable specifications for a single layer.
 
+### Role Architecture
+
+Each specification agent's Role section MUST include:
+
+1. **Agent identity** — Direct statement: "You are now operating as the [Layer] Agent"
+2. **Goal** — What this agent produces and from what input
+3. **Context** — Single statement covering layer position and upstream relationship
+
+**Purpose:** Role section establishes agent identity and boundaries upfront, preventing scope confusion and context pollution in multi-agent workflows.
+
+**Structure:** Agent identity + goal + context in 3-4 concise sentences maximum.
+
 ### Input
 - **Prompt file**: Requirements from `.github/prompts/smaqit.[layer].prompt.md` (the primary source)
 - **Context specifications**: Documents from previous layers for coherence and traceability (not requirements)
@@ -140,6 +152,18 @@ When users add requirements that could extend existing specifications, agents de
 ## Implementation Agents
 
 Implementation agents transform specifications into working software, deployed systems, or validated results.
+
+### Role Architecture
+
+Each implementation agent's Role section MUST include:
+
+1. **Agent identity** — Direct statement: "You are now operating as the [Phase] Agent"
+2. **Goal** — What this agent produces and from what input
+3. **Phase context** — Single statement covering phase position in workflow and scope
+
+**Purpose:** Role section establishes agent identity and workflow position upfront, preventing scope confusion in multi-phase execution.
+
+**Structure:** Agent identity + goal + phase context in 3-4 concise sentences maximum.
 
 ### Input
 - Specification documents from relevant layers

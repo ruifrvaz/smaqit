@@ -157,20 +157,10 @@ This prompt captures [LAYER] requirements for your project. These requirements w
 ## Requirements
 
 ### Test Scope
-[What should be tested?]
+[What types of testing are needed?]
 
-<!-- Example: "Verify Mario-themed elements appear correctly in output" -->
-
-### Performance Benchmarks
-[Any performance requirements?]
-
-<!-- Example: "Application starts in < 1 second" -->
-<!-- Example: "Total execution time < 2 seconds" -->
-
-### Security Requirements
-[Any security concerns?]
-
-<!-- Example: "No security concerns (local, non-networked application)" -->
+<!-- Example: "Integration testing - verify greeting output" -->
+<!-- Example: "End-to-end testing - full application execution" -->
 
 ### Test Environment
 [Where will tests run?]
@@ -182,10 +172,9 @@ This prompt captures [LAYER] requirements for your project. These requirements w
 
 <!-- Example: "None (standalone application)" -->
 
-### Verification Requirements
-[What must be verified?]
+### Acceptance Thresholds
+[What defines acceptable test results?]
 
-<!-- Example: "Mario catchphrase appears in output" -->
-<!-- Example: "ASCII art renders correctly" -->
-<!-- Example: "Application exits with code 0" -->
+<!-- Example: "100% of acceptance criteria must pass" -->
+<!-- Example: "All integration tests green" -->
 ```

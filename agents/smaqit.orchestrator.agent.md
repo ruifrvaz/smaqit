@@ -121,7 +121,7 @@ Before declaring workflow complete, verify:
 - [ ] Output artifacts exist in expected locations
 - [ ] Orchestration report documents full execution
 
-**State tracking:** Implementation agents update spec frontmatter. The CLI aggregates phase status from these files.
+**State tracking:** Implementation agents update spec frontmatter.
 
 ## Failure Handling
 

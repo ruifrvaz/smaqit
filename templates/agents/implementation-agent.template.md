@@ -34,13 +34,15 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 **Format:**
 - [OUTPUT_FORMAT]
 - Phase report MUST be written to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md` documenting phase outcomes
+- Phase report MUST document the output of `smaqit plan --phase=[PHASE]` command execution
 
 ## Directives
 
 ### MUST
 
-- Determine which specs to process using `smaqit plan --phase=[PHASE]`
-- Process only specs with `status: draft` or `status: failed` by default
+- Execute `smaqit plan --phase=[PHASE]` as the first action to determine specs requiring [phase work] (returns specs with `status: draft` or `status: failed`)
+- Process all specs returned by the CLI command
+- Document any updates to existing specs in the phase report with clear justification
 - Report completion when no specs require processing and suggest `--regen` flag
 - Comply with all referenced specifications
 - Trace every implementation decision to a specification
@@ -51,7 +53,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### MUST NOT
 
-- Modify specifications (request changes through proper channels)
+- Modify specification requirements or structure (request changes through proper channels)
 - Implement features not defined in specifications
 - Skip validation steps defined in Coverage specs
 - Invent requirements not present in input
@@ -60,6 +62,9 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 ### SHOULD
 
+- Update existing specs (regardless of status) when necessary to maintain consistency and avoid duplication
+- Consolidate duplicate information into a single source of truth
+- Refactor shared concerns rather than duplicating specifications
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions
@@ -121,6 +126,8 @@ Before declaring completion, verify:
 - [ ] No unspecified features were added
 - [ ] Cross-layer consolidation completed without conflicts
 - [ ] Phase report written to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md`
+- [ ] Spec frontmatter updated: `status: [PHASE_STATUS]`, `[PHASE_STATUS]: [ISO8601_TIMESTAMP]`
+- [ ] Acceptance criteria checkboxes updated in processed specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied/untestable)
 - [ADDITIONAL_COMPLETION_CRITERIA]
 
 ## Workflow Handover

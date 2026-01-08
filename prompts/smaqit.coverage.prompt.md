@@ -16,18 +16,6 @@ This prompt captures verification and testing requirements for your project. The
 <!-- Example: "Integration testing - verify greeting output" -->
 <!-- Example: "End-to-end testing - full application execution" -->
 
-### Performance Benchmarks
-[What are the performance requirements?]
-
-<!-- Example: "Application completes in under 2 seconds" -->
-<!-- Example: "Memory usage under 10MB" -->
-
-### Security Requirements
-[What security verifications are needed?]
-
-<!-- Example: "No user input - no injection vulnerabilities" -->
-<!-- Example: "Read-only file access for greeting data" -->
-
 ### Test Environment
 [Where and how should tests run?]
 

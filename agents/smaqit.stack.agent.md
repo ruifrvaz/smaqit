@@ -96,9 +96,9 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
 - Check for existing Stack specs before creating new specs
-- Update existing specs when adding to an existing technology stack (e.g., adding library to existing platform)
+- Update existing specs when adding to an existing technology stack
 - Create new specs only for distinct new technology stacks or build configurations
-- Reference existing specs for shared information using cross-references <!-- Example: "See [STK-CONSOLE](./python-console-stack.md) for base Python requirements" -->
+- Reference existing specs for shared information using cross-references 
 
 ## Scope Boundaries
 

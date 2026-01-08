@@ -114,7 +114,7 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
 - Check for existing Infrastructure specs before creating new specs
-- Update existing specs when adding to an existing infrastructure concept (e.g., adding monitoring to existing deployment)
+- Update existing specs when adding to an existing infrastructure concept
 - Create new specs only for distinct new infrastructure components or environments
 - Reference existing specs for shared information using cross-references
 

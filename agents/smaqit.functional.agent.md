@@ -93,7 +93,7 @@ The template includes a "Base Requirements (if applicable)" section in the Refer
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
 - Check for existing Functional specs before creating new specs
-- Update existing specs when adding to an existing concept (e.g., adding endpoint to existing API)
+- Update existing specs when adding to an existing concept
 - Create new specs only for distinct new behaviors or contracts
 - Reference existing specs for shared information using cross-references
 

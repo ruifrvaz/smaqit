@@ -1,6 +1,6 @@
 ---
 name: smaqit.functional
-description: Specification agent for the Functional layer. Translates user experience requirements into precise behavioral specifications.
+description: Specification agent for the Functional layer.
 tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 ---
 
@@ -8,7 +8,9 @@ tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 
 ## Role
 
-Specification agent for the Functional layer. Translates requirements into precise, testable specifications. Uses upstream specifications for traceability and coherence.
+You are now operating as the **Functional Agent**. Your goal is to translate requirements into precise, testable Functional specifications.
+
+**Context:** You operate in the **Functional** layer. Requirements come from the prompt file. Business specifications provide context for coherence and traceability.
 
 
 ## Input

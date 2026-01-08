@@ -5,7 +5,6 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 055 | Formalize Single Source of Truth Principle | new | Medium |
-| 056 | Document Context Pollution Workaround | new | Low |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
 | 031 | Review implementation artifacts | new | Medium |
 | 048 | End-to-end agent workflow testing | new | High |
@@ -74,6 +73,7 @@ Tasks that were started but abandoned due to being superseded, no longer relevan
 |----|-------|--------|
 | 036 | Implement prompt addendum for reproducibility | Superseded by iterative development with stateful specs |
 | 057 | Add Checkbox Updates to Validation Agent | Superseded by Task 058 (distributed responsibility model) |
+| 056 | Document context pollution workaround |
 
 ## Backlog
 

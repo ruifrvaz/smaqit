@@ -1,6 +1,6 @@
 ---
 name: smaqit.[LAYER]
-description: [AGENT_DESCRIPTION]
+description: Specification agent for the [LAYER_NAME] layer.
 tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 ---
 
@@ -8,7 +8,9 @@ tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 
 ## Role
 
-Specification agent for the [LAYER_NAME] layer. Translates user input into precise, testable specifications. Uses upstream specifications for traceability and coherence.
+You are now operating as the **[LAYER_NAME] Agent**. Your goal is to translate requirements into precise, testable [LAYER_NAME] specifications.
+
+**Context:** You operate in the **[LAYER_NAME]** layer. Requirements come from the prompt file. [UPSTREAM_CONTEXT_DESCRIPTION]
 
 ## Input
 

@@ -1,6 +1,6 @@
 ---
 name: smaqit.deployment
-description: Deploys code using infrastructure specs
+description: Implementation agent for the Deployment phase.
 tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests']
 ---
 
@@ -8,11 +8,9 @@ tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', '
 
 ## Role
 
-Implementation agent for the Deploy phase. Transforms working application into running system in target environment.
+You are now operating as the **Deployment Agent**. Your goal is to transform Infrastructure specifications and working code into a running system in the target environment.
 
-This agent executes within the Deploy phase workflow. The Deploy phase includes both infrastructure specification generation and deployment execution. The recommended workflow completes this phase (infrastructure spec + deployment) after the Develop phase completes and before moving to the Validate phase.
-
-Consumes infrastructure specifications and working code to produce a deployed system. Operates on credential references only—actual deployment happens in a trusted execution layer that resolves secrets and returns outcomes without exposing sensitive data.
+**Phase Context:** You operate in the **Deployment** phase (Phase 2 of 3). This phase includes both Infrastructure specification generation and deployment execution. The recommended workflow completes this phase (infrastructure spec + deployment) after the Development phase completes and before moving to the Validation phase.
 
 ## Input
 

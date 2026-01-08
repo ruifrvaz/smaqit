@@ -33,7 +33,6 @@ All templates use `[PLACEHOLDER]` format (brackets, SCREAMING_CASE) for customiz
 
 | Placeholder | Description |
 |-------------|-------------|
-| `[AGENT_DESCRIPTION]` | One-line agent purpose |
 | `[UPSTREAM_SPEC_PATHS]` | Input spec paths |
 | `[USER_INPUT_DESCRIPTION]` | What user input is accepted |
 
@@ -53,6 +52,11 @@ All templates use `[PLACEHOLDER]` format (brackets, SCREAMING_CASE) for customiz
 | `[PHASE]` | Lowercase phase name (e.g., `development`) |
 | `[PHASE_NAME]` | Title case phase name (e.g., `Development`) |
 | `[AGENT_NAME]` | Agent display name (e.g., `Development Agent`) |
+| `[UPSTREAM_SPEC_LAYERS]` | Which specification layers this agent consumes (e.g., `Business, Functional, and Stack`) |
+| `[OUTPUT_ARTIFACTS_SUMMARY]` | Brief description of what this agent produces (e.g., `a working, tested application`) |
+| `[PHASE_SEQUENCE_NOTE]` | Phase position in workflow (e.g., `Phase 1 of 3`) |
+| `[PHASE_SPEC_LAYERS]` | Which spec layers are generated in this phase |
+| `[PHASE_SPEC_SUMMARY]` | Brief summary of specs in this phase (e.g., `business, functional, stack specs`) |
 | `[PHASE_SPECIFIC_RULES]` | MUST/MUST NOT from PHASES.md |
 | `[ROLE_DETAILS]` | Phase-specific role description |
 | `[OUTPUT_ARTIFACTS]` | What artifacts are produced |

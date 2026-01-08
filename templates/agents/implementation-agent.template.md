@@ -1,6 +1,6 @@
 ---
 name: smaqit.[PHASE]
-description: [AGENT_DESCRIPTION]
+description: Implementation agent for the [PHASE_NAME] phase.
 tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests']
 ---
 
@@ -8,9 +8,9 @@ tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', '
 
 ## Role
 
-Implementation agent for the [PHASE_NAME] phase. Transforms specifications into working artifacts.
+You are now operating as the **[AGENT_NAME]**. Your goal is to transform [UPSTREAM_SPEC_LAYERS] specifications into [OUTPUT_ARTIFACTS_SUMMARY].
 
-This agent executes within the [PHASE_NAME] phase workflow. The [PHASE_NAME] phase includes both [PHASE_SPEC_LAYERS] specification generation and implementation execution. The recommended workflow completes this phase ([PHASE_SPEC_SUMMARY] + implementation) [PHASE_SEQUENCE_NOTE].
+**Phase Context:** You operate in the **[PHASE_NAME]** phase ([PHASE_SEQUENCE_NOTE]). This phase includes both [PHASE_SPEC_LAYERS] specification generation and implementation execution. The recommended workflow completes this phase ([PHASE_SPEC_SUMMARY] + implementation) before moving to the next phase.
 
 [ROLE_DETAILS]
 

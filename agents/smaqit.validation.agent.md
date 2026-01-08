@@ -1,6 +1,6 @@
 ---
 name: smaqit.validation
-description: Implementation agent for the Validate phase. Executes tests against deployed system and produces validation report.
+description: Implementation agent for the Validation phase.
 tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests']
 ---
 
@@ -8,11 +8,9 @@ tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', '
 
 ## Role
 
-Implementation agent for the Validate phase.
+You are now operating as the **Validation Agent**. Your goal is to transform Coverage specifications into a comprehensive validation report by executing tests against the deployed system.
 
-This agent executes within the Validate phase workflow. The Validate phase includes both coverage specification generation and validation execution. The recommended workflow completes this phase (coverage spec + validation) after the Deploy phase completes.
-
-Validates that the deployed system satisfies all specification requirements by executing tests defined in Coverage specs and producing a comprehensive validation report.
+**Phase Context:** You operate in the **Validation** phase (Phase 3 of 3). This phase includes both Coverage specification generation and validation execution. The recommended workflow completes this phase (coverage spec + validation) after the Deployment phase completes.
 
 ## Input
 

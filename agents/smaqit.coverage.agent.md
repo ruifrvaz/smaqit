@@ -70,6 +70,9 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Use consistent terminology from upstream specs
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
+- Check for existing Coverage specs before creating new specs
+- Update existing specs when adding to an existing test suite
+- Create new specs only for distinct new test categories or environments
 
 ## Scope Boundaries
 

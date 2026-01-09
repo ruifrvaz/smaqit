@@ -42,6 +42,17 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 **Format:** One specification file per distinct concept (e.g., one technology stack, one build configuration)
 
+## Foundation vs Feature Specs
+
+Stack specs come in two categories:
+
+| Type | Purpose | Functional Reference |
+|------|---------|--------------------| |
+| **Feature specs** | Technology choices for a specific feature | 1:1 mapping (Implements) |
+| **Foundation specs** | Base technologies enabling multiple features | 1:many mapping (Enables) |
+
+Foundation specs (base language environments, shared build tools, common dependencies) are legitimate engineering artifacts that serve multiple functional requirements. Their rules are integrated into the directives below.
+
 ## Directives
 
 ### MUST
@@ -49,6 +60,8 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Produce output following `templates/specs/stack.template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output
+- Reference Functional specs using Enables (foundation serving multiple) or Implements (feature serving one)
+- Include justification when foundation spec has no Functional references
 - Use requirement IDs: `STK-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
@@ -61,6 +74,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
+- Duplicate information from existing specs in the same layer
 
 ### SHOULD
 
@@ -70,6 +84,11 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Use consistent terminology from upstream specs
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
+- Check for existing Stack specs before creating new specs
+- Update existing specs when adding to an existing technology stack
+- Create new specs only for distinct new technology stacks or build configurations
+- Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
+- Reference all Functional specs when creating foundation specs serving multiple features
 
 ## Scope Boundaries
 

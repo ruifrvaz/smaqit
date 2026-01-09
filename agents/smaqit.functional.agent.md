@@ -41,6 +41,17 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 **Format:** One specification file per distinct concept (e.g., one user flow, one API contract, one data model)
 
+## Foundation vs Feature Specs
+
+Functional specs come in two categories:
+
+| Type | Purpose | Business Reference |
+|------|---------|--------------------||
+| **Feature specs** | Implement a specific business use case | 1:1 mapping (Implements) |
+| **Foundation specs** | Enable multiple business use cases | 1:many mapping (Enables) |
+
+Foundation specs (shared components, cross-cutting concerns, common contracts) are legitimate engineering artifacts that serve multiple business goals. Their rules are integrated into the directives below.
+
 ## Directives
 
 ### MUST
@@ -60,6 +71,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
+- Duplicate information from existing specs — use Foundation Reference for same-layer or Implements/Enables for upstream specs
 
 ### SHOULD
 
@@ -67,6 +79,10 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Use consistent terminology from upstream specs
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
+- Check for existing Functional specs before creating new specs
+- Update existing specs when adding to an existing concept
+- Create new specs only for distinct new behaviors or contracts
+- Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
 
 ## Scope Boundaries
 
@@ -94,7 +110,8 @@ These rules are specific to the Functional layer and must be followed when produ
 - Specify data models with attributes and relationships
 - Define API contracts (inputs, outputs, error conditions)
 - Include state transitions where applicable
-- Reference business specs for traceability
+- Reference business specs for traceability using Implements (1:1 feature) or Enables (1:many foundation)
+- Include justification when foundation spec has no Business references
 
 ### MUST NOT
 
@@ -103,24 +120,9 @@ These rules are specific to the Functional layer and must be followed when produ
 - Define performance benchmarks (those belong in Infrastructure)
 - Prescribe implementation patterns
 
-### Patterns
+### SHOULD
 
-**Foundation vs Feature Specs:**
-
-Functional specs come in two categories:
-
-| Type | Purpose | Business Reference |
-|------|---------|--------------------|
-| **Feature specs** | Implement a specific business use case | 1:1 mapping (Implements) |
-| **Foundation specs** | Enable multiple business use cases | 1:many mapping (Enables) |
-
-Foundation specs (shared components, cross-cutting concerns, common contracts) are legitimate engineering artifacts that serve multiple business goals.
-
-**Foundation spec rules:**
-- SHOULD reference all Business specs they enable
-- MAY precede or parallel Business specs when engineering judgment requires
-- MUST flag absence of Business references with justification
-- Orphaned foundations (no Business references, no justification) indicate scope creep
+- Reference all Business specs when creating foundation specs serving multiple use cases
 
 ## Requirement ID Format
 

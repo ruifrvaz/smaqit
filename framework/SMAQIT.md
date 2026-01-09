@@ -31,6 +31,16 @@ Specifications are not documentation—they are the source of truth. Implementat
 
 Each layer has its own prompt file where users input requirements. Upstream layers provide context for coherence, not requirements. This ensures that user intent guides every layer without false derivation chains.
 
+### Single Source of Truth
+
+**Each piece of information should exist in exactly one place.**
+
+When information is needed in multiple contexts, reference the source rather than duplicate. Foundation specs contain shared requirements that multiple feature specs depend on. This prevents conflicting sources of truth, reduces maintenance burden, and ensures consistency across specifications.
+
+- **Agents MUST NOT** duplicate information from existing specs—use Foundation Reference for same-layer or Implements/Enables for upstream
+- **Agents SHOULD** update existing specs when extending a concept, create new specs only for distinct concepts
+- **Agents SHOULD** reference foundation specs for shared requirements using Foundation Reference section
+
 ### Specification Coverage
 
 **Every requirement MUST be verified through traceable test coverage.**

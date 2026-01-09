@@ -54,6 +54,17 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 **Format:** One specification file per distinct concept (e.g., one deployment topology, one scaling policy)
 
+## Foundation vs Feature Specs
+
+Infrastructure specs come in two categories:
+
+| Type | Purpose | Phase 1 Reference |
+|------|---------|--------------------| |
+| **Feature specs** | Infrastructure for a specific feature/component | 1:1 mapping (Implements) |
+| **Foundation specs** | Base infrastructure enabling multiple features | 1:many mapping (Enables) |
+
+Foundation specs (base networking, shared security policies, common observability configuration) are legitimate operational artifacts that serve multiple application components. Their rules are integrated into the directives below.
+
 ## Directives
 
 ### MUST
@@ -61,6 +72,8 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Produce output following `templates/specs/infrastructure.template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output
+- Reference Phase 1 specs using Enables (foundation serving multiple) or Implements (feature serving one)
+- Include justification when foundation spec has no Phase 1 references
 - Use requirement IDs: `INF-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
@@ -73,6 +86,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
+- Duplicate information from existing specs — use Foundation Reference for same-layer or Implements/Enables for upstream specs
 
 ### SHOULD
 
@@ -80,6 +94,13 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Use consistent terminology from upstream specs
 - Flag gaps or inconsistencies in upstream input
 - Flag assumptions explicitly when clarification is unavailable
+- Check for existing Infrastructure specs before creating new specs
+- Update existing specs when adding to an existing infrastructure concept
+- Create new specs only for distinct new infrastructure components or environments
+- Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
+- Reference all Phase 1 specs (Business, Functional, Stack) when creating foundation infrastructure serving multiple components
+
+**Note:** Foundation infrastructure without Phase 1 references and without justification indicates scope creep.
 
 ## Scope Boundaries
 

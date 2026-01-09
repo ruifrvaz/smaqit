@@ -11,6 +11,27 @@ prompt_version: [GIT_HASH]
 
 <!-- References establish traceability and coherence, not requirement derivation -->
 <!-- Infrastructure specs enable the entire application to run in a target environment -->
+<!-- Use Implements for feature specs (1:1 mapping) -->
+<!-- Use Enables for foundation specs (1:many mapping) -->
+<!-- Use same-layer references when feature specs extend foundation specs -->
+
+### Foundation Reference
+
+<!-- Same-layer reference: use when this feature spec extends a foundation spec -->
+<!-- Omit this section if this spec doesn't depend on a foundation spec in the same layer -->
+
+- [INF-[FOUNDATION-CONCEPT]](./[FOUNDATION-FILENAME].md) — [Shared requirements referenced here]
+
+### Implements
+
+#### Business
+- [BUS-CONCEPT](../business/[FILENAME].md) — [Business requirement this infrastructure implements]
+
+#### Functional
+- [FUN-CONCEPT](../functional/[FILENAME].md) — [Functional behavior this infrastructure implements]
+
+#### Stack
+- [STK-CONCEPT](../stack/[FILENAME].md) — [Technology constraint this infrastructure implements]
 
 ### Enables
 

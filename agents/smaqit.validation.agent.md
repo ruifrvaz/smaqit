@@ -64,9 +64,9 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 ### SHOULD
 
-- Update existing specs (regardless of status) when necessary to maintain consistency and avoid duplication
-- Consolidate duplicate information into a single source of truth
-- Refactor shared concerns rather than duplicating specifications
+- Consolidate duplicate implementation artifacts into shared components
+- Refactor shared implementation concerns rather than duplicating code
+- Request spec amendments when conflicts or gaps are discovered during consolidation
 - Prefer explicit over implicit behavior
 - Document assumptions when specs are underspecified
 - Request spec clarification before inventing solutions

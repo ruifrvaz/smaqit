@@ -117,10 +117,11 @@ Specs reference adjacent layers for coherence and traceability. Context referenc
 
 | Reference Type | Meaning | Example |
 |----------------|---------|---------|
-| **Implements** | Feature spec with 1:1 mapping to business case | Feature spec → Single use case |
-| **Enables** | Foundation spec serving multiple business cases | Shared component → Multiple use cases |
+| **Implements** | Feature spec with 1:1 mapping to upstream spec | Feature spec → Single upstream requirement |
+| **Enables** | Foundation spec serving multiple upstream specs | Foundation spec → Multiple upstream requirements |
+| **Foundation Reference** | Feature spec references foundation spec in same layer | Feature spec → Foundation spec for shared requirements |
 
-**Format:**
+**Cross-Layer Format:**
 ```markdown
 ## References
 
@@ -133,6 +134,24 @@ Specs reference adjacent layers for coherence and traceability. Context referenc
 - [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
 - [BUS-[CONCEPT]-NNN](../business/[filename].md) — Enables [use case description]
 ```
+
+**Foundation Reference Format (for avoiding duplication):**
+```markdown
+## References
+
+### Foundation Reference
+<!-- Same-layer reference: feature spec extends foundation spec -->
+- [STK-[FOUNDATION-CONCEPT]](./base-stack.md) — Shared requirements referenced here
+
+### Implements
+- [FUN-[CONCEPT]-NNN](../functional/feature.md) — Implements feature functionality
+```
+
+**Foundation Reference Rules:**
+- Use when a feature spec extends a foundation spec in the same layer
+- Foundation specs contain shared requirements that multiple feature specs depend on
+- Example: Feature spec "[STK-CLI]" references foundation spec "[STK-PYTHON-BASE]" for base Python 3.8+ and development environment requirements
+- Prefer updating existing spec over creating new spec with foundation reference when concept is not distinct
 
 **Foundation specs without mapping:**
 

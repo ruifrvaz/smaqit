@@ -1,8 +1,9 @@
 # Task 055: Formalize Single Source of Truth Principle
 
-**Status:** new  
+**Status:** completed  
 **Priority:** Medium  
 **Created:** 2026-01-05  
+**Completed:** 2026-01-05  
 **Related:** Task 048 (E2E Testing), Issue 3
 
 ## Problem
@@ -25,13 +26,14 @@ Elevate "single source of truth" to explicit Level 0 principle in `framework/SMA
 
 ## Acceptance Criteria
 
-- [ ] Added "Single Source of Truth" as explicit principle in `framework/SMAQIT.md`
-- [ ] Principle includes: Definition, rationale, agent directives
-- [ ] Cascaded to specification agents: Added directive "MUST NOT duplicate information from existing specs"
-- [ ] Added guidance on when to update existing specs vs create new specs
-- [ ] Documented cross-reference pattern for shared information
-- [ ] Updated Stack agent specifically (may already be covered by general principle)
-- [ ] Optional: Updated Stack template with "References" section for existing specs
+- [x] Added "Single Source of Truth" as explicit principle in `framework/SMAQIT.md`
+- [x] Principle includes: Definition, rationale, agent directives
+- [x] Cascaded to specification agents: Added directive "MUST NOT duplicate information from existing specs"
+- [x] Added guidance on when to update existing specs vs create new specs
+- [x] Documented cross-reference pattern for shared information
+- [x] Updated Stack agent specifically (covered by general principle + specific guidance)
+- [x] Updated Stack template with "Base Requirements" section for same-layer references
+- [x] Updated Functional and Infrastructure templates with same pattern
 
 ## Implementation Plan
 

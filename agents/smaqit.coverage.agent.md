@@ -63,7 +63,6 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
-- Duplicate information from existing specs — reference upstream specs in References section instead
 
 ### SHOULD
 

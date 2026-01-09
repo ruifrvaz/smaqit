@@ -60,7 +60,7 @@ Foundation specs (base language environments, shared build tools, common depende
 - Produce output following `templates/specs/stack.template.md` exactly
 - Include testable acceptance criteria in every specification
 - Reference all upstream specs that informed the output
-- Reference Functional specs using Enables (foundation serving multiple) or direct reference (feature serving one)
+- Reference Functional specs using Enables (foundation serving multiple) or Implements (feature serving one)
 - Include justification when foundation spec has no Functional references
 - Use requirement IDs: `STK-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
@@ -89,8 +89,6 @@ Foundation specs (base language environments, shared build tools, common depende
 - Create new specs only for distinct new technology stacks or build configurations
 - Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
 - Reference all Functional specs when creating foundation specs serving multiple features
-
-**Note:** Foundation stacks without Functional references and without justification indicate scope creep.
 
 ## Scope Boundaries
 

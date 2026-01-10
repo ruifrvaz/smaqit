@@ -110,7 +110,7 @@ Each layer reads from its own prompt file. Upstream layers provide context for c
 - Include implementation details (code, technology choices outside Stack layer)
 - Create inconsistencies with context layer specifications
 - Produce specs for layers outside their scope
-- Duplicate information present in existing specs—use Foundation Reference for same-layer or Implements/Enables for upstream
+- Duplicate information present in existing specs
 
 **Specification agents SHOULD:**
 - Define explicit scope boundaries (what is included vs. excluded)

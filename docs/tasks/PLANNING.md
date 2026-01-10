@@ -4,10 +4,9 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 055 | Formalize Single Source of Truth Principle | new | Medium |
+| 059 | E2E Regression Test - Verify Issue Fixes | new | High |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
 | 031 | Review implementation artifacts | new | Medium |
-| 048 | End-to-end agent workflow testing | new | High |
 
 ## Completed
 
@@ -65,6 +64,8 @@
 | 054 | Strengthen Stack Agent Code Directive |
 | 058 | Implementation Agents Should Update Acceptance Criteria Checkboxes |
 | 056 | Document context pollution workaround |
+| 048 | End-to-end agent workflow testing |
+| 055 | Formalize Single Source of Truth Principle |
 
 ## Abandoned
 

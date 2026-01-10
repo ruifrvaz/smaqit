@@ -107,3 +107,30 @@ Potential improvements deferred until multi-contributor phase:
 - **Coverage analysis**: Which framework paths are exercised
 
 **Why defer:** Current manual testing is sufficient for single-maintainer workflow. Automation value increases with team size and contribution frequency.
+
+## Prompt Usage Guidance
+
+### test.start Prompt
+
+**Purpose:** Start focused testing session with minimal context loading.
+
+**Why This Approach:**
+- **Focused context** - Only what's needed for test execution (~15-20K tokens vs 50K+ for full session)
+- **Faster startup** - No history/planning/wiki reading
+- **Clearer purpose** - Agent knows it's in test mode immediately
+- **Self-contained** - Test task file has complete workflow
+- **Repeatable** - Same pattern for any test task
+
+**When to Use:**
+- Running E2E tests (Task 048, 059, etc.)
+- Running regression tests
+- Running integration tests
+- Any structured test with task file
+
+**When NOT to Use:**
+- Development work (use `/session.start`)
+- Framework changes (use `/session.start`)
+- Exploratory testing without task file
+- General assistance (use normal chat)
+
+**Trade-off:** Focused context means less background knowledge. Agent can't reference history or planning without additional context loading. But speed and clarity outweigh this limitation for structured testing.

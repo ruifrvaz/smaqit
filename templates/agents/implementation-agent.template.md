@@ -104,13 +104,23 @@ When user requests out-of-phase work:
 
 ## State Tracking
 
-[AGENT_NAME] MUST update spec frontmatter.
+[AGENT_NAME] MUST update both spec frontmatter and phase state.
 
 **For each spec processed:**
 
 1. Update spec YAML frontmatter:
    - [FRONTMATTER_STATUS_DIRECTIVE]
    - [FRONTMATTER_TIMESTAMP_DIRECTIVE]
+
+**Upstream spec updates:**
+
+[AGENT_NAME] reads and references upstream specs for coherence validation. All referenced specs MUST be updated to reflect [PHASE_STATUS_LOWER] state:
+
+1. Update ALL specs from `smaqit plan --phase=[PHASE]` output ([TARGET_LAYER_SPECS])
+2. Update ALL upstream specs referenced for coherence ([UPSTREAM_LAYER_SPECS])
+3. For each referenced spec, update YAML frontmatter:
+   - Set `status: [PHASE_STATUS_LOWER]`
+   - Add `[PHASE_STATUS_LOWER]: [ISO8601_TIMESTAMP]`
 
 [ADDITIONAL_STATE_DIRECTIVES]
 
@@ -126,7 +136,7 @@ Before declaring completion, verify:
 - [ ] No unspecified features were added
 - [ ] Cross-layer consolidation completed without conflicts
 - [ ] Phase report written to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md`
-- [ ] Spec frontmatter updated: `status: [PHASE_STATUS]`, `[PHASE_STATUS]: [ISO8601_TIMESTAMP]`
+- [ ] All referenced spec frontmatter updated: `status: [PHASE_STATUS]`, `[PHASE_STATUS]: [ISO8601_TIMESTAMP]`
 - [ ] Acceptance criteria checkboxes updated in processed specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied/untestable)
 - [ADDITIONAL_COMPLETION_CRITERIA]
 

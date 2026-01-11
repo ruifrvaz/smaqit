@@ -20,6 +20,17 @@ Each phase:
 
 Phases are strictly sequential. Deploy cannot begin until Develop completes. Validate cannot begin until Deploy completes. This constraint is subject to revision based on real-world usage (see [SMAQIT](SMAQIT.md)).
 
+### Implementation Phase Principles
+
+**Status Cascade:** Implementation agents update all specifications they reference, not just specs from their target layer.
+
+When an implementation agent processes work:
+1. Identifies specs via `smaqit plan --phase=[PHASE]` (returns target layer specs)
+2. References upstream specs for coherence/context
+3. Updates frontmatter in ALL referenced specs to reflect phase completion
+
+**Rationale:** If an implementation agent reads a specification for implementation context, that specification has been implemented/deployed/validated in that phase. Status must reflect reality for accurate lifecycle tracking.
+
 ## Phase Definitions
 
 ### Develop — Build a Working Application
@@ -169,6 +180,7 @@ See [ARTIFACTS](ARTIFACTS.md) for the Isolation Principle.
 - [ ] System accessible at expected endpoints
 - [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
 - [ ] Spec frontmatter updated: `status: deployed`, `deployed: [ISO8601_TIMESTAMP]`
+- [ ] All referenced specs updated to `status: deployed` per Status Cascade principle (Business, Functional, Stack, Infrastructure)
 - [ ] Acceptance criteria checkboxes updated in Infrastructure specs: `[ ]` → `[x]` or `[!]`
 
 ---

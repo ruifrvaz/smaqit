@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 062 | Validation Agent Should Generate Executable Test Artifacts | new | High |
+| 062 | Validation Agent Should Generate Executable Test Artifacts | code complete | High |
 | 060 | Reset Checkboxes on Requirement Refinement | new | Medium |
 | 061 | Deployment Agent Should Update Upstream Spec Frontmatter | new | Medium |
 | 063 | Validation Agent Should Update Upstream Spec Frontmatter | new | Medium |

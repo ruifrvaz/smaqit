@@ -178,6 +178,34 @@ These files explain WHY the framework is designed this way:
 
 **See [User vs Agent Documentation](docs/wiki/concepts/user-vs-agent-documentation.md) for detailed guidance on this distinction.**
 
+## Level Up Architecture
+
+smaqit uses a three-level architecture where each level compiles to the next:
+
+- **Level 0 (framework/)** — Principles and philosophy in narrative form
+- **Level 1 (templates/)** — Directives with placeholders compiled from L0 principles
+- **Level 2 (agents/)** — Concrete implementations with layer/phase-specific values compiled from L1 directives
+
+### Meta-Framework Agents
+
+Three special agents maintain the Level Up architecture:
+
+- **Agent-L0** (`.github/agents/smaqit.L0.agent.md`) — Maintains framework principle purity
+- **Agent-L1** (`.github/agents/smaqit.L1.agent.md`) — Compiles L0 principles into L1 template directives
+- **Agent-L2** (`.github/agents/smaqit.L2.agent.md`) — Compiles L1 directives into L2 product agents
+
+Each agent enforces:
+- Level-specific form (philosophy → directives → implementations)
+- Placeholder conventions for their level
+- Contamination prevention (rejecting content from other levels)
+- Self-containment and traceability requirements
+
+**Key principles:**
+- Never skip levels or work out of order
+- Each level only references its direct predecessor
+- Agents are self-contained with embedded necessary content
+- Use generic placeholders at L0/L1, concrete values at L2
+
 ---
 
 ## Contributors

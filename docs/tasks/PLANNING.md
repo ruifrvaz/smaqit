@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| B001 | Extensible Meta-Framework: Level Up Architecture | new | High |
 | 062 | Validation Agent Should Generate Executable Test Artifacts | new | High |
 | 060 | Reset Checkboxes on Requirement Refinement | new | Medium |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
@@ -14,6 +13,10 @@
 
 | ID | Title |
 |----|-------|
+| B001 | Extensible Meta-Framework: Level Up Architecture |
+| B001.3 | Create Agent-L2: Agent Compiler |
+| B001.2 | Create Agent-L1: Template Compiler |
+| B001.1 | Create Agent-L0: Principle Curator |
 | 001 | Create Copilot prompt files |
 | 002 | Create specification agent template |
 | 003 | Create implementation agent template |

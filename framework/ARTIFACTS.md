@@ -301,6 +301,30 @@ Example:
 - [!] BUS-LOGIN-003: Password complexity enforced (FAILED: regex bug)
 ```
 
+**Checkbox Lifecycle During Refinement:**
+
+When specification agents modify existing acceptance criteria text (expanding scope, changing requirements), they MUST reset checkbox state to `[ ]` to indicate revalidation is needed.
+
+**Rules:**
+- Specification agents MUST reset `[x]` → `[ ]` when modifying acceptance criterion text
+- Specification agents MUST reset `[!]` → `[ ]` when modifying acceptance criterion text
+- Implementation agents later update `[ ]` → `[x]` or `[!]` after revalidation
+- Adding new criteria always starts with `[ ]` (new, not yet validated)
+
+**Rationale:** Expanded or modified requirements need revalidation. Checkboxes reflect implementation status, not specification intent. When the requirement changes, the checkbox must reset to prevent misleading developers about what needs revalidation.
+
+**Example:**
+```markdown
+# Before spec update (requirement was implemented)
+- [x] FUN-OUTPUT-006: Generate output containing Mario character
+
+# After spec update expanding scope (checkbox reset by specification agent)
+- [ ] FUN-OUTPUT-006: Generate output containing Mario and Luigi characters
+
+# After implementation (checkbox updated by Development agent)
+- [x] FUN-OUTPUT-006: Generate output containing Mario and Luigi characters
+```
+
 **Stale Specs:**
 
 Specs become stale when content changes after implementation. Detection is **user responsibility**.

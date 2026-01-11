@@ -203,19 +203,28 @@ If prompt has content, agents interpret free-style requirements and request clar
    e. Flags untestable criteria
 
 2. Validation agent:
-   a. Executes tests against deployed system
-   b. Collects pass/fail results per test case
-   c. Calculates spec coverage percentage
-   d. Produces validation report
+   a. Generates executable test artifacts from Coverage specs
+   b. Creates test framework configuration (pytest.ini, etc.)
+   c. Creates CI/CD workflow configuration
+   d. Executes generated tests against deployed system
+   e. Collects pass/fail results per test case
+   f. Calculates spec coverage percentage
+   g. Produces validation report
 ```
 
 **Environment:** Same target environment as Deploy phase
 
-**Output:** Validation report in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` containing:
-- Spec coverage percentage
-- Pass/fail status per requirement
-- Unverified requirements with justification
-- Failure details for failed tests
+**Output:**
+- **Test artifacts:**
+  - Executable test files in `tests/` directory (e.g., `tests/test_*.py`)
+  - Test framework configuration (e.g., `pytest.ini`, `unittest.cfg`)
+  - Test fixtures and utilities (e.g., `tests/conftest.py`)
+  - CI/CD workflow configuration (e.g., `.github/workflows/validation.yml`)
+- **Validation report** in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` containing:
+  - Spec coverage percentage
+  - Pass/fail status per requirement
+  - Unverified requirements with justification
+  - Failure details for failed tests
 
 **Failure Handling:**
 - Test failures do NOT trigger automatic retry
@@ -228,7 +237,12 @@ If prompt has content, agents interpret free-style requirements and request clar
 **Completion Criteria:**
 - [ ] Coverage specs produced with all testable criteria mapped
 - [ ] All coverage specs have `status: validated`
+- [ ] Test artifacts generated:
+  - [ ] Executable test files in `tests/` directory
+  - [ ] Test framework configuration file
+  - [ ] CI/CD workflow configuration
 - [ ] Tests executed against deployed system
+- [ ] Tests are executable independently (outside agent context)
 - [ ] Validation report written to `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`
 - [ ] Spec coverage percentage calculated
 - [ ] Untestable criteria documented with justification

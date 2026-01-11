@@ -403,11 +403,19 @@ public async Task<Result> MethodName(Request request)
 - Acceptance criteria checkboxes updated in Infrastructure specs: `[ ]` → `[x]` or `[!]`
 - MUST NOT hardcode secrets (Isolation Principle)
 
-**Validate Phase → Reports:**
-- Test results, coverage report in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`, validation summary
+**Validate Phase → Reports and Test Artifacts:**
+- **Test artifacts (executable, committable):**
+  - Test files in `tests/` directory (e.g., `tests/test_*.py`)
+  - Test framework configuration (e.g., `pytest.ini`, `unittest.cfg`)
+  - Test fixtures and utilities (e.g., `tests/conftest.py`)
+  - CI/CD workflow configuration (e.g., `.github/workflows/validation.yml`)
+- **Validation report** in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` with:
+  - Test results mapped to Coverage spec test cases
+  - Spec coverage percentage
 - Spec frontmatter: `status: validated`, `validated: [ISO8601_TIMESTAMP]`
 - MUST map results to Coverage spec test cases
 - MUST include spec coverage percentage
+- Test artifacts MUST be executable independently (outside agent context)
 
 **Phase State Tracking:**
 

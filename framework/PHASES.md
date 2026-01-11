@@ -169,6 +169,7 @@ See [ARTIFACTS](ARTIFACTS.md) for the Isolation Principle.
 - [ ] System accessible at expected endpoints
 - [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
 - [ ] Spec frontmatter updated: `status: deployed`, `deployed: [ISO8601_TIMESTAMP]`
+- [ ] All referenced specs updated to `status: deployed` (Business, Functional, Stack, Infrastructure)
 - [ ] Acceptance criteria checkboxes updated in Infrastructure specs: `[ ]` → `[x]` or `[!]`
 
 ---

@@ -119,6 +119,18 @@ Deployment agent MUST update both spec frontmatter and phase state.
    - Set `status: deployed` (success) or `status: failed`
    - Add `deployed: [ISO8601_TIMESTAMP]`
 
+**Upstream spec updates:**
+
+Deployment agent reads and references upstream specs (Business, Functional, Stack) for coherence validation. All referenced specs MUST be updated to reflect deployment state:
+
+1. Update ALL referenced specs from `smaqit plan --phase=deploy` output (Infrastructure specs)
+2. Update ALL upstream specs referenced for coherence (Business, Functional, Stack)
+3. For each referenced spec, update YAML frontmatter:
+   - Set `status: deployed`
+   - Add `deployed: [ISO8601_TIMESTAMP]`
+
+**Rationale:** If deployment agent reads a spec for deployment context, that spec has been deployed. Status must reflect reality for accurate lifecycle tracking.
+
 ## Phase-Specific Rules
 
 ### Trusted Execution Layer
@@ -176,6 +188,7 @@ Before declaring completion, verify:
 - [ ] Observability configured per infrastructure specs
 - [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
 - [ ] Spec frontmatter updated: `status: deployed`, `deployed: YYYY-MM-DDTHH:MM:SSZ`
+- [ ] All referenced specs updated to `status: deployed` (Business, Functional, Stack, Infrastructure)
 - [ ] Acceptance criteria checkboxes updated in Infrastructure specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied)
 
 ## Workflow Handover

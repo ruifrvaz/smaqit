@@ -160,6 +160,17 @@ AFTER (pure principle):
 - **Sequential commits:** Commit L0 changes, then L1 changes, then L2 changes in separate commits
 - **Level isolation:** Never mix levels in a single commit (preserves compilation traceability)
 - **Commit order:** Always push changes following Level Up sequence (L0 → L1 → L2)
+- **Commit prefixes:** Use `L0:`, `L1:`, `L2:` prefixes for level-specific commits, `docs:` for documentation
+
+**Example commit sequence (PR #35 - Status Cascade):**
+```
+2c7dde2 Add Status Cascade principle to framework (⚠️ missing L0: prefix)
+71ed51e L1: Add upstream spec updates to implementation agent template
+25fe955 L2: Apply upstream spec updates to all implementation agents
+e5384ef docs: Add compilation and version control rules to B001
+```
+
+**Note:** First commit should have been `L0: Add Status Cascade principle to framework` — this example demonstrates the correct pattern for future commits.
 
 **Input:** `framework/*.md` (L0 principles)  
 **Output:** Updated `templates/**/*.template.md` with compiled directives

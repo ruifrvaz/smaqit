@@ -19,7 +19,7 @@ Start a new chat with full project context. Execute these steps IN ORDER:
    - `framework/ARTIFACTS.md` (artifact rules)
    - `framework/PROMPTS.md` (prompt architecture)
 
-2. **Read the 3 most recent history files from start to finish** from `docs/history/` (sorted by date descending)
+2. **Read the most recent history file from start to finish** from `docs/history/` (sorted by date descending)
 
 3. **Read task planning file:** `docs/tasks/PLANNING.md` (NOT individual task files)
 

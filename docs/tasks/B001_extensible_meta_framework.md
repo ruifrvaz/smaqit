@@ -1,8 +1,10 @@
 # Extensible Meta-Framework: Level Up Architecture
 
-**Status:** Backlog  
+**Status:** Active  
 **Created:** 2025-12-17  
-**Updated:** 2026-01-11 (Level Up concept added)
+**Promoted:** 2026-01-11  
+**Updated:** 2026-01-11 (Level Up concept added)  
+**Priority:** High
 
 ## Insight
 

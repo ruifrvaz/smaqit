@@ -4,9 +4,9 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| B001 | Extensible Meta-Framework: Level Up Architecture | new | High |
 | 062 | Validation Agent Should Generate Executable Test Artifacts | new | High |
 | 060 | Reset Checkboxes on Requirement Refinement | new | Medium |
-| 063 | Validation Agent Should Update Upstream Spec Frontmatter | new | Medium |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
 | 031 | Review implementation artifacts | new | Medium |
 
@@ -70,6 +70,7 @@
 | 055 | Formalize Single Source of Truth Principle |
 | 059 | E2E Regression Test - Verify Issue Fixes |
 | 061 | Deployment Agent Should Update Upstream Spec Frontmatter |
+| 063 | Validation Agent Should Update Upstream Spec Frontmatter |
 
 ## Abandoned
 
@@ -86,4 +87,4 @@ Ideas and future considerations. Not committed — requires evidence before prom
 
 | ID | Title | Rationale |
 |----|-------|-----------|
-| B001 | Extensible meta-framework | smaqit as configurable spec-driven framework enabling custom layers/phases |
+| | | |

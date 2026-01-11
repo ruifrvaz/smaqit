@@ -5,7 +5,6 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 062 | Validation Agent Should Generate Executable Test Artifacts | new | High |
-| 060 | Reset Checkboxes on Requirement Refinement | new | Medium |
 | 061 | Deployment Agent Should Update Upstream Spec Frontmatter | new | Medium |
 | 063 | Validation Agent Should Update Upstream Spec Frontmatter | new | Medium |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
@@ -15,6 +14,7 @@
 
 | ID | Title |
 |----|-------|
+| 060 | Reset Checkboxes on Requirement Refinement |
 | 001 | Create Copilot prompt files |
 | 002 | Create specification agent template |
 | 003 | Create implementation agent template |

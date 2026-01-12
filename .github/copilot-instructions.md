@@ -71,34 +71,34 @@ When performing work:
 
 ## Content Guidelines
 
-### Agent-Facing Instructions vs User-Facing Documentation
+### Framework Files Contain Philosophy
 
-**Agent-facing files** (framework/, templates/, agents/, specs/) contain ONLY execution instructions:
+**Framework files** (`framework/*.md`) are L0 principle documents that contain:
+- Core principles and rationale (the "why")
+- Design philosophy and thought process
+- Trade-offs between alternatives
+- Conceptual foundations
 
-**Include in agent-facing files:**
+These files guide L1 template compilation and L2 agent compilation.
+
+### Templates and Agents Contain Directives
+
+**Templates** (`templates/`) and **agents** (`agents/`) contain execution instructions:
 - What to do (directives, rules, structure)
 - How to structure output (templates, formats)
 - When to execute (conditions, triggers)
 - Where to find input and write output (file paths)
 - Validation criteria (MUST/MUST NOT/SHOULD rules)
 
-**Exclude from agent-facing files:**
-- Why decisions were made (rationale, trade-offs)
-- Historical context (past attempts, evolution)
-- Human identities (stakeholder names, team members)
-- Business context (delivery dates, politics, budgets)
-- Extended examples showing alternatives
-- Design philosophy or thought process
+### Wiki Files Contain Human Context
 
-**User-facing files** (docs/wiki/, README.md, docs/tasks/, docs/history/) contain context and rationale:
+**Wiki files** (`docs/wiki/`, `README.md`, `docs/tasks/`, `docs/history/`) contain context for humans:
 - Why the framework is designed this way
 - Trade-offs between alternatives
 - Examples with multiple scenarios
 - Historical decisions and evolution
 - Business context when relevant
-- Design rationale and philosophy
-
-**Key principle:** If content helps agents execute tasks, it's an instruction. If content helps humans understand decisions, it's documentation. Never mix these in the same file.
+- Extended explanations and tutorials
 
 ### When Documenting Framework Concepts
 

@@ -30,19 +30,15 @@ Each layer has its own prompt file where users input requirements. Upstream laye
 
 ### Single Source of Truth
 
-**Each piece of information should exist in exactly one place.**
+**Each piece of information exists in exactly one place.**
 
 When information is needed in multiple contexts, reference the source rather than duplicate. Foundation specs contain shared requirements that multiple feature specs depend on. This prevents conflicting sources of truth, reduces maintenance burden, and ensures consistency across specifications.
 
-- **Agents MUST NOT** duplicate information from existing specs—use Foundation Reference for same-layer or Implements/Enables for upstream
-- **Agents SHOULD** update existing specs when extending a concept, create new specs only for distinct concepts
-- **Agents SHOULD** reference foundation specs for shared requirements using Foundation Reference section
-
-### Specification Coverage
+### Complete Specification Coverage
 
 **Every requirement receives verification through traceable test coverage.**
 
-Traceability enables complete specification coverage: the Coverage layer traces requirements through all upstream specs to ensure nothing is missed. Untested requirements become explicit gaps, not silent omissions.
+Complete coverage emerges from explicit traceability. When requirements flow through identifiable chains from intent to implementation to verification, gaps become visible rather than hidden. Untested requirements appear as explicit omissions in the coverage map, not silent assumptions about completeness.
 
 ### Self-Validating Agents
 
@@ -103,16 +99,13 @@ Specs are not static documents—they evolve through phases with tracked states:
 
 **When in doubt, make it explicit.**
 
-- State assumptions rather than assume shared context
-- Define scope boundaries rather than imply them
-- Reference sources rather than expect inference
+Ambiguity multiplies as context travels through layers and agents. Stated assumptions become verifiable constraints. Defined boundaries create clear accountability. Explicit references enable traceability. What remains implicit becomes a source of divergence and confusion.
 
 ### Fail-Fast on Ambiguity
 
 **When input is unclear, stop and request clarification.**
 
-- Do not invent requirements
-- Flag assumptions explicitly
+Proceeding with unclear input compounds errors through every downstream layer. Invented requirements masquerade as user intent. Early clarification prevents late-stage rework and maintains the integrity of the requirement chain from source to implementation.
 
 ## Quick Reference
 
@@ -136,7 +129,7 @@ Specs are not static documents—they evolve through phases with tracked states:
 
 ## See Also
 
-Read SMAQIT.md first for framework overview. Consult these files as needed:
+Read SMAQIT.md for framework overview and principles. Consult these files as needed:
 
 | File | Purpose | When to Consult |
 |------|---------|-----------------|

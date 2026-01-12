@@ -18,12 +18,9 @@ Specifications are not documentation—they are the source of truth. Implementat
 
 ### Traceability Across Layers
 
-**Every output MUST trace to a prompt file.**
+**Every output traces to its input source, creating an unbroken chain from user requirements through specifications to implementation.**
 
-- Each layer receives requirements from its prompt file
-- Upstream layers provide context for coherence, not requirements
-- Code references specs
-- Tests reference requirements
+Each layer receives requirements from its prompt file. Upstream layers provide context for coherence, not requirements. Code references specs. Tests reference requirements. This creates explicit lineage for every decision and artifact.
 
 ### Layer Independence
 
@@ -43,30 +40,27 @@ When information is needed in multiple contexts, reference the source rather tha
 
 ### Specification Coverage
 
-**Every requirement MUST be verified through traceable test coverage.**
+**Every requirement receives verification through traceable test coverage.**
 
-Traceability enables complete specification coverage: the Coverage layer traces requirements through all upstream specs to ensure nothing is missed. Untested requirements are explicit gaps, not silent omissions.
+Traceability enables complete specification coverage: the Coverage layer traces requirements through all upstream specs to ensure nothing is missed. Untested requirements become explicit gaps, not silent omissions.
 
 ### Self-Validating Agents
 
 **Agents validate their own output before declaring completion.**
 
-Agents are not fire-and-forget. Each agent has completion criteria and MUST verify them before finishing. This shifts quality assurance left—into the agent itself, not a separate review step.
+Agents are not fire-and-forget. Each agent has completion criteria and verifies them before finishing. This shifts quality assurance left—into the agent itself, not a separate review step.
 
 ### Bounded Agents
 
 **Agents execute only their designated layer or phase.**
 
-Each agent has a single responsibility. Agents decline out-of-scope requests with clear redirection to the appropriate agent. This enforces separation of concerns and prevents scope creep across workflow boundaries.
+Unbounded agents lose accountability. Each agent has a single responsibility. Agents decline out-of-scope requests with clear redirection to the appropriate agent. This enforces separation of concerns and prevents scope creep across workflow boundaries.
 
 ### Template-Constrained Output
 
 **Templates are cognitive scaffolds, not suggestions.**
 
-Templates define the exact structure agents MUST produce. This ensures:
-- Consistent output across runs
-- Predictable input for downstream consumers
-- Reduced LLM variance
+Unpredictable structure breaks downstream consumers. Templates define the exact structure agents produce. This ensures consistent output across runs, predictable input for downstream consumers and reduced LLM variance.
 
 ### Accept Mutability, Validate Behavior
 
@@ -80,7 +74,7 @@ LLMs rarely generate identical output twice. Rather than fighting this inherent 
 
 ### Reproducible from Input Set
 
-**Identical input sets should produce equivalent validated behavior.**
+**Identical input sets produce equivalent validated behavior.**
 
 The complete set of prompts across all layers defines a reproducible workflow. Given the same prompt set:
 
@@ -92,10 +86,7 @@ The complete set of prompts across all layers defines a reproducible workflow. G
 
 **Each layer addresses a distinct concern.**
 
-Layers are independent but must be coherent:
-- Business (intent) | Functional (behavior) | Stack (tools) | Infrastructure (environment) | Coverage (verification)
-- No layer derives requirements from another—each reads from its own prompt file
-- Implementation agents validate cross-layer coherence before execution
+Layers are independent but coherent. Business captures intent, Functional defines behavior, Stack selects tools, Infrastructure specifies environment, Coverage verifies implementation. No layer derives requirements from another—each reads from its own prompt file. Implementation agents validate cross-layer coherence before execution.
 
 ### Stateful Specifications
 
@@ -142,24 +133,6 @@ Specs are not static documents—they evolve through phases with tracked states:
 | Develop | Business → Functional → Stack | Development | Working application |
 | Deploy | Infrastructure | Deployment | Running system |
 | Validate | Coverage | Validation | Validation report |
-
-## File Locations (in smaqit-enabled projects)
-
-```
-project/
-├── .smaqit/
-│   ├── framework/        # Framework files (this directory)
-│   └── templates/        # Spec and prompt templates
-├── .github/
-│   ├── agents/           # Agent definitions
-│   └── prompts/          # Prompt files (user input)
-└── specs/
-    ├── business/
-    ├── functional/
-    ├── stack/
-    ├── infrastructure/
-    └── coverage/
-```
 
 ## See Also
 

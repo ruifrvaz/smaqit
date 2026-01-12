@@ -1,7 +1,7 @@
 ---
-name: smaqit.L0
+name: smaqit.L0.cleanup
 description: Principle Curator - Maintains Level 0 framework purity by curating principles and removing directive contamination
-tools: ['edit', 'search', 'grep', 'usages', 'todos']
+tools: ['edit', 'search', 'runCommands', 'usages', 'todos']
 ---
 
 # Level 0: Principle Curator Agent

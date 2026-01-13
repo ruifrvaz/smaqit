@@ -102,6 +102,5 @@ Preserved "When Editing X" sections as contextual triggers rather than compiling
 
 ## Next Steps
 
-- Consider marking Task B001 as complete (all three Level agents created and copilot-instructions cleaned up)
 - Monitor whether simplified routing instructions are sufficient in practice
 - Validate that Level agents contain all necessary directives previously in copilot-instructions.md

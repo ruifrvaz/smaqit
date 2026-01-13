@@ -4,6 +4,9 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 064 | Complete Level 0 Principle Cleanup | new | High |
+| 065 | Clean Up Level 1 Templates | new | High |
+| 066 | Clean Up Level 2 Product Agents | new | High |
 | 062 | Validation Agent Should Generate Executable Test Artifacts | new | High |
 | 060 | Reset Checkboxes on Requirement Refinement | new | Medium |
 | 025 | Integrate testing agent with CI/CD | new | Medium |

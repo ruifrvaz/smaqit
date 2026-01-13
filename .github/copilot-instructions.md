@@ -10,7 +10,7 @@ You are developing smaqit, a spec-driven agent orchestration framework.
 - **Prompt templates** (`templates/prompts/`) — Structure for prompt files
 - **Agent templates** (`templates/agents/`) — Structure for agent definitions
 - **Agents** (`agents/`) — GitHub Custom Agents (`.agent.md` format)
-- **Prompts** (`prompts/`) — Input record files (`.prompt.md` format)
+- **Prompts** (`prompts/`) — Prompt templates with structure and guidance (`.prompt.md` format)
 - **Installer** (`installer/`) — Go CLI that scaffolds smaqit into user projects
 
 ## Source vs Artifacts
@@ -71,135 +71,56 @@ When performing work:
 
 ## Content Guidelines
 
-### Agent-Facing Instructions vs User-Facing Documentation
+### Framework Files Contain Philosophy
 
-**Agent-facing files** (framework/, templates/, agents/, specs/) contain ONLY execution instructions:
+**Framework files** (`framework/*.md`) are L0 principle documents that contain:
+- Core principles and rationale (the "why")
+- Design philosophy and thought process
+- Trade-offs between alternatives
+- Conceptual foundations
 
-**Include in agent-facing files:**
+These files guide L1 template compilation and L2 agent compilation.
+
+### Templates and Agents Contain Directives
+
+**Templates** (`templates/`) and **agents** (`agents/`) contain execution instructions:
 - What to do (directives, rules, structure)
 - How to structure output (templates, formats)
 - When to execute (conditions, triggers)
 - Where to find input and write output (file paths)
 - Validation criteria (MUST/MUST NOT/SHOULD rules)
 
-**Exclude from agent-facing files:**
-- Why decisions were made (rationale, trade-offs)
-- Historical context (past attempts, evolution)
-- Human identities (stakeholder names, team members)
-- Business context (delivery dates, politics, budgets)
-- Extended examples showing alternatives
-- Design philosophy or thought process
+### Wiki Files Contain Human Context
 
-**User-facing files** (docs/wiki/, README.md, docs/tasks/, docs/history/) contain context and rationale:
+**Wiki files** (`docs/wiki/`, `README.md`, `docs/tasks/`, `docs/history/`) contain context for humans:
 - Why the framework is designed this way
 - Trade-offs between alternatives
 - Examples with multiple scenarios
 - Historical decisions and evolution
 - Business context when relevant
-- Design rationale and philosophy
+- Extended explanations and tutorials
 
-**Key principle:** If content helps agents execute tasks, it's an instruction. If content helps humans understand decisions, it's documentation. Never mix these in the same file.
+### When Documenting Framework Concepts
 
-### When documenting framework concepts
-
-**Do:**
-- Prefer abstract categories over specific examples
-- Use generic placeholders (`[LAYER]`, `[CONCEPT]`) when examples needed
-- Write clear directives (MUST/MUST NOT/SHOULD)
-- State what to validate before completion
-- Keep instructions concise and actionable
-
-**Don't:**
-- Explain why rules exist (save for wiki)
-- Include specific technologies, vendors, or architectures
-- Add historical context or design evolution
-- Reference past projects or prior art
-- Put extended explanations in templates/agents
-
-### Example Usage Rules
-
-**Context:** Framework files, templates, and agents must use generic placeholders and abstract categories to maximize reusability. Specific examples can be misinterpreted as actual requirements or prescribed solutions.
-
-**Prohibited in framework/, templates/, agents/:**
-
-| Category | Prohibited Examples | Use Instead |
-|----------|-------------------|-------------|
-| **Requirement IDs** | `BUS-LOGIN-001`, `FUN-AUTH-001`, `STK-JWT-001` | `[LAYER_PREFIX]-[CONCEPT]-[NNN]`, `[ID]` |
-| **Technologies** | JWT, React, AWS, Docker, PostgreSQL | `[Technology]`, `[Framework]`, `[Database]` |
-| **Features/Domains** | login, authentication, checkout, payment | `[Feature name]`, `[Use case]`, `[Concept]` |
-| **Architecture** | microservices, REST API, message queue | `[Pattern]`, `[Architecture style]` |
-| **Data/Entities** | User, Order, Product, Customer | `[Entity]`, `[Data model]` |
-
-**Allowed examples:**
-
-| Location | Context | Format | Example |
-|----------|---------|--------|---------|
-| **Prompt files** | User guidance only | HTML comments | `<!-- Example: "Mario Fan - Users who love Nintendo" -->` |
-| **Wiki docs** | Human explanation | Plain text | "For instance, BUS-LOGIN-001 might represent..." |
-| **History files** | Session documentation | Plain text | "Cleaned specific examples like BUS-LOGIN-001" |
-| **Test cases** | Demonstration scenarios | Plain text | `docs/test-cases/mario-hello.md` |
-
-**Validation checklist:**
-
-Before committing changes to framework/, templates/, or agents/, verify:
-- [ ] No specific requirement IDs (BUS-LOGIN, FUN-AUTH, etc.)
-- [ ] No specific technology names (JWT, React, PostgreSQL, etc.)
-- [ ] No specific business domains (login, checkout, authentication, etc.)
-- [ ] All examples use generic placeholders in `[BRACKETS]`
-- [ ] HTML comment examples in prompts are for guidance only (agents ignore these)
-
-**Exception:** When demonstrating format structure (like in ARTIFACTS.md showing ID format), examples must be wrapped in clear context: "Format: `[PREFIX]-[CONCEPT]-[NNN]`" without presenting as actual requirements.
-
-### When Editing Specification Templates
-
-Location: `templates/specs/`
-
-Specification templates define the structure agents use when producing spec documents. 
-
-Follow [TEMPLATES.md] compliance rules.
+**Invoke Agent-L0** (`.github/agents/smaqit.L0.agent.md`) for framework concept documentation (`framework/`).
 
 ### When Editing Agent Templates
 
-Location: `templates/agents/`
-
-Agent templates define the structure for agent definition files:
-- `specification-agent.template.md` — For spec agents (business, functional, stack, infrastructure, coverage)
-- `implementation-agent.template.md` — For impl agents (development, deployment, validation)
-
-Follow [TEMPLATES.md] for agent behaviors, naming conventions, and placeholder conventions.
+**Invoke Agent-L1** (`.github/agents/smaqit.L1.agent.md`) for agent template modifications (`templates/agents/`).
 
 ### When Editing Agents
 
-Location: `agents/`
+**Invoke Agent-L2** (`.github/agents/smaqit.L2.agent.md`) for product agent modifications (`agents/`).
 
-Agent definitions are the actual agents that consume templates and produce artifacts. When creating or refactoring agents, use the appropriate agent template from `templates/agents/` to ensure consistency.
+### When Editing Prompt Templates
 
-Follow [AGENTS.md] for agent behaviors, naming conventions, and placeholder conventions.
+**Invoke Agent-L1** (`.github/agents/smaqit.L1.agent.md`) for prompt template modifications (`templates/prompts/`).
 
-### When Editing Prompts
+### When Editing Prompt Files
 
-Location: `prompts/`
+**Invoke Agent-L1** (`.github/agents/smaqit.L1.agent.md`) for prompt file modifications (`prompts/`).
 
-Prompt files (`.prompt.md`) are placeholders for input records that capture user requirements. They are filled in with free-style natural language with suggested structure.
-
-**When to edit:**
-
-- Refining suggested structure for better user guidance
-- Adding or modifying `<!-- Example: ... -->` comments
-- Updating pre-run validation logic in phase prompts
-- Improving natural language guidance for missing content
-
-**When NOT to edit:**
-
-- Changing agent behavior (edit the agent definition in `agents/` instead)
-- Modifying specification structure (edit templates in `templates/specs/` instead)
-- Adding rigid validation (prompts are free-style by design)
-
-Follow [PROMPTS.md] architecture and input record principles.
-
-### When Editing Framework Files
-
-Keep cross-references between framework files consistent when editing.
+**Note:** In the smaqit repo, prompt files are L1 templates with structure and guidance comments. Users fill these with concrete requirements at their product.
 
 ### When Editing Installer
 
@@ -213,94 +134,13 @@ The CLI copies framework/, templates/, agents/ into user projects as:
 
 Keep `installer/main.go` Version const in sync with SMAQIT.md version.
 
-## Level Transition Workflow
+## Level Agents
 
-When implementing features that transition from Level 0 (framework) → Level 1 (templates) → Level 2 (agents):
+**For level-specific work, invoke the appropriate agent:**
 
-### Assessment Phase
-
-**Before any implementation:**
-
-1. **Question assumptions** — Is framework content needed at runtime? Is it currently bundled correctly? What's actually used vs assumed?
-2. **Check empirically** — Use grep to find actual file references, read existing implementations, verify what agents consume
-3. **Identify alternatives** — Embed vs bundle vs remove? What are trade-offs (tokens, complexity, reliability)?
-4. **Analyze dependencies** — Which Level 0 content feeds which Level 1/Level 2 artifacts? Map the flow
-5. **Propose with rationale** — Present options with cost-benefit analysis, ask for confirmation
-
-**Red flags to catch:**
-- Bundling source files that should be compiled
-- Copying verbose explanations meant for humans into agent instructions
-- Including specific examples that will pollute generated artifacts
-- Violating Level hierarchy (e.g., Level 2 referencing Level 0 directly)
-
-### Implementation Phase
-
-**Strict sequence enforcement:**
-
-1. **Level 0 → Level 1** — Update templates first with placeholders and structure
-   - Distill Level 0 educational content to actionable directives
-   - Use generic placeholders: `[ID]`, `[CONCEPT]`, `[Layer]`, never specific examples
-   - Keep only execution instructions, remove "why" explanations
-   - Add structured sections (format definitions, rules tables, examples with placeholders)
-
-2. **Level 1 → Level 2** — Regenerate agents from updated templates
-   - Populate placeholders with layer-specific content
-   - Verify no Level 0 file references remain (grep for `.md` references)
-   - Ensure agents are self-contained with embedded necessary content
-   - Remove verbose principle explanations, keep concise directives
-
-3. **Level 2 → Level 3** — Update installer/distribution
-   - Remove any Level 0 bundling if content is now embedded
-   - Test installation in clean environment
-   - Verify CLI commands work without bundled source files
-
-**Never skip levels or work out of order.**
-
-### Refinement Phase
-
-**Iterative improvement based on review:**
-
-1. **Example pollution** — Replace any specific examples (BUS-LOGIN-001, JWT tokens, authentication) with generic placeholders
-2. **Verbosity reduction** — Remove educational sections (principle explanations, examples with context), keep operational directives
-3. **Clarity improvement** — Rephrase ambiguous rules, consolidate redundant sections, align terminology
-4. **Level alignment** — Ensure each level only references its direct predecessor, not jumping levels
-
-**Key questions for refinement:**
-- Does this text instruct execution or explain concepts? (Keep first, remove second)
-- Would a practitioner misinterpret this as an actual requirement? (Replace with placeholder)
-- Is this duplicated from a higher level verbatim? (Distill to essential directives)
-- Does this align with Level 0 principles? (Cross-check SMAQIT.md, LAYERS.md, ARTIFACTS.md)
-
-### Validation Phase
-
-**Test at each level:**
-
-1. **Template validation** — Verify placeholders are clear, structure is complete, no missing sections
-2. **Agent validation** — Check embedded content is accurate, grep for unresolved references, verify self-containment
-3. **Build validation** — Compile installer successfully, test CLI commands
-4. **Installation validation** — Run `smaqit init` in clean directory, verify structure, test `validate` and `status` commands
-5. **Documentation validation** — Update task files, session history, README if needed
-
-**Success criteria:**
-- Installer builds without errors
-- Agents have zero external file dependencies (unless intentional)
-- User workspace is clean and minimal
-- No specific examples polluting instructions
-- Documentation captures decisions and rationale
-
-### Documentation Requirements
-
-**Always document:**
-- **Decision made** — What was chosen and why
-- **Alternatives rejected** — What was considered but not selected, with rationale
-- **Trade-offs accepted** — What was gained vs lost
-- **Validation results** — Test outcomes proving the change works
-- **Files modified** — Complete list with description of changes
-
-**Record in:**
-- Task file (`docs/tasks/{id}_{title}.md`) — Detailed work log
-- Session history (`docs/history/{id}_*.md`) — Complete session narrative
-- PLANNING.md — Task status updates
+- **Agent-L0** (`.github/agents/smaqit.L0.agent.md`) — Maintains framework principle purity
+- **Agent-L1** (`.github/agents/smaqit.L1.agent.md`) — Compiles L0 principles into L1 template directives
+- **Agent-L2** (`.github/agents/smaqit.L2.agent.md`) — Compiles L1 directives into L2 product agents
 
 ## Workflow Commands
 

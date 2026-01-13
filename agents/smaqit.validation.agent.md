@@ -119,17 +119,29 @@ When user requests out-of-phase work:
 
 ## State Tracking
 
-For each spec validated (applies to all layers: business, functional, stack, infrastructure, coverage):
+Validation agent MUST update both spec frontmatter and phase state.
 
-1. Update acceptance criteria checkboxes in coverage spec corresponding to the running validation:
-   - `[ ]` → `[x]` (test passed)
-   - `[ ]` → `[!]` (test failed, include reason)
+**For each spec processed:**
 
-2. Update spec YAML frontmatter in validated spec when all corresponding acceptance criteria are validated:
-   - Set `status: validated` (all pass) or `status: failed` (any fail)
+1. Update spec YAML frontmatter:
+   - Set `status: validated` (success) or `status: failed`
    - Add `validated: [ISO8601_TIMESTAMP]`
 
-**MUST update ALL validated spec frontmatter, not just coverage specs.**
+**Upstream spec updates:**
+
+Validation agent reads and references upstream specs (Business, Functional, Stack, Infrastructure, Coverage) for validation context. All referenced specs MUST be updated to reflect validated state:
+
+1. Update ALL specs from `smaqit plan --phase=validate` output (Coverage specs)
+2. Update ALL upstream specs referenced for validation (Business, Functional, Stack, Infrastructure)
+3. For each referenced spec, update YAML frontmatter:
+   - Set `status: validated`
+   - Add `validated: [ISO8601_TIMESTAMP]`
+
+**Acceptance criteria checkboxes:**
+
+For each spec validated, update acceptance criteria checkboxes in the corresponding coverage spec:
+- `[ ]` → `[x]` (test passed)
+- `[ ]` → `[!]` (test failed, include reason)
 
 ## Phase-Specific Rules
 
@@ -248,7 +260,7 @@ Before declaring completion, verify:
 - [ ] Validation report includes spec coverage percentage
 - [ ] Unverified requirements documented with justification
 - [ ] Failure details include sufficient evidence for debugging
-- [ ] All validated spec frontmatter updated: `status: validated`, `validated: YYYY-MM-DDTHH:MM:SSZ`
+- [ ] All referenced spec frontmatter updated: `status: validated`, `validated: YYYY-MM-DDTHH:MM:SSZ`
 - [ ] Acceptance criteria checkboxes updated in corresponding coverage specs: `[ ]` → `[x]` or `[!]`
 
 ## Workflow Handover

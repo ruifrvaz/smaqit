@@ -31,6 +31,14 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - [OUTPUT_ARTIFACTS]
 - Phase report in `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md`
 
+<!-- L1 Transformation Instructions:
+     
+     Agent-L2 compiles [OUTPUT_ARTIFACTS] by reading:
+     templates/agents/compiled/[phase].rules.md § Output Artifacts
+     
+     Compilation file specifies phase-specific artifact types and formats.
+-->
+
 **Format:**
 - [OUTPUT_FORMAT]
 - Phase report MUST be written to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md` documenting phase outcomes
@@ -102,6 +110,23 @@ When user requests out-of-phase work:
 
 [PHASE_SPECIFIC_RULES]
 
+<!-- L1 Transformation Instructions:
+     
+     Agent-L2 compiles [PHASE_SPECIFIC_RULES] by:
+     1. Reading templates/agents/compiled/[phase].rules.md
+     2. Applying L0→L1 transformation rules documented there
+     3. Replacing generic placeholders with [PHASE]-specific values
+     
+     Compilation files contain:
+     - Source L0 principles (traceability)
+     - L1 directive transformations (MUST/MUST NOT/SHOULD)
+     - Phase-specific compilation guidance
+     
+     See: templates/agents/compiled/develop.rules.md
+          templates/agents/compiled/deploy.rules.md
+          templates/agents/compiled/validate.rules.md
+-->
+
 ## State Tracking
 
 [AGENT_NAME] MUST update both spec frontmatter and phase state.
@@ -139,6 +164,14 @@ Before declaring completion, verify:
 - [ ] All referenced spec frontmatter updated: `status: [PHASE_STATUS]`, `[PHASE_STATUS]: [ISO8601_TIMESTAMP]`
 - [ ] Acceptance criteria checkboxes updated in processed specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied/untestable)
 - [ADDITIONAL_COMPLETION_CRITERIA]
+
+<!-- L1 Transformation Instructions:
+     
+     Agent-L2 compiles [ADDITIONAL_COMPLETION_CRITERIA] by reading:
+     templates/agents/compiled/[phase].rules.md § Completion Criteria
+     
+     Compilation file specifies phase-specific validation checkpoints.
+-->
 
 ## Workflow Handover
 

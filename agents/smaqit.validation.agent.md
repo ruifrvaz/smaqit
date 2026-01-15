@@ -29,9 +29,9 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 **Artifacts:**
 - **Test artifacts (executable, committable):**
   - Test files in `tests/` directory implementing Coverage spec test cases
-  - Test framework configuration (e.g., `pytest.ini`, `unittest.cfg`, `jest.config.js`)
-  - Test fixtures and utilities (e.g., `tests/conftest.py`, `tests/fixtures/`)
-  - CI/CD workflow configuration (e.g., `.github/workflows/validation.yml`)
+  - Test framework configuration
+  - Test fixtures and utilities
+  - CI/CD workflow configuration
 - **Validation report** in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` containing:
   - Spec coverage percentage
   - Pass/fail status per requirement
@@ -39,7 +39,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
   - Failure details for failed tests
 
 **Format:**
-- Test files use test framework specified in Stack spec (pytest, unittest, jest, etc.)
+- Test files use test framework specified in Stack spec
 - Tests organized by feature: `tests/test_[feature_name].py` or similar
 - Gherkin scenarios from Coverage specs mapped to test functions
 - Given/When/Then structure preserved in test code
@@ -56,13 +56,13 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Document any updates to existing specs in the phase report with clear justification
 - Report completion when no specs require processing and suggest `--regen` flag
 - Generate executable test artifacts from Coverage specs:
-  - Create test files in `tests/` directory (e.g., `tests/test_*.py`)
-  - Use test framework specified in Stack spec (pytest, unittest, jest, go test, JUnit, etc.)
-  - Organize tests by feature with clear mapping to Coverage spec scenarios
-  - Preserve Given/When/Then structure from Gherkin scenarios in test code
-  - Generate test framework configuration file (e.g., `pytest.ini`, `jest.config.js`)
-  - Generate test fixtures and utilities as needed (e.g., `tests/conftest.py`)
-  - Generate CI/CD workflow configuration (e.g., `.github/workflows/validation.yml`)
+- Create test files in `tests/` directory
+- Use test framework specified in Stack spec
+- Organize tests by feature with clear mapping to Coverage spec scenarios
+- Preserve Given/When/Then structure from Gherkin scenarios in test code
+- Generate test framework configuration file
+- Generate test fixtures and utilities as needed
+- Generate CI/CD workflow configuration
 - Ensure test artifacts are executable independently (outside agent context)
 - Execute generated tests against deployed system
 - Comply with all referenced specifications
@@ -164,13 +164,13 @@ For each spec validated, update acceptance criteria checkboxes in the correspond
 - Include traceability comments: `# Implements: COV-[CONCEPT]-NNN`
 
 **Test Framework Configuration:**
-- Generate appropriate config file (pytest.ini, jest.config.js, etc.)
+- Generate appropriate config file
 - Configure test discovery patterns
 - Set coverage reporting if supported by framework
 - Include environment-specific settings
 
 **Test Fixtures and Utilities:**
-- Create shared fixtures in `tests/conftest.py` (pytest) or equivalent
+- Create shared fixtures
 - Extract reusable test utilities to helper modules
 - Document fixture usage in test file docstrings
 
@@ -183,7 +183,7 @@ For each spec validated, update acceptance criteria checkboxes in the correspond
 - Report results to PR/commit status
 
 **Independent Executability:**
-- Tests MUST run successfully via test framework CLI (e.g., `pytest tests/`)
+- Tests MUST run successfully via test framework CLI
 - Tests MUST NOT depend on agent-specific context or tools
 - All test dependencies MUST be specified in Stack spec or test configuration
 
@@ -250,10 +250,10 @@ Before declaring completion, verify:
 - [ ] No unspecified features were added
 - [ ] Cross-layer consolidation completed without conflicts
 - [ ] Test artifacts generated:
-  - [ ] Test files in `tests/` directory
-  - [ ] Test framework configuration file
-  - [ ] Test fixtures/utilities as needed
-  - [ ] CI/CD workflow configuration
+- [ ] Test files in `tests/` directory
+- [ ] Test framework configuration file
+- [ ] Test fixtures/utilities as needed
+- [ ] CI/CD workflow configuration
 - [ ] Tests are executable independently (verified by running test framework CLI)
 - [ ] All Coverage spec test cases executed
 - [ ] Validation report written to `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`

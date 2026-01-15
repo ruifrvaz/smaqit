@@ -30,6 +30,11 @@ smaqit/
 │   ├── specs/                # Specification templates (5)
 │   ├── prompts/              # Prompt templates (2)
 │   └── agents/               # Agent templates (2)
+│       ├── *.template.md     # Generic agent structure
+│       └── compiled/         # L0→L1 transformation rules
+│           ├── validate.rules.md
+│           ├── develop.rules.md
+│           └── deploy.rules.md
 ├── agents/*.agent.md         # Agent definitions (8)
 ├── prompts/*.prompt.md       # Prompt files (8)
 ├── installer/main.go         # CLI tool
@@ -81,6 +86,20 @@ When performing work:
 
 These files guide L1 template compilation and L2 agent compilation.
 
+#### Compilation Files Architecture
+
+L1 uses **compilation files** to preserve its role as a transformation layer:
+
+- **Templates** (`templates/agents/*.template.md`) — Generic structure with placeholders and references to compilation files
+- **Compilation Files** (`templates/agents/compiled/*.rules.md`) — L0→L1 transformation rules documenting how principles become directives
+
+**Structure:** Each compilation file contains:
+1. **Source L0 Principles** — Citations from framework files
+2. **L1 Directive Compilation** — Philosophy → directives transformation
+3. **Compilation Guidance for Agent-L2** — Step-by-step merge instructions
+
+**Not Shipped:** Compilation files are internal development artifacts, NOT copied by installer. User projects receive only compiled L2 agents.
+
 ### Templates and Agents Contain Directives
 
 **Templates** (`templates/`) and **agents** (`agents/`) contain execution instructions:
@@ -104,13 +123,18 @@ These files guide L1 template compilation and L2 agent compilation.
 
 **Invoke Agent-L0** (`.github/agents/smaqit.L0.agent.md`) for framework concept documentation (`framework/`).
 
-### When Editing Agent Templates
+### When Compiling Agent Templates and Compilation Files
 
-**Invoke Agent-L1** (`.github/agents/smaqit.L1.agent.md`) for agent template modifications (`templates/agents/`).
+**Invoke Agent-L1** (`.github/agents/smaqit.L1.agent.md`) for:
+- Agent template modifications (`templates/agents/*.template.md`)
+- Compilation file creation/updates (`templates/agents/compiled/*.rules.md`)
+- L0→L1 principle compilation
 
-### When Editing Agents
+### When Compiling Agents
 
-**Invoke Agent-L2** (`.github/agents/smaqit.L2.agent.md`) for product agent modifications (`agents/`).
+**Invoke Agent-L2** (`.github/agents/smaqit.L2.agent.md`) for:
+- Product agent compilation (`agents/*.agent.md`)
+- L1→L2 template + compilation file merging
 
 ### When Editing Prompt Templates
 

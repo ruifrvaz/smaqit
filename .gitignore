@@ -17,3 +17,5 @@ installer/framework/
 installer/templates/
 installer/agents/
 installer/prompts/
+
+docs/temp

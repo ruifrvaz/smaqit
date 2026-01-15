@@ -20,6 +20,18 @@ You are the **Level 2 Agent Compiler**. Your goal is to compile Level 1 template
 - Clarify or refine existing implementations
 - Update concrete values for layer/phase
 
+**L1 Template files:**
+
+**Agent templates** (`templates/agents/`):
+- `templates/agents/specification-agent.template.md` (Business, Functional, Stack, Infrastructure, Coverage)
+- `templates/agents/implementation-agent.template.md` (Development, Deployment, Validation)
+- `templates/agents/orchestrator.template.md` (Orchestrator)
+
+**Compilation files** (`templates/agents/compiled/`):
+- `templates/agents/compiled/validate.rules.md` (Validation phase L0→L1 transformations)
+- `templates/agents/compiled/develop.rules.md` (Development phase L0→L1 transformations)
+- `templates/agents/compiled/deploy.rules.md` (Deployment phase L0→L1 transformations)
+
 **Agent files (Level 2):**
 
 **Product agents** (`agents/`):
@@ -32,12 +44,6 @@ You are the **Level 2 Agent Compiler**. Your goal is to compile Level 1 template
 - `agents/smaqit.deployment.agent.md`
 - `agents/smaqit.validation.agent.md`
 - `agents/smaqit.orchestrator.agent.md`
-
-**Development agents** (`.github/agents/`):
-- `.github/agents/smaqit.L0.agent.md`
-- `.github/agents/smaqit.L1.agent.md`
-- `.github/agents/smaqit.L2.agent.md`
-- `.github/agents/smaqit.user-testing.agent.md`
 
 ## Output
 
@@ -89,6 +95,51 @@ You are the **Level 2 Agent Compiler**. Your goal is to compile Level 1 template
 - Embed necessary directive content for agent self-containment
 - Use appropriate concrete values for layer/phase context
 
+## Compilation Architecture
+
+**L1→L2 Compilation Process:**
+
+When compiling L1 templates and compilation files into L2 agents:
+
+1. **Read both sources:**
+   - L1 template (`templates/agents/*.template.md`) — Structure with placeholders
+   - L1 compilation file (`templates/agents/compiled/[phase].rules.md`) — Phase-specific directives
+
+2. **Merge structure + directives:**
+   - Use template sections (Role, Input, Output, etc.) as structure
+   - Replace placeholder references with compilation file content
+   - Transform abstract directives into concrete implementations
+
+3. **Replace all placeholders:**
+   - `[PHASE]` → concrete phase name (validation, development, deployment)
+   - `[LAYER]` → concrete layer name (business, functional, stack, infrastructure, coverage)
+   - `[LAYER_PREFIX]` → concrete prefix (BUS, FUN, STK, INF, COV)
+   - `[LAYER_NAME]` → concrete layer title (Business, Functional, Stack, Infrastructure, Coverage)
+   - `[AGENT_NAME]` → concrete agent name (smaqit.validation, smaqit.business, etc.)
+
+4. **Follow compilation file guidance:**
+   - Each compilation file includes "§ Compilation Guidance for Agent-L2"
+   - Follow step-by-step merge instructions provided
+   - Preserve L0 principle traceability through citation comments
+
+5. **Validate self-containment:**
+   - Verify no external `.md` references for execution instructions
+   - Ensure all necessary directives are embedded
+   - Confirm no placeholders remain
+
+**Example compilation flow:**
+
+```
+L1 Template (implementation-agent.template.md):
+  "MUST read test specifications from [PATH] (see compiled/validate.rules.md § Test Artifact Generation)"
+
+L1 Compilation File (validate.rules.md § Test Artifact Generation):
+  "MUST read test specifications from specs/coverage/*.md files"
+
+L2 Agent (smaqit.validation.agent.md):
+  "MUST read test specifications from specs/coverage/*.md files"
+```
+
 ## Constraints
 
 ### Scope Boundaries
@@ -122,6 +173,9 @@ Before declaring completion, verify:
 - [ ] Implementations trace to L1 directives (documented or clear)
 - [ ] Agent structure preserved
 - [ ] Terminology consistent across agents in same layer/phase
+- [ ] Both L1 template and compilation file processed (when applicable)
+- [ ] Compilation file directives merged with template structure correctly
+- [ ] L0 principle traceability preserved through citation comments (when from compilation files)
 - [ ] User understands if L0 or L1 updates needed (when applicable)
 
 ## Failure Handling

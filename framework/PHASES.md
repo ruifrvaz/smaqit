@@ -56,20 +56,11 @@ Before starting, the Development agent validates all required prompt files are f
 
 If any prompt is empty or insufficient, agent halts and guides user: "Please fill [prompt file] with your [layer] requirements before starting development."
 
-**Workflow:**
-```
-1. Business agent produces business specifications
-2. Functional agent produces functional specifications
-3. Stack agent produces stack specifications
-4. Development agent:
-   a. Consolidates specs (coherence check, conflict detection)
-   b. Generates application code
-   c. Generates unit tests
-   d. Compiles/builds application
-   e. Runs application in isolated environment
-   f. Executes unit tests
-   g. Verifies application works as specified
-```
+**Phase Activities:**
+
+Specification agents produce Business, Functional, and Stack layer specifications from user requirements.
+
+The Development agent consolidates specs for coherence, generates application code and tests, builds the application, and verifies it works as specified in an isolated environment.
 
 **Environment:** Implicit — local developer machine or agent runner (e.g., GitHub Actions runner)
 
@@ -80,17 +71,9 @@ If any prompt is empty or insufficient, agent halts and guides user: "Please fil
 - Document failure reasons at each attempt
 - Escalate to human review when threshold exceeded
 
-**Completion Criteria:**
-- [ ] All three layer specs produced and complete (Business, Functional, Stack)
-- [ ] All specs have `status: implemented` or higher
-- [ ] Code generated and compiles without errors
-- [ ] Unit tests pass
-- [ ] Application runs successfully in isolated environment
-- [ ] Behavior matches spec acceptance criteria
-- [ ] README includes build, test, and run instructions
-- [ ] Development report written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md`
-- [ ] Spec frontmatter updated: `status: implemented`, `implemented: [ISO8601_TIMESTAMP]`
-- [ ] Acceptance criteria checkboxes updated in Business, Functional, Stack specs: `[ ]` → `[x]` or `[!]`
+**Phase Completion:**
+
+The Develop phase completes when Business, Functional, and Stack specifications are produced, code is generated and compiles without errors, tests pass, and the application runs successfully with behavior matching spec acceptance criteria. Development report documents build, test, and run results. Spec frontmatter reflects implemented state with timestamps.
 
 ---
 
@@ -127,16 +110,11 @@ If prompt has content, agents interpret free-style requirements and request clar
 | Budget constraints | Cost limits or optimization goals |
 | Integration points | Existing systems to connect with |
 
-**Workflow:**
-```
-1. Infrastructure agent produces infrastructure specifications
-2. Deployment agent:
-   a. Consolidates specs (infrastructure + stack coherence)
-   b. Generates Infrastructure as Code (configurations as references only, per Isolation Principle)
-   c. Triggers trusted execution layer with environment parameter
-   d. Receives outcome (success/failure, health status, endpoints)
-   e. Verifies system health in target environment
-```
+**Phase Activities:**
+
+The Infrastructure agent produces infrastructure specifications from user deployment requirements.
+
+The Deployment agent consolidates infrastructure and stack specifications for coherence, generates Infrastructure as Code with credential references (never values) and triggers a trusted execution layer that resolves secrets and performs deployment. Once execution outcome is received, which may contain success/failure, health status and endpoints, the agent verifies system health in the target environment.
 
 **Trusted Execution Layer:**
 The deployment agent operates on credential references, never values. Actual deployment happens in a trusted execution layer:
@@ -171,17 +149,9 @@ See [ARTIFACTS](ARTIFACTS.md) for the Isolation Principle.
 - Document failure reasons (scrubbed of sensitive data)
 - Escalate to human review when threshold exceeded
 
-**Completion Criteria:**
-- [ ] Infrastructure specs produced and complete
-- [ ] All infrastructure specs have `status: deployed` or higher
-- [ ] IaC generated with reference-only secrets
-- [ ] Deployment executed successfully
-- [ ] Health checks pass
-- [ ] System accessible at expected endpoints
-- [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`
-- [ ] Spec frontmatter updated: `status: deployed`, `deployed: [ISO8601_TIMESTAMP]`
-- [ ] All referenced specs updated to `status: deployed` per Status Cascade principle (Business, Functional, Stack, Infrastructure)
-- [ ] Acceptance criteria checkboxes updated in Infrastructure specs: `[ ]` → `[x]` or `[!]`
+**Phase Completion:**
+
+The Deploy phase completes when Infrastructure specifications are produced, Infrastructure as Code is generated with reference-only secrets, deployment executes successfully, health checks pass, and the system is accessible at expected endpoints. Deployment report documents health status and endpoints, and is archived in a designated location. Spec frontmatter reflects deployed state with timestamps across all referenced specs per Status Cascade principle and acceptance criteria checkboxes are updated across all referenced specs.
 
 ---
 
@@ -205,38 +175,19 @@ Before starting, check `.github/prompts/smaqit.coverage.prompt.md` for content b
 
 If prompt has content, agents interpret free-style requirements and request clarification for ambiguities.
 
-**Workflow:**
-```
-1. Coverage agent:
-   a. Reads all upstream specs (business, functional, stack, infrastructure)
-   b. Enumerates all acceptance criteria by ID
-   c. Produces test definitions (Gherkin format)
-   d. Maps: Requirement ID → Test Case → Expected Outcome
-   e. Flags untestable criteria
+**Phase Activities:**
 
-2. Validation agent:
-   a. Generates executable test artifacts from Coverage specs
-   b. Creates test framework configuration (pytest.ini, etc.)
-   c. Creates CI/CD workflow configuration
-   d. Executes generated tests against deployed system
-   e. Collects pass/fail results per test case
-   f. Calculates spec coverage percentage
-   g. Produces validation report
-```
+The Coverage agent translates acceptance criteria from all upstream specs into executable test definitions, mapping each requirement to expected outcomes and flagging criteria that cannot be automatically verified.
+
+The Validation agent generates test artifacts that can run independently of agent execution, executes those tests against the deployed system, and produces a validation report documenting coverage and results.
 
 **Environment:** Same target environment as Deploy phase
 
 **Output:**
-- **Test artifacts:**
-  - Executable test files in `tests/` directory (e.g., `tests/test_*.py`)
-  - Test framework configuration (e.g., `pytest.ini`, `unittest.cfg`)
-  - Test fixtures and utilities (e.g., `tests/conftest.py`)
-  - CI/CD workflow configuration (e.g., `.github/workflows/validation.yml`)
-- **Validation report** in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` containing:
-  - Spec coverage percentage
-  - Pass/fail status per requirement
-  - Unverified requirements with justification
-  - Failure details for failed tests
+
+Test artifacts that exist independently and can execute in any environment with the appropriate runtime. These include test implementations, framework configuration, test utilities, and CI/CD integration.
+
+Validation report documenting spec coverage percentage, pass/fail status per requirement, unverified requirements with justification, and failure details.
 
 **Failure Handling:**
 - Test failures do NOT trigger automatic retry
@@ -246,19 +197,9 @@ If prompt has content, agents interpret free-style requirements and request clar
   - Investigate further
   - Accept with known issues
 
-**Completion Criteria:**
-- [ ] Coverage specs produced with all testable criteria mapped
-- [ ] All coverage specs have `status: validated`
-- [ ] Test artifacts generated:
-  - [ ] Executable test files in `tests/` directory
-  - [ ] Test framework configuration file
-  - [ ] CI/CD workflow configuration
-- [ ] Tests executed against deployed system
-- [ ] Tests are executable independently (outside agent context)
-- [ ] Validation report written to `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`
-- [ ] Spec coverage percentage calculated
-- [ ] Untestable criteria documented with justification
-- [ ] Spec frontmatter updated: `status: validated`, `validated: [ISO8601_TIMESTAMP]`
+**Phase Completion:**
+
+The Validate phase completes when Coverage specs exist with all testable criteria mapped, test artifacts have been generated and executed against the deployed system, and the validation report documents coverage percentage and results. Spec frontmatter reflects validated state with timestamps and acceptance criteria checkboxes are updated across all referenced specs.
 
 ---
 

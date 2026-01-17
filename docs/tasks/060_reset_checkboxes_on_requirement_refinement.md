@@ -43,6 +43,11 @@ When specification agents modify existing acceptance criteria to expand scope du
 - Included rationale: Expanded/modified requirements need revalidation; checkboxes reflect implementation status
 - Provided concrete example showing checkbox lifecycle: before update (`[x]`) → after update (`[ ]`) → after reimplementation (`[x]`)
 
+**Level 1 (Template - specification-agent.template.md):**
+- Added checkbox reset directive to MUST section: "Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)"
+- Ensures all future specification agents compiled from template inherit this behavior
+- Maintains proper L0→L1→L2 compilation chain
+
 **Level 2 (Agents):**
 - Updated `agents/smaqit.business.agent.md`: Added MUST directive "Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)"
 - Updated `agents/smaqit.functional.agent.md`: Added identical MUST directive
@@ -51,9 +56,9 @@ When specification agents modify existing acceptance criteria to expand scope du
 ### Validation Performed
 
 **Build Validation:**
-- ✅ Installer built successfully (version 9b0c908-dirty)
+- ✅ Installer built successfully (version v0.5.0-beta-95-g0775d98-dirty)
 - ✅ No compilation errors
-- ✅ Changes are surgical and consistent across all three agents
+- ✅ L1 template update verified - all changes compile correctly
 
 **Logical Validation:**
 - ✅ Framework principle clearly documented in ARTIFACTS.md
@@ -71,12 +76,15 @@ When specification agents modify existing acceptance criteria to expand scope du
 
 ### Level Hierarchy Approach
 
-**Decision:** Follow smaqit levels (Level 0 → Level 2), skip Level 1 templates.
+**Decision:** Follow complete smaqit level hierarchy (Level 0 → Level 1 → Level 2).
 
 **Rationale:**
 - Level 0 (Framework) defines the principle and rules
-- Level 1 (Templates) not needed - templates don't contain checkbox directives (agents execute checkbox logic)
-- Level 2 (Agents) implement the directive with consistent wording
+- Level 1 (Template) compiles L0 principle into L1 directive with proper form
+- Level 2 (Agents) are compiled from L1 template, ensuring consistency
+- Maintains proper L0→L1→L2 compilation chain for future agent compilations
+
+**Initial Implementation Note:** PR originally skipped Level 1, jumping directly from L0 to L2. This was identified during L1 agent assessment and corrected to maintain Level Up architecture integrity.
 
 ### Directive Placement
 

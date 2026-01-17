@@ -113,6 +113,15 @@ Development agent MUST update both spec frontmatter and phase state.
    - Set `status: implemented` (success) or `status: failed`
    - Add `implemented: [ISO8601_TIMESTAMP]`
 
+**Upstream spec updates:**
+
+Development agent reads and references upstream specs (Business, Functional, Stack) for coherence validation. All referenced specs MUST be updated to reflect implemented state:
+
+1. Update ALL specs from `smaqit plan --phase=develop` output (Business, Functional, Stack specs)
+2. For each referenced spec, update YAML frontmatter:
+   - Set `status: implemented`
+   - Add `implemented: [ISO8601_TIMESTAMP]`
+
 ## Phase-Specific Rules
 
 **Development agent workflow:**
@@ -155,7 +164,7 @@ Before declaring completion, verify:
 - [ ] Behavior matches spec acceptance criteria
 - [ ] README includes build, test, and run instructions
 - [ ] Development report written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md`
-- [ ] Spec frontmatter updated: `status: implemented`, `implemented: YYYY-MM-DDTHH:MM:SSZ`
+- [ ] All referenced spec frontmatter updated: `status: implemented`, `implemented: YYYY-MM-DDTHH:MM:SSZ`
 - [ ] Acceptance criteria checkboxes updated in all processed specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied/untestable)
 
 ## Workflow Handover

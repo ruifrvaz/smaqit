@@ -1,9 +1,7 @@
-# Extensible Meta-Framework: Level Up Architecture
+# Iterating Extensible Framework: Meta-Agent Implementation
 
-**Status:** Active  
-**Created:** 2025-12-17  
-**Promoted:** 2026-01-11  
-**Updated:** 2026-01-11 (Level Up concept added)  
+**Status:** New  
+**Created:** 2026-01-14  
 **Priority:** High
 
 ## Insight
@@ -48,15 +46,21 @@ L2: Project-Specific Targeted Directives (implementation artifacts)
 
 **Current files:**
 - `templates/specs/*.template.md` — Specification structures
-- `templates/agents/*.template.md` — Agent behaviors with placeholders
+- `templates/agents/*.template.md` — Agent structure with placeholders and transformation instructions
+- `templates/agents/compiled/*.rules.md` — **L0→L1 transformation rules**
 - `templates/prompts/*.template.md` — Prompt structures
 
-**Level Up examples:**
-- L0 principle: "Single Source of Truth" → [compile] → L1 directive: "MUST NOT duplicate information, use Foundation Reference"
-- L0 principle: "Traceability" → [compile] → L1 directive: "MUST reference upstream specs using Implements/Enables"
-- L0 principle: "Layer Independence" → [compile] → L1 directive: "Read from layer prompt file only, upstream for context"
+**Architecture:** L1 uses **compilation files** to preserve its role as transformation layer:
+- Agent templates contain generic structure + references to compilation files
+- Compilation files (`compiled/*.rules.md`) document L0→L1 transformations
+- This prevents L1 from becoming "L2 with placeholders" (which defeats L1's purpose)
 
-**Current state:** Templates lack complete compiled directives from L0
+**Level Up examples:**
+- L0 principle: "Test Independence" → [compile] → L1 compilation file: `validate.rules.md` with MUST/MUST NOT directives
+- L0 principle: "Single Source of Truth" → [compile] → L1 directive: "MUST NOT duplicate information, use Foundation Reference"
+- L0 principle: "Isolation" → [compile] → L1 compilation file: `deploy.rules.md` with credential reference rules
+
+**Current state:** Compilation files architecture implemented for implementation agents (develop, deploy, validate)
 
 ### Level 2: Agent/Artifact Implementations (Compiled from L1)
 **Purpose:** Compile L1 templates into project-specific implementations  
@@ -140,23 +144,33 @@ AFTER (pure principle):
 ```
 
 ### Agent-L1: Template Compiler
-**Responsibility:** Compile L0 principles into L1 directives  
-**Scope:** `templates/**/*.template.md` files
+**Responsibility:** Compile L0 principles into L1 directives and compilation files  
+**Scope:** `templates/**/*.template.md` and `templates/agents/compiled/*.rules.md` files
 
 **Directives:**
 - Read L0 principles as compilation source
-- Compile principles into MUST/SHOULD/MUST NOT directives
+- Compile principles into transformation rules documented in `compiled/*.rules.md` files
 - Generate workflows from phase/layer philosophies
-- Maintain placeholder structure: `[LAYER]`, `[PHASE]`, `[CONCEPT]`
-- Ensure templates are complete, compilable, consistent
+- Maintain placeholder structure in templates: `[LAYER]`, `[PHASE]`, `[CONCEPT]`
+- Ensure templates reference compilation files (not contain final directives)
 - Strip rationales during compilation (agent-facing L1 contains only directives, not "why" explanations)
 
+**Compilation Files Architecture:**
+- **Purpose:** Document L0→L1 transformations without duplicating L2 content in templates
+- **Structure:** Each compilation file contains:
+  1. **Source L0 Principles** — Citations from framework files
+  2. **L1 Directive Compilation** — Philosophy → directives transformation
+  3. **Compilation Guidance for Agent-L2** — Step-by-step merge instructions
+- **Anti-pattern:** Templates containing final directives = "L2 with placeholders" (defeats L1's purpose as transformation layer)
+- **Correct pattern:** Templates contain structure + references to compilation files
+
 **Compilation Rules:**
-- **Principles → Directives:** Abstract concepts become concrete MUST/SHOULD/MUST NOT rules
+- **Principles → Directives:** Abstract concepts become concrete MUST/SHOULD/MUST NOT rules in compilation files
 - **Philosophy → Workflows:** Conceptual flows become step-by-step execution sequences
 - **Rationale removal:** Any "why" explanations in L0 stay at L0, do not compile to L1
-- **Examples → Placeholders:** Specific examples become generic `[PLACEHOLDER]` patterns
+- **Examples → Placeholders:** Specific examples become generic `[PLACEHOLDER]` patterns in templates
 - **Human context → Operational context:** "Understanding" audience content stays at L0, only "execution" content compiles to L1
+- **Template purity:** Templates maintain generic structure, phase-specific content in compilation files
 
 **Version Control Rules:**
 - **Sequential commits:** Commit L0 changes, then L1 changes, then L2 changes in separate commits
@@ -188,19 +202,24 @@ L1 Directives:
 ```
 
 ### Agent-L2: Agent Compiler
-**Responsibility:** Compile L1 templates into L2 shipped agents  
+**Responsibility:** Compile L1 templates + compilation files into L2 shipped agents  
 **Scope:** `agents/*.agent.md` files ONLY (not specs or prompts)
 
 **Directives:**
-- Read L1 templates as compilation source
-- Compile templates by replacing placeholders with concrete values:
+- Read L1 templates AND compilation files as compilation source
+- Merge template structure with phase/layer-specific directives from compilation files
+- Replace placeholders with concrete values:
   - `[LAYER]` → `business`, `functional`, `stack`, `infrastructure`, `coverage`
   - `[PHASE]` → `development`, `deployment`, `validation`
   - `[AGENT_NAME]` → `Business Agent`, `Development Agent`, etc.
+- Apply transformation rules from `compiled/[phase].rules.md` files
 - Maintain consistency across all agents
-- Validate compiled agents against templates
+- Validate compiled agents against templates and compilation files
 
-**Input:** `templates/agents/*.template.md` (L1 templates)  
+**Input:** 
+- `templates/agents/*.template.md` (L1 template structure)
+- `templates/agents/compiled/[phase].rules.md` (L1 transformation rules)
+
 **Output:** Updated `agents/*.agent.md` with concrete directives
 
 **Compilation Example:**
@@ -209,9 +228,11 @@ L1 Template: "MUST read from [LAYER] prompt file"
     ↓ [compile to Business Agent]
 L2 Agent: "MUST read from business prompt file"
 
-L1 Template: "MUST update all referenced specs to status: [PHASE_STATUS]"
-    ↓ [compile to Deployment Agent]
-L2 Agent: "MUST update all referenced specs to status: deployed"
+L1 Template + validate.rules.md: "[PHASE_SPECIFIC_RULES]" → Test Independence directives
+    ↓ [compile to Validation Agent]
+L2 Agent: "MUST generate executable test artifacts in tests/ directory"
+          "MUST create test framework configuration file"
+          "MUST organize tests with clear mapping to Coverage spec"
 ```
 
 **Critical Note:** Agent-L2 compiles agent artifacts ONLY. Specification artifacts (`specs/**/*.md`) and prompt artifacts (`.github/prompts/*.prompt.md`) are NOT compiled — they are generated/filled during user workflows.
@@ -223,13 +244,51 @@ L2 Agent: "MUST update all referenced specs to status: deployed"
    User/AI identifies principle → Agent-L0 curates L0 → Pure principle documented
 
 2. Template Compilation (L0 → L1)
-   L0 changes → Agent-L1 compiles to L1 → Templates updated with directives
+   L0 changes → Agent-L1 compiles to L1 → Compilation files created/updated
+   Result: templates/agents/compiled/[phase].rules.md documents L0→L1 transformations
 
 3. Agent Compilation (L1 → L2)
-   L1 changes → Agent-L2 compiles to L2 → Shipped agents updated
+   L1 template + compilation files → Agent-L2 merges and compiles → Shipped agents updated
+   Result: agents/[agent].agent.md contains concrete directives (no placeholders)
 
 4. Validation (Full Level Up Pipeline)
-   E2E testing verifies: L0 principles → [compile] → L1 directives → [compile] → L2 behavior
+   E2E testing verifies: L0 principles → [compile] → L1 compilation files → [compile] → L2 behavior
+```
+
+**Compilation Files Architecture (NEW):**
+
+L1 now uses **compilation files** to prevent becoming "L2 with placeholders":
+
+```
+L1 Template (generic structure):
+  - Role, Input, Output sections
+  - Placeholder references: [PHASE], [LAYER], [AGENT_NAME]
+  - Transformation instructions: "See compiled/[phase].rules.md § Output Artifacts"
+
+L1 Compilation File (transformation rules):
+  - Source L0 Principles (citations from framework/*.md)
+  - L1 Directive Compilation (philosophy → directives transformation)
+  - Compilation Guidance for Agent-L2 (merge instructions)
+
+L2 Agent (concrete result):
+  = L1 Template structure
+  + L1 Compilation File directives
+  + Placeholder replacements
+  = Self-contained executable agent
+```
+
+**Example:**
+```
+L0: ARTIFACTS.md § Test Independence Principle
+    ↓ [Agent-L1 compiles]
+L1: templates/agents/compiled/validate.rules.md
+    - "MUST generate executable test artifacts"
+    - "MUST create test framework configuration"
+    - "MUST organize tests with Coverage spec mapping"
+    ↓ [Agent-L2 merges with template]
+L2: agents/smaqit.validation.agent.md
+    - Complete Validation Agent with Test Independence directives
+    - No placeholders, ready for execution
 ```
 
 ## README Enhancement: Level Up Concept
@@ -259,9 +318,11 @@ Compilation of L0 principles into actionable MUST/SHOULD/MUST NOT directives wit
 **Level Up:** L0 principles → [compile] → L1 directives
 
 **Example:** 
-- L0: "Single Source of Truth" principle
-- → [compile] →
-- L1: "MUST NOT duplicate information, use Foundation Reference" directive
+- L0: "Test Independence Principle" (ARTIFACTS.md)
+- → [compile via Agent-L1] →
+- L1: `templates/agents/compiled/validate.rules.md` with Test Independence directives
+- → [compile via Agent-L2] →
+- L2: `agents/smaqit.validation.agent.md` with concrete test artifact generation rules
 
 ### Level 2: Project-Specific Implementations (Compiled from L1)
 **Concrete agent artifacts** — Targeted directives for specific projects
@@ -287,51 +348,59 @@ See [Extensible Meta-Framework](docs/tasks/B001_extensible_meta_framework.md) fo
 
 ## Current Challenges
 
-1. **L0 Directive Contamination** — Framework files contain MUST/SHOULD directives that belong at L1
-2. **Incomplete L0→L1 Level Up** — Templates lack full compiled directives from L0 principles
-3. **Manual L1→L2 Compilation Process** — Agent generation from templates is manual, not automated
-4. **No Meta-Agents** — Compilation process happens manually, no tooling to enforce purity
+1. ~~**L0 Directive Contamination**~~ — ✅ **RESOLVED:** ARTIFACTS.md and PHASES.md cleaned of directives (PR #36)
+2. ~~**L1 Architecture Ambiguity**~~ — ✅ **RESOLVED:** Compilation files architecture prevents "L2 with placeholders" anti-pattern
+3. **Incomplete L0→L1 Level Up** — Compilation files created for implementation agents (develop, deploy, validate), but specification agents need similar treatment
+4. **Manual L1→L2 Compilation Process** — Agent generation from templates is manual, not automated
+5. **No Meta-Agent Enforcement** — Compilation process happens manually, no tooling to enforce purity or validate Level Up pipeline
 
 ## Promotion Criteria
 
 Move to Active when:
-- [ ] L0 purity achieved (all directives migrated to L1 via compilation)
-- [ ] L1 templates fully compile L0 principles
-- [ ] Meta-agents (Agent-L0, Agent-L1, Agent-L2) prototyped
-- [ ] Automated Level Up pipeline demonstrated
-- [ ] Base kit proven on 2+ real projects
-- [ ] Evidence emerges for custom layer/phase needs
+- [ ] Agent-L2 compilation executed for implementation agents (validate, develop, deploy)
+- [ ] Agent-L2 compilation executed for specification agents
+- [ ] Compilation files validated against L2 agents
+- [ ] Meta-agent workflow documented and proven
 
 ## Immediate Next Steps
 
 Before full extensibility, achieve Level Up purity:
 
-1. **Audit L0 for directive contamination**
-   - Identify all MUST/SHOULD/MUST NOT in `framework/*.md`
-   - Categorize as principle (keep at L0) vs directive (compile to L1)
+1. ~~**Audit L0 for directive contamination**~~ — ✅ **COMPLETED (PR #36)**
+   - ARTIFACTS.md: Test Independence Principle established, directives removed
+   - PHASES.md: All three phases cleaned of procedural steps
 
-2. **Enhance L1 templates with compiled directives**
-   - Review L0 principles systematically
-   - Compile each principle to concrete L1 directives
-   - Add missing directives to templates
+2. ~~**Establish L1 compilation files architecture**~~ — ✅ **COMPLETED (PR #36)**
+   - Created `templates/agents/compiled/` directory
+   - Created validate.rules.md, develop.rules.md, deploy.rules.md
+   - Updated implementation-agent.template.md to reference compilation files
 
-3. **Prototype Agent-L1 Compilation**
-   - Test: Read L0 principle → Compile to L1 directive
-   - Validate compiled output against existing templates
+3. **Execute Agent-L2 Compilation**
+   - Apply validate.rules.md transformations to generate smaqit.validation.agent.md
+   - Apply develop.rules.md transformations to generate smaqit.development.agent.md
+   - Apply deploy.rules.md transformations to generate smaqit.deployment.agent.md
+   - Validate compiled agents are self-contained and executable
 
-4. **Prototype Agent-L2 Compilation**
-   - Test: Read L1 template → Compile to L2 agent
-   - Validate compiled output against existing agents
+4. **Extend compilation files to specification agents**
+   - Create compilation files for business, functional, stack, infrastructure, coverage agents
+   - Document L0→L1 transformations for specification layers
+   - Apply Agent-L2 compilation to specification agents
 
 5. **Document Level Up in README**
    - Add section explaining L0→L1→L2 Level Up cascade
-   - Show compilation examples
+   - Show compilation files architecture
+   - Provide compilation examples (Test Independence, Isolation)
    - Link to extensibility vision
 
 ## Notes
 
-**Level Up** is not just an implementation detail — it's smaqit's architectural foundation. The compilation process transforms principles → directives → implementations, creating a pure pipeline where each level compiles abstractions from above. Achieving purity at each level enables true extensibility: custom domains compile through the same pipeline as core smaqit.
+## Notes
 
-**This task now represents both:**
-1. Immediate work: Achieve Level Up purity through proper compilation
-2. Future vision: Extensible meta-framework for any domain, all compiling through the same architecture
+**Prerequisite:** B001 establishes the Level Up architecture and compilation files pattern. This task (B002) focuses on **executing the compilation pipeline** to complete the Level Up implementation.
+
+**Scope:** This task represents the immediate work of completing the compilation pipeline:
+1. Execute Agent-L2 compilation for all agents using existing compilation files
+2. Validate compiled agents maintain consistency and completeness
+3. Document the working meta-agent workflow as proof-of-concept
+
+**Future Work:** Full extensibility (custom layers/phases) remains in B001 for when base kit is proven on real projects.

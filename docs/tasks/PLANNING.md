@@ -4,6 +4,10 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 064 | Complete Level 0 Principle Cleanup | new | High |
+| 065 | Clean Up Level 1 Templates | new | High |
+| 066 | Clean Up Level 2 Product Agents | new | High |
+| 060 | Reset Checkboxes on Requirement Refinement | new | Medium |
 | 062 | Validation Agent Should Generate Executable Test Artifacts | new | High |
 | 061 | Deployment Agent Should Update Upstream Spec Frontmatter | new | Medium |
 | 063 | Validation Agent Should Update Upstream Spec Frontmatter | new | Medium |
@@ -14,6 +18,11 @@
 
 | ID | Title |
 |----|-------|
+| 062 | Validation Agent Should Generate Executable Test Artifacts |
+| B001 | Extensible Meta-Framework: Level Up Architecture |
+| B001.3 | Create Agent-L2: Agent Compiler |
+| B001.2 | Create Agent-L1: Template Compiler |
+| B001.1 | Create Agent-L0: Principle Curator |
 | 060 | Reset Checkboxes on Requirement Refinement |
 | 001 | Create Copilot prompt files |
 | 002 | Create specification agent template |
@@ -70,6 +79,8 @@
 | 048 | End-to-end agent workflow testing |
 | 055 | Formalize Single Source of Truth Principle |
 | 059 | E2E Regression Test - Verify Issue Fixes |
+| 061 | Deployment Agent Should Update Upstream Spec Frontmatter |
+| 063 | Validation Agent Should Update Upstream Spec Frontmatter |
 
 ## Abandoned
 
@@ -86,4 +97,4 @@ Ideas and future considerations. Not committed — requires evidence before prom
 
 | ID | Title | Rationale |
 |----|-------|-----------|
-| B001 | Extensible meta-framework | smaqit as configurable spec-driven framework enabling custom layers/phases |
+| | | |

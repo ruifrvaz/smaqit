@@ -355,6 +355,10 @@ Implementations are the imperative outputs produced by implementation agents. Th
 
 > "Agents operate on references, never values. Secrets and credentials MUST remain outside the agent's context at all times—resolution happens in a trusted execution layer that returns only outcomes, never the sensitive data itself."
 
+### The Test Independence Principle
+
+> "Test artifacts exist independently of agent execution. Tests can run in any environment with the appropriate runtime, enabling continuous integration, local developer workflows, and automated verification outside the validation phase."
+
 ### Three Dimensions
 
 Every implementation exists across three dimensions:
@@ -414,24 +418,21 @@ public async Task<Result> MethodName(Request request)
 - Source code, tests, configurations, build files
 - README with build, test, and run instructions
 - Development report in `.smaqit/reports/development-phase-report-YYYY-MM-DD.md` (build/test/run results)
-- Spec frontmatter: `status: implemented`, `implemented: [ISO8601_TIMESTAMP]`
-- Acceptance criteria checkboxes updated in Business, Functional, Stack specs: `[ ]` → `[x]` or `[!]`
-- MUST satisfy all spec acceptance criteria
-- MUST follow stack-specific standards
 
-**Deploy Phase → Infrastructure:**
+**Deploy Phase:**
 - Infrastructure code (Terraform, etc.)
 - Deployment manifests, environment configs
 - Deployment report in `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md` with health status and endpoints
-- Spec frontmatter: `status: deployed`, `deployed: [ISO8601_TIMESTAMP]`
-- Acceptance criteria checkboxes updated in Infrastructure specs: `[ ]` → `[x]` or `[!]`
-- MUST NOT hardcode secrets (Isolation Principle)
 
-**Validate Phase → Reports:**
-- Test results, coverage report in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md`, validation summary
-- Spec frontmatter: `status: validated`, `validated: [ISO8601_TIMESTAMP]`
-- MUST map results to Coverage spec test cases
-- MUST include spec coverage percentage
+**Validate Phase:**
+- **Test artifacts (executable, committable):**
+  - Test files in `tests/` directory (e.g., `tests/test_*.py`)
+  - Test framework configuration (e.g., `pytest.ini`, `unittest.cfg`)
+  - Test fixtures and utilities (e.g., `tests/conftest.py`)
+  - CI/CD workflow configuration (e.g., `.github/workflows/validation.yml`)
+- **Validation report** in `.smaqit/reports/validation-phase-report-YYYY-MM-DD.md` with:
+  - Test results mapped to Coverage spec test cases
+  - Spec coverage percentage
 
 **Phase State Tracking:**
 

@@ -202,6 +202,9 @@ cd installer && make build && mkdir -p test && cd test
 ../dist/smaqit init && ../dist/smaqit status
 cd .. && rm -rf test/
 
-# Pre-release: Run testing agent + build all platforms
-make build-all
+# Release workflow
+User: /smaqit.release
+# Fill .github/prompts/smaqit.release.prompt.md with target version first
+# Agent handles: changelog update, version sync, commit, tag, push
+# Then GitHub Actions builds and publishes release
 ```

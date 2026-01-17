@@ -7,10 +7,6 @@
 | 064 | Complete Level 0 Principle Cleanup | new | High |
 | 065 | Clean Up Level 1 Templates | new | High |
 | 066 | Clean Up Level 2 Product Agents | new | High |
-| 060 | Reset Checkboxes on Requirement Refinement | new | Medium |
-| 062 | Validation Agent Should Generate Executable Test Artifacts | new | High |
-| 061 | Deployment Agent Should Update Upstream Spec Frontmatter | new | Medium |
-| 063 | Validation Agent Should Update Upstream Spec Frontmatter | new | Medium |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
 | 031 | Review implementation artifacts | new | Medium |
 

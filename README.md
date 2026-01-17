@@ -258,26 +258,30 @@ make help
 
 ### Releases
 
-1. **Generate changelog for new version:**
-   ```
-   /changelog.update
-   ```
-   Fill in target version (e.g., `v0.4.0`). Agent reads `docs/history/` since last release and creates a dated CHANGELOG section.
+**Automated release workflow:**
 
-2. **Review, commit, and tag:**
-   ```bash
-   git add CHANGELOG.md
-   git commit -m "Release v0.4.0"
-   git tag -a v0.4.0 -m "Release v0.4.0"
-   git push origin main v0.4.0
+1. **Fill release prompt** in `.github/prompts/smaqit.release.prompt.md`:
+   - Set target version (e.g., `v0.5.0`)
+   - Optionally specify date range for changelog
+
+2. **Invoke release agent:**
+   ```
+   /smaqit.release
    ```
 
-3. **GitHub Actions automatically:**
+3. **Agent orchestrates complete release:**
+   - Updates CHANGELOG.md from session history
+   - Syncs version strings in code files
+   - Commits changes with release message
+   - Creates annotated git tag
+   - Pushes commit and tag to remote
+
+4. **GitHub Actions automatically:**
    - Builds binaries for all platforms
    - Extracts release notes from CHANGELOG.md
    - Creates GitHub release with binaries
 
-**Optional:** To preview changes before release, run `/changelog.update` without version to update the `[Unreleased]` section only.
+The release agent handles all git operations up to the push. After push, monitor GitHub Actions for build status.
 
 ## License
 

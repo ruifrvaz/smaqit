@@ -62,6 +62,7 @@ Foundation specs (shared components, cross-cutting concerns, common contracts) a
 - Use requirement IDs: `FUN-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
+- Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
 
 ### MUST NOT
 

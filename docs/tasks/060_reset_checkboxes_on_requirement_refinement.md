@@ -1,7 +1,8 @@
 # Reset Checkboxes on Requirement Refinement
 
-**Status:** Not Started  
+**Status:** Completed  
 **Created:** 2026-01-11  
+**Completed:** 2026-01-11  
 **Priority:** Medium  
 **Related:** Issue 10 from Task 059 (E2E Regression Testing)
 
@@ -21,12 +22,89 @@ When specification agents modify existing acceptance criteria to expand scope du
 
 ## Acceptance Criteria
 
-- [ ] Business agent directive: Reset checkbox to `[ ]` when modifying existing acceptance criteria text
-- [ ] Functional agent directive: Reset checkbox to `[ ]` when modifying existing acceptance criteria text
-- [ ] Stack agent directive: Reset checkbox to `[ ]` when modifying existing acceptance criteria text
-- [ ] Validation: Re-run Luigi incremental addition test case
-- [ ] Validation: Verify modified requirements show `[ ]` after spec update
-- [ ] Validation: Verify Development agent later updates to `[x]` after implementation
+- [x] Business agent directive: Reset checkbox to `[ ]` when modifying existing acceptance criteria text
+- [x] Functional agent directive: Reset checkbox to `[ ]` when modifying existing acceptance criteria text
+- [x] Stack agent directive: Reset checkbox to `[ ]` when modifying existing acceptance criteria text
+- [!] Validation: Re-run Luigi incremental addition test case (Deferred - requires interactive testing agent workflow)
+- [!] Validation: Verify modified requirements show `[ ]` after spec update (Deferred - part of E2E testing)
+- [!] Validation: Verify Development agent later updates to `[x]` after implementation (Deferred - part of E2E testing)
+
+## Implementation Summary
+
+### Changes Made
+
+**Level 0 (Framework - ARTIFACTS.md):**
+- Added "Checkbox Lifecycle During Refinement" section after "Acceptance Criteria State"
+- Documented explicit rules:
+  - Specification agents MUST reset `[x]` → `[ ]` when modifying acceptance criterion text
+  - Specification agents MUST reset `[!]` → `[ ]` when modifying acceptance criterion text
+  - Implementation agents later update `[ ]` → `[x]` or `[!]` after revalidation
+  - Adding new criteria always starts with `[ ]`
+- Included rationale: Expanded/modified requirements need revalidation; checkboxes reflect implementation status
+- Provided concrete example showing checkbox lifecycle: before update (`[x]`) → after update (`[ ]`) → after reimplementation (`[x]`)
+
+**Level 1 (Template - specification-agent.template.md):**
+- Added checkbox reset directive to MUST section: "Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)"
+- Ensures all future specification agents compiled from template inherit this behavior
+- Maintains proper L0→L1→L2 compilation chain
+
+**Level 2 (Agents):**
+- Updated `agents/smaqit.business.agent.md`: Added MUST directive "Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)"
+- Updated `agents/smaqit.functional.agent.md`: Added identical MUST directive
+- Updated `agents/smaqit.stack.agent.md`: Added identical MUST directive
+
+### Validation Performed
+
+**Build Validation:**
+- ✅ Installer built successfully (version v0.5.0-beta-95-g0775d98-dirty)
+- ✅ No compilation errors
+- ✅ L1 template update verified - all changes compile correctly
+
+**Logical Validation:**
+- ✅ Framework principle clearly documented in ARTIFACTS.md
+- ✅ All affected agents have consistent directive
+- ✅ Directive is clear and actionable ("Reset checkbox to `[ ]` when modifying existing acceptance criteria text")
+- ✅ Rationale provided for understanding the "why"
+- ✅ Example demonstrates the lifecycle clearly
+
+**E2E Testing:**
+- ⚠️ Deferred: Luigi incremental addition test requires interactive testing agent workflow
+- ⚠️ Testing agent requires opening new workspace and manual interaction
+- ⚠️ Will be validated in future E2E regression testing sessions
+
+## Design Decisions
+
+### Level Hierarchy Approach
+
+**Decision:** Follow complete smaqit level hierarchy (Level 0 → Level 1 → Level 2).
+
+**Rationale:**
+- Level 0 (Framework) defines the principle and rules
+- Level 1 (Template) compiles L0 principle into L1 directive with proper form
+- Level 2 (Agents) are compiled from L1 template, ensuring consistency
+- Maintains proper L0→L1→L2 compilation chain for future agent compilations
+
+**Initial Implementation Note:** PR originally skipped Level 1, jumping directly from L0 to L2. This was identified during L1 agent assessment and corrected to maintain Level Up architecture integrity.
+
+### Directive Placement
+
+**Decision:** Added to MUST section (not SHOULD).
+
+**Rationale:**
+- Checkbox reset is not optional - misleading checkboxes cause real problems
+- Severity is Medium because frontmatter `status: draft` provides fallback signal
+- But per-requirement accuracy matters for developer workflow
+- MUST ensures consistent behavior across all specification agents
+
+### Consistent Wording
+
+**Decision:** Used identical directive text across all three agents.
+
+**Rationale:**
+- Reduces cognitive load
+- Ensures predictable behavior
+- Makes cross-agent consistency easy to verify
+- Aligns with Single Source of Truth principle (documentation in one place, referenced consistently)
 
 ## Notes
 
@@ -35,10 +113,21 @@ When specification agents modify existing acceptance criteria to expand scope du
 **Impact:** Per-requirement accuracy is lost during intermediate state. Developers checking individual criteria status could be misled about what actually needs revalidation.
 
 **Affected Agents:**
-- `agents/smaqit.business.agent.md`
-- `agents/smaqit.functional.agent.md`
-- `agents/smaqit.stack.agent.md`
+- `agents/smaqit.business.agent.md` ✅ Updated
+- `agents/smaqit.functional.agent.md` ✅ Updated
+- `agents/smaqit.stack.agent.md` ✅ Updated
 
 **Not Affected:**
 - Infrastructure agent (Phase 2 - no prior implementation to modify)
 - Coverage agent (reads only, doesn't modify upstream specs)
+
+## Future Work
+
+**E2E Testing:**
+- Run Luigi incremental addition test in future E2E regression session
+- Verify checkbox reset behavior with real spec modifications
+- Validate Development agent correctly updates checkboxes after reimplementation
+
+**Potential Enhancements:**
+- Consider adding similar guidance for Infrastructure agent (if incremental infrastructure changes become common)
+- Consider CLI warning when spec with `status: implemented` is modified but checkboxes aren't reset

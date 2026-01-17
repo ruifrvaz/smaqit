@@ -8,6 +8,9 @@
 | 065 | Clean Up Level 1 Templates | new | High |
 | 066 | Clean Up Level 2 Product Agents | new | High |
 | 060 | Reset Checkboxes on Requirement Refinement | new | Medium |
+| 062 | Validation Agent Should Generate Executable Test Artifacts | new | High |
+| 061 | Deployment Agent Should Update Upstream Spec Frontmatter | new | Medium |
+| 063 | Validation Agent Should Update Upstream Spec Frontmatter | new | Medium |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
 | 031 | Review implementation artifacts | new | Medium |
 
@@ -20,6 +23,7 @@
 | B001.3 | Create Agent-L2: Agent Compiler |
 | B001.2 | Create Agent-L1: Template Compiler |
 | B001.1 | Create Agent-L0: Principle Curator |
+| 060 | Reset Checkboxes on Requirement Refinement |
 | 001 | Create Copilot prompt files |
 | 002 | Create specification agent template |
 | 003 | Create implementation agent template |

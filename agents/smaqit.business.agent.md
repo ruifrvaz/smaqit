@@ -52,6 +52,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Ensure CONCEPT in use case ID matches CONCEPT in requirement IDs
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
+- Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
 
 ### MUST NOT
 

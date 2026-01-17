@@ -41,6 +41,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Use requirement IDs: `[LAYER_PREFIX]-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
+- Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
 
 ### MUST NOT
 

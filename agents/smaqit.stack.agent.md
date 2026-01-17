@@ -65,6 +65,7 @@ Foundation specs (base language environments, shared build tools, common depende
 - Use requirement IDs: `STK-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
+- Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
 
 ### MUST NOT
 

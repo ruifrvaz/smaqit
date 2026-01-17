@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0-beta] - 2026-01-17
+
+### Added
+- Troubleshooting documentation for multi-agent workflow context pollution (Task 056)
+
+### Changed
+- Specification agents now reset acceptance criteria checkboxes when modifying requirements (Task 060)
+- Implementation agents update all referenced spec frontmatter, not just target layer (Tasks 061, 063)
+- Validation agent generates executable test artifacts for CI/CD automation (Task 062)
+- Implementation agents execute CLI as first action to determine which specs to process (Tasks 049, 051, 052)
+- Coverage layer redesigned with dual-input model: test requirements + upstream criteria (Task 050)
+- Agent Role sections refined to 3-component structure for clarity (Task 056)
+- Foundation Reference pattern unified across all specification layers (Task 055)
+
+### Fixed
+- Validation agent frontmatter updates now apply to all validated specs across all layers (Task 053)
+- CLI directive ambiguity resolved in all implementation agents (Tasks 049, 051, 052)
+
+### Removed
+- Context pollution verbal statements pattern (replaced with structured Role sections) (Task 056)
+
 ## [0.5.0-beta] - 2026-01-03
 
 ### Added
@@ -170,7 +191,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.4.2-beta...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.6.0-beta...HEAD
+[0.6.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.5.0-beta...v0.6.0-beta
+[0.5.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.4.2-beta...v0.5.0-beta
 [0.4.2-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.4.1-beta...v0.4.2-beta
 [0.4.1-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.4.0-beta...v0.4.1-beta
 [0.4.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.3.0...v0.4.0-beta

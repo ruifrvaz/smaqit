@@ -19,7 +19,7 @@ var agentFiles embed.FS
 var promptFiles embed.FS
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
-var Version = "dev"
+var Version = "0.6.0-beta"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -605,7 +605,7 @@ func cmdStatus() {
 	// A phase is ONLY complete when:
 	// 1. ALL required layers have at least one spec, AND
 	// 2. ALL specs in those layers have reached the target status
-	
+
 	// Phase 1: Develop (requires business, functional, stack)
 	developSpecs := getPhaseSpecs(allSpecs, "develop")
 	developImplemented := 0
@@ -617,12 +617,12 @@ func cmdStatus() {
 		}
 	}
 	// Require all three layers present
-	hasAllDevelopLayers := layerCounts["business"] > 0 && 
-	                        layerCounts["functional"] > 0 && 
-	                        layerCounts["stack"] > 0
-	developCompleted := hasAllDevelopLayers && 
-	                    len(developSpecs) > 0 && 
-	                    developImplemented == len(developSpecs)
+	hasAllDevelopLayers := layerCounts["business"] > 0 &&
+		layerCounts["functional"] > 0 &&
+		layerCounts["stack"] > 0
+	developCompleted := hasAllDevelopLayers &&
+		len(developSpecs) > 0 &&
+		developImplemented == len(developSpecs)
 
 	// Phase 2: Deploy (requires infrastructure)
 	deploySpecs := getPhaseSpecs(allSpecs, "deploy")
@@ -633,9 +633,9 @@ func cmdStatus() {
 			deployDeployed++
 		}
 	}
-	deployCompleted := layerCounts["infrastructure"] > 0 && 
-	                   len(deploySpecs) > 0 && 
-	                   deployDeployed == len(deploySpecs)
+	deployCompleted := layerCounts["infrastructure"] > 0 &&
+		len(deploySpecs) > 0 &&
+		deployDeployed == len(deploySpecs)
 
 	// Phase 3: Validate (requires coverage)
 	validateSpecs := getPhaseSpecs(allSpecs, "validate")
@@ -645,9 +645,9 @@ func cmdStatus() {
 			validateValidated++
 		}
 	}
-	validateCompleted := layerCounts["coverage"] > 0 && 
-	                     len(validateSpecs) > 0 && 
-	                     validateValidated == len(validateSpecs)
+	validateCompleted := layerCounts["coverage"] > 0 &&
+		len(validateSpecs) > 0 &&
+		validateValidated == len(validateSpecs)
 
 	// Calculate pending counts for in-progress display
 	developPending := len(filterSpecsByStatus(developSpecs, "develop", false))

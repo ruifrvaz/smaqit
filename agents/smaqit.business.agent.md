@@ -96,6 +96,11 @@ These rules are specific to the Business layer and must be followed when produci
 
 ### MUST
 
+- Express requirements as user goals and needs
+- Use language accessible to non-technical stakeholders
+- Define acceptance criteria from user perspective
+- Capture the "why" behind each requirement
+- Capture actor diversity: interactive participants AND non-functional requirement stakeholders
 - Identify all actors and their goals
 - Define measurable success metrics for each use case
 - Include preconditions and postconditions
@@ -107,18 +112,13 @@ These rules are specific to the Business layer and must be followed when produci
 - Include implementation details or technical solutions
 - Define data structures or API contracts
 - Reference deployment or infrastructure concerns
+- Describe HOW features work (behaviors and mechanisms belong in Functional layer)
+- Reference technical artifacts (console, terminal, screen, database, API, server, client, encoding)
+- Include technical error handling or fallback mechanisms
 
 ### Patterns
 
-**System Actor:**
-
-When stakeholders have requirements about system properties (availability, auditability, accessibility), use the **System** actor:
-
-| Actor | Description | Goals |
-|-------|-------------|-------|
-| System | The application as a whole | [System-level properties stakeholders require] |
-
-System actor specs remain business-level (stakeholder-driven) and do not prescribe technical solutions.
+*No layer-specific patterns defined for Business layer.*
 
 ## Use Case ID Format
 

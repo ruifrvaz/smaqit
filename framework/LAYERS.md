@@ -63,16 +63,37 @@ The Business layer captures the intent, value, and goals of what is being built.
 - Include implementation details or technical solutions
 - Define data structures or API contracts
 - Reference deployment or infrastructure concerns
+- Describe HOW features work (behaviors and mechanisms belong in Functional layer)
+- Reference technical artifacts (console, terminal, screen, database, API, server, client, encoding)
+- Include technical error handling or fallback mechanisms
 
-**System Actor:**
+**Actors:**
 
-When stakeholders have requirements about system properties (availability, auditability, accessibility), use the **System** actor:
+An actor is anyone who cares about some aspect of what is being built. Actors have goals—what they want to achieve or what properties they require. Some actors participate in interactive flows. Other actors establish constraints or properties the system must satisfy. Both are simply actors with goals.
 
-| Actor | Description | Goals |
-|-------|-------------|-------|
-| System | The application as a whole | [System-level properties stakeholders require] |
+**Actor goals may express:**
+- Interactive outcomes: what an actor wants to accomplish through using the system
+- System properties: what constraints or qualities an actor requires the system to have
+- Success criteria: what measurable outcomes matter to an actor
 
-System actor specs remain business-level (stakeholder-driven) and do not prescribe technical solutions.
+**Examples of actor diversity:**
+- End users seeking to accomplish tasks through interaction
+- Operations teams requiring reliability properties for continuity
+- Compliance officers mandating audit capabilities for regulatory needs
+- Client organizations needing platform compatibility with existing infrastructure
+- Accessibility advocates requiring inclusive design for universal access
+
+**Layer Boundaries:**
+
+Business layer captures what actors need and why it matters to them. Functional layer translates actor goals into specific behaviors. Stack layer selects technologies enabling those behaviors.
+
+**Separation Principle:**
+
+Business describes what actors need and why. Functional describes what behaviors satisfy those needs. Stack describes what technologies implement those behaviors. Each layer addresses one question; mixing questions across layers creates boundary violations.
+
+**Boundary Clarity:**
+
+Business layer expresses requirements in actor terms—goals, outcomes, constraints, properties. Technical expressions—actions, mechanisms, artifacts—belong in downstream layers. Actors speak of what they need. Implementers speak of behaviors that satisfy needs. Technologists speak of tools that enable behaviors.
 
 ---
 

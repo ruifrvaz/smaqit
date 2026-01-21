@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2-beta] - 2026-01-21
+
+### Added
+- Compilation file architecture: 8 compilation files (5 layers + 3 phases) for L0→L1 transformation (Task 068)
+- Wiki documentation: `why-no-system-actor.md` and `why-non-functional-requirements.md`
+- Source L0 Principles table in all compilation files for traceability
+
+### Changed
+- **BREAKING:** System Actor pattern removed from Business layer (Task 068)
+- Business layer boundary enforcement strengthened with concept-based directives
+- Compilation files now contain pure L1 directives without inline L0 Source citations
+- Business layer MUST NOT directive refined: "Describe HOW features work" (replaces word blacklist)
+- NFR terminology changed from "system property advocates" to "non-functional requirement stakeholders"
+- Agent-L1 updated to enforce clean directive compilation
+- Specification agent template simplified (Actor Concept placeholder removed)
+
+### Fixed
+- Business specs no longer leak functional/stack concerns through System Actor pattern
+- Behavioral verbs directive now focuses on concept boundary (HOW vs WHAT) instead of vocabulary blacklist
+
 ## [0.6.0-beta] - 2026-01-17
 
 ### Added

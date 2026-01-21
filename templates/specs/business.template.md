@@ -26,13 +26,13 @@ prompt_version: [GIT_HASH]
 
 ## Actors
 
-<!-- Human actors, external systems, or the System itself -->
-<!-- Use "System" actor for stakeholder requirements about system properties (uptime, auditability, etc.) -->
+<!-- Anyone who cares about some aspect of what is being built -->
+<!-- Actor goals may express: interactive outcomes, system properties, or success criteria -->
+<!-- Examples: end users, operations teams, compliance officers, client organizations, accessibility advocates -->
 
 | Actor | Description | Goals |
 |-------|-------------|-------|
-| [ACTOR_NAME] | [Who or what this actor represents] | [What this actor wants to achieve] |
-| System | [Optional — use for system-level stakeholder requirements] | [System properties like availability, security] |
+| [ACTOR_NAME] | [Who or what this actor represents] | [What this actor wants to achieve or what properties they require] |
 
 ## Success Metrics
 

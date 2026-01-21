@@ -93,10 +93,25 @@ L1 uses **compilation files** to preserve its role as a transformation layer:
 - **Templates** (`templates/agents/*.template.md`) — Generic structure with placeholders and references to compilation files
 - **Compilation Files** (`templates/agents/compiled/*.rules.md`) — L0→L1 transformation rules documenting how principles become directives
 
+**Frontmatter:** Each compilation file contains metadata:
+```yaml
+---
+layer: [LAYER]  # or phase: develop
+target: agents/smaqit.[LAYER].agent.md
+sources:
+  - framework/[FILENAME].md
+created: 2026-01-19
+---
+```
+
 **Structure:** Each compilation file contains:
-1. **Source L0 Principles** — Citations from framework files
-2. **L1 Directive Compilation** — Philosophy → directives transformation
+1. **Source L0 Principles** — Tabulated references (Source File | Section)
+2. **L1 Directive Compilation** — Pure directives without L0 Source citations (transformation already documented in table above)
 3. **Compilation Guidance for Agent-L2** — Step-by-step merge instructions
+
+**Coverage:** 8 compilation files total:
+- 5 layer files: business, functional, stack, infrastructure, coverage
+- 3 phase files: develop, deploy, validate
 
 **Not Shipped:** Compilation files are internal development artifacts, NOT copied by installer. User projects receive only compiled L2 agents.
 

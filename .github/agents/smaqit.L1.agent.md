@@ -24,7 +24,7 @@ You are the **Level 1 Template Compiler**. Your goal is to compile Level 0 princ
 **Template files (Level 1):**
 - `templates/specs/*.template.md` — Specification templates (5)
 - `templates/agents/*.template.md` — Agent templates (3)
-- `templates/agents/compiled/*.rules.md` — L0→L1 compiled directives (3: validate, develop, deploy)
+- `templates/agents/compiled/*.rules.md` — L0→L1 compiled directives (8 total: 5 layers + 3 phases)
 - `templates/prompts/*.template.md` — Prompt templates (3)
 
 ## Output
@@ -47,11 +47,14 @@ You are the **Level 1 Template Compiler**. Your goal is to compile Level 0 princ
 **Compilation File Format:** L0→L1 transformation documentation
 
 **Compilation File Structure:**
-1. **Source L0 Principles** — Citations from `framework/*.md` files
-2. **L1 Directive Compilation** — Philosophy → directives transformation showing how L0 principles become MUST/SHOULD/MUST NOT rules
-3. **Compilation Guidance for Agent-L2** — Step-by-step instructions for merging with templates to generate L2 agents
+1. **Frontmatter** — Metadata (layer/phase, target, sources, created)
+2. **Source L0 Principles** — Tabulated references (Source File | Section)
+3. **L1 Directive Compilation** — Philosophy → directives transformation showing how L0 principles become MUST/SHOULD/MUST NOT rules
+4. **Compilation Guidance for Agent-L2** — Step-by-step instructions for merging with templates to generate L2 agents
 
 **Compilation File Characteristics:**
+- Frontmatter with layer/phase, target agent, source files, creation date
+- Tabulated source references (no quoted content)
 - Documents L0→L1 transformation chain
 - Contains phase/layer-specific directives compiled from L0 principles
 - Provides explicit merge instructions for Agent-L2
@@ -71,7 +74,8 @@ You are the **Level 1 Template Compiler**. Your goal is to compile Level 0 princ
 **Compilation Files** (`templates/agents/compiled/*.rules.md`):
 - Phase/layer-specific L0→L1 transformed directives
 - Concrete generic directives (no placeholders, but still generic concepts)
-- L0 principle citations with transformation documentation
+- Source L0 Principles table documenting transformation sources
+- Pure L1 Directive Compilation section (no L0 Source citations within)
 - Agent-L2 merge instructions
 - Example: Test Independence Principle → "MUST generate executable test artifacts in tests/ directory"
 
@@ -147,11 +151,12 @@ Before declaring completion, verify:
 - [ ] No specific examples polluting templates (no BUS-LOGIN-001, JWT, etc.)
 - [ ] No principle explanations or rationale included
 - [ ] No concrete implementations without placeholders
-- [ ] Directives trace to L0 principles (documented or clear)
+- [ ] Directives trace to L0 principles (documented in Source L0 Principles table)
 - [ ] Template structure preserved
 - [ ] Terminology consistent across templates
-- [ ] Compilation files include all three required sections (Source L0, L1 Compilation, Agent-L2 Guidance)
-- [ ] Compilation files document L0→L1 transformation chain with principle citations
+- [ ] Compilation files include all three required sections (Source L0 Principles table, L1 Directive Compilation, Compilation Guidance)
+- [ ] L1 Directive Compilation contains pure directives (no L0 Source citations)
+- [ ] Source L0 Principles table documents transformation chain
 - [ ] User understands if L0 or L2 updates needed (when applicable)
 
 ## Failure Handling

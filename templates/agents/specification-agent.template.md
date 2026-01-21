@@ -79,6 +79,19 @@ When user requests implementation or other layer specs:
 
 These rules are specific to the [LAYER_NAME] layer and must be followed when producing specifications.
 
+<!-- L1 Transformation Instructions:
+     
+     Agent-L2 compiles layer-specific rules by reading:
+     templates/agents/compiled/[LAYER].rules.md
+     
+     Compilation file contains:
+     - Layer-Specific MUST Directives → populate MUST section
+     - Layer-Specific MUST NOT Directives → populate MUST NOT section
+     - Foundation/Actor/Cross-cutting guidance → populate Patterns section
+     
+     Replace placeholders with concrete layer values per compilation guidance.
+-->
+
 ### MUST
 
 [LAYER_SPECIFIC_MUST_RULES]

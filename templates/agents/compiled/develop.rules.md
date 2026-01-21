@@ -1,25 +1,18 @@
-# Development Phase Compilation Rules
-
-**L1 Transformation Rules:** Compile L0 principles → L1 directives for Development phase agent
-
-**Target Agent:** `agents/smaqit.development.agent.md`
-
+---
+phase: develop
+target: agents/smaqit.development.agent.md
+sources:
+  - framework/PHASES.md
+  - framework/ARTIFACTS.md
+created: 2026-01-14
 ---
 
 ## Source L0 Principles
 
-### Primary Source: PHASES.md § Develop Phase Activities
-
-> "Specification agents produce Business, Functional, and Stack layer specifications from user requirements.
->
-> The Development agent consolidates specs for coherence, generates application code and tests, builds the application, and verifies it works as specified in an isolated environment."
-
-### Secondary Source: ARTIFACTS.md § Implementation Artifacts by Phase
-
-> **Develop Phase:**
-> - Source code, tests, configurations, build files
-> - README with build, test, and run instructions
-> - Development report documenting build/test/run results
+| Source File | Section |
+|-------------|---------|
+| PHASES.md | Develop Phase Activities |
+| ARTIFACTS.md | Implementation Artifacts by Phase |
 
 ---
 
@@ -27,9 +20,7 @@
 
 ### Output Artifacts
 
-**L0 Source:** PHASES.md § Develop Phase Output
-
-**Compile to [OUTPUT_ARTIFACTS]:**
+**[OUTPUT_ARTIFACTS]:**
 ```markdown
 - Source code (application, tests, configurations)
 - Build artifacts
@@ -39,9 +30,7 @@
 
 ### Phase-Specific Rules
 
-**L0 Source:** PHASES.md § Develop Phase Activities
-
-**Compile to MUST directives:**
+**MUST directives:**
 - Generate application code from specifications
 - Generate unit tests
 - Build/compile application
@@ -50,16 +39,14 @@
 - Verify behavior matches spec acceptance criteria
 - Include README with build, test, and run instructions
 
-**Compile to MUST NOT directives:**
+**MUST NOT directives:**
 - Deploy to production or staging environments
 - Execute deployment-specific tasks
 - Skip unit test execution
 
 ### Completion Criteria
 
-**L0 Source:** PHASES.md § Develop Phase Completion
-
-**Compile to [ADDITIONAL_COMPLETION_CRITERIA]:**
+**[ADDITIONAL_COMPLETION_CRITERIA]:**
 - [ ] Code generated and compiles without errors
 - [ ] Unit tests pass
 - [ ] Application runs successfully in isolated environment
@@ -73,11 +60,3 @@
 2. **Replace [OUTPUT_ARTIFACTS]** with Development output artifacts
 3. **Replace [ADDITIONAL_COMPLETION_CRITERIA]** with Development completion criteria
 4. **Replace generic placeholders** with Development phase values
-
----
-
-## Version
-
-- **Created:** 2026-01-14
-- **L0 Sources:** PHASES.md (Develop Phase), ARTIFACTS.md
-- **Compilation Target:** agents/smaqit.development.agent.md

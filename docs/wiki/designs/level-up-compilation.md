@@ -57,25 +57,40 @@ local developer workflows, and automated verification outside the validation pha
 Like intermediate languages in traditional compilers (IL in .NET, LLVM IR), L1 serves as an optimizable transformation layer rather than simply being a templated version of the final output. smaqit achieves this through **compilation files** that document how L0 principles transform into L1 directives while keeping templates generic.
 
 **Compilation file structure:**
-1. **Source L0 Principles** — Citations from framework files
-2. **L1 Directive Compilation** — Philosophy → directives transformation
-3. **Compilation Guidance for Agent-L2** — Step-by-step merge instructions
+1. **Frontmatter** — Metadata (layer/phase, target, sources, created)
+2. **Source L0 Principles** — Tabulated references (Source File | Section)
+3. **L1 Directive Compilation** — Philosophy → directives transformation
+4. **Compilation Guidance for Agent-L2** — Step-by-step merge instructions
 
 **Example (validate.rules.md):**
 ```markdown
+---
+phase: validate
+target: agents/smaqit.validation.agent.md
+sources:
+  - framework/PHASES.md
+  - framework/ARTIFACTS.md
+created: 2026-01-14
+---
+
 ## Source L0 Principles
 
-### Primary Source: ARTIFACTS.md § The Test Independence Principle
-
-> "Test artifacts exist independently of agent execution..."
+| Source File | Section |
+|-------------|---------|
+| ARTIFACTS.md | The Test Independence Principle |
+| PHASES.md | Validate Phase Activities |
+| ARTIFACTS.md | Implementation Artifacts by Phase |
 
 ## L1 Directive Compilation
 
-**Compile to MUST directives:**
+**MUST directives:**
 - Generate executable test artifacts from Coverage specifications
 - Create test files in `tests/` directory implementing Coverage spec test cases
 - Use test framework specified in Stack spec
 - Organize tests by feature with clear mapping to Coverage spec scenarios
+- Preserve Given/When/Then structure from Gherkin scenarios in test code
+- Generate test framework configuration file
+- Ensure test artifacts are executable independently (outside agent context)
 ```
 
 ### Level 2: Concrete Agents (Shipped Artifacts)
@@ -247,17 +262,21 @@ git commit -m "docs: Document compilation files architecture"
 - **Commit prefixes:** Use `L0:`, `L1:`, `L2:`, `docs:` for traceability
 - **Rationale:** Preserves compilation chain, enables bisection, documents transformation
 
-## Current State (2026-01-14)
+## Current State (2026-01-19)
 
 ### Completed
 - ✅ L0 purity achieved for ARTIFACTS.md and PHASES.md (PR #36)
 - ✅ Compilation files architecture established
-- ✅ Three compilation files created: validate.rules.md, develop.rules.md, deploy.rules.md
+- ✅ Eight compilation files created:
+  - 3 phase files: validate.rules.md, develop.rules.md, deploy.rules.md
+  - 5 layer files: business.rules.md, functional.rules.md, stack.rules.md, infrastructure.rules.md, coverage.rules.md
 - ✅ implementation-agent.template.md updated to reference compilation files
+- ✅ specification-agent.template.md updated to reference compilation files
+- ✅ Frontmatter structure standardized (layer/phase, target, sources, created)
+- ✅ Source L0 Principles converted to tabulated format
 
 ### Pending
 - ⏳ Agent-L2 compilation execution (apply rules to generate L2 agents)
-- ⏳ Compilation files for specification agents (business, functional, stack, infrastructure, coverage)
 - ⏳ Automated compilation tooling
 
 ## Not Shipped to Users

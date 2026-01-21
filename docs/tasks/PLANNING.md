@@ -4,9 +4,11 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 070 | E2E Boundary Enforcement Validation | new | High |
 | 064 | Complete Level 0 Principle Cleanup | new | High |
 | 065 | Clean Up Level 1 Templates | new | High |
 | 066 | Clean Up Level 2 Product Agents | new | High |
+| 069 | Strengthen Bounded Agents Principle | new | Medium |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
 | 031 | Review implementation artifacts | new | Medium |
 
@@ -14,6 +16,8 @@
 
 | ID | Title |
 |----|-------|
+| 068 | Remove System Actor from Business Layer |
+| 067 | v0.6.0-beta Validation Testing |
 | 062 | Validation Agent Should Generate Executable Test Artifacts |
 | B001 | Extensible Meta-Framework: Level Up Architecture |
 | B001.3 | Create Agent-L2: Agent Compiler |

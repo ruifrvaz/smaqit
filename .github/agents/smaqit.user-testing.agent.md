@@ -104,7 +104,8 @@ You are the e2e testing agent. Your goal is to orchestrate complete smaqit workf
     - **On failure:** Log error, continue to next layer
 
 11. **Coverage Layer**
-    - **Ask user:** "Type `/smaqit.coverage` and paste these requirements: [display coverage requirements]"
+    - **Ask user:** "Type `/smaqit.coverage` and paste these test metadata: [display test scope, environment, integration points, and thresholds]"
+    - **Note:** Coverage prompt receives test metadata only, NOT new acceptance criteria. The Coverage agent reads acceptance criteria from upstream specs (Business, Functional, Stack, Infrastructure).
     - **Wait for user confirmation:** "Type 'done' when spec generation completes"
     - Check for file existence: `specs/coverage/*.md`
     - Record coverage layer outcome in checklist

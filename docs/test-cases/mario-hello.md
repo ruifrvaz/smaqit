@@ -27,13 +27,15 @@ A console application that greets users in the style of Nintendo's Mario charact
 **Use Case:** Greet Mario Fans
 
 **Actors:**
-- **Mario Fan** — Users who love Nintendo's Mario franchise
-- **System** — Console application
+- **Mario Fan** — Users who love Nintendo's Mario franchise — Want to experience authentic Mario greeting
+- **Accessibility Advocate** — Inclusion policy stakeholder — Require application to work regardless of console capabilities
+- **Client Organizations** — Businesses running the application — Need compatibility with standard console environments
 
 **Business Goals:**
 - Delight Mario fans with authentic character experience
 - Create memorable first impression
 - Encourage repeated usage
+- Ensure accessibility across console environments
 
 **Success Metrics:**
 - Users recognize Mario catchphrases
@@ -41,15 +43,14 @@ A console application that greets users in the style of Nintendo's Mario charact
 - Users return to run the application multiple times
 
 **Main Flow:**
-1. User runs the application
-2. System displays Mario greeting with ASCII art
-3. System shows iconic Mario catchphrase
-4. System displays colorful console output
-5. Application exits gracefully
+1. Mario Fan runs the application
+2. Mario Fan sees Mario greeting with character representation
+3. Mario Fan sees iconic Mario catchphrase
+4. Mario Fan experiences authentic Mario interaction
+5. Application completes successfully
 
 **Alternative Flows:**
-- If console doesn't support color, display monochrome version
-- If ASCII art rendering fails, display text-only greeting
+- If user doesn't recognize character, catchphrase provides context
 
 ---
 
@@ -153,30 +154,19 @@ Programming language that supports:
 
 ### Coverage Layer Input
 
-**Test Scope:** Verify Mario-themed elements appear correctly
-
-**Performance Benchmarks:**
-- Application starts in < 1 second
-- Output renders in < 100ms
-- Total execution time < 2 seconds
-
-**Security Requirements:**
-- No security concerns (local, non-networked application)
-- No user input (no injection risks)
+**Test Scope:** Integration and end-to-end testing to verify all acceptance criteria from upstream specifications (Business, Functional, Stack, Infrastructure)
 
 **Test Environment:**
-- Local terminal with color support
-- Multiple OS platforms (Linux, macOS, Windows)
+- Docker container execution (matching deployment target)
+- Local terminal with color support for manual visual verification
 
 **Integration Points:**
-- None (standalone application)
+- None (standalone application with no external dependencies)
 
-**Verification Requirements:**
-- Mario catchphrase appears in output
-- ASCII art is rendered correctly
-- Colors are applied (if terminal supports it)
-- Application exits with code 0
-- No errors in stderr
+**Acceptance Thresholds:**
+- 100% of testable acceptance criteria from all upstream specs must have corresponding test cases
+- All automated tests must pass
+- Untestable criteria must be explicitly flagged with justification
 
 ---
 

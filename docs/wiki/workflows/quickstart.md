@@ -43,13 +43,17 @@ The Mario Fan wants to see a personalized greeting featuring Mario.
 
 ## Step 3: Fill the Functional Prompt
 
-Open `.github/prompts/smaqit.functional.prompt.md` and describe the experience:
+Open `.github/prompts/smaqit.functional.prompt.md` and describe the functionality:
 
 ```markdown
+## Application Type
+
+Console application
+
 ## Behaviors
 
 ### Console Output
-When the application runs, it displays "Hello, Mario!" to standard output and exits with code 0.
+When the application runs, it displays the message to standard output and exits with code 0.
 
 ## Data Models
 
@@ -64,10 +68,6 @@ Open `.github/prompts/smaqit.stack.prompt.md` with your technology choice:
 ## Language
 
 Python 3.8+
-
-## Rationale
-
-Simple console application, Python is lightweight and universally available.
 
 ## Dependencies
 

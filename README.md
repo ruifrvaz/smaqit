@@ -1,288 +1,73 @@
-# smaqit
+![smaqit banner](assets/banner.png)
 
-## What is it?
+Welcome to smaQit, an agent orchestration toolkit for developers who want AI to build software using Spec Driven Development. You describe requirements in prompt files, AI agents generate traceable specs across business, functional, and technical layers, then implementation agents turn those specs into working, tested applications. Built for teams that value auditability, clear boundaries, and reproducible workflows.
 
-A Spec-driven agent orchestration kit where AI agents write specifications, then implement from those specs. **Work in phases**—each phase generates specs and implements them together for fast feedback.
+## Features
 
-## How it Works
+- **Lightweight** — Single binary, no dependencies. `smaqit init` scaffolds everything.
+- **Auditable prompts** — Requirements captured in versioned prompt files with full traceability.
+- **Stateful specs** — Specifications track lifecycle: draft → implemented → deployed → validated.
+- **Bounded agents** — Each agent owns one layer or phase. No scope creep.
+- **Self-validating** — Agents verify their own output before completion.
+- **Spec-first** — Code follows specs, not the other way around.
 
-**Phase-First Workflow (Recommended):**
-```
-Phase 1 (Develop):  Business → Functional → Stack specs → Build → Working app
-Phase 2 (Deploy):   Infrastructure spec → Deploy → Running system
-Phase 3 (Validate): Coverage spec → Test → Validation report
-```
+## Compatibility
 
-**Spec-First Workflow (Alternative):**
-```
-Generate all specs: Business → Functional → Stack → Infrastructure → Coverage
-Execute phases:     Develop → Deploy → Validate
-```
+Currently supported:
 
-Phase-first gives you faster feedback. Spec-first works for upfront design requirements.
+| Platform | Status |
+|----------|--------|
+| GitHub Copilot (VS Code) | ✅ Supported |
+| Other AI assistants | Planned |
 
 ## Getting Started
 
-### Installation
-
-**Quick install (recommended):**
+**Install:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit/main/install.sh | bash
 ```
 
-This installs the latest release to `~/.local/bin/smaqit`.
+**Initialize:**
 
-<details>
-<summary>Manual download</summary>
-
-Visit [Releases](https://github.com/ruifrvaz/smaqit/releases) and download the appropriate binary:
-
-- **Linux**: `smaqit_linux_amd64`
-- **macOS Intel**: `smaqit_darwin_amd64`
-- **macOS Apple Silicon**: `smaqit_darwin_arm64`
-- **Windows**: `smaqit_windows_amd64.exe`
-
-**Make it executable (Linux/macOS):**
 ```bash
-chmod +x smaqit_*
-mv smaqit_* ~/.local/bin/smaqit
-```
-
-**Or add to PATH (Windows):**
-```powershell
-move smaqit_windows_amd64.exe C:\Windows\smaqit.exe
-```
-</details>
-
-### Usage
-
-**Phase-First Workflow (Recommended):**
-```bash
-# Initialize in your project
 smaqit init
 ```
 
-**Spec-First Workflow (Alternative):**
-```bash
-# Initialize
-smaqit init
+**Build something:**
 
-# Generate all specifications first
-# (invoke agents via GitHub Copilot chat)
-```
+1. Fill `.github/prompts/smaqit.business.prompt.md` with your requirements
+2. Open GitHub Copilot chat and run `/smaqit.development`
+3. Watch specs generate, then code build
+
+See the full [Mario Hello quickstart](docs/wiki/workflows/quickstart.md) for a complete walkthrough.
 
 ## Commands
 
+**CLI:**
+
 | Command | Description |
 |---------|-------------|
-| `smaqit init` | Scaffold `.smaqit/` and `.github/agents/` |
-| `smaqit status` | Show current state |
+| `smaqit init` | Scaffold `.smaqit/` and `.github/` directories |
+| `smaqit status` | Show project state and spec coverage |
+| `smaqit plan` | Show specs to process (for agents) |
+| `smaqit validate` | Verify project structure integrity |
+| `smaqit help` | Show detailed command help |
+| `smaqit uninstall` | Remove smaqit from project |
+| `smaqit version` | Show smaqit version |
 
----
+**Agents** (invoke in GitHub Copilot chat with `/`):
 
-## Layers
+| Agent | Purpose |
+|-------|---------|
+| `/smaqit.development` | Build working app from specs |
+| `/smaqit.deployment` | Deploy to target environment |
+| `/smaqit.validation` | Run tests against deployed system |
 
-1. **Business** — Use cases, actors, goals
-2. **Functional** — Behaviors, contracts, data models
-3. **Stack** — Languages, frameworks, tools
-4. **Infrastructure** — Compute, networking, observability
-5. **Coverage** — Tests against deployed app
+Run `smaqit help` for all specification agents (`/smaqit.business`, `/smaqit.functional`, etc.).
 
-## Phases
+## Documentation
 
-**Phases are the primary workflow unit.** Each phase includes specifications and implementation together.
-
-1. **Develop** — Generate specs (business → functional → stack), then build → working application
-2. **Deploy** — Generate infrastructure spec, then deploy → running system
-3. **Validate** — Generate coverage spec, then test → validation report
-
-**Phase-first is recommended** for faster feedback. Complete each phase before moving to the next. Alternatively, you can generate all specs first (spec-first), but implementation still happens in phases.
-
-## Team Alignment
-
-smaqit layers align with Agile/Scrum team roles, enabling specialists to work in their domain.
-
-| Role | Layer | Focus |
-|------|-------|-------|
-| Stakeholders | Input | Requirements and business needs |
-| Product Owner | Business | Why, for whom, success criteria |
-| Engineers | Functional | What behaviors, contracts, data models |
-| Software Developer | Stack | With what languages, frameworks, tools |
-| DevOps | Infrastructure | Where and how it runs |
-| Testers | Coverage | How we verify it works |
-
-Layer boundaries respect role boundaries:
-- Product Owners define *what* success looks like, not *how* to build it
-- Engineers translate business goals into system behaviors
-- Developers choose technologies that satisfy functional requirements
-- Each role focuses on their expertise without immediate cross-concerns
-
-## Architecture
-
-smaqit kit is organized in hierarchical levels:
-
-```
-smaqit
-├── Level 0: Framework (Foundation)
-│   ├── framework/SMAQIT.md      # Core principles
-│   ├── framework/LAYERS.md      # Layer definitions
-│   ├── framework/PHASES.md      # Phase workflows
-│   ├── framework/TEMPLATES.md   # Template rules
-│   ├── framework/AGENTS.md      # Agent behaviors
-│   ├── framework/ARTIFACTS.md   # Artifact rules
-│   └── framework/PROMPTS.md     # Prompt architecture
-│
-├── Level 1: Templates (Structure)
-│   ├── templates/specs/         # Specification templates (5)
-│   ├── templates/prompts/       # Prompt templates (2)
-│   └── templates/agents/        # Agent templates (2)
-│
-├── Level 2: Agents & Artifacts (Instances)
-│   ├── agents/*.agent.md        # Agent definitions (8)
-│   ├── prompts/*.prompt.md      # Prompt files (8)
-│   └── specs/**/*.md            # Specification documents
-│
-└── Level 3: Application (Output)
-    └── The built system
-```
-
-**Level dependencies:**
-- Level 1 consumes Level 0 (templates follow framework rules)
-- Level 2 consumes Level 1 (agents/specs/prompts follow templates)
-- Level 3 consumes Level 2 (application follows specs)
-
-## Documentation Structure
-
-### Framework Files (`framework/`)
-**Audience:** LLM agents  
-**Purpose:** Pure execution instructions
-
-These files contain ONLY what agents need to execute workflows:
-- Core principles (SMAQIT.md)
-- Layer definitions (LAYERS.md)
-- Phase workflows (PHASES.md)
-- Template rules (TEMPLATES.md)
-- Agent behaviors (AGENTS.md)
-- Artifact rules (ARTIFACTS.md)
-
-### Wiki (`docs/wiki/`)
-**Audience:** Human developers  
-**Purpose:** Context and rationale
-
-These files explain WHY the framework is designed this way:
-- `concepts/` — Core concepts explained
-- `designs/` — Why we chose these patterns
-- `patterns/` — Common usage patterns
-- `workflows/` — Step-by-step processes
-
-**See [User vs Agent Documentation](docs/wiki/concepts/user-vs-agent-documentation.md) for detailed guidance on this distinction.**
-
-## Level Up Architecture
-
-smaqit uses a three-level architecture where each level compiles to the next:
-
-- **Level 0 (framework/)** — Principles and philosophy in narrative form
-- **Level 1 (templates/)** — Directives with placeholders compiled from L0 principles
-- **Level 2 (agents/)** — Concrete implementations with layer/phase-specific values compiled from L1 directives
-
-### Meta-Framework Agents
-
-Three special agents maintain the Level Up architecture:
-
-- **Agent-L0** (`.github/agents/smaqit.L0.agent.md`) — Maintains framework principle purity
-- **Agent-L1** (`.github/agents/smaqit.L1.agent.md`) — Compiles L0 principles into L1 template directives
-- **Agent-L2** (`.github/agents/smaqit.L2.agent.md`) — Compiles L1 directives into L2 product agents
-
-Each agent enforces:
-- Level-specific form (philosophy → directives → implementations)
-- Placeholder conventions for their level
-- Contamination prevention (rejecting content from other levels)
-- Self-containment and traceability requirements
-
-**Key principles:**
-- Never skip levels or work out of order
-- Each level only references its direct predecessor
-- Agents are self-contained with embedded necessary content
-- Use generic placeholders at L0/L1, concrete values at L2
-
----
-
-## Contributors
-
-### Building from Source
-
-**Prerequisites:**
-- Go 1.25 or later
-- make (optional, can use build scripts)
-
-**Build:**
-```bash
-# Clone the repository
-git clone https://github.com/ruifrvaz/smaqit.git
-cd smaqit/installer
-
-# Build for your platform
-make build
-
-# Or build for all platforms
-make build-all
-
-# Or use shell scripts
-./build.sh build          # Unix-like systems
-build.bat build           # Windows
-```
-
-**Development:**
-```bash
-# Show version that would be built
-make version
-
-# Install to ~/.local/bin (adds to PATH if needed)
-make install
-
-# Remove binary (prompts for PATH and artifact cleanup)
-make uninstall
-
-# See all available targets
-make help
-```
-
-### Testing
-
-**Test location:** `installer/test/` (standardized test directory)
-
-**Automated end-to-end testing:** See `.github/agents/smaqit.user-testing.agent.md`
-
-**Testing philosophy and manual workflows:** See `docs/wiki/workflows/testing-smaqit.md`
-
-### Releases
-
-**Automated release workflow:**
-
-1. **Fill release prompt** in `.github/prompts/smaqit.release.prompt.md`:
-   - Set target version (e.g., `v0.5.0`)
-   - Optionally specify date range for changelog
-
-2. **Invoke release agent:**
-   ```
-   /smaqit.release
-   ```
-
-3. **Agent orchestrates complete release:**
-   - Updates CHANGELOG.md from session history
-   - Syncs version strings in code files
-   - Commits changes with release message
-   - Creates annotated git tag
-   - Pushes commit and tag to remote
-
-4. **GitHub Actions automatically:**
-   - Builds binaries for all platforms
-   - Extracts release notes from CHANGELOG.md
-   - Creates GitHub release with binaries
-
-The release agent handles all git operations up to the push. After push, monitor GitHub Actions for build status.
-
-## License
-
-MIT
+- **[Quickstart](docs/wiki/workflows/quickstart.md)** — Build "Hello, Mario!" from scratch
+- **[Team Alignment](docs/wiki/concepts/team-alignment.md)** — How layers map to Agile roles
+- **[Wiki](docs/wiki/)** — Concepts, designs, patterns, workflows

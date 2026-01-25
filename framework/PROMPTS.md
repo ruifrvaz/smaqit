@@ -45,8 +45,7 @@ project/
         ├── smaqit.coverage.prompt.md
         ├── smaqit.development.prompt.md
         ├── smaqit.deployment.prompt.md
-        ├── smaqit.validation.prompt.md
-        └── smaqit.orchestrate.prompt.md
+        └── smaqit.validation.prompt.md
 ```
 
 ### Format
@@ -128,14 +127,4 @@ Trigger single implementation agent with optional execution parameters:
 | `smaqit.validation.prompt.md` | Validation | Execution scope, failure handling | Validation Agent |
 
 Implementation prompts collect minimal runtime parameters (watch mode, verbosity, skip flags). Agents handle orchestration, validation, and error handling.
-
-### Orchestrator Prompt
-
-Coordinates full workflow from specifications through validation:
-
-| Prompt | Captures | Invokes |
-|--------|----------|----------|
-| `smaqit.orchestrate.prompt.md` | Phase selection, pre-validation preferences, error handling | Orchestrator Agent |
-
-Orchestrator prompt collects execution parameters (which phases to run, validation preferences, error handling strategy). Orchestrator agent executes the workflow logic.
 

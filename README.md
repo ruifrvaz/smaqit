@@ -1,6 +1,6 @@
 ![smaqit banner](assets/banner.png)
 
-Welcome to smaQit, an agent orchestration toolkit for developers who build software using Spec Driven Development. You describe requirements in prompt files, specification agents generate traceable specs across business, functional, and technical layers, then implementation agents turn those specs into working, tested applications. Built for teams that value auditability, clear boundaries, and reproducible workflows.
+Welcome to smaQit, an agent orchestration toolkit for developers who wish to build software using Spec Driven Development. You describe requirements in prompt files, specification agents generate traceable specs across business, functional, and technical layers, then implementation agents turn those specs into working, tested applications. Built for teams that value auditability, clear boundaries, and reproducible workflows.
 
 ## Features
 

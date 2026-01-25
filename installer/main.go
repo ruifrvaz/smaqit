@@ -338,8 +338,8 @@ func cmdInit(targetDir string) {
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
-	fmt.Println("  2. Type '/smaqit.development' to run the Development implementation step")
-	fmt.Println("  3. Or type '/smaqit.business' to create business specifications")
+	fmt.Println("  2. Type '/smaqit.development' to orchestrate the entire Development phase")
+	fmt.Println("  3. Or type '/smaqit.business' to begin with business specifications only")
 }
 
 // copyEmbeddedDir copies files from an embedded FS to a target directory
@@ -745,7 +745,7 @@ func cmdStatus() {
 			fmt.Println("  • Type '/smaqit.validation' to validate the deployment")
 		}
 	} else {
-		fmt.Println("  • All phases complete. Run '/smaqit.orchestrate' to iterate or extend.")
+		fmt.Println("  • All phases complete. Use '/smaqit.development --regen' to iterate or extend.")
 	}
 }
 

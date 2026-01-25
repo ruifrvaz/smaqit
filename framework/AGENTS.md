@@ -59,9 +59,15 @@ When user requests out-of-scope work:
 2. **Respond clearly** — State current scope and required agent for requested work
 3. **Suggest next step** — Provide prompt file or agent invocation command
 
+### Extensible Agents
+
+All agents share foundational behaviors codified in base template principles. These foundations—bounded scope, self-validation, fail-fast on ambiguity, template-constrained output, traceable references—apply regardless of agent purpose.
+
+Agent extensions inherit these foundations and add specialized behaviors. The base template documents what must remain invariant. Extension templates document what varies by role.
+
 ## Naming Convention
 
-Agents follow the pattern: `smaqit.[LAYER]` for specification agents, `smaqit.[PHASE]` for implementation agents, and `smaqit.orchestrator` for the orchestration agent.
+Agents follow the pattern: `smaqit.[LAYER]` for specification agents and `smaqit.[PHASE]` for implementation agents.
 
 | Type | Pattern | Examples |
 |------|---------|----------|
@@ -69,7 +75,30 @@ Agents follow the pattern: `smaqit.[LAYER]` for specification agents, `smaqit.[P
 | Implementation | `smaqit.[PHASE]` | `smaqit.development`, `smaqit.deployment`, `smaqit.validation` |
 | Orchestrator | `smaqit.orchestrator` | `smaqit.orchestrator` |
 
-## Specification Agents
+## Foundation Agent
+
+The foundation agent represents what all smaqit agents must preserve regardless of their specific purpose. These guidelines apply universally and are materialized through the base agent template.
+
+### Core Behaviors
+
+All agents inherit these foundational behaviors from the Unified Principles:
+- Template-constrained output structure
+- Traceable references to input sources
+- Fail-fast on ambiguity or inconsistency
+- Self-validation before completion
+- Bounded scope with clear boundary enforcement
+
+### Extensibility Through Templates
+
+Foundation behaviors materialize through shared template structures. What all agents must preserve becomes part of a base template. What differentiates agents becomes part of specialized templates that build upon the base.
+
+This ensures consistency across agent types while enabling role-specific behaviors to emerge naturally from the template hierarchy.
+
+## Agent Extensions
+
+Agent extensions inherit foundation behaviors and add specialized directives for specific roles. Current extensions include specification agents that extend base with layer-specific directives and implementation agents that extend base with phase-specific execution. Future agent types extend base with their own specializations.
+
+### Specification Agents
 
 Specification agents translate prompt file requirements into precise, testable specifications for a single layer.
 
@@ -251,7 +280,7 @@ Implementation agents require execution capabilities that specification agents d
 | `changes` | Get git diffs and file changes |
 | `testFailure` | Get test failure information |
 | `runTests` | Execute unit tests |
-| `runSubagent` | Invoke other agents (orchestrator only) |
+| `runSubagent` | Invoke other agents
 
 Agents MUST NOT proceed with implementation while unresolved conflicts exist.
 
@@ -264,6 +293,8 @@ Agents MUST NOT proceed with implementation while unresolved conflicts exist.
 | `smaqit.validation` | Validate | Deployed system + Coverage specs | Validation report |
 
 ## Orchestrator Agent
+
+> **Note:** The orchestrator agent pattern has been removed (Task 072). This section is preserved as reference for Task 073, which will incorporate orchestration capabilities directly into implementation agents. The workflows and directives documented here will be adapted for phase-level orchestration where each implementation agent coordinates its own phase (spec generation + implementation).
 
 The orchestrator agent coordinates full workflow execution from specifications through validation.
 

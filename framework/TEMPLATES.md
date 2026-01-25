@@ -136,56 +136,52 @@ When producing specs from templates:
 
 ## Agent Templates
 
-Agent templates define the structure for agent definition files.
+Agent templates define structure for agent definition files. Templates organize into a hierarchy reflecting foundational principles and role-specific extensions.
 
-### Location
+### Template Hierarchy
 
-```
-templates/agents/
-├── specification-agent.template.md
-├── implementation-agent.template.md
-└── orchestrator-agent.template.md
-```
+**Foundation Template**
 
-### Required Sections
+Captures principles shared across all agents regardless of role:
+- Bounded scope (single responsibility)
+- Self-validation (completion criteria verification)
+- Fail-fast behaviors (ambiguity and inconsistency handling)
+- Template-constrained output (predictable structure)
+- Traceable references (explicit source linkage)
+- Scope boundaries (redirection when out-of-scope)
 
-Every agent template MUST include:
+The foundation template materializes what remains invariant across agent types.
 
-| Section | Purpose |
-|---------|---------|
-| YAML Frontmatter | name, description, tools |
-| Role | Agent's purpose, including core responsibilities |
-| Framework Reference | Links to relevant framework files |
-| Input | Upstream specs and user input |
-| Output | Location, template, format |
-| Directives | MUST/MUST NOT/SHOULD rules |
-| Completion Criteria | Self-validation checklist |
-| Failure Handling | Error response table |
+**Extension Templates**
+
+Build upon foundation by adding role-specific behaviors while preserving shared principles:
+
+- **Specification template** — Layer-specific sections (References to upstream specs, layer scope boundaries, acceptance criteria structure). Extends foundation with prompt-to-spec generation behaviors.
+
+- **Implementation template** — Phase-specific sections (Cross-layer consolidation, frontmatter updates, retry thresholds, artifact generation). Extends foundation with spec-to-artifact generation behaviors.
+
+Extensions inherit foundation structure. Each extension adds sections capturing role-specific concerns without duplicating shared foundation content.
+
+### Section Structure
+
+Agent definitions contain these sections:
+
+| Section | Content | Foundation or Extension |
+|---------|---------|-------------------------|
+| YAML Frontmatter | Agent metadata (name, description, tools) | Foundation |
+| Role | Agent identity, goal, context | Foundation |
+| Framework Reference | Links to relevant framework files | Foundation |
+| Input | Source specifications and prompt files | Extension-specific |
+| Output | Target artifacts and structure | Extension-specific |
+| Directives | Behavioral rules compiled from principles | Extension-specific |
+| Completion Criteria | Self-validation checklist | Foundation pattern, extension details |
+| Failure Handling | Error response mapping | Foundation pattern, extension details |
 
 ### Agent Definition Format
 
-Agent definitions use GitHub Custom Agent format:
+Agent definitions follow GitHub Custom Agent format with YAML frontmatter, markdown sections, and placeholder resolution during compilation.
 
-```
----
-name: smaqit.[layer]
-description: [One-line description]
-tools: ["read", "edit", "search"]
----
-
-# [Layer] Agent
-
-## Role
-...
-
-## Input
-...
-
-## Output
-...
-```
-
-Note: The code fence above is for illustration only. Actual agent files start directly with the YAML frontmatter (`---`).
+Frontmatter captures agent metadata. Sections contain behavioral guidelines compiled from framework principles. Placeholders enable template reuse across agent instances.
 
 ## Prompt Templates
 
@@ -196,8 +192,7 @@ Prompt templates define the structure for prompt files that serve as input recor
 ```
 templates/prompts/
 ├── specification-prompt.template.md
-├── implementation-prompt.template.md
-└── orchestrator-prompt.template.md
+└── implementation-prompt.template.md
 ```
 
 ### Required Sections

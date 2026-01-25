@@ -47,7 +47,7 @@ This helps reduce confusion and makes layer boundaries explicit, even when conte
 
 ### Future Solution
 
-**v0.6.0 (planned):** Orchestrator agent pattern (`/smaqit.orchestrator`) will invoke sub-agents with isolated contexts, eliminating this issue entirely. The orchestrator will coordinate all layer agents in a single invocation while maintaining proper context isolation.
+**Future:** Implementation agents will invoke specification agents internally (Task 073), providing automatic phase coordination while maintaining context isolation. Users will invoke a single command per phase (e.g., `/smaqit.development`) and the agent will handle spec generation and implementation.
 
 ---
 

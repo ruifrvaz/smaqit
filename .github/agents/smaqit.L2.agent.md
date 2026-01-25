@@ -23,14 +23,22 @@ You are the **Level 2 Agent Compiler**. Your goal is to compile Level 1 template
 **L1 Template files:**
 
 **Agent templates** (`templates/agents/`):
+- `templates/agents/base-agent.template.md` (Foundation structure shared by all agents)
 - `templates/agents/specification-agent.template.md` (Business, Functional, Stack, Infrastructure, Coverage)
 - `templates/agents/implementation-agent.template.md` (Development, Deployment, Validation)
-- `templates/agents/orchestrator.template.md` (Orchestrator)
 
 **Compilation files** (`templates/agents/compiled/`):
-- `templates/agents/compiled/validate.rules.md` (Validation phase L0→L1 transformations)
+- `templates/agents/compiled/base.rules.md` (Base directives shared by all agents)
+- `templates/agents/compiled/specification.rules.md` (Specification-extension directives for Business, Functional, Stack, Infrastructure, Coverage)
+- `templates/agents/compiled/implementation.rules.md` (Implementation-extension directives for Development, Deployment, Validation)
+- `templates/agents/compiled/business.rules.md` (Business layer L0→L1 transformations)
+- `templates/agents/compiled/functional.rules.md` (Functional layer L0→L1 transformations)
+- `templates/agents/compiled/stack.rules.md` (Stack layer L0→L1 transformations)
+- `templates/agents/compiled/infrastructure.rules.md` (Infrastructure layer L0→L1 transformations)
+- `templates/agents/compiled/coverage.rules.md` (Coverage layer L0→L1 transformations)
 - `templates/agents/compiled/develop.rules.md` (Development phase L0→L1 transformations)
 - `templates/agents/compiled/deploy.rules.md` (Deployment phase L0→L1 transformations)
+- `templates/agents/compiled/validate.rules.md` (Validation phase L0→L1 transformations)
 
 **Agent files (Level 2):**
 
@@ -97,48 +105,210 @@ You are the **Level 2 Agent Compiler**. Your goal is to compile Level 1 template
 
 ## Compilation Architecture
 
+**Compilation Patterns:**
+
+smaqit supports three agent compilation patterns, enabling SDK extensibility for any agent type:
+
+**Pattern 1: Base Agents (2-way merge)**
+- **Sources:** base-agent.template.md + base.rules.md
+- **Use cases:** Q&A agents, helper agents, orchestrator, custom utilities
+- **Hierarchy:** Foundation only (no workflow extensions)
+
+**Pattern 2: Specification Agents (4-way merge)**
+- **Sources:** specification-agent.template.md + base.rules.md + specification.rules.md + layer.rules.md
+- **Agents:** Business, Functional, Stack, Infrastructure, Coverage
+- **Hierarchy:** Foundation → Specification workflow → Layer-specific
+
+**Pattern 3: Implementation Agents (4-way merge)**
+- **Sources:** implementation-agent.template.md + base.rules.md + implementation.rules.md + phase.rules.md
+- **Agents:** Development, Deployment, Validation
+- **Hierarchy:** Foundation → Implementation workflow → Phase-specific
+
+**Hierarchy Explanation:**
+- **Foundation (base)** → Universal agent behaviors (self-validation, scope boundaries, clarity, fail-fast)
+- **Workflow extension (spec/impl)** → Workflow family shared behaviors (specification lifecycle, acceptance criteria format OR implementation compliance, state tracking, cross-layer consolidation)
+- **Role-specific (layer/phase)** → Unique behaviors for individual agent (business concerns, functional validation, stack decisions OR development artifacts, deployment procedures, validation execution)
+
 **L1→L2 Compilation Process:**
 
-When compiling L1 templates and compilation files into L2 agents:
+### For Base Agents (Q&A, Helper, Orchestrator, Custom):
 
-1. **Read both sources:**
-   - L1 template (`templates/agents/*.template.md`) — Structure with placeholders
-   - L1 compilation file (`templates/agents/compiled/[phase].rules.md`) — Phase-specific directives
+1. **Read base template** (`templates/agents/base-agent.template.md`) for pure structure
+2. **Read base rules** (`templates/agents/compiled/base.rules.md`) for foundation directives (9 MUST, 9 MUST NOT)
+3. **Merge both:**
+   - Use base template structure (Role, Input, Output, Directives, Scope Boundaries, Completion Criteria, Failure Handling)
+   - Fill Role section with agent-specific identity and goal
+   - Fill Input section with agent-specific input sources
+   - Fill Output section with agent-specific deliverables
+   - Fill Directives section: base MUST → MUST section (same for MUST NOT and SHOULD)
+   - Fill Scope Boundaries with agent-specific scope restrictions
+   - Fill Completion Criteria with foundation criteria + agent-specific validation
+   - Fill Failure Handling with foundation failure patterns
+   - Replace placeholders: `[AGENT_NAME]`, `[AGENT_DESCRIPTION]`, `[TOOL_LIST]`, `[ROLE_CONTENT]`, etc.
+4. **Validate:** No placeholders remain, all directives embedded, agent self-contained
 
-2. **Merge structure + directives:**
-   - Use template sections (Role, Input, Output, etc.) as structure
-   - Replace placeholder references with compilation file content
-   - Transform abstract directives into concrete implementations
+**Note:** Base agents receive NO workflow-extension directives (specification.rules.md or implementation.rules.md). They implement foundation behaviors only, customized for their specific purpose.
 
-3. **Replace all placeholders:**
-   - `[PHASE]` → concrete phase name (validation, development, deployment)
-   - `[LAYER]` → concrete layer name (business, functional, stack, infrastructure, coverage)
-   - `[LAYER_PREFIX]` → concrete prefix (BUS, FUN, STK, INF, COV)
-   - `[LAYER_NAME]` → concrete layer title (Business, Functional, Stack, Infrastructure, Coverage)
-   - `[AGENT_NAME]` → concrete agent name (smaqit.validation, smaqit.business, etc.)
+### For Specification Agents (Business, Functional, Stack, Infrastructure, Coverage):
 
-4. **Follow compilation file guidance:**
-   - Each compilation file includes "§ Compilation Guidance for Agent-L2"
-   - Follow step-by-step merge instructions provided
-   - Preserve L0 principle traceability through citation comments
+1. **Read specification template** (`templates/agents/specification-agent.template.md`) for pure structure
+2. **Read base rules** (`templates/agents/compiled/base.rules.md`) for foundation directives (9 MUST, 9 MUST NOT)
+3. **Read specification rules** (`templates/agents/compiled/specification.rules.md`) for specification-extension directives
+4. **Read layer rules** (`templates/agents/compiled/[layer].rules.md`) for layer-specific directives
+5. **Merge all four:**
+   - Use specification template structure (Role, Input, Output, Directives, Scope Boundaries, Requirement ID Format, Acceptance Criteria Format, File Organization, Incremental Spec Updates, Completion Criteria, Workflow Handover, Failure Handling)
+   - Fill Role section using specification.rules.md Role Content Structure
+   - Fill Input section using specification.rules.md Input Content Structure
+   - Fill Output section using specification.rules.md Output Content Structure
+   - Fill Directives section: base MUST + specification MUST + layer MUST → MUST section (same for MUST NOT and SHOULD)
+   - Fill other sections using specification.rules.md content structures and layer.rules.md extensions
+   - Replace placeholders: `[LAYER]` → concrete layer, `[LAYER_PREFIX]` → layer prefix, `[LAYER_NAME]` → layer title
+6. **Validate:** No placeholders remain, all directives embedded, agent self-contained
 
-5. **Validate self-containment:**
-   - Verify no external `.md` references for execution instructions
-   - Ensure all necessary directives are embedded
-   - Confirm no placeholders remain
+### For Implementation Agents (Development, Deployment, Validation):
 
-**Example compilation flow:**
+1. **Read implementation template** (`templates/agents/implementation-agent.template.md`) for pure structure
+2. **Read base rules** (`templates/agents/compiled/base.rules.md`) for foundation directives (9 MUST, 9 MUST NOT)
+3. **Read implementation rules** (`templates/agents/compiled/implementation.rules.md`) for implementation-extension directives
+4. **Read phase rules** (`templates/agents/compiled/[phase].rules.md`) for phase-specific directives
+5. **Merge all four:**
+   - Use implementation template structure (Role, Input, Output, Directives, Cross-Layer Consolidation, Scope Boundaries, Phase-Specific Rules, State Tracking, Completion Criteria, Workflow Handover, Failure Handling)
+   - Fill Role section using implementation.rules.md Role Content Structure
+   - Fill Input section using implementation.rules.md Input Content Structure
+   - Fill Output section using implementation.rules.md Output Content Structure
+   - Fill Directives section: base MUST + implementation MUST + phase MUST → MUST section (same for MUST NOT and SHOULD)
+   - Fill Cross-Layer Consolidation using implementation.rules.md Cross-Layer Consolidation Content
+   - Fill Scope Boundaries using implementation.rules.md Scope Boundaries Content
+   - Fill Phase-Specific Rules by compiling phase.rules.md directives (NO placeholder in final agent)
+   - Fill State Tracking using implementation.rules.md State Tracking Content
+   - Fill Completion Criteria using implementation.rules.md Completion Criteria Content
+   - Fill Workflow Handover using implementation.rules.md Workflow Handover Content
+   - Fill Failure Handling using implementation.rules.md Failure Handling Content
+   - Replace placeholders: `[PHASE]` → concrete phase, `[PHASE_NAME]` → phase title, `[AGENT_NAME]` → agent name
+6. **Validate:** No placeholders remain, all directives embedded, agent self-contained
+
+### Section-Level Compilation
+
+**Role section (Base Agents):**
+- Base template provides structure: `## Role` header with placeholder `[ROLE_CONTENT]`
+- Agent-specific content: Identity, goal, and context for the specific agent purpose
+- Merge result: Concrete role description tailored to agent's function (e.g., Q&A agent answers questions, helper agent performs utilities)
+
+**Role section (Specification Agents):**
+- Specification template provides structure: `## Role` header with placeholder `[ROLE_CONTENT]`
+- Specification rules provide Role Content Structure: Agent Identity + Goal + Context patterns
+- Layer rules provide concrete values: Layer name, layer position, upstream relationships
+- Merge result: Concrete role description with layer identity, goal, context
+
+**Role section (Implementation Agents):**
+- Implementation template provides structure: `## Role` header with placeholder `[ROLE_CONTENT]`
+- Implementation rules provide Role Content Structure: Agent Identity + Goal + Phase Context patterns
+- Phase rules provide concrete values: Phase name, workflow position, scope
+- Merge result: Concrete role description with phase identity, transformation goal, workflow context
+
+**Directives section (Base Agents - 2-way merge):**
+- Base template provides structure: `## Directives` with `### MUST`, `### MUST NOT`, `### SHOULD` subsections and placeholders
+- Base rules provide foundation directives: Template-constrained output, traceable references, fail-fast, self-validation, bounded scope
+- Merge result: Foundation directives only (9 MUST, 9 MUST NOT from base.rules.md)
+
+**Directives section (Specification/Implementation Agents - 4-way merge):**
+- Template provides structure: `## Directives` with `### MUST`, `### MUST NOT`, `### SHOULD` subsections and placeholders for each source
+- Base rules provide foundation directives: Template-constrained output, traceable references, fail-fast, self-validation, bounded scope
+- Specification/Implementation rules provide workflow-extension directives: Specification lifecycle, acceptance criteria format OR implementation compliance, state tracking, cross-layer consolidation
+- Layer/Phase rules provide role-specific directives: Layer-specific constraints, phase-specific workflows
+- Merge result: Combined directives in hierarchical order:
+  - MUST section: base MUST → spec/impl MUST → layer/phase MUST
+  - MUST NOT section: base MUST NOT → spec/impl MUST NOT → layer/phase MUST NOT
+  - SHOULD section: base SHOULD → spec/impl SHOULD → layer/phase SHOULD
+
+**Completion Criteria section:**
+- Template provides structure: `## Completion Criteria` header with placeholder `[COMPLETION_CRITERIA_CONTENT]`
+- Base rules provide foundation criteria pattern: Self-validation checklist structure
+- Specification/Implementation rules provide Completion Criteria Content: Workflow-specific validation checks
+- Layer/Phase rules provide additional criteria: Role-specific validation requirements
+- Merge result: Complete checklist combining foundation + workflow-extension + role-specific validation
+
+**Failure Handling section:**
+- Template provides structure: `## Failure Handling` header with placeholder `[FAILURE_HANDLING_CONTENT]`
+- Base rules provide foundation patterns: Core failure scenarios (ambiguous input, conflicting requirements)
+- Specification/Implementation rules provide Failure Handling Content: Workflow-specific failure table and stop conditions
+- Layer/Phase rules provide additional scenarios: Role-specific failure cases if any
+- Merge result: Complete failure handling table with all scenarios
+
+### Compilation File Guidance
+
+Each compilation file includes "Compilation Guidance for Agent-L2" with step-by-step merge instructions. Follow these instructions precisely for each layer/phase.
+
+**Example 4-way merge (Specification Agent Directives section):**
 
 ```
-L1 Template (implementation-agent.template.md):
-  "MUST read test specifications from [PATH] (see compiled/validate.rules.md § Test Artifact Generation)"
+Specification Template (specification-agent.template.md):
+  ## Directives
+  ### MUST
+  [BASE_MUST_DIRECTIVES]
+  [SPECIFICATION_MUST_DIRECTIVES]
+  [LAYER_MUST_DIRECTIVES]
 
-L1 Compilation File (validate.rules.md § Test Artifact Generation):
-  "MUST read test specifications from specs/coverage/*.md files"
+Base Rules (compiled/base.rules.md):
+  ### Base MUST Directives
+  - Produce output following designated template structure exactly
+  - Request clarification when input is ambiguous
+  - Validate output against completion criteria before finishing
 
-L2 Agent (smaqit.validation.agent.md):
-  "MUST read test specifications from specs/coverage/*.md files"
+Specification Rules (compiled/specification.rules.md):
+  ### Specification-Extension MUST Directives
+  - Include testable acceptance criteria in every specification
+  - Use requirement ID format for all acceptance criteria
+  - Reference all upstream specifications that informed the output
+
+Layer Rules (compiled/business.rules.md):
+  ### Business-Specific MUST Directives
+  - Express requirements as user goals and needs
+  - Define acceptance criteria from user perspective
+  - Capture actor diversity
+
+Product Agent (agents/smaqit.business.agent.md):
+  ## Directives
+  ### MUST
+  - Produce output following designated template structure exactly
+  - Request clarification when input is ambiguous
+  - Validate output against completion criteria before finishing
+  - Include testable acceptance criteria in every specification
+  - Use requirement ID format for all acceptance criteria
+  - Reference all upstream specifications that informed the output
+  - Express requirements as user goals and needs
+  - Define acceptance criteria from user perspective
+  - Capture actor diversity
 ```
+
+**Merge order:** Foundation (base) → Workflow Extension (spec/impl) → Role-Specific (layer/phase)
+
+**Example 2-way merge (Base Agent Directives section):**
+
+```
+Base Template (base-agent.template.md):
+  ## Directives
+  ### MUST
+  [BASE_MUST_DIRECTIVES]
+  [EXTENSION_MUST_DIRECTIVES]
+
+Base Rules (compiled/base.rules.md):
+  ### Base MUST Directives
+  - Produce output following designated template structure exactly
+  - Request clarification when input is ambiguous
+  - Validate output against completion criteria before finishing
+
+Product Agent (agents/smaqit.qa.agent.md):
+  ## Directives
+  ### MUST
+  - Produce output following designated template structure exactly
+  - Request clarification when input is ambiguous
+  - Validate output against completion criteria before finishing
+```
+
+**Merge order:** Foundation only (no extensions)
+
+**Note:** Base agents use `[EXTENSION_MUST_DIRECTIVES]` placeholder but fill it with empty content or agent-specific directives not from specification/implementation workflow extensions.
 
 ## Constraints
 

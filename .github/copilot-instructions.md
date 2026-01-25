@@ -76,15 +76,39 @@ When performing work:
 
 ## Content Guidelines
 
-### Framework Files Contain Philosophy
+### Framework Files: Level 0 Content Model
 
-**Framework files** (`framework/*.md`) are L0 principle documents that contain:
-- Core principles and rationale (the "why")
-- Design philosophy and thought process
-- Trade-offs between alternatives
-- Conceptual foundations
+**Framework files** (`framework/*.md`) are Level 0 documents containing principles, concepts, and structural mappings. L0 content guides L1 template compilation and L2 agent compilation.
 
-These files guide L1 template compilation and L2 agent compilation.
+**Level 0 Content Types:**
+
+1. **Principles (WHY)** — Philosophical foundations (SMAQIT.md primarily)
+2. **Concepts (WHAT)** — Definitions and categorizations (AGENTS.md, LAYERS.md, PHASES.md)
+3. **Mappings (HOW arranged)** — Structural organization and relationships (TEMPLATES.md, PROMPTS.md, ARTIFACTS.md)
+
+**Graduated Abstraction Across L0 Files:**
+
+| File | Primary Content |
+|------|----------------|
+| `SMAQIT.md` | Pure principles (WHY) |
+| `LAYERS.md`, `PHASES.md` | Principles + concepts (WHY + WHAT) |
+| `TEMPLATES.md`, `AGENTS.md` | Concepts + mappings (WHAT + HOW arranged) |
+| `PROMPTS.md`, `ARTIFACTS.md` | Structure + mappings (HOW arranged) |
+
+**Compilation Chain:**
+
+```
+L0: "Agents validate their own output" (concept)
+    ↓ L1 compiles into directive
+L1: "Agents MUST validate output before declaring completion" (directive in template)
+    ↓ L2 compiles into product agent
+L2: "Specification Agent MUST validate output before declaring completion" (directive in product agent)
+```
+
+**Key Distinction:**
+- L0 uses descriptive form: "Agents validate output"
+- L1 uses directive form: "Agents MUST validate output"
+- MUST/MUST NOT/SHOULD statements are L1 compilation outputs, not L0 content
 
 #### Compilation Files Architecture
 
@@ -181,6 +205,32 @@ Keep `installer/main.go` Version const in sync with SMAQIT.md version.
 - **Agent-L1** (`.github/agents/smaqit.L1.agent.md`) — Compiles L0 principles into L1 template directives
 - **Agent-L2** (`.github/agents/smaqit.L2.agent.md`) — Compiles L1 directives into L2 product agents
 
+### Level Contamination Awareness
+
+**Current state:** Extensive level contamination exists across L0 (framework files), L1 (templates), and L2 (product agents):
+
+- **L0 contamination** — Framework files contain directives (MUST/MUST NOT), file paths, implementation details
+- **L1 contamination** — Templates contain L0 philosophy mixed with directives
+- **L2 contamination** — Product agents contain L0/L1 content not properly compiled
+
+**Task 064-066** targets systematic cleanup, but this is ongoing work.
+
+**Agent directive for active cleanup:**
+
+All Level agents (L0, L1, L2) are authorized and encouraged to perform **opportunistic cleanup** during regular sessions:
+
+1. **Do not introduce new contamination** — Respect level boundaries for new content
+2. **Actively clean contamination within session scope** — If working in a contaminated area, extract and relocate content to proper level
+3. **Document cleanup in session** — Note what was cleaned and where it moved
+4. **Prioritize session goals** — Don't let cleanup derail primary work, but seize cleanup opportunities when natural
+
+**Examples:**
+- Agent-L0 editing SMAQIT.md finds MUST statements → extract to compilation notes for L1
+- Agent-L1 updating template finds L0 philosophy → flag for L0 migration
+- Agent-L2 compiling agent finds mixed L0/L1 → request proper sources from L1
+
+**Goal:** Gradually improve level purity through active maintenance rather than waiting for dedicated cleanup sessions.
+
 ## Workflow Commands
 
 Session management and task management commands are available as prompts in `.github/prompts/`:
@@ -201,7 +251,7 @@ See individual prompt files in `.github/prompts/` for detailed workflows.
 
 - `docs/tasks/PLANNING.md` has three tables: Active, Completed, and Abandoned
 - New tasks go in Active table with status `new`
-- When starting a task, update status to `in progress`
+- **When starting work on a task, ALWAYS update status to `in progress` in PLANNING.md BEFORE beginning implementation**
 - When completing a task, move from Active to Completed table
 - When abandoning a task (superseded, no longer relevant, incorrect approach), move from Active to Abandoned table with reason
 - Individual task files in `docs/tasks/{id}_{title}.md` contain details

@@ -8,189 +8,66 @@ tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', '
 
 ## Role
 
-You are now operating as the **[AGENT_NAME]**. Your goal is to transform [UPSTREAM_SPEC_LAYERS] specifications into [OUTPUT_ARTIFACTS_SUMMARY].
-
-**Phase Context:** You operate in the **[PHASE_NAME]** phase ([PHASE_SEQUENCE_NOTE]). This phase includes both [PHASE_SPEC_LAYERS] specification generation and implementation execution. The recommended workflow completes this phase ([PHASE_SPEC_SUMMARY] + implementation) before moving to the next phase.
-
-[ROLE_DETAILS]
+[ROLE_CONTENT]
 
 ## Input
 
-**Upstream Specifications:**
-- [UPSTREAM_SPEC_PATHS]
-
-**User Input:**
-- [USER_INPUT_DESCRIPTION]
-
-**Conflict Resolution:**
-When prompt requirements conflict with upstream specs, flag the conflict rather than silently override.
+[INPUT_CONTENT]
 
 ## Output
 
-**Artifacts:**
-- [OUTPUT_ARTIFACTS]
-- Phase report in `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md`
-
-<!-- L1 Transformation Instructions:
-     
-     Agent-L2 compiles [OUTPUT_ARTIFACTS] by reading:
-     templates/agents/compiled/[phase].rules.md § Output Artifacts
-     
-     Compilation file specifies phase-specific artifact types and formats.
--->
-
-**Format:**
-- [OUTPUT_FORMAT]
-- Phase report MUST be written to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md` documenting phase outcomes
-- Phase report MUST document the output of `smaqit plan --phase=[PHASE]` command execution
+[OUTPUT_CONTENT]
 
 ## Directives
 
 ### MUST
 
-- Execute `smaqit plan --phase=[PHASE]` as the first action to determine specs requiring [phase work] (returns specs with `status: draft` or `status: failed`)
-- Process all specs returned by the CLI command
-- Document any updates to existing specs in the phase report with clear justification
-- Report completion when no specs require processing and suggest `--regen` flag
-- Comply with all referenced specifications
-- Trace every implementation decision to a specification
-- Validate output against specification acceptance criteria
-- Report deviations or impossibilities rather than silently diverge
-- Request clarification when input is ambiguous
-- Validate output against completion criteria before finishing
+[BASE_MUST_DIRECTIVES]
+
+[IMPLEMENTATION_MUST_DIRECTIVES]
+
+[PHASE_MUST_DIRECTIVES]
 
 ### MUST NOT
 
-- Modify specification requirements or structure (request changes through proper channels)
-- Implement features not defined in specifications
-- Skip validation steps defined in Coverage specs
-- Invent requirements not present in input
-- Proceed with unresolved cross-layer conflicts
-- Include secrets, passwords, API keys, tokens, or credentials in generated artifacts (use placeholder references like `${secrets.KEY_NAME}`)
+[BASE_MUST_NOT_DIRECTIVES]
+
+[IMPLEMENTATION_MUST_NOT_DIRECTIVES]
+
+[PHASE_MUST_NOT_DIRECTIVES]
 
 ### SHOULD
 
-- Consolidate duplicate implementation artifacts into shared components
-- Refactor shared implementation concerns rather than duplicating code
-- Request spec amendments when conflicts or gaps are discovered during consolidation
-- Prefer explicit over implicit behavior
-- Document assumptions when specs are underspecified
-- Request spec clarification before inventing solutions
-- Follow industry standards for the chosen stack while satisfying spec-defined behavior, including folder structure conventions
-- Ensure implementations are structurally recognizable and behaviorally equivalent to specs
+[BASE_SHOULD_DIRECTIVES]
+
+[IMPLEMENTATION_SHOULD_DIRECTIVES]
+
+[PHASE_SHOULD_DIRECTIVES]
 
 ## Cross-Layer Consolidation
 
-Before implementation, consolidate specs from multiple layers:
-
-1. **Coherence check** — Verify specs across layers are compatible
-2. **Conflict detection** — Identify contradictions between layers
-3. **Gap analysis** — Ensure all upstream requirements have corresponding downstream specs
-4. **Amendment request** — If conflicts or gaps exist, request spec amendments before proceeding
-
-MUST NOT proceed with implementation while unresolved conflicts exist.
+[CROSS_LAYER_CONSOLIDATION_CONTENT]
 
 ## Scope Boundaries
 
-Implementation agents execute only their designated phase.
-
-### MUST NOT
-
-- Execute work assigned to other phases ([OTHER_PHASES])
-- Execute work assigned to specification layers (Business, Functional, Stack, Infrastructure, Coverage)
-
-### Boundary Enforcement
-
-When user requests out-of-phase work:
-1. **Stop immediately** — Do not plan, create todos, or execute
-2. **Respond clearly** — "[Phase] phase is [status]. To proceed with [requested work], invoke [target agent]."
-3. **Suggest next step** — Provide the appropriate agent invocation command
+[SCOPE_BOUNDARIES_CONTENT]
 
 ## Phase-Specific Rules
 
-[PHASE_SPECIFIC_RULES]
-
-<!-- L1 Transformation Instructions:
-     
-     Agent-L2 compiles [PHASE_SPECIFIC_RULES] by:
-     1. Reading templates/agents/compiled/[phase].rules.md
-     2. Applying L0→L1 transformation rules documented there
-     3. Replacing generic placeholders with [PHASE]-specific values
-     
-     Compilation files contain:
-     - Source L0 principles (traceability)
-     - L1 directive transformations (MUST/MUST NOT/SHOULD)
-     - Phase-specific compilation guidance
-     
-     See: templates/agents/compiled/develop.rules.md
-          templates/agents/compiled/deploy.rules.md
-          templates/agents/compiled/validate.rules.md
--->
+[PHASE_SPECIFIC_RULES_CONTENT]
 
 ## State Tracking
 
-[AGENT_NAME] MUST update both spec frontmatter and phase state.
-
-**For each spec processed:**
-
-1. Update spec YAML frontmatter:
-   - [FRONTMATTER_STATUS_DIRECTIVE]
-   - [FRONTMATTER_TIMESTAMP_DIRECTIVE]
-
-**Upstream spec updates:**
-
-[AGENT_NAME] reads and references upstream specs for coherence validation. All referenced specs MUST be updated to reflect [PHASE_STATUS_LOWER] state:
-
-1. Update ALL specs from `smaqit plan --phase=[PHASE]` output ([TARGET_LAYER_SPECS])
-2. Update ALL upstream specs referenced for coherence ([UPSTREAM_LAYER_SPECS])
-3. For each referenced spec, update YAML frontmatter:
-   - Set `status: [PHASE_STATUS_LOWER]`
-   - Add `[PHASE_STATUS_LOWER]: [ISO8601_TIMESTAMP]`
-
-[ADDITIONAL_STATE_DIRECTIVES]
-
-[ADDITIONAL_STATE_RULES]
+[STATE_TRACKING_CONTENT]
 
 ## Completion Criteria
 
-Before declaring completion, verify:
-
-- [ ] All referenced spec requirements are addressed
-- [ ] All acceptance criteria from specs are satisfied
-- [ ] Output is traceable to input specifications
-- [ ] No unspecified features were added
-- [ ] Cross-layer consolidation completed without conflicts
-- [ ] Phase report written to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md`
-- [ ] All referenced spec frontmatter updated: `status: [PHASE_STATUS]`, `[PHASE_STATUS]: [ISO8601_TIMESTAMP]`
-- [ ] Acceptance criteria checkboxes updated in processed specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied/untestable)
-- [ADDITIONAL_COMPLETION_CRITERIA]
-
-<!-- L1 Transformation Instructions:
-     
-     Agent-L2 compiles [ADDITIONAL_COMPLETION_CRITERIA] by reading:
-     templates/agents/compiled/[phase].rules.md § Completion Criteria
-     
-     Compilation file specifies phase-specific validation checkpoints.
--->
+[COMPLETION_CRITERIA_CONTENT]
 
 ## Workflow Handover
 
-Upon successful completion, guide the user to the next step in the workflow:
-
-[PROPOSE_NEXT_STEP]
+[WORKFLOW_HANDOVER_CONTENT]
 
 ## Failure Handling
 
-| Situation | Action |
-|-----------|--------|
-| Ambiguous input | Request clarification, do not guess |
-| Conflicting requirements | Flag conflict, propose resolution options |
-| Missing upstream spec | Stop, indicate which spec is needed |
-| Impossible requirement | Report impossibility with rationale |
-| Cross-layer conflict | Request spec amendments before proceeding |
-
-Stop iterating when:
-- All completion criteria met, OR
-- Blocking issue prevents progress (flag and report), OR
-- Clarification required from upstream (request and wait)
-
+[FAILURE_HANDLING_CONTENT]

@@ -57,6 +57,9 @@ Defined 4 primary sections: What is smaqit, Features, Getting Started, Commands
 
 - Updated quickstart troubleshooting: "Agents rely on explicit input to maintain focused scope" (conservative phrasing)
 - Added Compatibility section noting GitHub Copilot as currently supported platform
+- Fixed layer boundary violations in quickstart:
+  - Removed "Simple console application" from Stack prompt (Functional layer content)
+  - Added "Application Type: Console application" to Functional prompt (proper layer placement)
 
 ## Decisions Made
 

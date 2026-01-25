@@ -4,9 +4,11 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 073 | Implementation Agents as Phase Orchestrators | new | High |
+| 074 | Update "Extensible Through Templates" Principle Context | new | Low |
+| 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |
 | 070 | E2E Boundary Enforcement Validation | new | High |
 | 064 | Complete Level 0 Principle Cleanup | new | High |
-| 065 | Clean Up Level 1 Templates | new | High |
 | 066 | Clean Up Level 2 Product Agents | new | High |
 | 069 | Strengthen Bounded Agents Principle | new | Medium |
 | 025 | Integrate testing agent with CI/CD | new | Medium |
@@ -16,6 +18,8 @@
 
 | ID | Title |
 |----|-------|
+| 065 | Clean Up Level 1 Templates |
+| 072 | Remove Orchestrator Agent Pattern |
 | 068 | Remove System Actor from Business Layer |
 | 067 | v0.6.0-beta Validation Testing |
 | 062 | Validation Agent Should Generate Executable Test Artifacts |

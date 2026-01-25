@@ -1,8 +1,37 @@
 # Task 065: Clean Up Level 1 Templates
 
-**Status:** new  
+**Status:** completed  
 **Priority:** High  
-**Created:** 2026-01-13
+**Created:** 2026-01-13  
+**Completed:** 2026-01-25
+
+## Completion Summary
+
+Completed inadvertently through systematic template extraction work (Todos 1-6 from session 025). Instead of cleaning existing templates in place, we extracted all directive content to compilation files and refactored templates to pure placeholder structure.
+
+**Approach taken:**
+1. Created `specification.rules.md` with all specification-extension directives (Role, Input, Output content structures + MUST/MUST NOT/SHOULD + Compilation Guidance)
+2. Created `implementation.rules.md` with all implementation-extension directives (10 content structures + MUST/MUST NOT/SHOULD + Compilation Guidance)
+3. Refined `base.rules.md` to foundation directives only (removed workflow-specific to spec/impl.rules)
+4. Refactored `specification-agent.template.md` to pure placeholders (78 lines, zero directive content)
+5. Refactored `implementation-agent.template.md` to pure placeholders (74 lines, zero directive content)
+6. Updated Agent-L2 with 4-way merge pattern documentation + SDK extensibility (base agents, spec agents, impl agents)
+
+**Results achieved:**
+- ✅ L1 templates are pure structure (no L2 implementation details)
+- ✅ All directives consolidated in compilation files (zero duplication)
+- ✅ Directive distribution systematic and documented (Compilation Guidance sections)
+- ✅ Template completeness verified (information gap analysis performed)
+- ✅ SDK extensibility preserved (base template + base.rules for Q&A/helper agents)
+- ✅ 4-way merge hierarchy established (foundation → workflow extension → role-specific)
+
+**Files modified:**
+- `templates/agents/specification-agent.template.md` (pure placeholders)
+- `templates/agents/implementation-agent.template.md` (pure placeholders)
+- `templates/agents/compiled/base.rules.md` (refined to foundation only)
+- `templates/agents/compiled/specification.rules.md` (created, 276 lines)
+- `templates/agents/compiled/implementation.rules.md` (created, 432 lines)
+- `.github/agents/smaqit.L2.agent.md` (updated with 3 compilation patterns)
 
 ## Context
 

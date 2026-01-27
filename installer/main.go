@@ -297,6 +297,7 @@ func cmdInit(targetDir string) {
 	dirs := []string{
 		".smaqit/templates/specs",
 		".smaqit/reports",
+		".smaqit/logs",
 		"specs/business",
 		"specs/functional",
 		"specs/stack",

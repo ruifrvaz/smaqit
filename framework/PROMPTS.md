@@ -20,6 +20,7 @@ Prompts are the user-facing interface for smaqit workflows. They capture require
 
 - **Layer prompts** (5) — Capture requirements for specification layers (business, functional, stack, infrastructure, coverage)
 - **Phase prompts** (3) — Trigger phase implementation agents
+- **Agent creation prompts** — Specify requirements for new base agents
 
 ## Prompts as Input Records
 
@@ -45,7 +46,8 @@ project/
         ├── smaqit.coverage.prompt.md
         ├── smaqit.development.prompt.md
         ├── smaqit.deployment.prompt.md
-        └── smaqit.validation.prompt.md
+        ├── smaqit.validation.prompt.md
+        └── smaqit.new-agent.prompt.md
 ```
 
 ### Format
@@ -127,4 +129,40 @@ Trigger single implementation agent with optional execution parameters:
 | `smaqit.validation.prompt.md` | Validation | Execution scope, failure handling | Validation Agent |
 
 Implementation prompts collect minimal runtime parameters (watch mode, verbosity, skip flags). Agents handle orchestration, validation, and error handling.
+
+### Agent Creation Prompts
+
+Define specifications for new base agents (Q&A, helper, orchestrator, custom utilities):
+
+| Prompt | Agent Type | Usage | Invokes |
+|--------|------------|-------|---------|
+| `smaqit.new-agent.prompt.md` | All base agents | Interactive template for gathering specifications | Agent-L2 |
+
+**Agent creation prompt differs from layer/phase prompts:**
+
+| Aspect | Layer/Phase Prompts | Agent Creation Prompt |
+|--------|---------------------|----------------------|
+| **Location** | `.github/prompts/` | `.github/prompts/` |
+| **File** | `smaqit.[layer].prompt.md` | `smaqit.new-agent.prompt.md` |
+| **Pattern** | Single manifest per layer/phase | Interactive template (reusable) |
+| **Content** | Free-style requirements | Structured directives (MUST/MUST NOT/SHOULD) |
+| **Usage** | Filled by user, read by agent | Followed by Agent-L2, filled interactively |
+| **Agent** | Layer/phase-specific agent | Agent-L2 (compiler) |
+| **Output** | Specifications or artifacts | Product agents |
+
+**Agent Creation Workflow:**
+
+1. **User invokes Agent-L2** — Request new agent creation
+2. **Agent-L2 reads template** — Loads structure from `.github/prompts/smaqit.new-agent.prompt.md`
+3. **Interactive gathering** — Agent-L2 requests user input for each placeholder (name, description, tools, directives, scope)
+4. **3-way merge** — L1 base template + L1 base rules + user-provided specifications → product agent
+5. **Document specifications** — User inputs recorded in compilation log (template remains unchanged)
+6. **Output agent** — `agents/smaqit.[agent-name].agent.md` created
+7. **Use agent** — Invoke via `/smaqit.[agent-name]` in GitHub Copilot
+
+**Directive Format:**
+
+Agent creation prompts contain explicit MUST/MUST NOT/SHOULD statements. These directives are compiled directly into the product agent, merging with foundation directives from `templates/agents/compiled/base.rules.md`.
+
+**See:** `.github/prompts/smaqit.new-agent.prompt.md` for complete structure and guidance.
 

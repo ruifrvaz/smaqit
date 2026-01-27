@@ -4,6 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 075 | Dual Release Architecture: SDK and Product | new | High |
 | 073 | Implementation Agents as Phase Orchestrators | new | High |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |
@@ -92,6 +93,7 @@ Tasks that were started but abandoned due to being superseded, no longer relevan
 
 | ID | Title | Reason |
 |----|-------|--------|
+| 076 | Separate SDK and App Installers | Duplicate of Task 075 (more comprehensive dual-release architecture) |
 | 036 | Implement prompt addendum for reproducibility | Superseded by iterative development with stateful specs |
 | 057 | Add Checkbox Updates to Validation Agent | Superseded by Task 058 (distributed responsibility model) |
 

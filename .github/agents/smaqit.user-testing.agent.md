@@ -54,7 +54,7 @@ You are the e2e testing agent. Your goal is to orchestrate complete smaqit workf
 ### Phase 2: Project Initialization
 
 4. **Initialize smaqit**
-   - Execute `../installer/dist/smaqit init` in test project directory
+   - Execute `smaqit-dev init` in test project directory
    - Verify `.smaqit/` directory created
    - Verify `.github/agents/` contains 8 agent files
    - Verify `.github/prompts/` contains 8 prompt files
@@ -62,7 +62,7 @@ You are the e2e testing agent. Your goal is to orchestrate complete smaqit workf
    - Record initialization outcome in checklist
 
 5. **Validate installation**
-   - Execute `../installer/dist/smaqit status`
+   - Execute `smaqit-dev status`
    - Verify output shows 0 specs, phases "Not started"
    - Record status outcome in checklist
 

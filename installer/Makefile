@@ -5,6 +5,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 
 # Build configuration
 BINARY_NAME = smaqit
+DEV_BINARY_NAME = smaqit-dev
 DIST_DIR = dist
 LDFLAGS = -ldflags "-X main.Version=$(VERSION)"
 
@@ -21,10 +22,10 @@ prepare:
 # Default target: build for current platform
 .PHONY: build
 build: prepare
-	@echo "Building $(BINARY_NAME) version $(VERSION) for current platform..."
+	@echo "Building $(DEV_BINARY_NAME) version $(VERSION) for current platform..."
 	@mkdir -p $(DIST_DIR)
-	@go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME) .
-	@echo "Built: $(DIST_DIR)/$(BINARY_NAME)"
+	@go build $(LDFLAGS) -o $(DIST_DIR)/$(DEV_BINARY_NAME) .
+	@echo "Built: $(DIST_DIR)/$(DEV_BINARY_NAME)"
 
 # Build for all platforms
 .PHONY: build-all
@@ -50,15 +51,15 @@ version:
 .PHONY: install
 install: build
 	@if [ -n "$$GOPATH" ]; then \
-		echo "Installing $(BINARY_NAME) to $$GOPATH/bin..."; \
+		echo "Installing $(DEV_BINARY_NAME) to $$GOPATH/bin..."; \
 		mkdir -p $$GOPATH/bin; \
-		cp $(DIST_DIR)/$(BINARY_NAME) $$GOPATH/bin/$(BINARY_NAME); \
-		echo "✓ Installed: $$GOPATH/bin/$(BINARY_NAME)"; \
+		cp $(DIST_DIR)/$(DEV_BINARY_NAME) $$GOPATH/bin/$(DEV_BINARY_NAME); \
+		echo "✓ Installed: $$GOPATH/bin/$(DEV_BINARY_NAME)"; \
 	else \
-		echo "Installing $(BINARY_NAME) to ~/.local/bin..."; \
+		echo "Installing $(DEV_BINARY_NAME) to ~/.local/bin..."; \
 		mkdir -p $$HOME/.local/bin; \
-		cp $(DIST_DIR)/$(BINARY_NAME) $$HOME/.local/bin/$(BINARY_NAME); \
-		echo "✓ Installed: ~/.local/bin/$(BINARY_NAME)"; \
+		cp $(DIST_DIR)/$(DEV_BINARY_NAME) $$HOME/.local/bin/$(DEV_BINARY_NAME); \
+		echo "✓ Installed: ~/.local/bin/$(DEV_BINARY_NAME)"; \
 		if ! echo $$PATH | grep -q "$$HOME/.local/bin"; then \
 			echo ""; \
 			echo "⚠ ~/.local/bin is not in your PATH"; \
@@ -73,14 +74,14 @@ install: build
 # Uninstall from local bin
 .PHONY: uninstall
 uninstall:
-	@if [ -n "$$GOPATH" ] && [ -f "$$GOPATH/bin/$(BINARY_NAME)" ]; then \
-		rm $$GOPATH/bin/$(BINARY_NAME); \
-		echo "✓ Removed: $$GOPATH/bin/$(BINARY_NAME)"; \
-	elif [ -f "$$HOME/.local/bin/$(BINARY_NAME)" ]; then \
-		rm $$HOME/.local/bin/$(BINARY_NAME); \
-		echo "✓ Removed: ~/.local/bin/$(BINARY_NAME)"; \
+	@if [ -n "$$GOPATH" ] && [ -f "$$GOPATH/bin/$(DEV_BINARY_NAME)" ]; then \
+		rm $$GOPATH/bin/$(DEV_BINARY_NAME); \
+		echo "✓ Removed: $$GOPATH/bin/$(DEV_BINARY_NAME)"; \
+	elif [ -f "$$HOME/.local/bin/$(DEV_BINARY_NAME)" ]; then \
+		rm $$HOME/.local/bin/$(DEV_BINARY_NAME); \
+		echo "✓ Removed: ~/.local/bin/$(DEV_BINARY_NAME)"; \
 	else \
-		echo "$(BINARY_NAME) not found in PATH locations"; \
+		echo "$(DEV_BINARY_NAME) not found in PATH locations"; \
 	fi; \
 	if grep -q 'HOME/.local/bin.*PATH' $$HOME/.bashrc 2>/dev/null; then \
 		printf "\nAlso remove PATH export from ~/.bashrc? [y/N]: "; \

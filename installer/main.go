@@ -75,7 +75,7 @@ func cmdHelp() {
 	fmt.Println("CLI Commands:")
 	fmt.Println("  smaqit init [dir] Scaffold smaqit project structure")
 	fmt.Println("                    Creates .smaqit/ and .github/ directories with")
-	fmt.Println("                    framework files, templates, and agent definitions")
+	fmt.Println("                    spec templates, prompt files, and agent definitions")
 	fmt.Println("                    Optional: specify target directory (created if needed)")
 	fmt.Println()
 	fmt.Println("  smaqit plan       Show work plan for current phase")
@@ -297,7 +297,6 @@ func cmdInit(targetDir string) {
 	dirs := []string{
 		".smaqit/templates/specs",
 		".smaqit/reports",
-		".smaqit/logs",
 		"specs/business",
 		"specs/functional",
 		"specs/stack",

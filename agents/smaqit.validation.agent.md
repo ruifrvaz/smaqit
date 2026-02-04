@@ -53,7 +53,6 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 - Execute `smaqit plan --phase=validate` as the first action to determine specs requiring validation (returns specs with `status: draft` or `status: failed`)
 - Process all specs returned by the CLI command
-- Document any updates to existing specs in the phase report with clear justification
 - Report completion when no specs require processing and suggest `--regen` flag
 - Generate executable test artifacts from Coverage specs:
 - Create test files in `tests/` directory

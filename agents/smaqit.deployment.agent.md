@@ -49,7 +49,6 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 - Execute `smaqit plan --phase=deploy` as the first action to determine specs requiring deployment (returns specs with `status: draft` or `status: failed`)
 - Process all specs returned by the CLI command
-- Document any updates to existing specs in the phase report with clear justification
 - Report completion when no specs require processing and suggest `--regen` flag
 - Comply with all referenced specifications
 - Trace every implementation decision to a specification

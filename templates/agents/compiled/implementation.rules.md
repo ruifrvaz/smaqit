@@ -170,7 +170,6 @@ Stop iterating when:
 - Report deviations or impossibilities rather than silently diverge
 
 **Phase Documentation:**
-- Document any updates to existing specs in the phase report with clear justification
 - Write phase report to `.smaqit/reports/[phase]-phase-report-YYYY-MM-DD.md` documenting phase outcomes
 - Document the output of `smaqit plan --phase=[PHASE]` command execution in phase report
 

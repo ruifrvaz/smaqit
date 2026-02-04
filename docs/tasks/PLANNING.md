@@ -4,7 +4,11 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 075 | Dual Release Architecture: SDK and Product | new | High |
+| 080 | Copilot Setup Workflow for smaqit Installation | new | High |
+| 079 | Spec Agents Revert Status to Draft on Modification | new | Medium |
+| 078 | Iterative Assessment Before Spec Generation and Implementation | new | High |
+| 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
+| 075 | Dual Release Architecture: SDK and Product | in progress | High |
 | 073 | Implementation Agents as Phase Orchestrators | new | High |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |

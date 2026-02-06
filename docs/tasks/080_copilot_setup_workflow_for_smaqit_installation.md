@@ -22,12 +22,14 @@ Create a GitHub workflow that:
 ## Scope
 
 **In Scope:**
-- Create `.github/workflows/copilot-setup.yml` workflow file
+- Create `.github/workflows/copilot-setup-steps.yml` workflow file
 - Add detection logic for existing smaqit installation
 - Download and execute smaqit installer if needed
 - Validate installation success
 - Handle installation errors gracefully
 - Document the setup workflow in README.md
+- Add workflow to installer for scaffolding
+- Add workflow template to templates/workflows
 
 **Out of Scope:**
 - Modifying the installer itself (separate concern)
@@ -36,13 +38,15 @@ Create a GitHub workflow that:
 
 ## Acceptance Criteria
 
-- [x] Workflow file created at `.github/workflows/copilot-setup.yml`
+- [x] Workflow file created at `.github/workflows/copilot-setup-steps.yml`
 - [x] Workflow detects if `.smaqit/` directory exists
 - [x] If not installed, downloads smaqit installer binary
 - [x] Executes `smaqit init` command
 - [x] Validates installation by checking for `.smaqit/framework/SMAQIT.md`
 - [x] Workflow fails gracefully with clear error message if installation fails
 - [x] Documentation added to README.md about Copilot setup integration
+- [x] Workflow added to installer for automatic scaffolding
+- [x] Workflow template added to templates/workflows
 - [ ] Tested with fresh repository (no smaqit installed)
 - [ ] Tested with existing smaqit installation (should skip)
 

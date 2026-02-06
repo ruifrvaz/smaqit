@@ -384,6 +384,14 @@ func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
 		relPath := strings.TrimPrefix(path, srcDir+"/")
 		dstPath := filepath.Join(dstDir, relPath)
 
+		// Skip if file already exists (don't overwrite workflows)
+		if strings.Contains(dstDir, "workflows") {
+			if _, err := os.Stat(dstPath); err == nil {
+				// File exists, skip it
+				return nil
+			}
+		}
+
 		// Ensure destination directory exists
 		dstFileDir := filepath.Dir(dstPath)
 		if err := os.MkdirAll(dstFileDir, 0755); err != nil {

@@ -132,7 +132,7 @@ Implementation prompts collect minimal runtime parameters (watch mode, verbosity
 
 ### Agent Creation Prompts
 
-Define specifications for new base agents (Q&A, helper, orchestrator, custom utilities):
+Define specifications for new base agents (Q&A, helper, custom utilities):
 
 | Prompt | Agent Type | Usage | Invokes |
 |--------|------------|-------|---------|

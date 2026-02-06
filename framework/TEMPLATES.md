@@ -170,10 +170,12 @@ Agent definitions contain these sections:
 |---------|---------|-------------------------|
 | YAML Frontmatter | Agent metadata (name, description, tools) | Foundation |
 | Role | Agent identity, goal, context | Foundation |
-| Framework Reference | Links to relevant framework files | Foundation |
 | Input | Source specifications and prompt files | Extension-specific |
 | Output | Target artifacts and structure | Extension-specific |
 | Directives | Behavioral rules compiled from principles | Extension-specific |
+| Pre-Orchestration Validation | Input validation, dependency checks, execution readiness verification | Extension-specific (Implementation) |
+| Phase Orchestration | Agent invocation, specification generation coordination, progress tracking | Extension-specific (Implementation) |
+| Orchestration Completion Validation | Activity completion verification, outcome validation, completion status | Extension-specific (Implementation) |
 | Completion Criteria | Self-validation checklist | Foundation pattern, extension details |
 | Failure Handling | Error response mapping | Foundation pattern, extension details |
 

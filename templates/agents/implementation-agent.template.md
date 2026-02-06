@@ -1,7 +1,7 @@
 ---
 name: smaqit.[PHASE]
 description: Implementation agent for the [PHASE_NAME] phase.
-tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests']
+tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests', 'runSubagent']
 ---
 
 # [AGENT_NAME]
@@ -43,6 +43,18 @@ tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', '
 [IMPLEMENTATION_SHOULD_DIRECTIVES]
 
 [PHASE_SHOULD_DIRECTIVES]
+
+## Pre-Orchestration Validation
+
+[PRE_ORCHESTRATION_VALIDATION_CONTENT]
+
+## Phase Orchestration
+
+[PHASE_ORCHESTRATION_CONTENT]
+
+## Orchestration Completion Validation
+
+[ORCHESTRATION_COMPLETION_VALIDATION_CONTENT]
 
 ## Cross-Layer Consolidation
 

@@ -12,6 +12,9 @@ import (
 //go:embed templates/specs/*.md
 var templateFiles embed.FS
 
+//go:embed templates/workflows/*.yml
+var workflowFiles embed.FS
+
 //go:embed agents/*.md
 var agentFiles embed.FS
 
@@ -304,6 +307,7 @@ func cmdInit(targetDir string) {
 		"specs/coverage",
 		".github/agents",
 		".github/prompts",
+		".github/workflows",
 	}
 
 	for _, dir := range dirs {
@@ -331,10 +335,17 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
+	// Copy workflow files
+	if err := copyEmbeddedDir(workflowFiles, "templates/workflows", ".github/workflows"); err != nil {
+		fmt.Printf("Error copying workflow files: %v\n", err)
+		os.Exit(1)
+	}
+
 	fmt.Println("✓ Created .smaqit/ directory structure")
 	fmt.Println("✓ Copied templates")
 	fmt.Println("✓ Copied agent definitions")
 	fmt.Println("✓ Copied prompt files")
+	fmt.Println("✓ Copied workflow files")
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
@@ -372,6 +383,14 @@ func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
 		// Calculate destination path
 		relPath := strings.TrimPrefix(path, srcDir+"/")
 		dstPath := filepath.Join(dstDir, relPath)
+
+		// Skip if file already exists (don't overwrite workflows)
+		if strings.Contains(dstDir, "workflows") {
+			if _, err := os.Stat(dstPath); err == nil {
+				// File exists, skip it
+				return nil
+			}
+		}
 
 		// Ensure destination directory exists
 		dstFileDir := filepath.Dir(dstPath)

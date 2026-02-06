@@ -42,6 +42,15 @@ smaqit init
 
 See the full [Mario Hello quickstart](docs/wiki/workflows/quickstart.md) for a complete walkthrough.
 
+## Copilot Automation
+
+smaqit includes a GitHub Action workflow that automatically installs smaqit before Copilot coding agent sessions. Add to `.github/copilot-instructions.md`:
+
+```markdown
+## Environment Setup
+Setup steps: `.github/workflows/copilot-setup-steps.yml`
+```
+
 ## Commands
 
 **CLI:**

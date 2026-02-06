@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 080 | Copilot Setup Workflow for smaqit Installation | new | High |
+| 080 | Copilot Setup Workflow for smaqit Installation | in progress | High |
 | 079 | Spec Agents Revert Status to Draft on Modification | new | Medium |
 | 078 | Iterative Assessment Before Spec Generation and Implementation | in progress | High |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |

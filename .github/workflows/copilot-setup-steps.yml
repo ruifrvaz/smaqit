@@ -1,0 +1,122 @@
+name: Copilot Setup
+
+on:
+  workflow_dispatch:
+  # This workflow is triggered automatically by the GitHub Copilot coding agent
+  # before starting a new session, as configured in copilot-instructions.md
+
+jobs:
+  setup-smaqit:
+    name: Setup smaqit Framework
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check for existing smaqit installation
+        id: check
+        run: |
+          if [ -f ".smaqit/framework/SMAQIT.md" ]; then
+            echo "installed=true" >> $GITHUB_OUTPUT
+            echo "✓ smaqit is already installed"
+          else
+            echo "installed=false" >> $GITHUB_OUTPUT
+            echo "⚠ smaqit is not installed"
+          fi
+
+      - name: Download smaqit installer
+        if: steps.check.outputs.installed == 'false'
+        run: |
+          echo "Downloading latest smaqit installer..."
+          LATEST_RELEASE=$(curl -s https://api.github.com/repos/ruifrvaz/smaqit/releases/latest | grep "tag_name" | cut -d '"' -f 4)
+          echo "Latest version: $LATEST_RELEASE"
+          
+          # Determine platform
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+          
+          case "$OS" in
+            linux) PLATFORM="linux_amd64" ;;
+            darwin) 
+              case "$ARCH" in
+                arm64) PLATFORM="darwin_arm64" ;;
+                *) PLATFORM="darwin_amd64" ;;
+              esac
+              ;;
+            *) echo "Unsupported OS: $OS"; exit 1 ;;
+          esac
+          
+          DOWNLOAD_URL="https://github.com/ruifrvaz/smaqit/releases/download/${LATEST_RELEASE}/smaqit_${PLATFORM}"
+          echo "Downloading from: $DOWNLOAD_URL"
+          
+          curl -L -o smaqit "$DOWNLOAD_URL"
+          chmod +x smaqit
+          
+          echo "✓ Downloaded smaqit installer"
+
+      - name: Install smaqit
+        if: steps.check.outputs.installed == 'false'
+        run: |
+          echo "Installing smaqit..."
+          ./smaqit init
+          
+          if [ $? -eq 0 ]; then
+            echo "✓ smaqit installation completed"
+          else
+            echo "✗ smaqit installation failed"
+            exit 1
+          fi
+
+      - name: Validate installation
+        if: steps.check.outputs.installed == 'false'
+        run: |
+          echo "Validating smaqit installation..."
+          
+          # Check for framework files
+          if [ ! -f ".smaqit/framework/SMAQIT.md" ]; then
+            echo "✗ Framework files not found"
+            exit 1
+          fi
+          
+          # Check for agent files
+          if [ ! -f ".github/agents/smaqit.business.agent.md" ]; then
+            echo "✗ Agent files not found"
+            exit 1
+          fi
+          
+          # Check smaqit status
+          ./smaqit status || true
+          
+          echo "✓ Installation validated successfully"
+
+      - name: Installation summary
+        if: always()
+        run: |
+          echo "==================================="
+          echo "smaqit Installation Summary"
+          echo "==================================="
+          
+          if [ -f ".smaqit/framework/SMAQIT.md" ]; then
+            echo "Status: ✓ Installed"
+            
+            # Extract version from framework
+            if [ -f ".smaqit/framework/SMAQIT.md" ]; then
+              VERSION=$(grep -m 1 "Version:" .smaqit/framework/SMAQIT.md | cut -d ' ' -f 2)
+              echo "Version: $VERSION"
+            fi
+            
+            echo ""
+            echo "Available agents:"
+            ls -1 .github/agents/smaqit.*.agent.md 2>/dev/null | sed 's|.github/agents/||' | sed 's|.agent.md||' || echo "  (agents not found)"
+            
+            echo ""
+            echo "GitHub Copilot can now use smaqit agents."
+          else
+            echo "Status: ✗ Not installed"
+            echo ""
+            echo "Installation failed. Please check the logs above."
+            exit 1
+          fi

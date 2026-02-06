@@ -29,9 +29,10 @@ See [PROMPTS](PROMPTS.md) for complete prompt architecture and input record prin
 - Agents MUST NOT produce output that cannot be traced to an input
 
 ### Fail-Fast on Ambiguity
-- Agents MUST request clarification when input is ambiguous
-- Agents MUST NOT invent requirements not present in input
-- Agents SHOULD flag assumptions explicitly when clarification is unavailable
+- Agents request clarification when input is ambiguous
+- Agents do not invent requirements not present in input
+- Agents flag assumptions explicitly when clarification is unavailable
+- Agents invoke assessment skill when detecting ambiguity requiring iterative analysis and planning
 
 ### Fail-Fast on Inconsistency
 - Agents MUST verify coherence across all input sources before producing output
@@ -65,6 +66,12 @@ All agents share foundational behaviors codified in base template principles. Th
 
 Agent extensions inherit these foundations and add specialized behaviors. The base template documents what must remain invariant. Extension templates document what varies by role.
 
+### Agent Skills
+
+Agents invoke skills when detecting specific conditions requiring specialized handling. Skills are reusable capabilities providing structured workflows that multiple agent types share.
+
+Skills reside in `.github/skills/` and include assessment, conflict resolution, gap detection, and other cross-cutting workflows. When agents detect ambiguity, contradictions, or complexity, they invoke the appropriate skill rather than implementing the workflow inline.
+
 ## Naming Convention
 
 Agents follow the pattern: `smaqit.[LAYER]` for specification agents and `smaqit.[PHASE]` for implementation agents.
@@ -73,7 +80,6 @@ Agents follow the pattern: `smaqit.[LAYER]` for specification agents and `smaqit
 |------|---------|----------|
 | Specification | `smaqit.[LAYER]` | `smaqit.business`, `smaqit.functional`, `smaqit.stack` |
 | Implementation | `smaqit.[PHASE]` | `smaqit.development`, `smaqit.deployment`, `smaqit.validation` |
-| Orchestrator | `smaqit.orchestrator` | `smaqit.orchestrator` |
 
 ## Foundation Agent
 
@@ -194,6 +200,122 @@ Each implementation agent's Role section MUST include:
 
 **Structure:** Agent identity + goal + phase context in 3-4 concise sentences maximum.
 
+### Phase Orchestration
+
+Implementation agents orchestrate their entire phase including specification generation and implementation execution. Phase orchestration involves coordinating multiple agents, tracking dependencies, managing workflow state, and handling errors across agent invocations.
+
+**Specification Generation Coordination:**
+
+Implementation agents coordinate specification generation when upstream artifacts are missing or regeneration is requested:
+- **Artifact detection** — Agents check for required specification artifacts before beginning implementation
+- **Agent invocation** — Missing specifications trigger invocation of specification agents
+- **Dependency ordering** — Specification agents invoked in dependency sequence based on artifact requirements
+- **Generation completion** — Specification generation completes before implementation activities begin
+
+**Multi-Agent Coordination:**
+
+Phase orchestration coordinates multiple agents within a single phase:
+- Agents invoked as needed based on artifact availability
+- Invoked agents produce outputs consumed by orchestrating agent  
+- Invocation sequence respects upstream dependencies
+- Each invocation tracked with context and outcome
+
+**Progress Tracking:**
+
+Orchestration progress tracked across activities and agent invocations:
+- Each workflow activity reports start, progress, and completion
+- Agent invocations logged with input context and output status
+- Activity milestones visible to user during execution
+- Workflow state persists across activities for traceability
+
+**Error Context Preservation:**
+
+Errors propagate with context across orchestration boundaries:
+- Failed activities report diagnostic information with execution context
+- Agent invocation failures include agent identity and input state
+- Error messages provide remediation guidance
+- Partial completion tracked when workflow halts mid-execution
+
+**Phase Workflow Activities:**
+
+Phase workflows contain distinct activities that execute in sequence:
+- **Pre-orchestration validation** — Input sources and dependencies verified for readiness
+- **Specification generation** — Specification agents invoked when upstream artifacts missing
+- **Artifact consolidation** — Multiple specification sources merged and checked for coherence
+- **Implementation generation** — Output artifacts produced from consolidated specifications
+- **Execution** — Generated artifacts executed or deployed in target environment
+- **Orchestration completion validation** — Outcomes verified against expected criteria
+
+### Pre-Orchestration Validation
+
+Validation precedes workflow execution to ensure readiness. Implementation agents verify input sufficiency, dependency availability, and execution prerequisites before beginning workflow activities.
+
+**Input Validation:**
+
+Input sources undergo validation before workflow begins:
+- **Sufficiency check** — Required input content exists and contains necessary information
+- **Format verification** — Input structure matches expected patterns
+- **Completeness assessment** — All mandatory input elements present
+
+Validation failures produce guidance describing what's missing or incorrect.
+
+**Dependency Verification:**
+
+Upstream artifacts and dependencies verified for accessibility:
+- **Existence check** — Referenced artifacts present in expected locations
+- **State verification** — Upstream artifacts in appropriate lifecycle state
+- **Version consistency** — Input versions align across dependencies
+
+Missing dependencies halt execution with clear identification of gaps.
+
+**Execution Readiness:**
+
+Execution environment verified before workflow activities begin:
+- **Tool availability** — Required execution tools present and accessible
+- **Permission verification** — Agent has necessary permissions for planned operations
+- **Resource checks** — Sufficient resources available for workflow activities
+
+Readiness failures prevent workflow initiation with actionable remediation steps.
+
+**Validation Outcomes:**
+
+Pre-orchestration validation produces binary outcome:
+- **Pass** — All checks satisfied, workflow proceeds
+- **Fail** — One or more checks failed, workflow halts with diagnostic report
+
+Failed validations include specific remediation guidance for each failed check.
+
+### Orchestration Completion Validation
+
+Orchestration completion validation verifies that all activities executed successfully and produced expected outcomes. Implementation agents validate completion before declaring phase success.
+
+**Activity Completion Verification:**
+
+Each workflow activity verified for successful completion:
+- **Completion status** — Activity reached completion state without errors
+- **Output presence** — Activity produced expected output artifacts
+- **Output validity** — Produced artifacts meet structural and content requirements
+
+Incomplete activities identified with execution context and failure reason.
+
+**Outcome Validation:**
+
+Workflow outcomes validated against expected criteria:
+- **Acceptance criteria** — Generated artifacts satisfy specified acceptance criteria
+- **Behavioral correctness** — Execution outcomes match expected behavior
+- **State consistency** — Artifact state reflects successful orchestration completion
+
+Outcome validation failures include specific criteria not met and diagnostic information.
+
+**Completion Outcomes:**
+
+Orchestration completion validation produces status with context:
+- **Success** — All activities completed, outcomes validated, phase complete
+- **Partial** — Some activities completed, workflow halted mid-execution
+- **Failed** — Workflow failed with error context and attempted remediation
+
+Completion status includes detailed report of activity outcomes and validation results.
+
 ### Input
 - Specification documents from relevant layers
 - Existing codebase (for Development agent)
@@ -224,17 +346,6 @@ Each implementation agent's Role section MUST include:
 | Development | `status: implemented` or `failed`<br>`implemented: [ISO8601_TIMESTAMP]` |
 | Deployment | `status: deployed` or `failed`<br>`deployed: [ISO8601_TIMESTAMP]` |
 | Validation | `status: validated` or `failed`<br>`validated: [ISO8601_TIMESTAMP]`<br>Update checkboxes: `[ ]` → `[x]` or `[!]` |
-
-**Frontmatter example:**
-```yaml
----
-id: BUS-LOGIN-001
-status: implemented
-created: 2025-12-26T10:00:00Z
-implemented: 2025-12-26T10:30:00Z
-prompt_version: abc123
----
-```
 
 The CLI aggregates phase status by scanning spec frontmatter. Agents only update individual spec files.
 
@@ -291,65 +402,6 @@ Agents MUST NOT proceed with implementation while unresolved conflicts exist.
 | `smaqit.development` | Develop | Business + Functional + Stack specs | Code |
 | `smaqit.deployment` | Deploy | Code + Infrastructure specs | Running system |
 | `smaqit.validation` | Validate | Deployed system + Coverage specs | Validation report |
-
-## Orchestrator Agent
-
-> **Note:** The orchestrator agent pattern has been removed (Task 072). This section is preserved as reference for Task 073, which will incorporate orchestration capabilities directly into implementation agents. The workflows and directives documented here will be adapted for phase-level orchestration where each implementation agent coordinates its own phase (spec generation + implementation).
-
-The orchestrator agent coordinates full workflow execution from specifications through validation.
-
-### Input
-- **Orchestrator prompt**: `prompts/smaqit.orchestrate.prompt.md` — User preferences for workflow execution
-- **All prompts**: Layer prompts (5) and implementation prompts (3) — Required for pre-run validation
-
-### Output
-- **Orchestration report**: Documents agent invocations, phase outcomes, errors
-- **Workflow status**: Complete/partial/failed with detailed execution log
-
-### Directives
-
-**Orchestrator agent MUST:**
-- Execute pre-run validation before starting workflow (if requested)
-- Invoke agents in correct dependency order: 5 spec agents → 3 implementation agents
-- Verify each phase completion before proceeding to next phase
-- Report all errors with context (phase, agent, input state)
-- Respect user error handling preferences (stop on error vs continue)
-- Validate workflow completion criteria before declaring success
-
-**Orchestrator agent MUST NOT:**
-- Skip required phases without user approval
-- Proceed with missing upstream specifications
-- Silently ignore phase failures
-- Modify agent execution order to bypass dependencies
-- Bypass pre-run validation when user requested it
-
-**Orchestrator agent SHOULD:**
-- Provide progress updates during long-running workflows
-- Report estimated time remaining for multi-phase execution
-- Suggest recovery actions when phases fail
-- Document lessons learned for workflow optimization
-
-### Tooling
-
-Orchestrator agent requires all implementation tools plus the ability to invoke other agents:
-
-| Tool | Purpose |
-|------|----------|
-| `edit` | Create orchestration reports |
-| `search` | Locate prompt files and verify completeness |
-| `runCommands` | Run validation commands |
-| `problems` | Check for compilation/lint errors |
-| `changes` | Monitor git state |
-| `testFailure` | Get test failure information |
-| `todos` | Track multi-phase workflow progress |
-| `runSubagent` | Invoke specification and implementation agents |
-| `runTests` | Execute tests |
-
-### Orchestrator Agent Mapping
-
-| Agent | Purpose | Input | Output |
-|-------|---------|-------|--------|
-| `smaqit.orchestrator` | Coordinate workflow | Orchestrator prompt + all layer/implementation prompts | Orchestration report + workflow status |
 
 ## Validation
 

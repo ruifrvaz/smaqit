@@ -10,6 +10,10 @@ Spec-driven agent orchestration where specifications are split into layers and p
 
 Phases are the primary workflow units in smaqit. Users can generate all specifications first, but the recommended approach is to complete each phase (specifications + implementation) before moving to the next. This provides faster feedback and validates the system incrementally.
 
+**Workflow Coordination:**
+
+Implementation agents coordinate workflow activities within their phase via orchestrations. Workflows include validation of inputs, consolidation of sources, generation of artifacts, execution of outputs, and verification of outcomes. Each workflow activity reports progress and handles failures explicitly.
+
 ### Specs Before Code
 
 **Never write implementation without a corresponding specification.**
@@ -140,6 +144,7 @@ Read SMAQIT.md for framework overview and principles. Consult these files as nee
 | File | Purpose | When to Consult |
 |------|---------|-----------------|
 | [PROMPTS](PROMPTS.md) | Prompt structure, input records, agent interaction | Understanding prompt files or agent invocation |
+| [SKILLS](SKILLS.md) | Agent skills, invocable capabilities, condition detection | Understanding reusable agent capabilities |
 | [LAYERS](LAYERS.md) | Five specification layers and their dependencies | Generating or validating layer specs |
 | [PHASES](PHASES.md) | Three development phases and their workflows | Orchestrating multi-agent workflows |
 | [TEMPLATES](TEMPLATES.md) | Template structure rules for prompts, specs, and agents | Creating or validating templates |

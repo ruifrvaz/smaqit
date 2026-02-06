@@ -46,15 +46,15 @@ The Develop phase transforms user requirements into a working, tested applicatio
 
 **Implementation Agent:** `smaqit.development`
 
-**Pre-Run Validation:**
+**Pre-Orchestration Validation:**
 
-Before starting, the Development agent validates all required prompt files are filled:
+Implementation agents perform pre-orchestration validation to verify readiness (see AGENTS.md Pre-Orchestration Validation concept). For Development phase, validation includes:
 
-- `.github/prompts/smaqit.business.prompt.md` has content
-- `.github/prompts/smaqit.functional.prompt.md` has content
-- `.github/prompts/smaqit.stack.prompt.md` has content
+- Input sufficiency check for required prompt files
+- Dependency verification for upstream artifacts
+- Execution environment readiness
 
-If any prompt is empty or insufficient, agent halts and guides user: "Please fill [prompt file] with your [layer] requirements before starting development."
+Validation failures halt workflow with guidance describing missing requirements or configuration issues.
 
 **Phase Activities:**
 
@@ -88,14 +88,15 @@ The Deploy phase transforms a working application into a running system in a tar
 
 **Implementation Agent:** `smaqit.deployment`
 
-**Pre-Run Validation:**
+**Pre-Orchestration Validation:**
 
-Before starting, check `.github/prompts/smaqit.infrastructure.prompt.md` for content beyond template structure:
+Implementation agents perform pre-orchestration validation to verify readiness (see AGENTS.md Pre-Orchestration Validation concept). For Deployment phase, validation includes:
 
-- If empty or only contains comments: Halt with natural language guidance
-- Example guidance: "Please specify your target environment (cloud, on-premise, hybrid), hosting platform, and service topology requirements"
+- Input sufficiency check for infrastructure requirements
+- Dependency verification for development phase outputs
+- Execution environment and credentials readiness
 
-If prompt has content, agents interpret free-style requirements and request clarification for ambiguities.
+Validation failures halt workflow with guidance describing missing requirements or configuration issues.
 
 **User Input Required:**
 
@@ -166,14 +167,15 @@ The Validate phase verifies that the deployed system satisfies all specification
 
 **Implementation Agent:** `smaqit.validation`
 
-**Pre-Run Validation:**
+**Pre-Orchestration Validation:**
 
-Before starting, check `.github/prompts/smaqit.coverage.prompt.md` for content beyond template structure:
+Implementation agents perform pre-orchestration validation to verify readiness (see AGENTS.md Pre-Orchestration Validation concept). For Validation phase, validation includes:
 
-- If empty or only contains comments: Halt with natural language guidance
-- Example guidance: "Please specify the test scenarios, validation criteria, and acceptance thresholds for your application"
+- Input sufficiency check for test requirements
+- Dependency verification for deployed system accessibility
+- Test execution environment readiness
 
-If prompt has content, agents interpret free-style requirements and request clarification for ambiguities.
+Validation failures halt workflow with guidance describing missing requirements or configuration issues.
 
 **Phase Activities:**
 

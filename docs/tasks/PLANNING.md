@@ -6,9 +6,8 @@
 |----|-------|--------|----------|
 | 080 | Copilot Setup Workflow for smaqit Installation | new | High |
 | 079 | Spec Agents Revert Status to Draft on Modification | new | Medium |
-| 078 | Iterative Assessment Before Spec Generation and Implementation | new | High |
+| 078 | Iterative Assessment Before Spec Generation and Implementation | in progress | High |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
-| 075 | Dual Release Architecture: SDK and Product | in progress | High |
 | 073 | Implementation Agents as Phase Orchestrators | new | High |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |
@@ -97,6 +96,7 @@ Tasks that were started but abandoned due to being superseded, no longer relevan
 
 | ID | Title | Reason |
 |----|-------|--------|
+| 075 | Dual Release Architecture: SDK and Product | Requires deep refactoring with high risk to existing codebase. SDK extracted to separate repository (smaqit-sdk) for clean development without contaminating product. |
 | 076 | Separate SDK and App Installers | Duplicate of Task 075 (more comprehensive dual-release architecture) |
 | 036 | Implement prompt addendum for reproducibility | Superseded by iterative development with stateful specs |
 | 057 | Add Checkbox Updates to Validation Agent | Superseded by Task 058 (distributed responsibility model) |

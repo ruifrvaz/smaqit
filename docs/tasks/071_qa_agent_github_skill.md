@@ -8,7 +8,7 @@
 
 Create two interfaces for users to query smaqit wiki documentation:
 1. A product agent that ships with smaqit and uses the fetch tool to retrieve wiki content from GitHub
-2. A GitHub skill that provides the same capability through GitHub's skill interface
+2. A GitHub Skill that provides the same capability through the skill interface
 
 ## Context
 
@@ -63,16 +63,16 @@ tools: ["fetch", "search", "read"]
 
 ### Deliverable 2: GitHub Skill
 
-**File:** `.github/skills/smaqit-docs.skill.md`
+**File:** `.github/skills/smaqit-docs/SKILL.md`
 
 **Requirements:**
 - Skill name: `smaqit-docs`
 - Description: "Query smaqit framework documentation from wiki and framework files"
-- Same capabilities as product agent but packaged as GitHub skill
+- Same capabilities as product agent but packaged as GitHub Skill (agentskills.io format)
 - Should work across any GitHub repository (not just smaqit projects)
 - Fetch from public GitHub URLs: `https://raw.githubusercontent.com/ruifrvaz/smaqit/main/docs/wiki/`
 
-**GitHub Skill Format:**
+**GitHub Skill Format (agentskills.io SKILL.md):**
 ```yaml
 ---
 name: smaqit-docs
@@ -87,11 +87,11 @@ tools: ["fetch"]
 - [ ] Q&A agent contains foundation directives from base.rules.md (9 MUST, 9 MUST NOT)
 - [ ] Q&A agent contains Q&A-specific customizations (role, input, output, scope, extension directives)
 - [ ] Q&A agent has zero placeholders (validated by Agent-L2)
-- [ ] `.github/skills/smaqit-docs.skill.md` created and follows GitHub skill format
+- [ ] `.github/skills/smaqit-docs/SKILL.md` created and follows agentskills.io specification
 - [ ] Both interfaces can fetch wiki documentation from GitHub
 - [ ] Both interfaces provide accurate answers with source references
 - [ ] Q&A agent respects bounded agent principles (no implementation work)
-- [ ] GitHub skill works in repositories without local smaqit installation
+- [ ] GitHub Skill works in repositories without local smaqit installation
 - [ ] Documentation updated in README or wiki to mention Q&A capability
 - [ ] Compilation documented (Agent-L2 invocation, sources used, validation performed)
 
@@ -131,12 +131,12 @@ tools: ["fetch"]
 1. Should the Q&A agent also be able to read framework files directly, or only fetch from GitHub?
    - **Proposal:** Agent reads local `framework/` and `docs/wiki/` for smaqit projects, falls back to fetch for external contexts
    
-2. Should the GitHub skill be part of the installer scaffold, or only in smaqit repo?
+2. Should the GitHub Skill be part of the installer scaffold, or only in smaqit repo?
    - **Proposal:** Keep skill in smaqit repo only (not scaffolded), Q&A agent gets scaffolded
 
 3. What's the invocation pattern?
    - **Product agent:** `/smaqit.qa [question]` in Copilot chat
-   - **GitHub skill:** `@smaqit-docs [question]` in any GitHub context
+   - **GitHub Skill:** Invoked automatically when agents need documentation
 
 4. ~~Should Q&A agent use specification agent template?~~
    - **Resolved:** Use SDK Pattern 1 (Base Agents) - 2-way merge with base template + base rules only
@@ -153,5 +153,5 @@ tools: ["fetch"]
 - Users can ask "What are the five layers?" and get accurate answer with wiki references
 - Users can ask "How do I start a new project?" and get quickstart guide
 - Agent properly declines "Generate a business spec for login" (out of scope)
-- GitHub skill works from any repository
+- GitHub Skill works from any repository
 

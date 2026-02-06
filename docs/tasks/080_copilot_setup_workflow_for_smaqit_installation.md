@@ -116,4 +116,8 @@ This workflow should be included in:
 2. **Installer output** — Optionally scaffolded into user projects
 3. **Templates** — Add to templates/ for user reference
 
+## Important:
+
+1. This workflow should not override existing workflow with same name. If a workflow already exists, it should skip with suggestion to add smaqit installation to existing workflow.
+
 The workflow enables seamless Copilot + smaqit integration, reducing setup friction from manual installation to automatic initialization.

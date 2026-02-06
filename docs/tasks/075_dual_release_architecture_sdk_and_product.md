@@ -1,9 +1,28 @@
 # Dual Release Architecture: smaqit-sdk and smaqit
 
-**Status:** Not Started  
-**Created:** 2026-01-25
+**Status:** Abandoned  
+**Created:** 2026-01-25  
+**Abandoned:** 2026-02-05
 
-## Description
+## Abandonment Reason
+
+Deep entanglement between SDK and product code requires extensive refactoring with high risk of breaking the existing smaqit product. Attempting to extract SDK within the monorepo would:
+
+- Break existing build system and installer
+- Require rewriting Level agents to be truly generic
+- Risk contaminating both SDK and product during transition
+- Create ambiguous ownership of shared framework files
+- Make rollback difficult if extraction fails
+
+**Decision:** SDK extracted to separate repository ([smaqit-sdk](https://github.com/ruifrvaz/smaqit-sdk)) at `/home/ruifrvaz/projects/smaqit-sdk/` for clean development without contaminating the product. This allows:
+
+- Zero risk to existing smaqit product
+- Clean slate for SDK with no legacy contamination
+- Independent versioning and release cycles
+- Clear ownership boundaries
+- Parallel development without blocking product evolution
+
+## Original Description
 
 Implement dual release architecture that treats smaqit-sdk (for agent development) as the primary product and smaqit (for app development) as a compiled byproduct. Both releases live in the same monorepo but have independent versioning, CI/CD workflows, and installers.
 

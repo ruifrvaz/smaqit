@@ -36,13 +36,13 @@ Create a GitHub workflow that:
 
 ## Acceptance Criteria
 
-- [ ] Workflow file created at `.github/workflows/copilot-setup.yml`
-- [ ] Workflow detects if `.smaqit/` directory exists
-- [ ] If not installed, downloads smaqit installer binary
-- [ ] Executes `smaqit init` command
-- [ ] Validates installation by checking for `.smaqit/framework/SMAQIT.md`
-- [ ] Workflow fails gracefully with clear error message if installation fails
-- [ ] Documentation added to README.md about Copilot setup integration
+- [x] Workflow file created at `.github/workflows/copilot-setup.yml`
+- [x] Workflow detects if `.smaqit/` directory exists
+- [x] If not installed, downloads smaqit installer binary
+- [x] Executes `smaqit init` command
+- [x] Validates installation by checking for `.smaqit/framework/SMAQIT.md`
+- [x] Workflow fails gracefully with clear error message if installation fails
+- [x] Documentation added to README.md about Copilot setup integration
 - [ ] Tested with fresh repository (no smaqit installed)
 - [ ] Tested with existing smaqit installation (should skip)
 

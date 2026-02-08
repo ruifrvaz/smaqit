@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0-beta] - 2026-02-08
+
+### Added
+- Assessment skill for critical evaluation before execution (Task 078)
+  - Automatic invocation when agents detect ambiguous requirements, conflicting inputs, insufficient detail, or complex planning scenarios
+  - Five-step workflow: Question premise → Check state → Identify trade-offs → Flag problems → Present assessment
+  - Integrated into all 8 product agents with `.github/skills/assessment/` invocable capability
+- Phase orchestration in implementation agents (Task 073)
+  - Development, Deployment, and Validation agents now coordinate entire phase workflows
+  - Agents automatically invoke specification agents in dependency order using `runSubagent` tool
+  - Pre-orchestration validation checklist (12 checks)
+  - 7-step orchestration workflow
+  - Orchestration completion validation checklist (11 checks)
+- Multi-format compilation support in Agent-L1
+  - Supports 7 format types: directive, checklist, workflow, table, role, structure, frontmatter
+  - Format inference from L0 content patterns
+- Development binary (`smaqit-dev`) for framework development
+- Quickstart guide with Mario Hello tutorial
+- Team alignment wiki documentation
+- LICENSE (MIT) and CONTRIBUTING.md
+
+### Changed
+- **User workflow simplified**: `/smaqit.development` now coordinates spec generation internally instead of requiring manual `/smaqit.business` → `/smaqit.functional` → `/smaqit.stack` sequence (Task 073)
+- README restructured from 288 lines to 75 lines for clarity
+- Agent-L2 compilation upgraded from 3-way to 4-way merge (base + extension type + specific role)
+- L1 templates refactored to pure placeholder structure (Task 065)
+  - Created specification.rules.md and implementation.rules.md compilation files
+  - Base.rules.md refined to foundation directives only
+- User compilation logs moved to `.smaqit/logs/` (was `agents/logs/`)
+
+### Removed
+- Orchestrator agent pattern (Task 072)
+  - Never documented in user-facing commands, no workflow impact
+  - Orchestration capabilities distributed into implementation agents
+
 ## [0.6.2-beta] - 2026-01-21
 
 ### Added
@@ -211,7 +246,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.6.0-beta...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.7.0-beta...HEAD
+[0.7.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.6.2-beta...v0.7.0-beta
+[0.6.2-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.6.0-beta...v0.6.2-beta
 [0.6.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.5.0-beta...v0.6.0-beta
 [0.5.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.4.2-beta...v0.5.0-beta
 [0.4.2-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.4.1-beta...v0.4.2-beta

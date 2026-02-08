@@ -3,11 +3,16 @@
 **Status:** New  
 **Priority:** High  
 **Created:** 2026-01-21  
-**Context:** Verify Task 068 (System Actor removal) boundary enforcement works in practice
+**Updated:** 2026-02-08  
+**Context:** Verify Task 068 (System Actor removal) boundary enforcement AND Task 078 (Assessment skill integration) work in practice
 
 ## Purpose
 
-Validate that the Business Agent respects layer boundaries when given input containing scope violations. This tests whether the framework changes from Task 068 successfully prevent Business specs from being polluted with Functional and Stack concerns.
+Validate two critical framework capabilities:
+
+1. **Boundary enforcement** - Business Agent respects layer boundaries when given input containing scope violations, filtering or flagging technical concerns properly
+
+2. **Assessment skill integration** - All agents automatically invoke assessment skill when detecting ambiguous requirements, conflicting inputs, insufficient detail, or complex planning scenarios
 
 ## Background
 
@@ -38,6 +43,12 @@ The test case `docs/test-cases/mario-hello.md` deliberately contains Business la
 4. **Verify proper actor usage** - Spec should use named stakeholders (Mario Fan, Accessibility Advocate) not generic "System"
 
 5. **Verify other agents unaffected** - Confirm System Actor removal only impacted Business layer
+
+6. **Verify assessment skill integration** - Agents automatically invoke assessment skill when detecting:
+   - Ambiguous requirements (multiple interpretations possible)
+   - Conflicting inputs (prompt vs upstream specs, or within prompt)
+   - Insufficient detail (cannot proceed without assumptions)
+   - Complex multi-part work (requires explicit planning)
 
 ## Implementation Checklist
 
@@ -96,7 +107,50 @@ The test case `docs/test-cases/mario-hello.md` deliberately contains Business la
 - [ ] Verify only Business agent was affected by removal
 - [ ] Confirm no broken references in other layers
 
-### 5. Document Results
+### 5. Test Assessment Skill Integration (Task 078 Validation)
+
+**Test automatic invocation with ambiguous input:**
+- [ ] Create prompt with ambiguous requirements (multiple interpretations)
+- [ ] Invoke any specification agent (Business, Functional, Stack)
+- [ ] Verify agent invokes `.github/skills/assessment/` automatically
+- [ ] Verify skill returns structured output with 6 required components
+- [ ] Verify agent incorporates assessment results before proceeding
+
+**Test automatic invocation with conflicting input:**
+- [ 7. Update Task Status
+
+- [ ] Mark Task 068 as completed in `docs/tasks/PLANNING.md`
+- [ ] Add Task 070 to Completed table
+- [ ] Document outcome in Task 068 file
+- [ ] Document assessment skill validation results in Task 07fication rather than proceeding with conflicting spec
+
+**Test automatic invocation with insufficient detail:**
+- [ ] Create prompt with insufficient detail (missing key information for spec generation)
+- [ ] Invoke specification agent
+- [ ] Verify agent detects insufficiency and invokes assessment skill
+- [ ] Verify skill identifies gaps in "Current State Findings" section
+- [ ] Verify agent requests additional information before generating spec
+
+**Test automatic invocation with complex planning:**
+- [ ] Create prompt with multi-tier, multi-layer work requiring explicit planning
+- [ ] Invoke implementation agent (Development, Deployment, Validation)
+- [ ] Verify agent invokes assessment skill for complex scenarios
+- [ ] Verify skill generates execution plan in "Execution Plan" section
+- [ ] Verify agent follows structured plan rather than ad-hoc execution
+
+**Test skill output consumption:**
+- [ ] Verify agents correctly parse skill's structured output
+- [ ] Verify "Approval Status" component controls agent continuation
+- [ ] Verify "Flagged Problems" halt execution when critical
+- [ ] Verify "Execution Plan" guides agent implementation steps
+
+**Document assessment skill behavior:**
+- [ ] Record which trigger conditions successfully invoke skill
+- [ ] Document any false positives (skill invoked unnecessarily)
+- [ ] Document any false negatives (skill NOT invoked when it should be)
+- [ ] Identify gaps in automatic detection logic
+
+### 6. Document Results
 
 - [ ] Create test report: `docs/user-testing/2026-01-21_task-068-boundary-validation.md`
 - [ ] Include:
@@ -129,9 +183,20 @@ The test case `docs/test-cases/mario-hello.md` deliberately contains Business la
 **Framework integrity:**
 - [ ] Only Business agent affected by System Actor removal
 - [ ] No broken references in other layers
+
+**Assessment skill integration working (Task 078 validation):**
+- [ ] Agents automatically invoke skill for ambiguous inputs
+- [ ] Agents automatically invoke skill for conflicting requirements
+- [ ] Agents automatically invoke skill for insufficient detail
+- [ ] Agents automatically invoke skill for complex planning scenarios
+- [ ] Skill returns properly structured output (6 components present)
+- [ ] Agents consume skill output and adjust behavior accordingly
+- [ ] No false positives (skill invoked when NOT needed)
+- [ ] No false negatives (skill NOT invoked when needed)
 - [ ] Boundary enforcement consistent with directives
 
 ## Expected Outcomes
+- **Task 078:** Iterative Assessment Before Execution (assessment skill complete, functional validation needed)
 
 **Best case:** Business Agent filters out Client Organizations actor and technical flow details, generating clean Business spec focused on stakeholder outcomes (Mario Fan experience, accessibility requirements).
 

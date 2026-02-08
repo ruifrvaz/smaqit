@@ -134,6 +134,8 @@ The assessment skill executes a five-step workflow:
 4. **Flag problems upfront** — Surface issues before execution begins
 5. **Present assessment** — Deliver findings with clear recommendations and request direction
 
+**Stop and Explain Risks:** For high-impact changes (configuration files, security practices, stability risks, convention violations, functionality duplication), assessment stops immediately and explains risks explicitly before proceeding.
+
 ### Invocation Triggers
 
 Agents invoke assessment skill when detecting:

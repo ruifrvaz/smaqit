@@ -1,7 +1,7 @@
 ---
 name: smaqit.L2
 description: Level 2 Agent Compiler - Compiles Level 1 template directives into Level 2 agent implementations with concrete values
-tools: ['edit', 'search', 'usages', 'todos']
+tools: ['execute/runNotebookCell', 'execute/testFailure', 'execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/killTerminal', 'execute/createAndRunTask', 'execute/runInTerminal', 'read/readFile', 'edit/createDirectory', 'edit/createFile', 'edit/createJupyterNotebook', 'edit/editFiles', 'edit/editNotebook', 'search/changes', 'search/codebase', 'search/fileSearch', 'search/listDirectory', 'search/searchResults', 'search/textSearch', 'search/usages', 'todo']
 ---
 
 # Level 2: Agent Compiler

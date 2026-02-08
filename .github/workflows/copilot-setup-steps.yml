@@ -1,4 +1,4 @@
-name: Copilot Setup
+wname: Copilot Setup
 
 on:
   workflow_dispatch:

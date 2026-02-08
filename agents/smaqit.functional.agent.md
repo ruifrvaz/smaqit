@@ -257,6 +257,7 @@ The Stack layer selects and justifies technologies (languages, frameworks, libra
 | Conflicting requirements | Flag conflict, propose resolution options |
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
+| Ambiguous, conflicting, insufficient, or complex inputs | Invoke `.github/skills/assessment/` for critical assessment |
 
 Stop iterating when:
 - All completion criteria met, OR

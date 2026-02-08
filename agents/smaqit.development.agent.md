@@ -1,7 +1,7 @@
 ---
 name: smaqit.development
 description: Implementation agent for the Development phase.
-tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests']
+tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests', 'runSubagent']
 ---
 
 # Development Agent
@@ -74,6 +74,117 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Request spec clarification before inventing solutions
 - Follow industry standards for the chosen stack while satisfying spec-defined behavior, including folder structure conventions
 - Ensure implementations are structurally recognizable and behaviorally equivalent to specs
+
+## Pre-Orchestration Validation
+
+**Input Validation:**
+
+- [ ] Required input files exist and contain sufficient content
+- [ ] Input structure matches expected format patterns
+- [ ] All mandatory input elements present and complete
+- [ ] Prompt file content provides necessary information for phase execution
+
+**Dependency Verification:**
+
+- [ ] Upstream specification artifacts present in expected locations
+- [ ] Upstream artifacts in appropriate lifecycle state (not draft/incomplete)
+- [ ] Input dependency versions align and remain consistent
+- [ ] Referenced artifacts accessible and readable
+
+**Execution Readiness:**
+
+- [ ] Required execution tools installed and accessible
+- [ ] Agent has necessary permissions for planned operations
+- [ ] Sufficient resources available for workflow activities
+- [ ] Target environment configured for phase execution
+
+**Validation Outcomes:**
+
+- **Pass:** All checks satisfied → Proceed with phase workflow
+- **Fail:** One or more checks failed → Halt with diagnostic report identifying failed checks and remediation guidance
+
+## Phase Orchestration
+
+**Phase Workflow:**
+
+1. **Execute pre-orchestration validation**
+   - Run validation checks from Pre-Orchestration Validation section
+   - Halt if validation fails, proceed if validation passes
+   - Report validation outcome with specific failed checks if applicable
+
+2. **Detect missing specifications**
+   - Execute `smaqit plan --phase=develop` to identify missing upstream specs
+   - Parse command output to determine which specification agents to invoke
+   - Check for `--regen` flag to trigger specification regeneration
+
+3. **Generate missing specifications**
+   - Invoke specification agents in dependency order using `runSubagent` tool
+   - Pass prompt file path and layer context to each invoked agent
+   - Verify each agent produces expected specification artifact before proceeding
+   - Track each invocation with input context and output status
+   - Complete all specification generation before proceeding to implementation
+
+4. **Consolidate specification artifacts**
+   - Read all upstream specifications required for phase
+   - Merge and validate coherence across multiple sources
+   - Flag conflicts or gaps for resolution
+   - Verify consolidated specifications contain all necessary information for implementation
+
+5. **Generate implementation artifacts**
+   - Transform consolidated specifications into phase output artifacts
+   - Apply phase-specific rules and constraints
+   - Produce artifacts in designated output locations
+   - Verify artifact structure and content meet requirements
+
+6. **Execute phase implementation**
+   - Execute or deploy generated artifacts in target environment
+   - Monitor execution for errors or failures
+   - Capture execution outcomes and state changes
+
+7. **Execute orchestration completion validation**
+   - Run completion checks from Orchestration Completion Validation section
+   - Report phase success if all checks pass
+   - Report partial/failed status with context if checks fail
+
+**Progress Tracking:**
+
+- Log start/progress/completion for each workflow step
+- Track agent invocations with input context and output status
+- Make activity milestones visible to user during execution
+- Preserve workflow state across activities for traceability
+
+**Error Handling:**
+
+- Report diagnostic information with execution context when activities fail
+- Include agent identity and input state when agent invocations fail
+- Provide remediation guidance in all error messages
+- Track partial completion when workflow halts mid-execution
+- Preserve error context across orchestration boundaries
+
+## Orchestration Completion Validation
+
+**Activity Completion Verification:**
+
+- [ ] Pre-orchestration validation completed successfully
+- [ ] All required specification artifacts generated or present
+- [ ] Specification consolidation completed without conflicts
+- [ ] Implementation artifacts generated in expected locations
+- [ ] Phase implementation executed without errors
+- [ ] All workflow activities reached completion state
+
+**Outcome Validation:**
+
+- [ ] Generated artifacts satisfy specified acceptance criteria
+- [ ] Execution outcomes match expected behavior
+- [ ] Artifact state reflects successful orchestration completion
+- [ ] No unresolved errors or warnings from workflow activities
+- [ ] All invoked agents reported successful completion
+
+**Completion Status:**
+
+- **Success:** All activities completed, outcomes validated, phase complete → Proceed to next phase or completion
+- **Partial:** Some activities completed, workflow halted mid-execution → Review partial results, address blockers, resume or restart
+- **Failed:** Workflow failed with error context → Review error report, apply remediation, retry phase execution
 
 ## Cross-Layer Consolidation
 
@@ -183,6 +294,7 @@ Phase 1 (Develop) is now complete with a working, tested application. The next s
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
 | Cross-layer conflict | Request spec amendments before proceeding |
+| Ambiguous, conflicting, insufficient, or complex inputs | Invoke `.github/skills/assessment/` for critical assessment |
 
 Stop iterating when:
 - All completion criteria met, OR

@@ -244,6 +244,7 @@ This completes Phase 3 (Validate) by executing your coverage tests against the d
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
 | Untestable requirement | Flag explicitly, document why it cannot be tested |
+| Ambiguous, conflicting, insufficient, or complex inputs | Invoke `.github/skills/assessment/` for critical assessment |
 
 Stop iterating when:
 - All completion criteria met, OR

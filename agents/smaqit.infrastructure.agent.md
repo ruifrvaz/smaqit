@@ -256,6 +256,7 @@ If you prefer to define all specifications before implementation, you can contin
 | Conflicting requirements | Flag conflict, propose resolution options |
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
+| Ambiguous, conflicting, insufficient, or complex inputs | Invoke `.github/skills/assessment/` for critical assessment |
 
 Stop iterating when:
 - All completion criteria met, OR

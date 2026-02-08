@@ -161,223 +161,118 @@ Stop iterating when:
 - Clarification required from upstream (request and wait)
 
 ### Phase Orchestration Content
+**Format:** workflow
 
-**Specification Generation Coordination:**
+**Phase Workflow:**
 
-**MUST:**
-- Detect missing specification artifacts before beginning implementation activities
-- Check for specification artifacts using `smaqit plan --phase=[PHASE]` command
-- Invoke specification agents when required artifacts are missing or `--regen` flag provided
-- Invoke specification agents in dependency sequence based on artifact requirements
-- Complete specification generation before proceeding to implementation activities
-- Track each specification agent invocation with input context and output status
+1. **Execute pre-orchestration validation**
+   - Run validation checks from Pre-Orchestration Validation section
+   - Halt if validation fails, proceed if validation passes
+   - Report validation outcome with specific failed checks if applicable
 
-**MUST NOT:**
-- Begin implementation activities while required specification artifacts are missing
-- Invoke specification agents in incorrect dependency order
-- Proceed to implementation if specification generation fails
+2. **Detect missing specifications**
+   - Execute `smaqit plan --phase=[PHASE]` to identify missing upstream specs
+   - Parse command output to determine which specification agents to invoke
+   - Check for `--regen` flag to trigger specification regeneration
 
-**SHOULD:**
-- Log specification generation progress including agent invocations and outcomes
-- Report specification generation completion before beginning implementation
+3. **Generate missing specifications**
+   - Invoke specification agents in dependency order using `runSubagent` tool
+   - Pass prompt file path and layer context to each invoked agent
+   - Verify each agent produces expected specification artifact before proceeding
+   - Track each invocation with input context and output status
+   - Complete all specification generation before proceeding to implementation
 
-**Multi-Agent Coordination:**
+4. **Consolidate specification artifacts**
+   - Read all upstream specifications required for phase
+   - Merge and validate coherence across multiple sources
+   - Flag conflicts or gaps for resolution
+   - Verify consolidated specifications contain all necessary information for implementation
 
-**MUST:**
-- Invoke agents as determined by artifact availability detection
-- Ensure invoked agents produce outputs before consuming them
-- Respect upstream dependencies when determining invocation sequence
-- Track each agent invocation with context (input state, agent identity, invocation reason)
-- Log each agent invocation outcome (success/failure, output artifacts, error context)
+5. **Generate implementation artifacts**
+   - Transform consolidated specifications into phase output artifacts
+   - Apply phase-specific rules and constraints
+   - Produce artifacts in designated output locations
+   - Verify artifact structure and content meet requirements
 
-**MUST NOT:**
-- Invoke agents out of dependency order
-- Consume agent outputs before verifying production completion
-- Silently ignore agent invocation failures
+6. **Execute phase implementation**
+   - Execute or deploy generated artifacts in target environment
+   - Monitor execution for errors or failures
+   - Capture execution outcomes and state changes
 
-**SHOULD:**
-- Report agent invocation sequence before beginning
-- Provide progress updates during multi-agent coordination
+7. **Execute orchestration completion validation**
+   - Run completion checks from Orchestration Completion Validation section
+   - Report phase success if all checks pass
+   - Report partial/failed status with context if checks fail
 
 **Progress Tracking:**
 
-**MUST:**
-- Report start, progress, and completion for each workflow activity
-- Log agent invocations with input context and output status
+- Log start/progress/completion for each workflow step
+- Track agent invocations with input context and output status
 - Make activity milestones visible to user during execution
-- Persist workflow state across activities for traceability
-- Include workflow state in progress reports
+- Preserve workflow state across activities for traceability
 
-**MUST NOT:**
-- Proceed silently without progress reporting
-- Lose workflow state between activities
+**Error Handling:**
 
-**SHOULD:**
-- Provide estimated time for long-running activities
-- Report milestone completion with timestamps
-
-**Error Context Preservation:**
-
-**MUST:**
 - Report diagnostic information with execution context when activities fail
 - Include agent identity and input state when agent invocations fail
 - Provide remediation guidance in all error messages
 - Track partial completion when workflow halts mid-execution
 - Preserve error context across orchestration boundaries
 
-**MUST NOT:**
-- Report errors without execution context
-- Lose error information when propagating across activities
-- Proceed after error without user guidance
-
-**SHOULD:**
-- Suggest specific remediation steps based on error type
-- Include failed activity summary in error reports
-
-**Phase Orchestration Activities Sequence:**
-
-**MUST execute activities in this sequence:**
-1. Pre-orchestration validation — Verify input sources and dependencies for readiness
-2. Specification generation — Invoke specification agents when upstream artifacts missing
-3. Artifact consolidation — Merge multiple specification sources and check coherence
-4. Implementation generation — Produce output artifacts from consolidated specifications
-5. Execution — Execute or deploy generated artifacts in target environment
-6. Orchestration completion validation — Verify outcomes against expected criteria
-
-**MUST NOT:**
-- Skip activities in the sequence
-- Execute activities out of order
-- Proceed to next activity if current activity fails
-
-**SHOULD:**
-- Report activity transitions to user
-- Log activity execution context and outcomes
-
 ### Pre-Orchestration Validation Content
+**Format:** checklist
 
 **Input Validation:**
 
-**MUST:**
-- Verify required input content exists before beginning workflow activities
-- Verify input content contains necessary information (sufficiency check)
-- Verify input structure matches expected patterns (format verification)
-- Verify all mandatory input elements are present (completeness assessment)
-- Produce guidance describing what's missing or incorrect when validation fails
-
-**MUST NOT:**
-- Proceed with workflow when input validation fails
-- Proceed with insufficient input content
-- Accept input with unexpected structure without validation
-
-**SHOULD:**
-- Provide specific examples of expected input format in validation failure guidance
-- Reference documentation for input requirements in failure messages
+- [ ] Required input files exist and contain sufficient content
+- [ ] Input structure matches expected format patterns
+- [ ] All mandatory input elements present and complete
+- [ ] Prompt file content provides necessary information for phase execution
 
 **Dependency Verification:**
 
-**MUST:**
-- Verify referenced artifacts are present in expected locations (existence check)
-- Verify upstream artifacts are in appropriate lifecycle state (state verification)
-- Verify input versions align across dependencies (version consistency)
-- Halt execution with clear identification of gaps when dependencies are missing
-
-**MUST NOT:**
-- Proceed with missing dependencies
-- Proceed when upstream artifacts are in incorrect lifecycle state
-- Ignore version inconsistencies across dependencies
-
-**SHOULD:**
-- Report all missing dependencies in single validation pass
-- Suggest commands to generate missing dependencies
+- [ ] Upstream specification artifacts present in expected locations
+- [ ] Upstream artifacts in appropriate lifecycle state (not draft/incomplete)
+- [ ] Input dependency versions align and remain consistent
+- [ ] Referenced artifacts accessible and readable
 
 **Execution Readiness:**
 
-**MUST:**
-- Verify required execution tools are present and accessible (tool availability)
-- Verify agent has necessary permissions for planned operations (permission verification)
-- Verify sufficient resources available for workflow activities (resource checks)
-- Prevent workflow initiation with actionable remediation steps when readiness checks fail
+- [ ] Required execution tools installed and accessible
+- [ ] Agent has necessary permissions for planned operations
+- [ ] Sufficient resources available for workflow activities
+- [ ] Target environment configured for phase execution
 
-**MUST NOT:**
-- Begin workflow activities when execution environment is not ready
-- Proceed without verifying tool availability
-- Proceed without verifying permissions
+**Validation Outcomes:**
 
-**SHOULD:**
-- Provide installation instructions for missing tools
-- Suggest permission configuration for missing permissions
-
-**Pre-Orchestration Validation Outcomes:**
-
-**MUST:**
-- Produce binary outcome: Pass or Fail
-- Proceed with workflow when validation passes
-- Halt workflow with diagnostic report when validation fails
-- Include specific remediation guidance for each failed check
-
-**MUST NOT:**
-- Proceed with partial validation pass
-- Produce ambiguous validation outcome
-- Halt without providing remediation guidance
-
-**SHOULD:**
-- Summarize all validation checks in outcome report
-- Prioritize remediation steps by criticality
+- **Pass:** All checks satisfied → Proceed with phase workflow
+- **Fail:** One or more checks failed → Halt with diagnostic report identifying failed checks and remediation guidance
 
 ### Orchestration Completion Validation Content
+**Format:** checklist
 
 **Activity Completion Verification:**
 
-**MUST:**
-- Verify each workflow activity reached completion state without errors (completion status)
-- Verify each activity produced expected output artifacts (output presence)
-- Verify produced artifacts meet structural and content requirements (output validity)
-- Identify incomplete activities with execution context and failure reason
-
-**MUST NOT:**
-- Declare workflow complete when any activity is incomplete
-- Skip verification of activity outputs
-- Proceed when activity outputs are invalid
-
-**SHOULD:**
-- Report completion status for all activities in summary
-- Provide detailed failure context for incomplete activities
+- [ ] Pre-orchestration validation completed successfully
+- [ ] All required specification artifacts generated or present
+- [ ] Specification consolidation completed without conflicts
+- [ ] Implementation artifacts generated in expected locations
+- [ ] Phase implementation executed without errors
+- [ ] All workflow activities reached completion state
 
 **Outcome Validation:**
 
-**MUST:**
-- Verify generated artifacts satisfy specified acceptance criteria
-- Verify execution outcomes match expected behavior (behavioral correctness)
-- Verify artifact state reflects successful orchestration completion (state consistency)
-- Include specific criteria not met and diagnostic information when validation fails
+- [ ] Generated artifacts satisfy specified acceptance criteria
+- [ ] Execution outcomes match expected behavior
+- [ ] Artifact state reflects successful orchestration completion
+- [ ] No unresolved errors or warnings from workflow activities
+- [ ] All invoked agents reported successful completion
 
-**MUST NOT:**
-- Declare success when acceptance criteria are not satisfied
-- Skip behavioral correctness verification
-- Ignore state inconsistencies
+**Completion Status:**
 
-**SHOULD:**
-- Map validation results to specific acceptance criteria IDs
-- Provide evidence of behavioral correctness in outcome report
-
-**Orchestration Completion Outcomes:**
-
-**MUST produce status with context:**
-- **Success** — All activities completed, outcomes validated, phase complete
-- **Partial** — Some activities completed, workflow halted mid-execution
-- **Failed** — Workflow failed with error context and attempted remediation
-
-**MUST:**
-- Include detailed report of activity outcomes and validation results
-- Document completion status in phase report
-
-**MUST NOT:**
-- Declare success without complete validation
-- Produce completion status without supporting detail
-
-**SHOULD:**
-- Provide summary of all workflow activities with outcomes
-- Include recommendations for addressing partial or failed completions
+- **Success:** All activities completed, outcomes validated, phase complete → Proceed to next phase or completion
+- **Partial:** Some activities completed, workflow halted mid-execution → Review partial results, address blockers, resume or restart
+- **Failed:** Workflow failed with error context → Review error report, apply remediation, retry phase execution
 
 ### Implementation-Extension MUST Directives
 
@@ -636,40 +531,45 @@ Construct product agent Failure Handling section using Failure Handling Content:
 
 Construct product agent Phase Orchestration section using Phase Orchestration Content:
 
-1. **Specification Generation Coordination**: Insert directives for artifact detection, agent invocation, dependency ordering
-2. **Multi-Agent Coordination**: Insert directives for agent invocation patterns and tracking
-3. **Progress Tracking**: Insert directives for activity reporting and state persistence
-4. **Error Context Preservation**: Insert directives for error handling and context propagation
-5. **Phase Workflow Activities Sequence**: Insert 6-step activity sequence with execution directives
+1. **Phase Workflow**: Insert 7-step numbered workflow sequence with details:
+   - Step 1: Execute pre-orchestration validation
+   - Step 2: Detect missing specifications
+   - Step 3: Generate missing specifications
+   - Step 4: Consolidate specification artifacts
+   - Step 5: Generate implementation artifacts
+   - Step 6: Execute phase implementation
+   - Step 7: Execute orchestration completion validation
+2. **Progress Tracking**: Insert progress tracking guidelines (4 bullet points)
+3. **Error Handling**: Insert error handling guidelines (5 bullet points)
 
 **Purpose:** Phase Orchestration section enables implementation agents to coordinate specification generation and implementation within their phase, incorporating orchestration capabilities from deprecated orchestrator agent.
 
-**Structure:** Five subsections (Specification Generation Coordination, Multi-Agent Coordination, Progress Tracking, Error Context Preservation, Phase Workflow Activities Sequence) with MUST/MUST NOT/SHOULD directives compiled from L0 Phase Orchestration concept.
+**Structure:** Workflow format with numbered sequential steps, followed by Progress Tracking and Error Handling subsections. Compiled from L0 Phase Orchestration concept.
 
 ### Merging Pre-Orchestration Validation Content
 
 Construct product agent Pre-Orchestration Validation section using Pre-Orchestration Validation Content:
 
-1. **Input Validation**: Insert directives for sufficiency, format, and completeness checks
-2. **Dependency Verification**: Insert directives for existence, state, and version checks
-3. **Execution Readiness**: Insert directives for tool, permission, and resource verification
-4. **Pre-Orchestration Validation Outcomes**: Insert directives for binary pass/fail outcome with remediation
+1. **Input Validation**: Insert 4 checkbox validation items
+2. **Dependency Verification**: Insert 4 checkbox verification items
+3. **Execution Readiness**: Insert 4 checkbox readiness items
+4. **Validation Outcomes**: Insert Pass/Fail outcome descriptions with actions
 
 **Purpose:** Pre-Orchestration Validation section ensures implementation agents verify readiness before beginning workflow activities, preventing execution with insufficient inputs or missing dependencies.
 
-**Structure:** Four subsections (Input Validation, Dependency Verification, Execution Readiness, Pre-Orchestration Validation Outcomes) with MUST/MUST NOT/SHOULD directives compiled from L0 Pre-Orchestration Validation concept.
+**Structure:** Checklist format with grouped checkbox items (3 categories) followed by binary Validation Outcomes. Compiled from L0 Pre-Orchestration Validation concept.
 
 ### Merging Orchestration Completion Validation Content
 
 Construct product agent Orchestration Completion Validation section using Orchestration Completion Validation Content:
 
-1. **Activity Completion Verification**: Insert directives for verifying activity completion status and outputs
-2. **Outcome Validation**: Insert directives for acceptance criteria and behavioral correctness verification
-3. **Orchestration Completion Outcomes**: Insert directives for success/partial/failed status with context
+1. **Activity Completion Verification**: Insert 6 checkbox completion items
+2. **Outcome Validation**: Insert 5 checkbox outcome items
+3. **Completion Status**: Insert Success/Partial/Failed status descriptions with actions
 
 **Purpose:** Orchestration Completion Validation section ensures implementation agents validate all activities executed successfully and produced expected outcomes before declaring phase success.
 
-**Structure:** Three subsections (Activity Completion Verification, Outcome Validation, Orchestration Completion Outcomes) with MUST/MUST NOT/SHOULD directives compiled from L0 Orchestration Completion Validation concept.
+**Structure:** Checklist format with grouped checkbox items (2 categories) followed by tri-state Completion Status. Compiled from L0 Orchestration Completion Validation concept.
 
 ### Extension-Specific Directives
 

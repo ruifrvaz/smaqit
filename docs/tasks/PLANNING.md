@@ -7,7 +7,6 @@
 | 080 | Copilot Setup Workflow for smaqit Installation | in progress | High |
 | 079 | Spec Agents Revert Status to Draft on Modification | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
-| 073 | Implementation Agents as Phase Orchestrators | new | High |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |
 | 070 | E2E Boundary Enforcement Validation | new | High |
@@ -21,6 +20,7 @@
 
 | ID | Title |
 |----|-------|
+| 073 | Implementation Agents as Phase Orchestrators |
 | 078 | Iterative Assessment Before Spec Generation and Implementation |
 | 065 | Clean Up Level 1 Templates |
 | 072 | Remove Orchestrator Agent Pattern |

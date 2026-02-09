@@ -325,9 +325,42 @@ When specification agents modify existing acceptance criteria text (expanding sc
 - [x] FUN-OUTPUT-006: Generate output containing Mario and Luigi characters
 ```
 
-**Stale Specs:**
+**Status Lifecycle During Refinement:**
 
-Specs become stale when content changes after implementation. Detection is **user responsibility**.
+When specification agents modify existing specifications, the spec status returns to draft state to signal need for revalidation through implementation phases.
+
+Modified specifications carry reset checkboxes (granular requirement tracking) and draft status (overall validation state). Both indicators signal that previous validation no longer reflects current specification content.
+
+**Status Transitions on Modification:**
+
+| Previous Status | After Modification | Rationale |
+|----------------|-------------------|-----------|
+| `implemented` | `draft` | Code implements previous version, not modified spec |
+| `deployed` | `draft` | Deployed system reflects previous spec, not current |
+| `validated` | `draft` | Tests validated previous requirements, not modified ones |
+| `failed` | `draft` | Previous failure may not apply to modified spec |
+
+**Relationship to Checkbox Resets:**
+
+Status reversion and checkbox resets operate together during specification refinement:
+- **Checkboxes** track granular requirement satisfaction (per acceptance criterion)
+- **Status** tracks overall validation state (spec lifecycle position)
+- **Both reset** when specifications change to prevent stale validation indicators
+
+Modified specs enter draft state regardless of how far they progressed previously. Revalidation proceeds through phases: draft → implemented → deployed → validated.
+
+**Spec Modification Source:**
+
+Specification modifications originate from prompt file changes, not manual spec editing. Users modify prompts (input records), agents regenerate specifications from updated prompts.
+
+When requirements evolve:
+1. Users edit prompt files (`.github/prompts/smaqit.[layer].prompt.md`)
+2. Users invoke specification agents to regenerate specs
+3. Agents modify specs based on updated prompt content
+4. Modified specs enter draft state with reset checkboxes
+5. Specs proceed through revalidation phases
+
+Manual spec editing bypasses the input record and breaks traceability. Prompt files serve as the authoritative source for all specification content.
 
 **State Aggregation:**
 

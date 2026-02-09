@@ -4,22 +4,21 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 080 | Copilot Setup Workflow for smaqit Installation | in progress | High |
-| 079 | Spec Agents Revert Status to Draft on Modification | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |
 | 070 | E2E Boundary Enforcement Validation | new | High |
 | 064 | Complete Level 0 Principle Cleanup | new | High |
 | 066 | Clean Up Level 2 Product Agents | new | High |
-| 069 | Strengthen Bounded Agents Principle | new | Medium |
-| 025 | Integrate testing agent with CI/CD | new | Medium |
-| 031 | Review implementation artifacts | new | Medium |
+| 025 | Integrate testing agent with CI/CD | blocked | Medium |
 
 ## Completed
 
 | ID | Title |
 |----|-------|
+| 079 | Spec Agents Revert Status to Draft on Modification |
+| 069 | Strengthen Bounded Agents Principle |
+| 080 | Copilot Setup Workflow for smaqit Installation |
 | 073 | Implementation Agents as Phase Orchestrators |
 | 078 | Iterative Assessment Before Spec Generation and Implementation |
 | 065 | Clean Up Level 1 Templates |
@@ -100,6 +99,7 @@ Tasks that were started but abandoned due to being superseded, no longer relevan
 | 076 | Separate SDK and App Installers | Duplicate of Task 075 (more comprehensive dual-release architecture) |
 | 036 | Implement prompt addendum for reproducibility | Superseded by iterative development with stateful specs |
 | 057 | Add Checkbox Updates to Validation Agent | Superseded by Task 058 (distributed responsibility model) |
+| 031 | Review implementation artifacts | Task predates solution. Phase tracking solved via frontmatter state (Task 015). Artifacts already appropriately standardized where needed (reports in `.smaqit/reports/`, tests in `tests/`) and intentionally flexible per Anchoring Principle (README location, code structure follow stack conventions). No actionable work remains. |
 
 ## Backlog
 

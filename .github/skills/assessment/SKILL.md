@@ -1,6 +1,6 @@
 ---
 name: assessment
-description: Critical assessment skill for handling ambiguous requirements, conflicting inputs, and insufficient detail in complex planning scenarios. Provides approval gate with iterative refinement to prevent wasted execution on poor-quality inputs.
+description: Critical assessment skill for handling ambiguous requirements, conflicting inputs, and insufficient detail in complex planning scenarios. Provides approval gate with iterative refinement to prevent wasted execution on poor-quality inputs. Invoke when user explicitly requests assessment using words "assess" or "assessment" or when requirements are ambiguous, conflicting, or underspecified.
 ---
 
 # Assessment

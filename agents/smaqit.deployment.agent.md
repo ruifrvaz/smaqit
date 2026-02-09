@@ -68,6 +68,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Invent requirements not present in input
 - Proceed with unresolved cross-layer conflicts
 - Include secrets, passwords, API keys, tokens, or credentials in generated artifacts (use placeholder references like `${secrets.KEY_NAME}`)
+- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated phase scope
 
 ### SHOULD
 

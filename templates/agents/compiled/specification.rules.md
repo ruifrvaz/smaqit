@@ -17,7 +17,7 @@ created: 2026-01-25
 | AGENTS.md | Specification Agents → Directives |
 | AGENTS.md | Specification Agents → Incremental Spec Updates |
 | AGENTS.md | Specification Agents → Role Architecture |
-
+| ARTIFACTS.md | Status Lifecycle During Refinement |
 ---
 
 ## L1 Directive Compilation
@@ -74,6 +74,7 @@ created: 2026-01-25
 - Update existing specs when adding to an existing concept
 - Create new specs only for distinct new concepts
 - Reset acceptance criteria checkbox to `[ ]` when modifying existing criteria text (expanded scope requires revalidation)
+- Revert spec `status` field to `draft` when modifying acceptance criteria text
 
 **Upstream Coherence:**
 - Flag conflicts when user input contradicts upstream specs rather than silently override
@@ -91,6 +92,7 @@ created: 2026-01-25
 - Produce specs for layers outside designated scope
 - Execute work assigned to implementation phases
 - Execute work assigned to other specification layers
+- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated layer scope
 
 ### Specification-Extension SHOULD Directives
 
@@ -236,7 +238,7 @@ Specification-extension directives apply to ALL specification agents. Merge into
 1. **MUST section** receives (after base directives):
    - Template Compliance directives (1 item)
    - Specification Content directives (3 items)
-   - Specification Lifecycle directives (4 items)
+   - Specification Lifecycle directives (5 items)
    - Upstream Coherence directives (1 item)
 
 2. **MUST NOT section** receives (after base directives):

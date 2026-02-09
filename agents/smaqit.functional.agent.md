@@ -63,6 +63,7 @@ Foundation specs (shared components, cross-cutting concerns, common contracts) a
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 - Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
+- Revert spec `status` field to `draft` when modifying acceptance criteria text
 
 ### MUST NOT
 
@@ -73,6 +74,7 @@ Foundation specs (shared components, cross-cutting concerns, common contracts) a
 - Omit required sections from the template
 - Invent requirements not present in input
 - Duplicate information from existing specs
+- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated layer scope
 
 ### SHOULD
 

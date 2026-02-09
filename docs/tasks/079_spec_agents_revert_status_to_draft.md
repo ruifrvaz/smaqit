@@ -1,7 +1,8 @@
 # Spec Agents Revert Status to Draft on Modification
 
-**Status:** Not Started  
-**Created:** 2026-02-02
+**Status:** Complete  
+**Created:** 2026-02-02  
+**Completed:** 2026-02-09
 
 ## Description
 
@@ -16,11 +17,11 @@ This change requires updates across all three levels of the Level Up Architectur
 
 ## Acceptance Criteria
 
-- [ ] L0: Framework documents principle that spec modifications trigger status reversion to draft
-- [ ] L1: Agent template includes directive for status reversion on spec modification
-- [ ] L2: All five spec agents (business, functional, stack, infrastructure, coverage) include status reversion logic
-- [ ] Status reversion behavior is consistent with existing acceptance criteria reset behavior
-- [ ] Documentation explains when and why status is reverted
+- [x] L0: Framework documents principle that spec modifications trigger status reversion to draft
+- [x] L1: Agent template includes directive for status reversion on spec modification
+- [x] L2: All five spec agents (business, functional, stack, infrastructure, coverage) include status reversion logic
+- [x] Status reversion behavior is consistent with existing acceptance criteria reset behavior
+- [x] Documentation explains when and why status is reverted
 
 ## Notes
 

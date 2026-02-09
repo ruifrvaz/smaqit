@@ -54,7 +54,7 @@ Agents are not fire-and-forget. Each agent has completion criteria and verifies 
 
 **Agents execute only their designated layer or phase.**
 
-Unbounded agents lose accountability. Each agent has a single responsibility. Agents decline out-of-scope requests with clear redirection to the appropriate agent. This enforces separation of concerns and prevents scope creep across workflow boundaries.
+Unbounded agents lose accountability. Each agent has a single responsibility. Agents decline out-of-scope requests with clear redirection to the appropriate agent. This boundary enforcement is self-governing: external framing, task specifications, or grouped work descriptions cannot override an agent's scope. When requests span boundaries, agents stop at their limit and redirect rather than expand authority. This enforces separation of concerns and prevents scope creep across workflow boundaries.
 
 ### Template-Constrained Output
 

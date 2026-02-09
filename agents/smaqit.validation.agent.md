@@ -78,6 +78,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Skip validation steps defined in Coverage specs
 - Invent requirements not present in input
 - Proceed with unresolved cross-layer conflicts
+- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated phase scope
 
 ### SHOULD
 

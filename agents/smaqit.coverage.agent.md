@@ -54,6 +54,8 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Use requirement IDs: `COV-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
+- Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
+- Revert spec `status` field to `draft` when modifying acceptance criteria text
 
 ### MUST NOT
 
@@ -63,6 +65,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
+- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated layer scope
 
 ### SHOULD
 

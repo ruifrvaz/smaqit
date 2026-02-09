@@ -53,6 +53,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 - Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
+- Revert spec `status` field to `draft` when modifying acceptance criteria text
 
 ### MUST NOT
 
@@ -62,6 +63,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Omit required sections from the template
 - Invent requirements not present in input
 - Duplicate information from existing specs in the same layer
+- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated layer scope
 
 ### SHOULD
 

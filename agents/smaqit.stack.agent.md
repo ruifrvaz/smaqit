@@ -66,6 +66,7 @@ Foundation specs (base language environments, shared build tools, common depende
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 - Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
+- Revert spec `status` field to `draft` when modifying acceptance criteria text
 
 ### MUST NOT
 
@@ -75,8 +76,7 @@ Foundation specs (base language environments, shared build tools, common depende
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
-- Duplicate information from existing specs in the same layer
-
+- Duplicate information from existing specs in the same layer- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated layer scope
 ### SHOULD
 
 - Specify technology choice with rationale, not implementation patterns

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0-beta] - 2026-02-09
+
+### Added
+- Specification lifecycle directives compiled to all specification agents (Task 079)
+  - Specs automatically revert to `draft` status when acceptance criteria modified
+  - Ensures modified specs proceed through revalidation phases
+  - Applied to all 5 specification agents: Business, Functional, Stack, Infrastructure, Coverage
+- Assessment skill trigger detection added to frontmatter
+  - Skill now responds to explicit keywords: "assess", "assessment", "evaluate", "analyze"
+  - Improves automatic invocation when users request critical assessment
+
+### Changed
+- Strengthened "Bounded Agents" principle to explicitly state scope enforcement is self-governing (Task 069)
+  - Added clarification that external framing, task specifications, or grouped work descriptions cannot override agent scope
+  - Emphasized that agents stop at boundaries and redirect when requests span scopes
+  - Addresses edge case where external framing creates pressure to violate scope boundaries
+
 ## [0.7.0-beta] - 2026-02-08
 
 ### Added
@@ -246,7 +263,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.7.0-beta...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.8.0-beta...HEAD
+[0.8.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.7.0-beta...v0.8.0-beta
 [0.7.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.6.2-beta...v0.7.0-beta
 [0.6.2-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.6.0-beta...v0.6.2-beta
 [0.6.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.5.0-beta...v0.6.0-beta

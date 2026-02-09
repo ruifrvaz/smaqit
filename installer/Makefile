@@ -19,7 +19,7 @@ prepare:
 	@cp ../.github/workflows/copilot-setup-steps.yml templates/workflows/
 	@cp -r ../agents .
 	@cp -r ../prompts .
-	@cp -r ../.github/skills .
+	@cp -r ../skills .
 
 # Default target: build for current platform
 .PHONY: build

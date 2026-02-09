@@ -14,10 +14,12 @@ LDFLAGS = -ldflags "-X main.Version=$(VERSION)"
 prepare:
 	@echo "Copying embedded files..."
 	@cp -r ../framework .
-	@mkdir -p templates
+	@mkdir -p templates/workflows
 	@cp -r ../templates/specs templates/
+	@cp ../.github/workflows/copilot-setup-steps.yml templates/workflows/
 	@cp -r ../agents .
 	@cp -r ../prompts .
+	@cp -r ../.github/skills .
 
 # Default target: build for current platform
 .PHONY: build
@@ -98,12 +100,12 @@ uninstall:
 				;; \
 		esac; \
 	fi; \
-	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "agents" ] || [ -d "prompts" ] || [ -d "test" ]; then \
+	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "agents" ] || [ -d "prompts" ] || [ -d "skills" ] || [ -d "test" ]; then \
 		printf "\nAlso clean build artifacts (dist/, embedded files, test/)? [y/N]: "; \
 		read clean_response; \
 		case "$$clean_response" in \
 			[yY]|[yY][eE][sS]) \
-				rm -rf $(DIST_DIR) framework/ templates/ agents/ prompts/ test/; \
+				rm -rf $(DIST_DIR) framework/ templates/ agents/ prompts/ skills/ test/; \
 				echo "✓ Cleaned build artifacts"; \
 				;; \
 			*) \

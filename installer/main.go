@@ -21,6 +21,9 @@ var agentFiles embed.FS
 //go:embed prompts/*.md
 var promptFiles embed.FS
 
+//go:embed skills/**/*.md
+var skillFiles embed.FS
+
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
 var Version = "0.7.0-beta"
 
@@ -78,7 +81,7 @@ func cmdHelp() {
 	fmt.Println("CLI Commands:")
 	fmt.Println("  smaqit init [dir] Scaffold smaqit project structure")
 	fmt.Println("                    Creates .smaqit/ and .github/ directories with")
-	fmt.Println("                    spec templates, prompt files, and agent definitions")
+	fmt.Println("                    spec templates, prompt files, skills, and agent definitions")
 	fmt.Println("                    Optional: specify target directory (created if needed)")
 	fmt.Println()
 	fmt.Println("  smaqit plan       Show work plan for current phase")
@@ -96,7 +99,7 @@ func cmdHelp() {
 	fmt.Println("  smaqit help       Show this help message")
 	fmt.Println()
 	fmt.Println("  smaqit uninstall  Remove smaqit from project")
-	fmt.Println("                    Removes .smaqit/, .github/agents/, .github/prompts/")
+	fmt.Println("                    Removes .smaqit/, .github/agents/, .github/prompts/, .github/skills/")
 	fmt.Println()
 	fmt.Println("  smaqit version    Show smaqit version")
 	fmt.Println()
@@ -307,6 +310,7 @@ func cmdInit(targetDir string) {
 		"specs/coverage",
 		".github/agents",
 		".github/prompts",
+		".github/skills",
 		".github/workflows",
 	}
 
@@ -335,6 +339,12 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
+	// Copy skill files
+	if err := copyEmbeddedDir(skillFiles, "skills", ".github/skills"); err != nil {
+		fmt.Printf("Error copying skill files: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Copy workflow files
 	if err := copyEmbeddedDir(workflowFiles, "templates/workflows", ".github/workflows"); err != nil {
 		fmt.Printf("Error copying workflow files: %v\n", err)
@@ -345,6 +355,7 @@ func cmdInit(targetDir string) {
 	fmt.Println("✓ Copied templates")
 	fmt.Println("✓ Copied agent definitions")
 	fmt.Println("✓ Copied prompt files")
+	fmt.Println("✓ Copied skill files")
 	fmt.Println("✓ Copied workflow files")
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
@@ -419,6 +430,7 @@ func cmdUninstall() {
 	fmt.Println("  • .smaqit/")
 	fmt.Println("  • .github/agents/")
 	fmt.Println("  • .github/prompts/")
+	fmt.Println("  • .github/skills/")
 	fmt.Print("\nContinue? [y/N]: ")
 
 	var response string
@@ -475,6 +487,13 @@ func cmdUninstall() {
 		fmt.Println("✓ Removed .github/prompts/")
 	}
 
+	if err := os.RemoveAll(filepath.Join(".github", "skills")); err != nil && !os.IsNotExist(err) {
+		fmt.Printf("Error removing .github/skills/: %v\n", err)
+		errors++
+	} else {
+		fmt.Println("✓ Removed .github/skills/")
+	}
+
 	// Check if .github is empty and remove it
 	entries, err := os.ReadDir(".github")
 	if err == nil && len(entries) == 0 {
@@ -511,6 +530,8 @@ func cmdValidate() {
 		"specs/infrastructure",
 		"specs/coverage",
 		".github/agents",
+		".github/prompts",
+		".github/skills",
 	}
 
 	for _, dir := range requiredDirs {

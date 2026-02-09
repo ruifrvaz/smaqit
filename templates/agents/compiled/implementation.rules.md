@@ -82,6 +82,7 @@ created: 2026-01-25
 **MUST NOT Directives:**
 - Execute work assigned to other phases
 - Execute work assigned to specification layers (Business, Functional, Stack, Infrastructure, Coverage)
+- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated phase scope
 
 **Boundary Enforcement (3-step pattern):**
 

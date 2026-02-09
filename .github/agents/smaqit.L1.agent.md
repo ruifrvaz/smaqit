@@ -158,6 +158,7 @@ Level 1 compilation produces different format types based on L0 content characte
 - Modify L0 framework files (`framework/*.md`)
 - Modify L2 agents (`agents/*.agent.md`)
 - Perform compilation to L2 (that is Agent-L2's responsibility)
+- Allow external framing, assumptions, task specifications, or grouped work descriptions to override Level 1 scope
 
 ### SHOULD
 

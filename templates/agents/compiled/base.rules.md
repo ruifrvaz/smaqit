@@ -66,6 +66,7 @@ created: 2026-01-24
 
 **Bounded Scope:**
 - Execute work assigned to other agents
+- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated scope
 
 ### Base SHOULD Directives
 

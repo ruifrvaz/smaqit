@@ -200,8 +200,24 @@ Agent-L2 recompiled all three implementation agents using corrected L1 compilati
 **Concurrent work:**
 - Task 078: Iterative Assessment Before Execution (L0 complete, L1/L2 pending)
 
+**Follow-up completed (2026-02-09):**
+- Test Case 002 created: Phase Orchestration Workflow (`docs/test-cases/orchestration-workflow.md`)
+- 8 comprehensive test scenarios covering orchestration capabilities
+- Validates Task 073 acceptance criteria through practical testing
+
 **Follow-up pending:**
-- E2E testing with actual phase execution to verify workflow functions correctly
+- Execute Test Case 002 to validate orchestration workflow end-to-end
+- Scenarios to test:
+  1. Development phase auto-generating business, functional, stack specs
+  2. Deployment phase auto-generating infrastructure specs
+  3. Validation phase auto-generating coverage specs
+  4. Spec regeneration with `--regen` flag
+  5. Partial spec handling (process only missing specs)
+  6. Empty prompt detection and validation failure
+  7. Progress tracking visibility during orchestration
+  8. Error context preservation on agent invocation failures
+- Primary validation: Single-command workflow (`/smaqit.development`) vs multi-step manual workflow
+- Expected duration: 30-45 minutes for all scenarios
 - Installer rebuild to package updated agents (deferred to release workflow)
 
 ## Session Metadata

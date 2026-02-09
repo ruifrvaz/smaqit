@@ -264,8 +264,8 @@ User: /smaqit.user-testing run end-to-end test
 
 # Manual installer test
 cd installer && make build && mkdir -p test && cd test
-../dist/smaqit init && ../dist/smaqit status
-cd .. && rm -rf test/
+../dist/smaqit-dev init && ../dist/smaqit-dev status
+cd .. && make uninstall  # Also cleans test/ and embedded files
 
 # Release workflow
 User: /smaqit.release

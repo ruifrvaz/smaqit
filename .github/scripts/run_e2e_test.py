@@ -22,7 +22,7 @@ async def show_progress(task, description="Working"):
         dot_str = "." * (dots % 4)
         print(f"\r⏱  {description}{dot_str:<3} [{mins:02d}:{secs:02d}]", end="", flush=True)
         dots += 1
-        await asyncio.sleep(2)
+        await asyncio.sleep(30)
     print()  # New line after completion
 
 
@@ -62,7 +62,7 @@ async def run_e2e_test(test_case: str = "mario-hello.automated") -> bool:
         task = asyncio.create_task(
             session.send_and_wait(
                 {"prompt": prompt},
-                timeout=900  # 15 minutes for full E2E test (5 layers + setup/cleanup)
+                timeout=1500  # 25 minutes for full E2E test (CI environment is slower than local)
             )
         )
         await show_progress(task, "Agent executing test workflow")

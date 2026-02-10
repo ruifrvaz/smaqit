@@ -10,7 +10,7 @@
 | 070 | E2E Boundary Enforcement Validation | new | High |
 | 064 | Complete Level 0 Principle Cleanup | new | High |
 | 066 | Clean Up Level 2 Product Agents | new | High |
-| 025 | Integrate testing agent with CI/CD | blocked | Medium |
+| 025 | Integrate testing agent with CI/CD | in progress | Medium |
 
 ## Completed
 

@@ -8,6 +8,7 @@ installer/dist/
 
 # Test artifacts
 installer/test/
+.test-venv/
 
 # Releases
 releases/

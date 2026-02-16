@@ -283,15 +283,16 @@ func detectConflicts() []string {
 
 	// Define the file mappings that will be installed
 	fileMappings := []struct {
-		embeddedFS embed.FS
-		srcDir     string
-		dstDir     string
+		embeddedFS       embed.FS
+		srcDir           string
+		dstDir           string
+		skipIfExists     bool // Workflow files are never overwritten
 	}{
-		{templateFiles, "templates/specs", ".smaqit/templates/specs"},
-		{agentFiles, "agents", ".github/agents"},
-		{promptFiles, "prompts", ".github/prompts"},
-		{skillFiles, "skills", ".github/skills"},
-		{workflowFiles, "templates/workflows", ".github/workflows"},
+		{templateFiles, "templates/specs", ".smaqit/templates/specs", false},
+		{agentFiles, "agents", ".github/agents", false},
+		{promptFiles, "prompts", ".github/prompts", false},
+		{skillFiles, "skills", ".github/skills", false},
+		{workflowFiles, "templates/workflows", ".github/workflows", true},
 	}
 
 	// Check each file mapping for conflicts
@@ -306,8 +307,8 @@ func detectConflicts() []string {
 			relPath = strings.TrimPrefix(relPath, "/") // Remove leading slash if present
 			dstPath := filepath.Join(mapping.dstDir, relPath)
 
-			// Skip workflow files (they are never overwritten by copyEmbeddedDir)
-			if mapping.dstDir == ".github/workflows" {
+			// Skip files that are never overwritten (e.g., workflows)
+			if mapping.skipIfExists {
 				if _, err := os.Stat(dstPath); err == nil {
 					// File exists, would be skipped anyway
 					return nil

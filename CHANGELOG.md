@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1-beta] - 2026-02-16
+
+### Fixed
+- Installer now handles existing `.smaqit` directory gracefully (PR #50)
+  - Detects which files would be overwritten before proceeding
+  - Preserves user data in specs and custom extensions
+  - Prompts for confirmation when conflicts detected
+  - Skips installation if only custom files exist
+  - Makes reinstallation and version upgrades safe
+
 ## [0.8.0-beta] - 2026-02-09
 
 ### Added
@@ -263,7 +273,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.8.0-beta...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.8.1-beta...HEAD
+[0.8.1-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.8.0-beta...v0.8.1-beta
 [0.8.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.7.0-beta...v0.8.0-beta
 [0.7.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.6.2-beta...v0.7.0-beta
 [0.6.2-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.6.0-beta...v0.6.2-beta

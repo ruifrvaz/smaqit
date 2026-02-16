@@ -301,12 +301,13 @@ func detectConflicts() []string {
 				return nil
 			}
 
-			// Calculate destination path
-			relPath := strings.TrimPrefix(path, mapping.srcDir+"/")
+			// Calculate destination path (handle cross-platform path separators)
+			relPath := strings.TrimPrefix(path, mapping.srcDir)
+			relPath = strings.TrimPrefix(relPath, "/") // Remove leading slash if present
 			dstPath := filepath.Join(mapping.dstDir, relPath)
 
 			// Skip workflow files (they are never overwritten by copyEmbeddedDir)
-			if strings.Contains(mapping.dstDir, "workflows") {
+			if mapping.dstDir == ".github/workflows" {
 				if _, err := os.Stat(dstPath); err == nil {
 					// File exists, would be skipped anyway
 					return nil

@@ -72,6 +72,20 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 
 Run `smaqit help` for all specification agents (`/smaqit.business`, `/smaqit.functional`, etc.).
 
+### Reinstallation and Updates
+
+Running `smaqit init` on an existing installation will:
+
+- **Detect conflicts** — The installer checks which files would be overwritten
+- **Preserve user data** — Your specs and custom extensions in `.smaqit/` are never touched
+- **Prompt for confirmation** — If smaqit files would be overwritten, you'll be asked to confirm
+- **Skip if no conflicts** — If only custom files exist, installation proceeds automatically
+
+This makes it safe to:
+- Upgrade to a new version of smaqit
+- Reinstall after manual changes to agent or template files
+- Add smaqit to projects with existing `.smaqit` extensions
+
 ## Documentation
 
 - **[Quickstart](docs/wiki/workflows/quickstart.md)** — Build "Hello, Mario!" from scratch

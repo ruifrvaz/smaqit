@@ -277,6 +277,59 @@ func getAgentName(phase string) string {
 	}
 }
 
+// detectConflicts checks which embedded files would conflict with existing files
+func detectConflicts() []string {
+	var conflicts []string
+
+	// Define the file mappings that will be installed
+	fileMappings := []struct {
+		embeddedFS embed.FS
+		srcDir     string
+		dstDir     string
+	}{
+		{templateFiles, "templates/specs", ".smaqit/templates/specs"},
+		{agentFiles, "agents", ".github/agents"},
+		{promptFiles, "prompts", ".github/prompts"},
+		{skillFiles, "skills", ".github/skills"},
+		{workflowFiles, "templates/workflows", ".github/workflows"},
+	}
+
+	// Check each file mapping for conflicts
+	for _, mapping := range fileMappings {
+		err := fs.WalkDir(mapping.embeddedFS, mapping.srcDir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return nil
+			}
+
+			// Calculate destination path
+			relPath := strings.TrimPrefix(path, mapping.srcDir+"/")
+			dstPath := filepath.Join(mapping.dstDir, relPath)
+
+			// Skip workflow files (they are never overwritten by copyEmbeddedDir)
+			if strings.Contains(mapping.dstDir, "workflows") {
+				if _, err := os.Stat(dstPath); err == nil {
+					// File exists, would be skipped anyway
+					return nil
+				}
+			}
+
+			// Check if file exists
+			if _, err := os.Stat(dstPath); err == nil {
+				conflicts = append(conflicts, dstPath)
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			// Continue checking other mappings even if one fails
+			continue
+		}
+	}
+
+	return conflicts
+}
+
 func cmdInit(targetDir string) {
 	// Create target directory if it doesn't exist
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
@@ -290,11 +343,34 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
-	// Check if .smaqit already exists
+	// Check if .smaqit already exists and handle reinstallation
 	if _, err := os.Stat(".smaqit"); err == nil {
-		fmt.Println("Error: .smaqit/ directory already exists")
-		fmt.Println("Run 'smaqit uninstall' first to remove existing installation")
-		os.Exit(1)
+		fmt.Println("Existing smaqit installation detected.")
+		fmt.Println()
+
+		// Check for conflicts
+		conflicts := detectConflicts()
+		
+		if len(conflicts) == 0 {
+			fmt.Println("No conflicts detected. Proceeding with installation...")
+		} else {
+			fmt.Println("The following files will be overwritten:")
+			for _, file := range conflicts {
+				fmt.Printf("  • %s\n", file)
+			}
+			fmt.Println()
+			fmt.Print("Continue with installation and overwrite these files? [y/N]: ")
+
+			var response string
+			fmt.Scanln(&response)
+			response = strings.ToLower(strings.TrimSpace(response))
+
+			if response != "y" && response != "yes" {
+				fmt.Println("Installation cancelled")
+				os.Exit(0)
+			}
+		}
+		fmt.Println()
 	}
 
 	fmt.Printf("Initializing smaqit project in %s...\n", targetDir)

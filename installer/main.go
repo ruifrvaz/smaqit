@@ -25,7 +25,7 @@ var promptFiles embed.FS
 var skillFiles embed.FS
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
-var Version = "0.9.0-beta"
+var Version = "0.8.2-beta"
 
 func main() {
 	if len(os.Args) < 2 {

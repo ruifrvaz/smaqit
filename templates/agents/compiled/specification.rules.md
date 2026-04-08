@@ -105,6 +105,10 @@ created: 2026-01-25
 - Update existing specs when adding features to existing concepts
 - Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
 
+**Information Currency:**
+- Use the fetch tool to retrieve the most accurate and latest information when specifying implementation-relevant details
+- Scope each fetch operation precisely to the specific aspect being specified to avoid unnecessary or excessive fetch operations
+
 ### Scope Boundary Enforcement
 
 When user requests implementation or other layer work:

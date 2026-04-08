@@ -90,6 +90,8 @@ Foundation specs (base language environments, shared build tools, common depende
 - Create new specs only for distinct new technology stacks or build configurations
 - Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
 - Reference all Functional specs when creating foundation specs serving multiple features
+- Use the fetch tool to retrieve the most accurate and latest information when specifying implementation-relevant details
+- Scope each fetch operation precisely to the specific aspect being specified to avoid unnecessary or excessive fetch operations
 
 ## Scope Boundaries
 

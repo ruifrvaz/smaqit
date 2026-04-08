@@ -86,6 +86,8 @@ Foundation specs (shared components, cross-cutting concerns, common contracts) a
 - Update existing specs when adding to an existing concept
 - Create new specs only for distinct new behaviors or contracts
 - Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
+- Use the fetch tool to retrieve the most accurate and latest information when specifying implementation-relevant details
+- Scope each fetch operation precisely to the specific aspect being specified to avoid unnecessary or excessive fetch operations
 
 ## Scope Boundaries
 

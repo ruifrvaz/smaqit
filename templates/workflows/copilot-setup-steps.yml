@@ -6,7 +6,7 @@ on:
   # before starting a new session, as configured in copilot-instructions.md
 
 jobs:
-  setup-smaqit:
+  copilot-setup-steps:
     name: Setup smaqit Framework
     runs-on: ubuntu-latest
     

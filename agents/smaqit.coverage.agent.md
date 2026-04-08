@@ -76,6 +76,8 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Check for existing Coverage specs before creating new specs
 - Update existing specs when adding to an existing test suite
 - Create new specs only for distinct new test categories or environments
+- Use the fetch tool to retrieve the most accurate and latest information when specifying implementation-relevant details
+- Scope each fetch operation precisely to the specific aspect being specified to avoid unnecessary or excessive fetch operations
 
 ## Scope Boundaries
 

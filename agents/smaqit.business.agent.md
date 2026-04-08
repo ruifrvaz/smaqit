@@ -75,6 +75,8 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 - Update existing specs when adding to an existing concept
 - Create new specs only for distinct new use cases
 - Reference existing specs for shared information
+- Use the fetch tool to retrieve the most accurate and latest information when specifying implementation-relevant details
+- Scope each fetch operation precisely to the specific aspect being specified to avoid unnecessary or excessive fetch operations
 
 ## Scope Boundaries
 

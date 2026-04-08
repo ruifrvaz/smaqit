@@ -60,7 +60,7 @@ async def run_smoke_test() -> bool:
         session = await client.create_session()
         logger.debug(f"Session created: {session}")
         
-        logger.info("Sending test prompt: '2+2'")
+        logger.info("Sending test prompt: '2+2' (30s timeout)")
         response = await session.send_and_wait({"prompt": "2+2"}, timeout=30)
         logger.debug(f"Response type: {type(response)}")
         logger.debug(f"Response data: {response.data if hasattr(response, 'data') else 'No data attr'}")
@@ -72,6 +72,21 @@ async def run_smoke_test() -> bool:
             logger.error("No content in smoke test response")
             return False
             
+    except asyncio.TimeoutError as e:
+        logger.error("❌ Smoke test timed out after 30s")
+        logger.error("This usually means:")
+        logger.error("  1. Copilot CLI is not authenticated properly")
+        logger.error("  2. GITHUB_TOKEN doesn't have Copilot subscription access")
+        logger.error("  3. CLI is not responding to requests")
+        logger.error("")
+        logger.error("In CI/CD environments, you may need:")
+        logger.error("  - A Personal Access Token with Copilot access")
+        logger.error("  - Store it as a repository secret (e.g., COPILOT_TOKEN)")
+        logger.error("  - Pass it as GITHUB_TOKEN or COPILOT_GITHUB_TOKEN")
+        logger.error("")
+        logger.error("The default GitHub Actions GITHUB_TOKEN may not have Copilot access.")
+        return False
+        
     except Exception as e:
         logger.error(f"Smoke test failed: {type(e).__name__}: {e}")
         import traceback

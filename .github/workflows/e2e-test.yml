@@ -53,6 +53,38 @@ jobs:
             echo "✓ Made SDK CLI executable: $CLI_PATH"
           fi
       
+      - name: Verify Copilot CLI setup
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=== Copilot CLI Diagnostics ==="
+          
+          # Check CLI installation
+          echo "CLI version:"
+          copilot --version || echo "❌ copilot command not found"
+          
+          # Check which CLI binary
+          echo -e "\nCLI location:"
+          which copilot || echo "❌ CLI not in PATH"
+          
+          # Check SDK installation
+          echo -e "\nSDK version:"
+          python -c "import copilot; print(f'SDK version: {copilot.__version__}')" || echo "❌ SDK not installed"
+          
+          # Check token availability
+          echo -e "\nToken check:"
+          if [ -n "$GITHUB_TOKEN" ]; then
+            echo "✓ GITHUB_TOKEN is set (length: ${#GITHUB_TOKEN})"
+          else
+            echo "❌ GITHUB_TOKEN is not set"
+          fi
+          
+          # Try to check if token has Copilot access (this might fail, that's ok)
+          echo -e "\nTesting Copilot CLI authentication:"
+          timeout 10s copilot chat --help 2>&1 | head -20 || echo "⚠️  CLI help/auth check timed out or failed"
+          
+          echo "=== End Diagnostics ==="
+      
       - name: Run E2E test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

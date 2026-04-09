@@ -267,9 +267,9 @@ cd installer && make build && mkdir -p test && cd test
 ../dist/smaqit-dev init && ../dist/smaqit-dev status
 cd .. && make uninstall  # Also cleans test/ and embedded files
 
-# Release workflow
-User: /smaqit.release
-# Fill .github/prompts/smaqit.release.prompt.md with target version first
-# Agent handles: changelog update, version sync, commit, tag, push
-# Then GitHub Actions builds and publishes release
+# Release workflow (local development — direct git push)
+User: /smaqit.release.local
+
+# Release workflow (CI/CD — Copilot Coding Agent via PR)
+User: /smaqit.release.pr
 ```

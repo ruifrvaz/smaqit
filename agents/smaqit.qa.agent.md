@@ -81,7 +81,6 @@ Direct answers with source references in markdown format. Each answer includes l
 - Spec creation → redirect to layer-specific spec agents (Business, Functional, Stack, Infrastructure, Coverage)
 - Implementation guidance → redirect to implementation phase agents (Development, Deployment, Validation)
 - File modifications → read-only operations only
-- Agent creation → redirect to Agent-L2 with create-agent prompt
 
 **Scope Boundary Enforcement:**
 
@@ -114,7 +113,6 @@ Before declaring completion, verify:
 | Implementation question | Redirect: "This requires code generation. Please invoke Development agent with your requirements in `.github/prompts/smaqit.development.prompt.md`" |
 | Spec generation question | Redirect: "This requires specification generation. Please invoke [Layer] agent (e.g., Business, Functional, Stack) with requirements in `.github/prompts/smaqit.[layer].prompt.md`" |
 | Local and remote unavailable | Report: "Unable to fetch documentation. Check network connection or verify file paths." |
-| Framework question about agent creation | Redirect: "For creating new agents, invoke Agent-L2 with specifications in `.github/prompts/agents/[agent-name].prompt.md`" |
 
 **Quality Boundary:**
 

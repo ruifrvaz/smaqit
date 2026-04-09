@@ -8,7 +8,7 @@ You are developing smaqit, a spec-driven agent orchestration framework.
 - **Wiki** (`docs/wiki/`) — Human-readable context and rationale (concepts, designs, patterns, workflows)
 - **Specification templates** (`templates/specs/`) — Structure for spec documents per layer
 - **Prompt templates** (`templates/prompts/`) — Structure for prompt files
-- **Agent templates** (`templates/agents/`) — Structure for agent definitions
+- **Compilation rules** (`templates/agents/compiled/`) — Layer and phase agent compilation rules
 - **Agents** (`agents/`) — GitHub Custom Agents (`.agent.md` format)
 - **Prompts** (`prompts/`) — Prompt templates with structure and guidance (`.prompt.md` format)
 - **Installer** (`installer/`) — Go CLI that scaffolds smaqit into user projects
@@ -29,12 +29,16 @@ smaqit/
 ├── templates/
 │   ├── specs/                # Specification templates (5)
 │   ├── prompts/              # Prompt templates (2)
-│   └── agents/               # Agent templates (2)
-│       ├── *.template.md     # Generic agent structure
-│       └── compiled/         # L0→L1 transformation rules
-│           ├── validate.rules.md
+│   └── agents/
+│       └── compiled/         # Layer and phase compilation rules
+│           ├── business.rules.md
+│           ├── functional.rules.md
+│           ├── stack.rules.md
+│           ├── infrastructure.rules.md
+│           ├── coverage.rules.md
 │           ├── develop.rules.md
-│           └── deploy.rules.md
+│           ├── deploy.rules.md
+│           └── validate.rules.md
 ├── agents/*.agent.md         # Agent definitions (8)
 ├── prompts/*.prompt.md       # Prompt files (8)
 ├── installer/main.go         # CLI tool
@@ -52,7 +56,6 @@ user-project/
 │   ├── agents/               # Copied from agents/
 │   └── prompts/              # Copied from prompts/
 ├── .smaqit/
-│   ├── framework/            # Copied from framework/
 │   └── templates/            # Copied from templates/specs/
 └── specs/
     ├── business/
@@ -76,69 +79,6 @@ When performing work:
 
 ## Content Guidelines
 
-### Framework Files: Level 0 Content Model
-
-**Framework files** (`framework/*.md`) are Level 0 documents containing principles, concepts, and structural mappings. L0 content guides L1 template compilation and L2 agent compilation.
-
-**Level 0 Content Types:**
-
-1. **Principles (WHY)** — Philosophical foundations (SMAQIT.md primarily)
-2. **Concepts (WHAT)** — Definitions and categorizations (AGENTS.md, LAYERS.md, PHASES.md)
-3. **Mappings (HOW arranged)** — Structural organization and relationships (TEMPLATES.md, PROMPTS.md, ARTIFACTS.md)
-
-**Graduated Abstraction Across L0 Files:**
-
-| File | Primary Content |
-|------|----------------|
-| `SMAQIT.md` | Pure principles (WHY) |
-| `LAYERS.md`, `PHASES.md` | Principles + concepts (WHY + WHAT) |
-| `TEMPLATES.md`, `AGENTS.md` | Concepts + mappings (WHAT + HOW arranged) |
-| `PROMPTS.md`, `ARTIFACTS.md` | Structure + mappings (HOW arranged) |
-
-**Compilation Chain:**
-
-```
-L0: "Agents validate their own output" (concept)
-    ↓ L1 compiles into directive
-L1: "Agents MUST validate output before declaring completion" (directive in template)
-    ↓ L2 compiles into product agent
-L2: "Specification Agent MUST validate output before declaring completion" (directive in product agent)
-```
-
-**Key Distinction:**
-- L0 uses descriptive form: "Agents validate output"
-- L1 uses directive form: "Agents MUST validate output"
-- MUST/MUST NOT/SHOULD statements are L1 compilation outputs, not L0 content
-
-#### Compilation Files Architecture
-
-L1 uses **compilation files** to preserve its role as a transformation layer:
-
-- **Templates** (`templates/agents/*.template.md`) — Generic structure with placeholders and references to compilation files
-- **Compilation Files** (`templates/agents/compiled/*.rules.md`) — L0→L1 transformation rules documenting how principles become directives
-
-**Frontmatter:** Each compilation file contains metadata:
-```yaml
----
-layer: [LAYER]  # or phase: develop
-target: agents/smaqit.[LAYER].agent.md
-sources:
-  - framework/[FILENAME].md
-created: 2026-01-19
----
-```
-
-**Structure:** Each compilation file contains:
-1. **Source L0 Principles** — Tabulated references (Source File | Section)
-2. **L1 Directive Compilation** — Pure directives without L0 Source citations (transformation already documented in table above)
-3. **Compilation Guidance for Agent-L2** — Step-by-step merge instructions
-
-**Coverage:** 8 compilation files total:
-- 5 layer files: business, functional, stack, infrastructure, coverage
-- 3 phase files: develop, deploy, validate
-
-**Not Shipped:** Compilation files are internal development artifacts, NOT copied by installer. User projects receive only compiled L2 agents.
-
 ### Templates and Agents Contain Directives
 
 **Templates** (`templates/`) and **agents** (`agents/`) contain execution instructions:
@@ -150,7 +90,7 @@ created: 2026-01-19
 
 ### Wiki Files Contain Human Context
 
-**Wiki files** (`docs/wiki/`, `README.md`, `docs/tasks/`, `docs/history/`) contain context for humans:
+**Wiki files** (`docs/wiki/`, `README.md`, `.smaqit/tasks/`, `.smaqit/history/`) contain context for humans:
 - Why the framework is designed this way
 - Trade-offs between alternatives
 - Examples with multiple scenarios
@@ -158,78 +98,22 @@ created: 2026-01-19
 - Business context when relevant
 - Extended explanations and tutorials
 
-### When Documenting Framework Concepts
-
-**Invoke Agent-L0** (`.github/agents/smaqit.L0.agent.md`) for framework concept documentation (`framework/`).
-
-### When Compiling Agent Templates and Compilation Files
-
-**Invoke Agent-L1** (`.github/agents/smaqit.L1.agent.md`) for:
-- Agent template modifications (`templates/agents/*.template.md`)
-- Compilation file creation/updates (`templates/agents/compiled/*.rules.md`)
-- L0→L1 principle compilation
-
-### When Compiling Agents
-
-**Invoke Agent-L2** (`.github/agents/smaqit.L2.agent.md`) for:
-- Product agent compilation (`agents/*.agent.md`)
-- L1→L2 template + compilation file merging
-
-### When Editing Prompt Templates
-
-**Invoke Agent-L1** (`.github/agents/smaqit.L1.agent.md`) for prompt template modifications (`templates/prompts/`).
-
 ### When Editing Prompt Files
 
-**Invoke Agent-L1** (`.github/agents/smaqit.L1.agent.md`) for prompt file modifications (`prompts/`).
-
-**Note:** In the smaqit repo, prompt files are L1 templates with structure and guidance comments. Users fill these with concrete requirements at their product.
+**Note:** In the smaqit repo, prompt files serve as structure and guidance templates. Users fill these with concrete requirements at their product.
 
 ### When Editing Installer
 
-The CLI copies framework/, templates/, agents/ into user projects as:
-- `.smaqit/framework/` (entire directory)
-- `.smaqit/templates/`
-- `specs/{layer}/`
-- `.github/agents/`
+The installer embeds and copies these files into user projects:
+- `templates/specs/*.md` → `.smaqit/templates/specs/`
+- `agents/*.md` → `.github/agents/`
+- `prompts/*.md` → `.github/prompts/`
+- `skills/**/*.md` → `.github/skills/`
+- Creates empty `specs/{layer}/` directories
 
 ### Version Sync
 
 Keep `installer/main.go` Version const in sync with SMAQIT.md version.
-
-## Level Agents
-
-**For level-specific work, invoke the appropriate agent:**
-
-- **Agent-L0** (`.github/agents/smaqit.L0.agent.md`) — Maintains framework principle purity
-- **Agent-L1** (`.github/agents/smaqit.L1.agent.md`) — Compiles L0 principles into L1 template directives
-- **Agent-L2** (`.github/agents/smaqit.L2.agent.md`) — Compiles L1 directives into L2 product agents
-
-### Level Contamination Awareness
-
-**Current state:** Extensive level contamination exists across L0 (framework files), L1 (templates), and L2 (product agents):
-
-- **L0 contamination** — Framework files contain directives (MUST/MUST NOT), file paths, implementation details
-- **L1 contamination** — Templates contain L0 philosophy mixed with directives
-- **L2 contamination** — Product agents contain L0/L1 content not properly compiled
-
-**Task 064-066** targets systematic cleanup, but this is ongoing work.
-
-**Agent directive for active cleanup:**
-
-All Level agents (L0, L1, L2) are authorized and encouraged to perform **opportunistic cleanup** during regular sessions:
-
-1. **Do not introduce new contamination** — Respect level boundaries for new content
-2. **Actively clean contamination within session scope** — If working in a contaminated area, extract and relocate content to proper level
-3. **Document cleanup in session** — Note what was cleaned and where it moved
-4. **Prioritize session goals** — Don't let cleanup derail primary work, but seize cleanup opportunities when natural
-
-**Examples:**
-- Agent-L0 editing SMAQIT.md finds MUST statements → extract to compilation notes for L1
-- Agent-L1 updating template finds L0 philosophy → flag for L0 migration
-- Agent-L2 compiling agent finds mixed L0/L1 → request proper sources from L1
-
-**Goal:** Gradually improve level purity through active maintenance rather than waiting for dedicated cleanup sessions.
 
 ## Workflow Commands
 
@@ -249,12 +133,12 @@ See individual prompt files in `.github/prompts/` for detailed workflows.
 
 ### Task Management
 
-- `docs/tasks/PLANNING.md` has three tables: Active, Completed, and Abandoned
+- `.smaqit/tasks/PLANNING.md` has three tables: Active, Completed, and Abandoned
 - New tasks go in Active table with status `new`
 - **When starting work on a task, ALWAYS update status to `in progress` in PLANNING.md BEFORE beginning implementation**
 - When completing a task, move from Active to Completed table
 - When abandoning a task (superseded, no longer relevant, incorrect approach), move from Active to Abandoned table with reason
-- Individual task files in `docs/tasks/{id}_{title}.md` contain details
+- Individual task files in `.smaqit/tasks/{id}_{title}.md` contain details
 
 **Quick commands:**
 

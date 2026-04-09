@@ -45,8 +45,8 @@ smaqit documentation serves two fundamentally different audiences with different
 **Files:**
 - `README.md` — Project overview, installation, usage
 - `docs/wiki/` — Concepts, designs, patterns, workflows
-- `docs/history/` — Session logs documenting work
-- `docs/tasks/` — Work items with context and decisions
+- `.smaqit/history/` — Session logs documenting work
+- `.smaqit/tasks/` — Work items with context and decisions
 
 **Purpose:** Help humans understand, contribute, and make informed decisions
 

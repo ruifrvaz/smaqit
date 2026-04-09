@@ -316,7 +316,7 @@ Run `/smaqit.qa` frequently:
 
 Document decisions in:
 - **Wiki** (`docs/wiki/`) — Human-readable context and rationale
-- **Session history** (`docs/history/`) — Detailed implementation logs
+- **Session history** (`.smaqit/history/`) — Detailed implementation logs
 - **CHANGELOG** — User-facing changes (separate SDK and Product sections)
 
 ## Troubleshooting

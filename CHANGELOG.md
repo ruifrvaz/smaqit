@@ -189,7 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Release notes extracted from CHANGELOG.md
 - Manual workflow dispatch for releases via GitHub UI
 - Changelog management system using session history
-  - `/changelog.update` agent reads `docs/history/` and updates CHANGELOG.md
+  - `/changelog.update` agent reads `.smaqit/history/` and updates CHANGELOG.md
   - AI-managed changelog following Keep a Changelog format
   - Simplified release process documented in README
 

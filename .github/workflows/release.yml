@@ -40,6 +40,21 @@ jobs:
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Create tag if triggered manually
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --tags origin "$VERSION" | grep -q "$VERSION"; then
+            echo "Tag $VERSION already exists on remote, skipping tag creation"
+          else
+            git tag "$VERSION" -m "Release $VERSION"
+            git push origin "$VERSION"
+            echo "Created and pushed tag $VERSION"
+          fi
+
       - name: Build all platforms
         working-directory: installer
         run: |
@@ -101,6 +116,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
           name: ${{ steps.version.outputs.VERSION }}
           body_path: release_notes.txt
           draft: false

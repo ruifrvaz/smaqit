@@ -1,7 +1,7 @@
 ---
 name: smaqit.functional
 description: Specification agent for the Functional layer.
-tools: ['edit', 'search', 'usages', 'fetch', 'todos']
+tools: ['read', 'edit', 'search', 'usages', 'fetch', 'todos']
 ---
 
 # Functional Agent

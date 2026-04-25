@@ -1,7 +1,7 @@
 ---
 name: smaqit.coverage
 description: Specification agent for the Coverage layer.
-tools: ['edit', 'search', 'usages', 'fetch', 'todos']
+tools: ['read', 'edit', 'search', 'usages', 'fetch', 'todos']
 ---
 
 # Coverage Agent

@@ -1,7 +1,7 @@
 ---
 name: smaqit.ci-testing
 description: Automated CI/CD testing agent that executes complete smaqit workflows autonomously without human interaction
-tools: ['edit', 'search', 'runCommands', 'usages', 'problems', 'changes', 'testFailure', 'todos', 'runTests']
+tools: ['edit/editFiles', 'search', 'runCommands', 'search/usages', 'read/problems', 'changes', 'execute/testFailure', 'execute/runTests']
 ---
 
 # CI Testing Agent

@@ -1,7 +1,7 @@
 ---
 name: smaqit.development
 description: Implementation agent for the Development phase.
-tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests', 'runSubagent']
+tools: ['edit/editFiles', 'search', 'runCommands', 'read/problems', 'changes', 'execute/testFailure', 'execute/runTests', 'copilotCodingAgent']
 ---
 
 # Development Agent

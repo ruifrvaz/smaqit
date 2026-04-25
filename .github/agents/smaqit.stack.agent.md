@@ -1,7 +1,7 @@
 ---
 name: smaqit.stack
 description: Specification agent for the Stack layer.
-tools: ['read', 'edit', 'search', 'usages', 'fetch', 'todos']
+tools: ['search/codebase', 'edit/editFiles', 'search', 'search/usages', 'web/fetch']
 ---
 
 # Stack Agent

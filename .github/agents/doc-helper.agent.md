@@ -1,7 +1,7 @@
 ---
 name: doc-helper
 description: Fetches and answers questions about project documentation
-tools: ['read', 'search', 'fetch']
+tools: ['search/codebase', 'search', 'web/fetch']
 ---
 
 # Doc Helper Agent

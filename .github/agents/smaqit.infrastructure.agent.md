@@ -1,7 +1,7 @@
 ---
 name: smaqit.infrastructure
 description: Specification agent for the Infrastructure layer.
-tools: ['read', 'edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests', 'fetch']
+tools: ['search/codebase', 'edit/editFiles', 'search', 'runCommands', 'read/problems', 'changes', 'execute/testFailure', 'execute/runTests', 'web/fetch']
 ---
 
 # Infrastructure Agent

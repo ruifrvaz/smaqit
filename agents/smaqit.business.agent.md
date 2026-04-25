@@ -1,7 +1,7 @@
 ---
 name: smaqit.business
 description: Specification agent for the Business layer.
-tools: ['read', 'edit', 'search', 'usages', 'fetch', 'todos']
+tools: ['search/codebase', 'edit/editFiles', 'search', 'search/usages', 'web/fetch']
 ---
 
 # Business Agent

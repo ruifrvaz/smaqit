@@ -100,20 +100,12 @@ Previous versions of smaqit agent files used short tool names from an older API.
 
 ## Standard Tool Sets by Agent Type
 
-### Specification Agents (business, functional, stack, coverage)
+### Specification Agents (business, functional, stack, infrastructure, coverage)
 
-Read-only spec work: codebase reading, web research, file editing for output.
-
-```yaml
-tools: ['search/codebase', 'edit/editFiles', 'search', 'search/usages', 'web/fetch']
-```
-
-### Specification + Execution Agents (infrastructure)
-
-Spec work plus command execution for infrastructure tooling.
+Full specification toolset — file editing, codebase search, terminal access, sub-agent delegation, and web fetch.
 
 ```yaml
-tools: ['search/codebase', 'edit/editFiles', 'search', 'runCommands', 'read/problems', 'changes', 'execute/testFailure', 'execute/runTests', 'web/fetch']
+tools: ['execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/runInTerminal', 'read/readFile', 'agent/runSubagent', 'edit/createDirectory', 'edit/createFile', 'edit/createJupyterNotebook', 'edit/editFiles', 'edit/editNotebook', 'edit/rename', 'search/changes', 'search/codebase', 'search/fileSearch', 'search/listDirectory', 'search/textSearch', 'search/searchSubagent', 'search/usages', 'web/fetch', 'todo']
 ```
 
 ### Implementation Agents (development, deployment, validation)

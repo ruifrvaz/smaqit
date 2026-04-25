@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-25
+
+### Added
+- Extended tool capabilities for specification agents (PR #60)
+  - Specification agents now have broader tool access for richer workflows
+
+### Changed
+- Copilot instructions updated: removed stale L0/L1/L2 sections, updated Kit Components and Installer description (Session 054)
+
+### Removed
+- Retired `smaqit.release` monolithic agent, superseded by `.local`/`.pr` variants and 4-skill decomposition (Session 053)
+- Retired `doc-helper` agent, superseded by `smaqit.qa` (Session 053)
+- Deleted L0/L1/L2 agent files after smaqit-adk extraction (Session 054)
+- Deleted generic agent templates (`base`, `specification`, `implementation`) after smaqit-adk extraction (Session 054)
+- Deleted generic compiled rules (`base.rules.md`, `specification.rules.md`, `implementation.rules.md`) after smaqit-adk extraction (Session 054)
+
+### Fixed
+- `smaqit.qa` agent tools list corrected to read-only (`edit` removed) (Session 053)
+
 ## [0.8.2-beta] - 2026-04-05
 
 ## [0.8.1-beta] - 2026-02-16
@@ -275,7 +294,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.8.2-beta...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/ruifrvaz/smaqit/compare/v0.8.2-beta...v0.9.0
 [0.8.2-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.8.1-beta...v0.8.2-beta
 [0.8.1-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.8.0-beta...v0.8.1-beta
 [0.8.0-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.7.0-beta...v0.8.0-beta

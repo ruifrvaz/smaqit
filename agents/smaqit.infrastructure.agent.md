@@ -1,7 +1,7 @@
 ---
 name: smaqit.infrastructure
 description: Specification agent for the Infrastructure layer.
-tools: ['read', 'edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests', 'fetch']
+tools: ['execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/runInTerminal', 'read/readFile', 'agent/runSubagent', 'edit/createDirectory', 'edit/createFile', 'edit/createJupyterNotebook', 'edit/editFiles', 'edit/editNotebook', 'edit/rename', 'search/changes', 'search/codebase', 'search/fileSearch', 'search/listDirectory', 'search/textSearch', 'search/searchSubagent', 'search/usages', 'web/fetch', 'todo']
 ---
 
 # Infrastructure Agent

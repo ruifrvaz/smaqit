@@ -1,7 +1,7 @@
 ---
 name: smaqit.stack
 description: Specification agent for the Stack layer.
-tools: ['read', 'edit', 'search', 'usages', 'fetch', 'todos']
+tools: ['execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/runInTerminal', 'read/readFile', 'agent/runSubagent', 'edit/createDirectory', 'edit/createFile', 'edit/createJupyterNotebook', 'edit/editFiles', 'edit/editNotebook', 'edit/rename', 'search/changes', 'search/codebase', 'search/fileSearch', 'search/listDirectory', 'search/textSearch', 'search/searchSubagent', 'search/usages', 'web/fetch', 'todo']
 ---
 
 # Stack Agent

@@ -15,7 +15,8 @@ jobs:
     if: |
       github.event.pull_request.merged == true &&
       (startsWith(github.event.pull_request.title, 'Release v') ||
-       startsWith(github.event.pull_request.title, 'Prepare release v'))
+       startsWith(github.event.pull_request.title, 'Prepare release v') ||
+       contains(github.event.pull_request.body, '**Version:** v'))
     runs-on: ubuntu-latest
 
     steps:
@@ -25,13 +26,17 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from PR title
+      - name: Extract version from PR title or body
         id: version
         run: |
           PR_TITLE="${{ github.event.pull_request.title }}"
           VERSION=$(echo "$PR_TITLE" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?')
           if [ -z "$VERSION" ]; then
-            echo "::error::No version found in PR title: $PR_TITLE"
+            PR_BODY="${{ github.event.pull_request.body }}"
+            VERSION=$(echo "$PR_BODY" | grep -oP '(?<=\*\*Version:\*\* )v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?')
+          fi
+          if [ -z "$VERSION" ]; then
+            echo "::error::No version found in PR title or body"
             exit 1
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT

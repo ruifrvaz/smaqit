@@ -1,7 +1,7 @@
 ---
 name: smaqit.deployment
 description: Implementation agent for the Deployment phase.
-tools: ['edit/editFiles', 'search', 'runCommands', 'read/problems', 'changes', 'execute/testFailure', 'execute/runTests', 'copilotCodingAgent']
+tools: ['edit/editFiles', 'search', 'runCommands', 'read/problems', 'changes', 'execute/testFailure', 'execute/runTests', 'agent/runSubagent']
 ---
 
 # Deployment Agent

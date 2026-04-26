@@ -64,7 +64,7 @@ This document lists all tools available to GitHub Copilot custom agents (`.agent
 
 | Tool | Description |
 |------|-------------|
-| `copilotCodingAgent` | Invoke the Copilot Coding Agent (cloud) to run sub-workflows |
+| `agent/runSubagent` | Invoke another agent as a sub-workflow |
 
 ### VS Code Integration
 
@@ -90,7 +90,7 @@ Previous versions of smaqit agent files used short tool names from an older API.
 | `problems` | `read/problems` | Moved to `read` namespace |
 | `testFailure` | `execute/testFailure` | Moved to `execute` namespace |
 | `runTests` | `execute/runTests` | Moved to `execute` namespace |
-| `runSubagent` | `copilotCodingAgent` | Replaced by Copilot Coding Agent tool |
+| `runSubagent` | `agent/runSubagent` | Correct namespaced tool name |
 | `todos` | *(removed)* | No direct replacement in current API |
 | `runCommands` | `runCommands` | Unchanged |
 | `changes` | `changes` | Unchanged |
@@ -113,7 +113,7 @@ tools: ['execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/runInTerm
 Full execution: editing, running commands, tests, invoking sub-agents.
 
 ```yaml
-tools: ['edit/editFiles', 'search', 'runCommands', 'read/problems', 'changes', 'execute/testFailure', 'execute/runTests', 'copilotCodingAgent']
+tools: ['edit/editFiles', 'search', 'runCommands', 'read/problems', 'changes', 'execute/testFailure', 'execute/runTests', 'agent/runSubagent']
 ```
 
 ### Read-Only / Q&A Agents (qa, doc-helper)

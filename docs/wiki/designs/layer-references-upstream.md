@@ -2,7 +2,7 @@
 
 ## Question
 
-If layers are independent and each gets requirements from its own prompt file, why do specs reference upstream layers at all?
+If layers are independent and each gets requirements from session context, why do specs reference upstream layers at all?
 
 ## Answer
 
@@ -26,7 +26,7 @@ Coverage layer maps requirements through all layers to ensure complete specifica
 
 **Traceability chain:**
 ```
-Prompt → Business Spec → Functional Spec → Stack Spec → Implementation → Tests
+Session Context → Business Spec → Functional Spec → Stack Spec → Implementation → Tests
 ```
 
 Each link in the chain is explicit. This enables:
@@ -36,22 +36,22 @@ Each link in the chain is explicit. This enables:
 
 ## Key Distinction
 
-**Requirements flow:** Prompt → Spec (one direction only)
+**Requirements flow:** Session Context → Spec (one direction only)
 
 **References flow:** Spec → Upstream Spec (for validation and traceability)
 
-Requirements come FROM prompts. References point TO upstream specs for context.
+Requirements come FROM session context. References point TO upstream specs for context.
 
 ## Benefits
 
 - **Early conflict detection**: Agents catch incompatibilities before implementation
 - **Complete coverage**: Nothing falls through the cracks
-- **Explicit traceability**: Every requirement has a clear path from prompt to code to tests
-- **Independent evolution**: Change one layer's prompt without affecting others' requirements
+- **Explicit traceability**: Every requirement has a clear path from session input to code to tests
+- **Independent evolution**: Update one layer's requirements without affecting others
 
 ## Trade-offs
 
-**Cost**: Agents must read upstream specs even though requirements come from prompts.
+**Cost**: Agents must read upstream specs even though requirements come from session context.
 
 **Benefit**: Worth it for coherence validation and traceability guarantees.
 

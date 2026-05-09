@@ -30,7 +30,7 @@ Agents enforce their boundaries through explicit scope definitions and enforceme
 3. If YES → proceed with work
 4. If NO → Stop immediately
 5. Respond: "[Agent] handles [scope]. To proceed with [requested work], invoke [target agent]."
-6. Suggest: Provide prompt file or agent invocation command
+6. Suggest: Provide agent invocation command
 ```
 
 Agents don't attempt out-of-scope work—they redirect.
@@ -193,7 +193,7 @@ The cost is intentional—workflow clarity is worth the invocation overhead.
 ## Relation to Other Principles
 
 **Bounded Agents + Layer Independence:**
-- Layer Independence: Each layer's prompt is the sole source of requirements
+- Layer Independence: Each layer's session context is the sole source of requirements
 - Bounded Agents: Each agent generates specifications for one layer only
 - Result: Agents can't create false derivation chains by generating multiple layers
 

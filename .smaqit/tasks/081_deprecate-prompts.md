@@ -1,10 +1,11 @@
 # Task 081: Deprecate Prompts
 
-**Status:** In Progress  
+**Status:** Completed  
 **Mode:** Autonomous  
 **Priority:** High  
 **Created:** 2026-05-09  
-**Started:** 2026-05-09
+**Started:** 2026-05-09  
+**Completed:** 2026-05-09
 
 ## Description
 
@@ -16,19 +17,19 @@ This task performs a full, no-backward-compatibility deprecation of the entire p
 
 ## Acceptance Criteria
 
-- [ ] No `prompts/` directories exist anywhere in the repo (source, installer, test fixtures)
-- [ ] No `templates/prompts/` directory exists
-- [ ] `framework/PROMPTS.md` is deleted
-- [ ] No agent file contains a reference to `.github/prompts/` or a prompt file as input source
-- [ ] No framework file references prompt files as requirements input for layers
-- [ ] `prompt_version` field is removed from spec frontmatter struct in `installer/spec.go`
-- [ ] `prompt_version` field is removed from all spec template frontmatter sections
-- [ ] Installer does not embed, copy, or uninstall `.github/prompts/`
-- [ ] `installer/main.go` builds successfully after all changes
-- [ ] Wiki files that exist solely for the prompts concept are deleted
-- [ ] Remaining wiki files have prompt references cleaned up
-- [ ] README quickstart no longer references prompt files
-- [ ] `.github/copilot-instructions.md` Kit Components tree is updated
+- [x] No `prompts/` directories exist anywhere in the repo (source, installer, test fixtures)
+- [x] No `templates/prompts/` directory exists
+- [x] `framework/PROMPTS.md` is deleted
+- [x] No agent file contains a reference to `.github/prompts/` or a prompt file as input source
+- [x] No framework file references prompt files as requirements input for layers
+- [x] `prompt_version` field is removed from spec frontmatter struct in `installer/spec.go`
+- [x] `prompt_version` field is removed from all spec template frontmatter sections
+- [x] Installer does not embed, copy, or uninstall `.github/prompts/`
+- [x] `installer/main.go` builds successfully after all changes
+- [x] Wiki files that exist solely for the prompts concept are deleted
+- [x] Remaining wiki files have prompt references cleaned up
+- [x] README quickstart no longer references prompt files
+- [x] `.github/copilot-instructions.md` Kit Components tree is updated
 
 ## Scope Note
 

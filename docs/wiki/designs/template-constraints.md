@@ -76,18 +76,6 @@ templates/agents/
 - Include all required sections (Role, Input, Output, Directives, Completion Criteria)
 - Use standardized placeholder format: `[PLACEHOLDER]`
 
-### 3. Prompt Templates
-
-Define the structure for prompt files:
-
-```
-templates/prompts/
-├── specification-prompt.template.md
-└── phase-prompt.template.md
-```
-
-**Prompts are free-style with suggested structure**—templates provide guidance without rigidity. This is the exception to mandatory templates because user input should be natural.
-
 ## Placeholder Conventions
 
 All placeholders use `[PLACEHOLDER]` format:
@@ -163,7 +151,7 @@ Templates work well for:
 - Framework files (consistent reference)
 
 Templates work poorly for:
-- User input (prompts are free-style)
+- User input (natural language in session context)
 - Exploratory artifacts (research, spikes)
 - One-off scripts (not reused)
 

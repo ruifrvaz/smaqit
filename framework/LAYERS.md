@@ -1,13 +1,13 @@
 # Layers
 
-Layers are independent specification manifests that together form a coherent application. Each layer answers a specific question and receives requirements from its own prompt file. Upstream layers provide context for coherence and traceability, not requirements.
+Layers are independent specification manifests that together form a coherent application. Each layer answers a specific question and receives requirements from session context (user input in chat, compacted context blocks, or open tasks). Upstream layers provide context for coherence and traceability, not requirements.
 
 ## Layer Independence
 
-**Each layer's prompt file is the sole source of requirements for that layer.**
+**Each layer's session context is the sole source of requirements for that layer.**
 
 Each layer:
-- Receives requirements from its prompt file (`.github/prompts/smaqit.[layer].prompt.md`)
+- Receives requirements from session context (user input in chat, compacted context blocks, or open tasks)
 - Can be selected or swapped independently
 - Must be coherent with adjacent layers
 - Does not derive requirements from upstream layers

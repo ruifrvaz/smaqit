@@ -18,7 +18,6 @@ prepare:
 	@cp -r ../templates/specs templates/
 	@cp ../.github/workflows/copilot-setup-steps.yml templates/workflows/
 	@cp -r ../agents .
-	@cp -r ../prompts .
 	@cp -r ../skills .
 
 # Default target: build for current platform
@@ -105,7 +104,7 @@ uninstall:
 		read clean_response; \
 		case "$$clean_response" in \
 			[yY]|[yY][eE][sS]) \
-				rm -rf $(DIST_DIR) framework/ templates/ agents/ prompts/ skills/ test/ ../.test-venv; \
+				rm -rf $(DIST_DIR) framework/ templates/ agents/ skills/ test/ ../.test-venv; \
 				echo "✓ Cleaned build artifacts"; \
 				;; \
 			*) \

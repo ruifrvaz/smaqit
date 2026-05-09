@@ -33,7 +33,6 @@ deprecated (optional)
 id: BUS-LOGIN-001
 status: draft
 created: 2025-01-03T14:23:00Z
-prompt_version: abc123def
 ---
 ```
 
@@ -52,14 +51,6 @@ State tracking enables:
 2. **Resume workflows** — Pick up where you left off across sessions
 3. **Targeted regeneration** — Regenerate only failed specs
 4. **Progress visibility** — See which specs are done vs. pending
-
-## Prompt Version Tracking
-
-`prompt_version` field captures the git commit hash of the prompt used to generate the spec:
-
-- **Purpose**: Detect when prompt has evolved beyond spec
-- **Detection**: Compare spec's `prompt_version` against current prompt file commit
-- **Action**: User decides whether to regenerate (see [Managing Stale Specs](../workflows/managing-stale-specs.md))
 
 ## Design Rationale
 
@@ -84,6 +75,4 @@ State tracking enables:
 
 ## Related
 
-- [Managing Stale Specs](../workflows/managing-stale-specs.md) — Detecting and handling outdated specs
-- [Amending Requirements](../workflows/amending-requirements.md) — How state changes on regeneration
-- [Prompt Evolution](../patterns/prompt-evolution.md) — Why prompts evolve and specs follow
+- [Progressive Refinement](../designs/progressive-refinement.md) — How specs evolve through phases

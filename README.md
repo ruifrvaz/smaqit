@@ -7,7 +7,7 @@ Built for teams that value auditability, clear boundaries, and reproducible work
 ## Features
 
 - **Lightweight** — Single binary, no dependencies. `smaqit init` scaffolds everything.
-- **Auditable prompts** — Requirements captured in versioned prompt files with full traceability.
+- **Traceable requirements** — Requirements captured in session context with full traceability from input to spec to implementation.
 - **Stateful specs** — Specifications track lifecycle: draft → implemented → deployed → validated.
 - **Bounded agents** — Each agent owns one layer or phase. No scope creep.
 - **Self-validating** — Agents verify their own output before completion.
@@ -38,8 +38,8 @@ smaqit init
 
 **Build something:**
 
-1. Fill `.github/prompts/smaqit.business.prompt.md` with your requirements
-2. Open GitHub Copilot chat and run `/smaqit.development`
+1. Open GitHub Copilot chat and run `/smaqit.development`
+2. Describe your requirements in the conversation when the agent asks
 3. Watch specs generate, then code build
 
 See the full [Mario Hello quickstart](docs/wiki/workflows/quickstart.md) for a complete walkthrough.

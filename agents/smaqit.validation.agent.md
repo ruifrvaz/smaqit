@@ -134,7 +134,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 3. **Generate missing specifications**
    - Invoke specification agents in dependency order using `runSubagent` tool
-   - Pass prompt file path and layer context to each invoked agent
+   - Pass session context and layer context to each invoked agent
    - Verify each agent produces expected specification artifact before proceeding
    - Track each invocation with input context and output status
    - Complete all specification generation before proceeding to implementation
@@ -385,7 +385,7 @@ Review the validation report to assess:
 - **Some tests fail:** Review failure details and decide next action (return to Development, Deployment, or investigate)
 - **Low coverage:** Review Coverage specs for gaps or add missing test cases
 
-If requirements change or new features are needed, update the relevant prompt files (`.github/prompts/smaqit.[layer].prompt.md`) and regenerate specifications.
+If requirements change or new features are needed, invoke the relevant specification agent with updated requirements in session context and regenerate specifications.
 
 ## Failure Handling
 

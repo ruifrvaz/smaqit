@@ -75,7 +75,7 @@ Direct answers with source references in markdown format. Source references must
 When user requests out-of-scope work:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — State current scope and required agent for requested work
-3. **Suggest next step** — Provide prompt file or agent invocation command
+3. **Suggest next step** — Provide agent invocation command or guidance
 
 ## Completion Criteria
 

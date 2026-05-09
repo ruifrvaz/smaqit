@@ -6,17 +6,15 @@ Agents are LLM-powered actors that operate within the smaqit framework. This doc
 
 All smaqit agents—specification and implementation—share these foundational principles:
 
-### Prompt Interaction
+### Session Context
 
-Agents receive requirements from prompts in `.github/prompts/`:
+Agents receive requirements from session context:
 
-- **Read prompt files**: Agents MUST read corresponding prompt files (`.github/prompts/smaqit.[layer].prompt.md` for specification agents, phase-specific prompts for implementation agents)
-- **Ignore HTML comments**: Agents MUST ignore all HTML comments (`<!-- ... -->`) in prompt files to prevent example requirements from contaminating specifications
+- **Read session context**: Agents MUST read requirements from current session context (including context in compacted blocks) or open tasks
+- **Apply assessment skill**: Agents invoke the assessment skill when input is ambiguous, conflicting, or insufficient
 - **Interpret free-style input**: Agents consume natural language requirements without rigid structure enforcement
-- **Validate sufficiency**: Agents MUST request clarification if prompt content is insufficient, using natural language guidance (e.g., "Please specify measurable success criteria" not "Missing: Success Metrics section")
-- **Equivalent outcomes**: Given the same prompt set across all layers, acceptance criteria should pass/fail consistently (acknowledging LLM variance in artifact style)
-
-See [PROMPTS](PROMPTS.md) for complete prompt architecture and input record principles.
+- **Validate sufficiency**: Agents MUST request clarification if session context is insufficient, using natural language guidance (e.g., "Please specify measurable success criteria" not "Missing: Success Metrics section")
+- **Equivalent outcomes**: Given equivalent session context across all layers, acceptance criteria should pass/fail consistently (acknowledging LLM variance in artifact style)
 
 ### Template-Constrained Output
 - Agents MUST produce output following their designated template
@@ -58,7 +56,7 @@ Each agent has a single responsibility defined by its layer or phase.
 When user requests out-of-scope work:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — State current scope and required agent for requested work
-3. **Suggest next step** — Provide prompt file or agent invocation command
+3. **Suggest next step** — Provide agent invocation command
 
 ### Extensible Agents
 
@@ -106,7 +104,7 @@ Agent extensions inherit foundation behaviors and add specialized directives for
 
 ### Specification Agents
 
-Specification agents translate prompt file requirements into precise, testable specifications for a single layer.
+Specification agents translate session context requirements into precise, testable specifications for a single layer.
 
 ### Role Architecture
 
@@ -121,10 +119,10 @@ Each specification agent's Role section MUST include:
 **Structure:** Agent identity + goal + context in 3-4 concise sentences maximum.
 
 ### Input
-- **Prompt file**: Requirements from `.github/prompts/smaqit.[layer].prompt.md` (the primary source)
+- **Session context**: Requirements from current session context (user input in chat, compacted context blocks, or open tasks)
 - **Context specifications**: Documents from previous layers for coherence and traceability (not requirements)
 
-Each layer reads from its own prompt file. Upstream layers provide context for coherence, not requirements. When prompt requirements would create incoherence with existing specs, agents MUST flag the conflict rather than silently override.
+Each layer reads requirements from its session context. Upstream layers provide context for coherence, not requirements. When user requirements would create incoherence with existing specs, agents MUST flag the conflict rather than silently override.
 
 ### Output
 - Specification documents in `specs/{layer}/`
@@ -134,8 +132,7 @@ Each layer reads from its own prompt file. Upstream layers provide context for c
 
 **Specification agents MUST:**
 - Produce one specification file per distinct concept (e.g., one use case, one API contract)
-- Generate YAML frontmatter with required fields: `id`, `status: draft`, `created`, `prompt_version`
-- Capture git commit hash of prompt file at generation time for `prompt_version` field
+- Generate YAML frontmatter with required fields: `id`, `status: draft`, `created`
 - Include testable acceptance criteria in every specification
 - Reference context specs used for coherence and traceability
 - Validate output against layer template before completion
@@ -176,13 +173,13 @@ When users add requirements that could extend existing specifications, agents de
 
 ### Specification Agent Mappings
 
-| Agent | Layer | Prompt File | Context (for coherence) | Output |
-|-------|-------|-------------|---------------------------|--------|
-| `smaqit.business` | Business | `smaqit.business.prompt.md` | None | `specs/business/*.md` |
-| `smaqit.functional` | Functional | `smaqit.functional.prompt.md` | Business specs | `specs/functional/*.md` |
-| `smaqit.stack` | Stack | `smaqit.stack.prompt.md` | Business and Functional specs | `specs/stack/*.md` |
-| `smaqit.infrastructure` | Infrastructure | `smaqit.infrastructure.prompt.md` | Phase 1 specs | `specs/infrastructure/*.md` |
-| `smaqit.coverage` | Coverage | `smaqit.coverage.prompt.md` | All layer specs | `specs/coverage/*.md` |
+| Agent | Layer | Context (for coherence) | Output |
+|-------|-------|---------------------------|--------|
+| `smaqit.business` | Business | None | `specs/business/*.md` |
+| `smaqit.functional` | Functional | Business specs | `specs/functional/*.md` |
+| `smaqit.stack` | Stack | Business and Functional specs | `specs/stack/*.md` |
+| `smaqit.infrastructure` | Infrastructure | Phase 1 specs | `specs/infrastructure/*.md` |
+| `smaqit.coverage` | Coverage | All layer specs | `specs/coverage/*.md` |
 
 ## Implementation Agents
 

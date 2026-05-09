@@ -19,7 +19,6 @@ type SpecFrontmatter struct {
 	Implemented   time.Time `yaml:"implemented,omitempty"`
 	Deployed      time.Time `yaml:"deployed,omitempty"`
 	Validated     time.Time `yaml:"validated,omitempty"`
-	PromptVersion string    `yaml:"prompt_version,omitempty"`
 }
 
 // Spec represents a specification file with its metadata

@@ -24,7 +24,7 @@ Each layer answers a specific question:
 - Did the business requirement change?
 - Or did someone's interpretation of the business requirement change?
 
-With independent layers (each reading from its own prompt file), changes are explicit. When Business changes, Functional doesn't automatically change—users must explicitly update the Functional prompt if they want different behaviors.
+With independent layers (each receiving requirements from its own agent invocation in session context), changes are explicit. When Business changes, Functional doesn't automatically change—users must explicitly invoke the Functional agent with updated requirements if they want different behaviors.
 
 ## Why Layers Reference Upstream
 
@@ -34,7 +34,7 @@ Despite independence, layers reference upstream specs for:
 2. **Traceability**: Coverage can trace requirements through all layers to ensure complete verification
 3. **Context**: Agents can understand the full picture while respecting layer boundaries
 
-References provide context, not requirements. The prompt file remains the sole source of requirements for each layer.
+References provide context, not requirements. Session context remains the sole source of requirements for each layer.
 
 ## Why This Order
 
@@ -56,7 +56,7 @@ This order is not arbitrary—it reflects how successful software projects natur
 - Team role boundaries respected
 
 **Costs:**
-- More upfront structure (5 prompt files vs 1)
+- More upfront structure (5 separate agent invocations vs 1)
 - Requires discipline to maintain layer boundaries
 - Potential for inconsistency if layers diverge
 

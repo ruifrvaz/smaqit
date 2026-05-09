@@ -69,7 +69,6 @@ You are the automated CI/CD testing agent for smaqit. Your goal is to execute co
      - `.smaqit/framework/` exists with 7 files
      - `.smaqit/templates/` exists with 5 subdirectories
      - `.github/agents/` exists with 8 `.agent.md` files
-     - `.github/prompts/` exists with 8 `.prompt.md` files
      - `specs/` exists with 5 subdirectories (business, functional, stack, infrastructure, coverage)
    - Log to report: Initialization outcome
    - **On failure:** Set result=FAIL, generate report, cleanup, exit

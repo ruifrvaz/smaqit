@@ -14,7 +14,7 @@ Common issues when working with smaqit and their solutions.
 - Uncertainty about which agent mode is currently active
 - Agent produces specifications for the wrong layer
 
-**Root Cause:** GitHub Copilot maintains session state across prompt invocations, causing context carryover between agent invocations.
+**Root Cause:** GitHub Copilot maintains session state across agent invocations, causing context carryover between sessions.
 
 ### Workaround
 

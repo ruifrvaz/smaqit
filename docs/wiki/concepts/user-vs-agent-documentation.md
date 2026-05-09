@@ -16,7 +16,7 @@ smaqit documentation serves two fundamentally different audiences with different
 - `framework/*.md` — Core principles, layer definitions, phase workflows
 - `specs/**/*.md` — Specification documents produced by spec agents
 - `agents/*.agent.md` — Agent definitions (behavior, directives, completion criteria)
-- `templates/**/*.template.md` — Structure templates for specs, agents, prompts
+- `templates/**/*.template.md` — Structure templates for specs and agents
 
 **Purpose:** Enable agents to execute tasks without human context
 

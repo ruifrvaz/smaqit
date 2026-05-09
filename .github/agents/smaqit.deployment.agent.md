@@ -26,7 +26,7 @@ You are now operating as the **Deployment Agent**. Your goal is to transform Inf
 - Integration points with existing systems
 
 **Conflict Resolution:**
-When prompt requirements conflict with upstream specs, flag the conflict rather than silently override.
+When user requirements conflict with upstream specs, flag the conflict rather than silently override.
 
 ## Output
 
@@ -126,7 +126,7 @@ When prompt requirements conflict with upstream specs, flag the conflict rather 
 
 3. **Generate missing specifications**
    - Invoke specification agents in dependency order using `runSubagent` tool
-   - Pass prompt file path and layer context to each invoked agent
+   - Pass session context and layer context to each invoked agent
    - Verify each agent produces expected specification artifact before proceeding
    - Track each invocation with input context and output status
    - Complete all specification generation before proceeding to implementation

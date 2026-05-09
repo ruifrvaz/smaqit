@@ -50,7 +50,7 @@ The Develop phase transforms user requirements into a working, tested applicatio
 
 Implementation agents perform pre-orchestration validation to verify readiness (see AGENTS.md Pre-Orchestration Validation concept). For Development phase, validation includes:
 
-- Input sufficiency check for required prompt files
+- Input sufficiency check for session context
 - Dependency verification for upstream artifacts
 - Execution environment readiness
 
@@ -342,7 +342,7 @@ Implementation agents run `smaqit plan --phase=[PHASE]` to get paths to specs ne
 **Adding Features:**
 
 ```
-1. User adds requirements to prompt file
+1. User invokes spec agent with updated requirements in session context
 2. Spec agent generates new specs (status: draft)
 3. Implementation agent runs `smaqit plan --phase=develop`
 4. CLI returns only new draft specs (existing implemented specs skipped)

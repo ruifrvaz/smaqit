@@ -127,11 +127,11 @@ These are **business justifications**, not technical solutions. They answer "Why
 
 **Question:** If Functional doesn't derive requirements from Business, how does it know about the Windows constraint?
 
-**Answer:** Layer Independence means each layer receives requirements from its **own prompt file**:
+**Answer:** Layer Independence means each layer receives requirements from its **own session context**:
 
-- **Business prompt:** User writes "Must run on Windows (85% client base)"
-- **Functional prompt:** User writes "Application must execute on Windows 10+"
-- **Stack prompt:** User writes "Python 3.8+ with Windows compatibility"
+- **Business layer:** User writes "Must run on Windows (85% client base)"
+- **Functional layer:** User writes "Application must execute on Windows 10+"
+- **Stack layer:** User writes "Python 3.8+ with Windows compatibility"
 
 **Coherence validation** happens at implementation phase:
 - Development agent reads all three specs
@@ -281,7 +281,7 @@ This is a **breaking change** for projects using System Actor in Business specs.
 
 ## Related Decisions
 
-- **Layer Independence** (Session 007, 2025-12-16) — Each layer receives requirements from own prompt file
+- **Layer Independence** (Session 007, 2025-12-16) — Each layer receives requirements from own session context
 - **Foundation vs Feature Specs** (Session 007, 2025-12-16) — Foundation specs serve multiple upstream specs
 - **Traceability Across Layers** (SMAQIT.md) — References create explicit chains without derivation
 

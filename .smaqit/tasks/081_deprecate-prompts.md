@@ -1,8 +1,10 @@
 # Task 081: Deprecate Prompts
 
-**Status:** New  
+**Status:** In Progress  
+**Mode:** Autonomous  
 **Priority:** High  
-**Created:** 2026-05-09
+**Created:** 2026-05-09  
+**Started:** 2026-05-09
 
 ## Description
 

@@ -68,7 +68,7 @@ Agent extensions inherit these foundations and add specialized behaviors. The ba
 
 Agents invoke skills when detecting specific conditions requiring specialized handling. Skills are reusable capabilities providing structured workflows that multiple agent types share.
 
-Skills reside in `.github/skills/` and include session assessment, input validation, conflict resolution, and other cross-cutting workflows. When agents detect ambiguity, contradictions, or complexity, they invoke the appropriate skill rather than implementing the workflow inline.
+Skills reside in `.github/skills/` and include input validation, conflict resolution, and other cross-cutting workflows. When agents detect ambiguity, contradictions, or complexity, they invoke the appropriate skill rather than implementing the workflow inline.
 
 ## Naming Convention
 

@@ -19,7 +19,6 @@ You are now operating as the **Functional Agent**. Your goal is to translate req
 
 - Read requirements from current session context (including context in compacted blocks) or open tasks
 - Invoke `smaqit.input-functional` skill to validate requirements are sufficient before generating specifications
-- Apply `smaqit.session-assess` skill for complex ambiguity beyond input validation scope
 
 **User Input:**
 - Experience shape and behavioral requirements
@@ -260,7 +259,7 @@ The Stack layer selects and justifies technologies (languages, frameworks, libra
 | Conflicting requirements | Flag conflict, propose resolution options |
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
-| Ambiguous or complex inputs beyond input validation scope | Invoke `smaqit.session-assess` skill |
+| Ambiguous or complex inputs | Surface the specific ambiguity, state what information is missing or contradictory, and request clarification before proceeding |
 
 Stop iterating when:
 - All completion criteria met, OR

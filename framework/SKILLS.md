@@ -110,20 +110,14 @@ Skills return results or recommendations:
 - User approvals or selections
 - Revised inputs or clarifications
 
-## Assessment Skill
+## Handling Ambiguity
 
-The assessment skill (`smaqit.session-assess`) provides iterative analysis and planning with approval gates. Agents invoke it when detecting ambiguity, contradictions, insufficient detail, or complexity requiring explicit planning before execution.
+Input skills (`smaqit.input-[layer]`) detect common issues before spec generation: insufficient requirements, conflicts with upstream specs, and internal contradictions. Any ambiguity that survives input validation is handled inline by the agent:
 
-### Invocation Triggers
-
-Agents invoke `smaqit.session-assess` when detecting:
-
-- **Ambiguous requirements** — Multiple valid interpretations exist beyond what input validation resolves
-- **Conflicting inputs** — Requirements contradict upstream specs or contain internal inconsistencies
-- **Insufficient detail** — Cannot proceed without making assumptions
-- **Complex multi-part work** — Requires explicit planning for coordination
-
-For spec and phase agents, the layer-specific `smaqit.input-[layer]` skill handles routine requirement sufficiency and conflict detection. `smaqit.session-assess` handles residual ambiguity that input validation cannot resolve.
+- Surface the specific issue with enough detail for the user to act on it
+- State clearly what information is missing or contradictory
+- Request clarification before proceeding
+- Do not invent or silently resolve ambiguous requirements
 
 ## Future Skills
 

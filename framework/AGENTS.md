@@ -12,7 +12,6 @@ Agents receive requirements from session context:
 
 - **Read session context**: Agents MUST read requirements from current session context (including context in compacted blocks) or open tasks
 - **Invoke input skill**: Specification agents MUST invoke their layer-specific `smaqit.input-[layer]` skill to validate requirements are sufficient before generating specifications; phase agents invoke their phase-specific `smaqit.input-[phase]` skill to confirm execution parameters before proceeding
-- **Apply `smaqit.session-assess` skill**: Agents invoke the session assessment skill when input is ambiguous, conflicting, or insufficient beyond what the input skill resolves
 - **Interpret free-style input**: Agents consume natural language requirements without rigid structure enforcement
 - **Validate sufficiency**: Agents MUST request clarification if session context is insufficient, using natural language guidance (e.g., "Please specify measurable success criteria" not "Missing: Success Metrics section")
 - **Equivalent outcomes**: Given equivalent session context across all layers, acceptance criteria should pass/fail consistently (acknowledging LLM variance in artifact style)
@@ -31,7 +30,7 @@ Agents receive requirements from session context:
 - Agents request clarification when input is ambiguous
 - Agents do not invent requirements not present in input
 - Agents flag assumptions explicitly when clarification is unavailable
-- Agents invoke `smaqit.session-assess` skill when detecting ambiguity requiring iterative analysis and planning
+- Agents surface the specific ambiguity, state what information is missing or contradictory, and request clarification before proceeding
 
 ### Fail-Fast on Inconsistency
 - Agents MUST verify coherence across all input sources before producing output

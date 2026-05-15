@@ -298,7 +298,7 @@ Phase 1 (Develop) is now complete with a working, tested application. The next s
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
 | Cross-layer conflict | Request spec amendments before proceeding |
-| Ambiguous or complex inputs beyond input validation scope | Invoke `smaqit.session-assess` skill |
+| Ambiguous or complex inputs | Surface the specific ambiguity, state what information is missing or contradictory, and request clarification before proceeding |
 
 Stop iterating when:
 - All completion criteria met, OR

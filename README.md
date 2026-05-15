@@ -39,7 +39,7 @@ smaqit init
 **Build something:**
 
 1. Open GitHub Copilot chat and run `/smaqit.development`
-2. Describe your requirements in the conversation when the agent asks
+2. The agent will validate your requirements are sufficient before proceeding — describe what you want to build when prompted
 3. Watch specs generate, then code build
 
 See the full [Mario Hello quickstart](docs/wiki/workflows/quickstart.md) for a complete walkthrough.
@@ -66,11 +66,14 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 
 | Agent | Purpose |
 |-------|---------|
+| `/smaqit.business` | Generate Business specifications |
+| `/smaqit.functional` | Generate Functional specifications |
+| `/smaqit.stack` | Generate Stack specifications |
+| `/smaqit.infrastructure` | Generate Infrastructure specifications |
+| `/smaqit.coverage` | Generate Coverage specifications |
 | `/smaqit.development` | Build working app from specs |
 | `/smaqit.deployment` | Deploy to target environment |
 | `/smaqit.validation` | Run tests against deployed system |
-
-Run `smaqit help` for all specification agents (`/smaqit.business`, `/smaqit.functional`, etc.).
 
 ### Reinstallation and Updates
 

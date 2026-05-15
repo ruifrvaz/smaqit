@@ -45,9 +45,9 @@ Starting in v0.5.0, all specification agents explicitly state their layer identi
 
 This helps reduce confusion and makes layer boundaries explicit, even when context pollution occurs.
 
-### Future Solution
+### Current Behavior
 
-**Future:** Implementation agents will invoke specification agents internally (Task 073), providing automatic phase coordination while maintaining context isolation. Users will invoke a single command per phase (e.g., `/smaqit.development`) and the agent will handle spec generation and implementation.
+The Development agent (`/smaqit.development`) generates all required specifications internally before writing code, providing automatic phase coordination. Users invoke a single command and the agent handles spec generation and implementation. For individual layer work, users can still invoke spec agents directly (e.g., `/smaqit.business`) in a fresh chat session.
 
 ---
 

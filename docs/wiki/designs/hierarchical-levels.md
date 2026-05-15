@@ -43,9 +43,9 @@ Each level consumes the level above it and produces inputs for the level below i
 
 **What it contains:**
 - `templates/specs/` — 5 specification templates (business, functional, stack, infrastructure, coverage)
-- `templates/agents/` — 2 agent templates (specification-agent, implementation-agent)
+- `templates/agents/compiled/` — 8 compilation rule files (one per layer/phase)
 
-**Purpose:** Define the exact structure that Level 2 artifacts must follow.
+**Purpose:** Define the exact structure and directives that Level 2 artifacts must follow.
 
 **Examples:**
 - Business spec template defines sections: Actors, Success Metrics, Use Case, Acceptance Criteria
@@ -69,7 +69,7 @@ Each level consumes the level above it and produces inputs for the level below i
 **Purpose:** Concrete implementations that follow Level 1 templates and Level 0 rules.
 
 **Examples:**
-- `agents/smaqit.business.agent.md` follows `templates/agents/specification-agent.template.md`
+- `agents/smaqit.business.agent.md` compiled from `templates/agents/compiled/business.rules.md`
 - User-generated business spec follows `templates/specs/business.template.md`
 
 **Why this level exists:**
@@ -194,9 +194,9 @@ Users don't need to think about levels—they're implementation details.
 ### For Agent Developers
 
 When creating new agents:
-1. Choose appropriate Level 1 template (specification or implementation agent)
+1. Write compilation rules in `templates/agents/compiled/<layer>.rules.md`
 2. Follow Level 0 rules from AGENTS.md
-3. Produce Level 2 artifact that follows template exactly
+3. Produce Level 2 artifact (`agents/smaqit.<layer>.agent.md`) that follows the rules
 4. Validate against Level 0 completion criteria
 
 The hierarchy guides agent development systematically.

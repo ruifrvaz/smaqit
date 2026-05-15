@@ -149,47 +149,14 @@ L2 Agent (smaqit.validation.agent.md):
 └─────────────────────────────────────────────────────┘
 ```
 
-## Meta-Agents (Internal Development Tools)
+## Compilation in Practice
 
-smaqit uses three internal agents for framework development:
+The L0→L1→L2 chain is maintained manually (no automated tooling). Framework developers edit source files following the level conventions, use the `smaqit.qa` agent for validation, and commit changes in level order: `L0:` → `L1:` → `L2:`.
 
-### Agent-L0: Principle Curator
-**Responsibility:** Maintain L0 purity  
-**Scope:** `framework/*.md` files  
-**Role:** Remove directive contamination, ensure principles stay philosophical
-
-**Example cleanup:**
-```
-BEFORE (directive contamination):
-"Agents MUST NOT duplicate information from existing specs"
-
-AFTER (pure principle):
-"Single Source of Truth: Each piece of information exists in exactly one place"
-```
-
-### Agent-L1: Template Compiler
-**Responsibility:** Compile L0 principles into L1 directives and compilation files  
-**Scope:** `templates/**/*.template.md` and `templates/agents/compiled/*.rules.md`  
-**Role:** Transform philosophy into actionable directives
-
-**Compilation rules:**
-- **Principles → Directives:** Abstract concepts become MUST/SHOULD/MUST NOT rules
-- **Philosophy → Workflows:** Conceptual flows become step-by-step sequences
-- **Rationale removal:** "Why" explanations stay at L0, only "what/how" compiles to L1
-- **Examples → Placeholders:** Specific examples become generic `[PLACEHOLDER]` patterns
-- **Template purity:** Templates maintain generic structure, specifics in compilation files
-
-### Agent-L2: Agent Compiler
-**Responsibility:** Compile L1 templates + compilation files into L2 agents  
-**Scope:** `agents/*.agent.md` files  
-**Role:** Generate concrete agents by merging templates with compilation rules
-
-**Compilation process:**
-1. Read L1 template structure
-2. Read L1 compilation file for specific phase/layer
-3. Merge directives from compilation file into template
-4. Replace all placeholders with concrete values
-5. Validate result is self-contained and executable
+The `smaqit.qa` agent is the primary consistency checker:
+- Detects level contamination (directives in L0, philosophy in L2)
+- Verifies agent structure against compilation rules
+- Checks compilation chain integrity before releases
 
 ## Why Compilation Files?
 
@@ -261,32 +228,27 @@ git commit -m "docs: Document compilation files architecture"
 - **Commit prefixes:** Use `L0:`, `L1:`, `L2:`, `docs:` for traceability
 - **Rationale:** Preserves compilation chain, enables bisection, documents transformation
 
-## Current State (2026-01-19)
+## Current State (2026-05-16)
 
 ### Completed
-- ✅ L0 purity achieved for ARTIFACTS.md and PHASES.md (PR #36)
+- ✅ L0 purity achieved for all framework files
 - ✅ Compilation files architecture established
-- ✅ Eight compilation files created:
+- ✅ Eight compilation files in `templates/agents/compiled/`:
   - 3 phase files: validate.rules.md, develop.rules.md, deploy.rules.md
   - 5 layer files: business.rules.md, functional.rules.md, stack.rules.md, infrastructure.rules.md, coverage.rules.md
-- ✅ implementation-agent.template.md updated to reference compilation files
-- ✅ specification-agent.template.md updated to reference compilation files
 - ✅ Frontmatter structure standardized (layer/phase, target, sources, created)
-- ✅ Source L0 Principles converted to tabulated format
-
-### Pending
-- ⏳ Agent-L2 compilation execution (apply rules to generate L2 agents)
-- ⏳ Automated compilation tooling
+- ✅ L2 agents compiled and shipped (`agents/*.agent.md`)
+- ✅ Input skills created for all 8 layers/phases (`skills/smaqit.input-*.SKILL.md`)
 
 ## Not Shipped to Users
 
 **Critical:** The Level Up compilation process is **internal development work**. User projects receive:
 
 - ✅ **Compiled L2 agents** (`agents/*.agent.md`) — Final products
-- ✅ **Spec templates** (`templates/specs/*.template.md`) — For generating specs
+- ✅ **Spec templates** (`templates/specs/*.md`) — For generating specs
+- ✅ **Input skills** (`skills/smaqit.input-*.SKILL.md`) — Per-layer validation gates
 - ❌ **Framework files** (`framework/*.md`) — NOT copied by installer
 - ❌ **Compilation files** (`templates/agents/compiled/*.rules.md`) — NOT copied by installer
-- ❌ **Meta-agents** (Agent-L0, Agent-L1, Agent-L2) — Internal tools only
 
 **Rationale:** Shipped agents don't need to know how they were compiled. They're self-contained executables.
 
@@ -302,7 +264,6 @@ The compilation architecture ensures consistency: all domains follow the same L0
 
 ## References
 
-- **Task B001:** Extensible Meta-Framework (long-term extensibility vision)
-- **Task B002:** Iterating Extensible Framework (immediate compilation execution)
 - **Session 037:** Compilation Files Architecture (2026-01-14 design session)
-- **Copilot Instructions:** `.github/copilot-instructions.md` § Level Agents
+- **Copilot Instructions:** `.github/copilot-instructions.md` § Kit Components
+- **Extending smaqit:** `docs/wiki/workflows/extending-smaqit.md` — How to work in this repo

@@ -2,7 +2,7 @@
 
 ## Principle
 
-When prompts are empty or insufficient, agents guide users naturally, not with template references or error codes.
+When session context is empty or insufficient, agents guide users naturally, not with template references or error codes.
 
 ## Good Examples
 
@@ -22,21 +22,21 @@ These reference template structure rather than guiding requirement capture.
 
 ## Pattern
 
-**If prompt empty or insufficient:**
+**If session context empty or insufficient:**
 1. Agent halts execution
 2. Agent suggests what's missing using natural language guidance
-3. Agent waits for user to fill prompt and re-invoke
+3. Agent waits for user to provide requirements and re-invoke
 
-**If prompt filled sufficiently:**
+**If session context contains sufficient requirements:**
 1. Agent proceeds with spec generation
-2. Agent uses prompt content as authoritative input
+2. Agent uses session context as authoritative input
 
 ## Why Natural Language?
 
 - Users think in questions, not form fields
 - Reduces friction in requirement capture
 - Makes agents feel collaborative, not bureaucratic
-- Aligns with free-style prompt philosophy
+- Aligns with natural language input philosophy
 
 ## Implementation
 
@@ -48,5 +48,4 @@ Agents should:
 
 ## Related
 
-- [Free-Style Prompts](../designs/free-style-prompts.md) — Why prompts are natural language
 - [HTML Comment Convention](html-comment-convention.md) — How templates provide guidance

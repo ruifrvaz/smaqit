@@ -2,7 +2,7 @@
 
 ## Definition
 
-Traceability is the ability to track every requirement from its origin (prompt file) through all layers to its verification (test case). In smaqit, every acceptance criterion, implementation decision, and test case can be traced back to its source.
+Traceability is the ability to track every requirement from its origin (session context) through all layers to its verification (test case). In smaqit, every acceptance criterion, implementation decision, and test case can be traced back to its source.
 
 ## How It Works
 
@@ -60,7 +60,7 @@ Coverage specs create explicit mappings:
 
 **Audit trail:**
 - Every decision traces to a requirement
-- Every requirement traces to a prompt file
+- Every requirement traces to user session input
 - Complete chain from user input to validation
 
 **Change management:**
@@ -73,7 +73,7 @@ Coverage specs create explicit mappings:
 **Traceability chain for authentication:**
 
 ```
-User Input (smaqit.business.prompt.md)
+User Input (session context)
   ↓
 BUS-LOGIN-001: User can authenticate with valid credentials
   ↓ (Implements)

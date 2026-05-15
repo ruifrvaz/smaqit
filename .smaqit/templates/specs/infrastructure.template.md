@@ -2,7 +2,6 @@
 id: INF-[CONCEPT]
 status: draft
 created: [TIMESTAMP]
-prompt_version: [GIT_HASH]
 ---
 
 # [CONCEPT_NAME]

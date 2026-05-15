@@ -9,8 +9,7 @@ This guide covers how to extend the smaqit framework by creating new agents, mod
 - **Level agents** (L0, L1, L2) for principle documentation, template compilation, and agent compilation
 - **QA agent** for framework validation and testing
 - **Framework files** (7 files in `framework/`) defining smaqit architecture
-- **Templates** (14 total) for specs, prompts, and agents
-- **new-agent prompt** for creating custom agents
+- **Templates** for specs and agents
 
 ## When to Use smaqit-sdk
 
@@ -47,7 +46,6 @@ After `smaqit-sdk init`, you'll have:
 │   ├── TEMPLATES.md             # Template structure rules
 │   ├── AGENTS.md                # Agent behaviors
 │   ├── ARTIFACTS.md             # Artifact rules
-│   └── PROMPTS.md               # Prompt architecture
 ├── templates/
 │   ├── specs/                   # 5 spec templates
 │   │   ├── business.template.md
@@ -55,9 +53,6 @@ After `smaqit-sdk init`, you'll have:
 │   │   ├── stack.template.md
 │   │   ├── infrastructure.template.md
 │   │   └── coverage.template.md
-│   ├── prompts/                 # 2 prompt templates
-│   │   ├── layer.template.md
-│   │   └── phase.template.md
 │   └── agents/                  # 7 agent templates
 │       ├── layer.template.md
 │       ├── phase.template.md
@@ -76,8 +71,6 @@ After `smaqit-sdk init`, you'll have:
 │   ├── smaqit.L1.agent.md      # Template compilation
 │   ├── smaqit.L2.agent.md      # Agent compilation
 │   └── smaqit.qa.agent.md      # Framework testing
-└── prompts/
-    └── smaqit.new-agent.prompt.md  # Agent creation workflow
 ```
 
 ## Level Agent Architecture
@@ -118,7 +111,6 @@ smaqit uses a **three-level compilation chain**:
 
 **When to use Agent-L1:**
 - Creating or updating spec templates (`templates/specs/`)
-- Creating or updating prompt templates (`templates/prompts/`)
 - Creating or updating agent templates (`templates/agents/*.template.md`)
 - Creating or updating compilation files (`templates/agents/compiled/*.rules.md`)
 - Compiling L0 principles into structured directives
@@ -142,16 +134,6 @@ smaqit uses a **three-level compilation chain**:
 - Creating custom agents via compilation
 
 ## Creating a New Agent
-
-### Using the new-agent prompt
-
-1. **Define requirements:**
-
-Fill `.github/prompts/smaqit.new-agent.prompt.md` with:
-- Agent name and purpose
-- Layer or phase it operates on
-- Input requirements and output artifacts
-- Validation criteria
 
 2. **Compile L1 template:**
 

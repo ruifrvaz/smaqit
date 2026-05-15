@@ -1,6 +1,6 @@
 # smaqit Framework
 
-Spec-driven agent orchestration where specifications are split into layers and phases. Users input requirements in prompt files, AI specification agents read from these prompt files to write specifications, then implementation agents generate outputs from those specifications.
+Spec-driven agent orchestration where specifications are split into layers and phases. Users provide requirements through session context (user input in chat), AI specification agents read from session context to write specifications, then implementation agents generate outputs from those specifications.
 
 ## Core Principles
 
@@ -24,13 +24,13 @@ Specifications are not documentation—they are the source of truth. Implementat
 
 **Every output traces to its input source, creating an unbroken chain from user requirements through specifications to implementation.**
 
-Each layer receives requirements from its prompt file. Upstream layers provide context for coherence, not requirements. Code references specs. Tests reference requirements. This creates explicit lineage for every decision and artifact.
+Each layer receives requirements from session context (user input in chat, compacted context blocks, or open tasks). Upstream layers provide context for coherence, not requirements. Code references specs. Tests reference requirements. This creates explicit lineage for every decision and artifact.
 
 ### Layer Independence
 
-**Each layer's prompt file is the sole source of requirements for that layer.**
+**Each layer's session context is the sole source of requirements for that layer.**
 
-Each layer has its own prompt file where users input requirements. Upstream layers provide context for coherence, not requirements. This ensures that user intent guides every layer without false derivation chains.
+When a layer's agent is invoked, requirements come from the current session context. Upstream layers provide context for coherence, not requirements. This ensures that user intent guides every layer without false derivation chains.
 
 ### Single Source of Truth
 
@@ -78,21 +78,11 @@ LLMs rarely generate identical output twice. Rather than fighting this inherent 
 - **Immutable behavior**: Specifications define expected outcomes, not implementation details
 - **Validation over reproducibility**: Success is measured by passing acceptance criteria, not by identical output
 
-### Reproducible from Input Set
-
-**Identical input sets produce equivalent validated behavior.**
-
-The complete set of prompts across all layers defines a reproducible workflow. Given the same prompt set:
-
-- **Equivalent outcomes**: Acceptance criteria pass or fail consistently
-- **Traceable changes**: Modifying any prompt in the set reveals requirement changes explicitly
-- **Audit trail**: Prompt sets document what was requested at each layer
-
 ### Progressive Refinement
 
 **Each layer addresses a distinct concern.**
 
-Layers are independent but coherent. Business captures intent, Functional defines behavior, Stack selects tools, Infrastructure specifies environment, Coverage verifies implementation. No layer derives requirements from another—each reads from its own prompt file. Implementation agents validate cross-layer coherence before execution.
+Layers are independent but coherent. Business captures intent, Functional defines behavior, Stack selects tools, Infrastructure specifies environment, Coverage verifies implementation. No layer derives requirements from another—each receives requirements from its own session context. Implementation agents validate cross-layer coherence before execution.
 
 ### Stateful Specifications
 
@@ -143,10 +133,9 @@ Read SMAQIT.md for framework overview and principles. Consult these files as nee
 
 | File | Purpose | When to Consult |
 |------|---------|-----------------|
-| [PROMPTS](PROMPTS.md) | Prompt structure, input records, agent interaction | Understanding prompt files or agent invocation |
 | [SKILLS](SKILLS.md) | Agent skills, invocable capabilities, condition detection | Understanding reusable agent capabilities |
 | [LAYERS](LAYERS.md) | Five specification layers and their dependencies | Generating or validating layer specs |
 | [PHASES](PHASES.md) | Three development phases and their workflows | Orchestrating multi-agent workflows |
-| [TEMPLATES](TEMPLATES.md) | Template structure rules for prompts, specs, and agents | Creating or validating templates |
+| [TEMPLATES](TEMPLATES.md) | Template structure rules for specs and agents | Creating or validating templates |
 | [AGENTS](AGENTS.md) | Agent behaviors (actors) | Understanding agent responsibilities |
 | [ARTIFACTS](ARTIFACTS.md) | Artifact rules (outputs) | Understanding spec structure and traceability |

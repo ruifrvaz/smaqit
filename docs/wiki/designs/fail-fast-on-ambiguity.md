@@ -41,11 +41,11 @@ LLMs can generate plausible-sounding content for almost any prompt. This creates
 
 ### 1. Pre-Run Validation
 
-Phase prompts check for content before starting:
+Agents check session context for content before starting:
 
 ```markdown
 **Pre-Run Validation:**
-If `.github/prompts/smaqit.business.prompt.md` is empty or insufficient:
+If session context is empty or insufficient:
 - Halt with natural language guidance
 - Example: "Please specify your use cases, actors, and success criteria"
 ```
@@ -54,10 +54,10 @@ Agents don't proceed with blank input. They fail fast with guidance.
 
 ### 2. Sufficiency Checks
 
-Agents evaluate whether prompt content is sufficient:
+Agents evaluate whether session context is sufficient:
 
 ```markdown
-**Validate sufficiency:** Agents MUST request clarification if prompt content 
+**Validate sufficiency:** Agents MUST request clarification if session context 
 is insufficient, using natural language guidance.
 ```
 
@@ -138,4 +138,3 @@ Use judgment. Fail-fast on decisions that affect requirements or architecture, p
 ## Related
 
 - [Validation Messages](../patterns/validation-messages.md) — How agents communicate clarification needs
-- [Free-Style Prompts](free-style-prompts.md) — Why prompts are natural language (reduces friction)

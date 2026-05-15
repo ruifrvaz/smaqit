@@ -24,7 +24,7 @@ smaqit layers align with Agile/Scrum team roles, enabling specialists to work in
 Each role focuses on their expertise without immediate cross-concerns. This separation:
 
 1. **Reduces cognitive load** — Each role works within familiar concepts
-2. **Enables parallel work** — Different roles can fill their prompts simultaneously
+2. **Enables parallel work** — Different roles can provide requirements to their layer's agent independently
 3. **Creates clear handoffs** — Specs at each layer are contracts for downstream work
 4. **Maintains accountability** — When something fails, the layer boundary identifies ownership
 
@@ -33,10 +33,10 @@ Each role focuses on their expertise without immediate cross-concerns. This sepa
 When a new feature is requested:
 
 1. **Stakeholders** describe the business need
-2. **Product Owner** captures use cases and success criteria in Business prompt
-3. **Engineers** define behaviors and data models in Functional prompt
-4. **Developers** select technologies in Stack prompt
-5. **DevOps** specifies deployment in Infrastructure prompt
-6. **Testers** define verification in Coverage prompt
+2. **Product Owner** invokes the Business agent with use cases and success criteria
+3. **Engineers** invoke the Functional agent with behaviors and data models
+4. **Developers** invoke the Stack agent with technology preferences
+5. **DevOps** invokes the Infrastructure agent with deployment requirements
+6. **Testers** invoke the Coverage agent with verification requirements
 
-Each role owns their layer's prompt. Agents generate specs from those prompts, maintaining the separation throughout implementation.
+Each role owns their layer's requirements. Agents generate specs from session context, maintaining the separation throughout implementation.

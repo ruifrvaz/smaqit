@@ -18,63 +18,10 @@ smaqit init
 This creates:
 - `.smaqit/` — Framework files and templates
 - `.github/agents/` — Agent definitions
-- `.github/prompts/` — Prompt files for your requirements
+- `.github/skills/` — Reusable agent skills
 - `specs/` — Where generated specifications go
 
-## Step 2: Fill the Business Prompt
-
-Open `.github/prompts/smaqit.business.prompt.md` and add your requirements:
-
-```markdown
-## Actors
-
-Mario Fan - A user who loves Nintendo's Mario franchise and wants a fun greeting
-
-## Use Cases
-
-### Greet Mario Fan
-The Mario Fan wants to see a personalized greeting featuring Mario.
-
-**Success Criteria:**
-- Display "Hello, Mario!" message
-- Message appears in console output
-- Program exits successfully after displaying message
-```
-
-## Step 3: Fill the Functional Prompt
-
-Open `.github/prompts/smaqit.functional.prompt.md` and describe the functionality:
-
-```markdown
-## Application Type
-
-Console application
-
-## Behaviors
-
-### Console Output
-When the application runs, it displays the message to standard output and exits with code 0.
-
-## Data Models
-
-None required for this simple application.
-```
-
-## Step 4: Fill the Stack Prompt
-
-Open `.github/prompts/smaqit.stack.prompt.md` with your technology choice:
-
-```markdown
-## Language
-
-Python 3.8+
-
-## Dependencies
-
-None required (standard library only).
-```
-
-## Step 5: Run Development Phase
+## Step 2: Run the Development Phase
 
 In VS Code's GitHub Copilot chat, invoke the Development agent:
 
@@ -82,11 +29,26 @@ In VS Code's GitHub Copilot chat, invoke the Development agent:
 /smaqit.development
 ```
 
+The agent will ask you for your requirements. Describe what you want to build in the chat:
+
+```
+I want a simple console application that displays "Hello, Mario!" when run.
+
+Actors:
+- Mario Fan: A user who loves Nintendo's Mario franchise and wants a fun greeting
+
+The app should:
+- Display "Hello, Mario!" to standard output
+- Exit successfully after displaying the message
+- Use Python 3.8+ with no external dependencies
+```
+
 The agent will:
-1. Read your prompt files
-2. Generate Business, Functional, and Stack specifications in `specs/`
-3. Build the application code
-4. Run tests to verify it works
+1. Generate Business, Functional, and Stack specifications in `specs/`
+2. Build the application code
+3. Run tests to verify it works
+
+If your requirements are unclear or incomplete, the agent will ask clarifying questions before proceeding.
 
 ## Expected Output
 
@@ -119,15 +81,15 @@ python src/main.py
 
 ## What's Next?
 
-- **Add features**: Edit prompt files and re-run `/smaqit.development`
-- **Deploy**: Fill Infrastructure prompt and run `/smaqit.deployment`
-- **Validate**: Fill Coverage prompt and run `/smaqit.validation`
+- **Add features**: Invoke `/smaqit.development` again with updated requirements in chat
+- **Deploy**: Invoke `/smaqit.deployment` with your infrastructure requirements
+- **Validate**: Invoke `/smaqit.validation` with your test requirements
 - **Check status**: Run `smaqit status` to see spec coverage
 
 ## Troubleshooting
 
-**Agent asks for clarification?** Your prompts may be ambiguous. Add more detail to the relevant prompt file.
+**Agent asks for clarification?** Your requirements may be ambiguous. Add more detail in the chat response.
 
-**Specs don't match expectations?** Check that your prompt files have sufficient requirements. Agents rely on explicit input to maintain focused scope.
+**Specs don't match expectations?** Invoke the relevant specification agent directly (e.g., `/smaqit.business`) with updated requirements.
 
 **Build fails?** Review the Development agent's output. It will indicate what went wrong and suggest fixes.

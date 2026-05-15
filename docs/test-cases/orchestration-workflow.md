@@ -35,9 +35,7 @@ Validates that implementation agents (development, deployment, validation) autom
 **Initial State:**
 - Fresh smaqit init (no specs exist)
 - Prompt files filled:
-  - `.github/prompts/smaqit.business.prompt.md`
-  - `.github/prompts/smaqit.functional.prompt.md`
-  - `.github/prompts/smaqit.stack.prompt.md`
+  - Session context with requirements provided to agent
 
 **Test Steps:**
 1. Run `/smaqit.development` (single command)
@@ -46,7 +44,7 @@ Validates that implementation agents (development, deployment, validation) autom
 **Expected Behavior:**
 
 **Pre-Orchestration Validation:**
-- [ ] Agent checks prompt files exist and contain content
+- [ ] Agent reads requirements from session context
 - [ ] Agent verifies no missing dependencies (none required for development)
 - [ ] Agent verifies execution tools available
 - [ ] Validation passes → proceed to orchestration
@@ -107,7 +105,7 @@ User: /smaqit.development
 
 **Initial State:**
 - Development phase complete (business, functional, stack specs + code exist)
-- Infrastructure prompt filled: `.github/prompts/smaqit.infrastructure.prompt.md`
+- Infrastructure requirements provided in session context
 
 **Test Steps:**
 1. Run `/smaqit.deployment` (single command)
@@ -116,7 +114,7 @@ User: /smaqit.development
 **Expected Behavior:**
 
 **Pre-Orchestration Validation:**
-- [ ] Agent checks infrastructure prompt file exists and contains content
+- [ ] Agent reads infrastructure requirements from session context
 - [ ] Agent verifies development artifacts present (code, tests)
 - [ ] Agent verifies execution tools available
 - [ ] Validation passes → proceed to orchestration
@@ -164,7 +162,7 @@ User: /smaqit.deployment
 
 **Initial State:**
 - Development and deployment phases complete
-- Coverage prompt filled: `.github/prompts/smaqit.coverage.prompt.md`
+- Coverage requirements provided in session context
 
 **Test Steps:**
 1. Run `/smaqit.validation` (single command)
@@ -173,7 +171,7 @@ User: /smaqit.deployment
 **Expected Behavior:**
 
 **Pre-Orchestration Validation:**
-- [ ] Agent checks coverage prompt file exists and contains content
+- [ ] Agent reads coverage requirements from session context
 - [ ] Agent verifies development and deployment artifacts present
 - [ ] Agent verifies execution tools available
 - [ ] Validation passes → proceed to orchestration
@@ -224,7 +222,7 @@ User: /smaqit.validation
 - Prompt files have been updated with new requirements
 
 **Test Steps:**
-1. Modify prompt files with additional requirements
+1. Re-invoke agent with updated requirements in session context
 2. Run `/smaqit.development --regen`
 3. Observe agent behavior
 
@@ -270,11 +268,11 @@ User: /smaqit.validation
 
 ## Test Scenario 6: Empty Prompt File Handling
 
-**Objective:** Validate agent halts with guidance when prompt files empty
+**Objective:** Validate agent halts with guidance when requirements are insufficient
 
 **Initial State:**
 - Fresh smaqit init
-- All prompt files empty or contain only comments
+- Session context provides no requirements or insufficient requirements
 
 **Test Steps:**
 1. Run `/smaqit.development`
@@ -283,16 +281,15 @@ User: /smaqit.validation
 **Expected Behavior:**
 
 **Pre-Orchestration Validation:**
-- [ ] Agent checks prompt files exist
-- [ ] Agent detects prompt files lack sufficient content
+- [ ] Agent detects session context lacks sufficient requirements
 - [ ] Pre-orchestration validation fails
 - [ ] Agent halts with diagnostic report
-- [ ] Report identifies which prompt files need content
+- [ ] Report identifies what requirements are needed
 - [ ] Report provides remediation guidance
 
 **Expected Outcome:**
 - Workflow halted (no specs generated)
-- Clear error message identifying empty prompt files
+- Clear error message identifying missing requirements
 - Guidance on what content is required
 
 ---
@@ -347,7 +344,7 @@ User: /smaqit.validation
 - [ ] Development agent captures failure context
 - [ ] Development agent reports:
   - Which agent failed (business)
-  - What input was provided (prompt file content)
+  - What input was provided (session context requirements)
   - What error occurred (conflict description)
   - Remediation guidance (how to fix prompt)
 - [ ] Workflow halts with partial completion tracking
@@ -355,7 +352,7 @@ User: /smaqit.validation
 
 **Expected Outcome:**
 - Clear error message with context
-- User knows which prompt file to fix
+- User knows what requirements to provide
 - User knows what the conflict is
 - Workflow state preserved for resume after fix
 
@@ -402,7 +399,7 @@ Use existing Mario Hello World test case for content:
 - [ ] Progress visible to user during orchestration
 - [ ] Error context preserved when agent invocations fail
 - [ ] `--regen` flag triggers spec regeneration
-- [ ] Empty prompt files detected and reported
+- [ ] Insufficient session context detected and reported
 - [ ] Partial spec scenarios handled correctly
 
 **Primary Success Metric:**
@@ -422,7 +419,7 @@ User can run `/smaqit.development` from empty project with filled prompts and ge
 **Failure Documentation:**
 - Log complete console output
 - Capture agent invocation sequence
-- Document prompt file content used
+- Document session context requirements used
 - Note exact error messages
 - Record workflow state at failure point
 

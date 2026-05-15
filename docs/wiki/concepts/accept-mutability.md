@@ -114,25 +114,6 @@ Test passes with both implementations. Code variance doesn't matter.
 
 The cost is acceptable—behavioral correctness is more valuable than artifact consistency.
 
-## Reproducible from Input Set
-
-While individual artifacts vary, the complete workflow is reproducible:
-
-**Given the same prompt set across all layers:**
-- Acceptance criteria pass/fail consistently
-- Behavior matches specifications
-- Tests validate requirements
-
-**Variance is contained to:**
-- Implementation details (code style)
-- Documentation phrasing
-- File organization
-
-**Invariant is:**
-- Functional correctness
-- Specification compliance
-- Test coverage
-
 ## Related
 
 - [Template Constraints](../designs/template-constraints.md) — How templates reduce variance in specs

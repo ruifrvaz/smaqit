@@ -1,16 +1,15 @@
 # Templates
 
-Templates define the structure that agents MUST follow when producing output. This document establishes the rules for both specification templates, agent templates and prompt templates.
+Templates define the structure that agents MUST follow when producing output. This document establishes the rules for both specification templates and agent templates.
 
 ## Template Types
 
-smaqit uses three types of templates:
+smaqit uses two types of templates:
 
 | Type | Location | Purpose | Produces |
 |------|----------|---------|----------|
 | **Specification templates** | `templates/specs/` | Structure for spec documents | `specs/**/*.md` |
 | **Agent templates** | `templates/agents/` | Structure for agent definitions | `agents/*.agent.md` |
-| **Prompt templates** | `templates/prompts/` | Structure for prompt files | `.github/prompts/*.prompt.md` |
 
 ## Placeholder Convention
 
@@ -100,7 +99,6 @@ All spec templates MUST begin with YAML frontmatter:
 id: [LAYER_PREFIX]-[CONCEPT]
 status: draft
 created: [TIMESTAMP]
-prompt_version: [GIT_HASH]
 ---
 ```
 
@@ -108,7 +106,6 @@ prompt_version: [GIT_HASH]
 - `id`: Spec identifier (e.g., `BUS-LOGIN`, `FUN-AUTH-FLOW`)
 - `status`: Initial state is always `draft`
 - `created`: ISO8601 timestamp when spec generated
-- `prompt_version`: Git commit hash of prompt file at generation
 
 **Optional frontmatter fields** (added by implementation agents):
 - `implemented`: Timestamp when Development agent completed
@@ -156,7 +153,7 @@ The foundation template materializes what remains invariant across agent types.
 
 Build upon foundation by adding role-specific behaviors while preserving shared principles:
 
-- **Specification template** — Layer-specific sections (References to upstream specs, layer scope boundaries, acceptance criteria structure). Extends foundation with prompt-to-spec generation behaviors.
+- **Specification template** — Layer-specific sections (References to upstream specs, layer scope boundaries, acceptance criteria structure). Extends foundation with session-context-to-spec generation behaviors.
 
 - **Implementation template** — Phase-specific sections (Cross-layer consolidation, frontmatter updates, retry thresholds, artifact generation). Extends foundation with spec-to-artifact generation behaviors.
 
@@ -170,7 +167,7 @@ Agent definitions contain these sections:
 |---------|---------|-------------------------|
 | YAML Frontmatter | Agent metadata (name, description, tools) | Foundation |
 | Role | Agent identity, goal, context | Foundation |
-| Input | Source specifications and prompt files | Extension-specific |
+| Input | Source specifications and session context | Extension-specific |
 | Output | Target artifacts and structure | Extension-specific |
 | Directives | Behavioral rules compiled from principles | Extension-specific |
 | Pre-Orchestration Validation | Input validation, dependency checks, execution readiness verification | Extension-specific (Implementation) |
@@ -185,85 +182,6 @@ Agent definitions follow GitHub Custom Agent format with YAML frontmatter, markd
 
 Frontmatter captures agent metadata. Sections contain behavioral guidelines compiled from framework principles. Placeholders enable template reuse across agent instances.
 
-## Prompt Templates
-
-Prompt templates define the structure for prompt files that serve as input records and agent invocation interface.
-
-### Location
-
-```
-templates/prompts/
-├── specification-prompt.template.md
-└── implementation-prompt.template.md
-```
-
-### Required Sections
-
-Every prompt template MUST include:
-
-| Section | Purpose |
-|---------|---------|
-| YAML Frontmatter | name, description, agent |
-| Purpose | What this prompt captures |
-| Requirements | Sub-sections with suggested structure |
-| Comment Examples | `<!-- Example: ... -->` for guidance |
-
-### Prompt Template Format
-
-Prompt templates use GitHub Copilot prompt format:
-
-```markdown
----
-name: smaqit.[layer]
-description: [One-line description]
-agent: smaqit.[layer]
----
-
-# [Layer] Prompt
-
-[Brief explanation]
-
-## Requirements
-
-[Sub-sections with suggested structure]
-
-<!-- Example: [Guidance showing format] -->
-
-[User fills requirements here]
-```
-
-### Free-Style with Structure
-
-Prompts are **free-style natural language inputs**, not rigidly structured forms. Templates provide:
-
-- **Suggested structure**: Sections and sub-sections to guide users
-- **Commented examples**: `<!-- Example: ... -->` showing good formats
-- **No enforcement**: Users write in their own words
-
-Agents interpret natural language and request clarification if needed. See [PROMPTS](PROMPTS.md) for complete principles.
-
-### Comment Convention
-
-Templates and shipped prompts include examples wrapped in HTML comments:
-
-```markdown
-### Actors
-
-<!-- Example: "Mario Fan - Users who love Nintendo's Mario franchise" -->
-
-[User writes actual actors here]
-```
-
-**Critical:** Agents MUST ignore HTML comments to prevent example requirements from contaminating generated specs.
-
-### Single Manifest Pattern
-
-Unlike specifications (one file per concept), prompts are **single manifest files**:
-
-- One prompt per layer captures all requirements for that layer
-- Users add features to existing prompts as projects evolve
-- Prompts become consolidated input records for entire project
-
 ## Template Completeness
 
 A template is complete when:
@@ -272,4 +190,3 @@ A template is complete when:
 - [ ] Placeholders are clearly marked with `[PLACEHOLDER]` format
 - [ ] Section purposes are unambiguous
 - [ ] Layer-specific rules from LAYERS.md are incorporated (for spec templates)
-- [ ] Comment examples use `<!-- Example: ... -->` format (for prompt templates)

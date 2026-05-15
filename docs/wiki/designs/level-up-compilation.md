@@ -28,7 +28,6 @@ The **Level Up** architecture is smaqit's internal compilation process for build
 - `framework/TEMPLATES.md` — Template philosophy
 - `framework/AGENTS.md` — Agent philosophy
 - `framework/ARTIFACTS.md` — Artifact philosophy
-- `framework/PROMPTS.md` — Prompt philosophy
 
 **Example principle:**
 ```markdown
@@ -114,11 +113,11 @@ Result: Self-contained agent with:
 
 **Example transformation:**
 ```
-L1 Template: "MUST read from [LAYER] prompt file"
+L1 Template: "MUST read requirements from session context"
 L1 Compilation File: validate.rules.md with Test Independence directives
     ↓ [Agent-L2 compiles]
 L2 Agent (smaqit.validation.agent.md):
-    "MUST read from coverage prompt file"
+    "MUST read requirements from session context"
     "MUST generate executable test artifacts in tests/ directory"
     "MUST create test framework configuration file"
 ```

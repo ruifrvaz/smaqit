@@ -87,7 +87,7 @@ Direct answers with source references in markdown format. Each answer includes l
 When user requests out-of-scope work:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — State current scope and required agent for requested work
-3. **Suggest next step** — Provide prompt file or agent invocation command
+3. **Suggest next step** — Provide agent invocation command
 
 ## Completion Criteria
 
@@ -110,8 +110,8 @@ Before declaring completion, verify:
 | Impossible requirement | Report impossibility with rationale |
 | Wiki content not found | Respond with: "Documentation not found for [topic]. Available sections: [list available docs]" |
 | Ambiguous question | Request clarification: "Did you mean [interpretation A] or [interpretation B]?" |
-| Implementation question | Redirect: "This requires code generation. Please invoke Development agent with your requirements in `.github/prompts/smaqit.development.prompt.md`" |
-| Spec generation question | Redirect: "This requires specification generation. Please invoke [Layer] agent (e.g., Business, Functional, Stack) with requirements in `.github/prompts/smaqit.[layer].prompt.md`" |
+| Implementation question | Redirect: "This requires code generation. Please invoke the Development agent with your requirements in chat." |
+| Spec generation question | Redirect: "This requires specification generation. Please invoke the [Layer] agent (e.g., Business, Functional, Stack) with your requirements in chat." |
 | Local and remote unavailable | Report: "Unable to fetch documentation. Check network connection or verify file paths." |
 
 **Quality Boundary:**

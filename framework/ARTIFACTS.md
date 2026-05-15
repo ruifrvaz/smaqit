@@ -91,25 +91,15 @@ Specifications MUST reference their sources explicitly.
 
 | Type | Meaning | Use Case |
 |------|---------|----------|
-| **Prompt File** | Layer-specific prompt (`.github/prompts/smaqit.[layer].prompt.md`) | Primary source for layer requirements |
 | **Context** | Adjacent layer spec used for coherence | Ensures cross-layer coherence |
 
 **Cross-Layer Traceability:**
 
-Even though requirements come from prompt files per layer, the Implements/Enables references create an explicit chain for:
+The Implements/Enables references create an explicit chain for:
 - **Impact analysis** — When a Business spec changes, all referencing specs are identified
 - **Coverage mapping** — Coverage can trace through references to ensure all requirements are verified
 
 Layer Independence does not mean layer isolation. The reference chain preserves traceability without creating requirement derivation.
-
-**Prompt File Traceability:**
-
-Every requirement traces to the prompt file for that layer:
-- Business: stakeholder requirements
-- Functional: experience requirements  
-- Stack: technology preferences
-- Infrastructure: deployment requirements
-- Coverage: test requirements (scope, environment, integration points, thresholds)
 
 **Context References:**
 
@@ -257,7 +247,6 @@ created: [ISO8601_TIMESTAMP]
 implemented: [ISO8601_TIMESTAMP]
 deployed: [ISO8601_TIMESTAMP]
 validated: [ISO8601_TIMESTAMP]
-prompt_version: [GIT_COMMIT_HASH]
 ---
 ```
 
@@ -265,8 +254,6 @@ prompt_version: [GIT_COMMIT_HASH]
 - `id`: Unique spec identifier (format: `BUS-LOGIN`, `FUN-AUTH`, etc.)
 - `status`: Current lifecycle state
 - `created`: Timestamp when spec was generated
-- `prompt_version`: Git commit hash of prompt file at spec generation time
-
 **Optional Fields (set by implementation agents):**
 - `implemented`: When Development agent completed code generation
 - `deployed`: When Deployment agent completed deployment
@@ -351,16 +338,15 @@ Modified specs enter draft state regardless of how far they progressed previousl
 
 **Spec Modification Source:**
 
-Specification modifications originate from prompt file changes, not manual spec editing. Users modify prompts (input records), agents regenerate specifications from updated prompts.
+Specification modifications originate from session context changes, not manual spec editing. When requirements evolve, users invoke specification agents with updated requirements in the session context.
 
 When requirements evolve:
-1. Users edit prompt files (`.github/prompts/smaqit.[layer].prompt.md`)
-2. Users invoke specification agents to regenerate specs
-3. Agents modify specs based on updated prompt content
-4. Modified specs enter draft state with reset checkboxes
-5. Specs proceed through revalidation phases
+1. Users invoke specification agents with updated requirements
+2. Agents regenerate specifications from updated session context
+3. Modified specs enter draft state with reset checkboxes
+4. Specs proceed through revalidation phases
 
-Manual spec editing bypasses the input record and breaks traceability. Prompt files serve as the authoritative source for all specification content.
+Manual spec editing bypasses the session context and breaks traceability. Session context serves as the authoritative source for all specification content.
 
 **State Aggregation:**
 
@@ -481,7 +467,6 @@ created: 2025-12-26T10:00:00Z
 implemented: 2025-12-26T10:30:00Z
 deployed: 2025-12-26T11:00:00Z
 validated: 2025-12-26T11:30:00Z
-prompt_version: abc123
 ---
 ```
 

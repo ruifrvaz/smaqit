@@ -7,10 +7,8 @@ You are developing smaqit, a spec-driven agent orchestration framework.
 - **Framework files** (`framework/`) — LLM execution instructions
 - **Wiki** (`docs/wiki/`) — Human-readable context and rationale (concepts, designs, patterns, workflows)
 - **Specification templates** (`templates/specs/`) — Structure for spec documents per layer
-- **Prompt templates** (`templates/prompts/`) — Structure for prompt files
 - **Compilation rules** (`templates/agents/compiled/`) — Layer and phase agent compilation rules
 - **Agents** (`agents/`) — GitHub Custom Agents (`.agent.md` format)
-- **Prompts** (`prompts/`) — Prompt templates with structure and guidance (`.prompt.md` format)
 - **Installer** (`installer/`) — Go CLI that scaffolds smaqit into user projects
 
 ## Source vs Artifacts
@@ -25,10 +23,8 @@ smaqit/
 │   ├── TEMPLATES.md          # Template structure rules
 │   ├── AGENTS.md             # Agent behaviors
 │   ├── ARTIFACTS.md          # Artifact rules
-│   └── PROMPTS.md            # Prompt architecture
 ├── templates/
 │   ├── specs/                # Specification templates (5)
-│   ├── prompts/              # Prompt templates (2)
 │   └── agents/
 │       └── compiled/         # Layer and phase compilation rules
 │           ├── business.rules.md
@@ -40,7 +36,6 @@ smaqit/
 │           ├── deploy.rules.md
 │           └── validate.rules.md
 ├── agents/*.agent.md         # Agent definitions (8)
-├── prompts/*.prompt.md       # Prompt files (8)
 ├── installer/main.go         # CLI tool
 ├── docs/
 │   ├── wiki/                 # Human-readable rationale
@@ -54,7 +49,6 @@ smaqit/
 user-project/
 ├── .github/
 │   ├── agents/               # Copied from agents/
-│   └── prompts/              # Copied from prompts/
 ├── .smaqit/
 │   └── templates/            # Copied from templates/specs/
 └── specs/
@@ -98,16 +92,11 @@ When performing work:
 - Business context when relevant
 - Extended explanations and tutorials
 
-### When Editing Prompt Files
-
-**Note:** In the smaqit repo, prompt files serve as structure and guidance templates. Users fill these with concrete requirements at their product.
-
 ### When Editing Installer
 
 The installer embeds and copies these files into user projects:
 - `templates/specs/*.md` → `.smaqit/templates/specs/`
 - `agents/*.md` → `.github/agents/`
-- `prompts/*.md` → `.github/prompts/`
 - `skills/**/*.md` → `.github/skills/`
 - Creates empty `specs/{layer}/` directories
 
@@ -117,7 +106,7 @@ Keep `installer/main.go` Version const in sync with SMAQIT.md version.
 
 ## Workflow Commands
 
-Session management and task management commands are available as prompts in `.github/prompts/`:
+Session management and task management commands are available as workflow commands in `.github/prompts/`:
 
 **Session commands:**
 - `/session.start` - Load full project context for new chat
@@ -129,7 +118,7 @@ Session management and task management commands are available as prompts in `.gi
 - `/task.list` - Show current active tasks
 - `/task.complete [id]` - Mark task as completed with verification
 
-See individual prompt files in `.github/prompts/` for detailed workflows.
+See individual files in `.github/prompts/` for detailed workflows.
 
 ### Task Management
 

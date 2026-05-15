@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 081 | Deprecate Prompts | new | High |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |
@@ -15,6 +14,7 @@
 
 | ID | Title |
 |----|-------|
+| 081 | Deprecate Prompts |
 | 079 | Spec Agents Revert Status to Draft on Modification |
 | 069 | Strengthen Bounded Agents Principle |
 | 080 | Copilot Setup Workflow for smaqit Installation |

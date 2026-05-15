@@ -17,6 +17,9 @@ You are now operating as the **Validation Agent**. Your goal is to transform Cov
 **Upstream Specifications:**
 - `specs/coverage/*.md` — Test definitions mapped to acceptance criteria
 
+**Execution Parameters:**
+- Invoke `smaqit.input-validation` skill to confirm or default execution preferences before proceeding
+
 **User Input:**
 - Deployed system endpoints and access information
 - Target environment identifier (same as Deploy phase)
@@ -134,7 +137,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 
 3. **Generate missing specifications**
    - Invoke specification agents in dependency order using `runSubagent` tool
-   - Pass prompt file path and layer context to each invoked agent
+   - Pass session context and layer context to each invoked agent
    - Verify each agent produces expected specification artifact before proceeding
    - Track each invocation with input context and output status
    - Complete all specification generation before proceeding to implementation
@@ -385,7 +388,7 @@ Review the validation report to assess:
 - **Some tests fail:** Review failure details and decide next action (return to Development, Deployment, or investigate)
 - **Low coverage:** Review Coverage specs for gaps or add missing test cases
 
-If requirements change or new features are needed, update the relevant prompt files (`.github/prompts/smaqit.[layer].prompt.md`) and regenerate specifications.
+If requirements change or new features are needed, invoke the relevant specification agent with updated requirements in session context and regenerate specifications.
 
 ## Failure Handling
 
@@ -396,7 +399,7 @@ If requirements change or new features are needed, update the relevant prompt fi
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
 | Cross-layer conflict | Request spec amendments before proceeding |
-| Ambiguous, conflicting, insufficient, or complex inputs | Invoke `.github/skills/assessment/` for critical assessment |
+| Ambiguous or complex inputs | Surface the specific ambiguity, state what information is missing or contradictory, and request clarification before proceeding |
 | Test execution failure | Document failure with evidence, do not retry |
 | Inaccessible deployed system | Report environment issue, request access resolution |
 

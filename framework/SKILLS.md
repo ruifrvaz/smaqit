@@ -38,7 +38,7 @@ Skills live in `.github/skills/`. Each skill occupies its own subdirectory follo
 project/
 └── .github/
     └── skills/
-        └── assessment/
+        └── smaqit.input-business/
             ├── SKILL.md          # Required: YAML frontmatter + instructions
             ├── scripts/          # Optional: executable code
             ├── references/       # Optional: additional documentation
@@ -110,63 +110,14 @@ Skills return results or recommendations:
 - User approvals or selections
 - Revised inputs or clarifications
 
-## Assessment Skill
+## Handling Ambiguity
 
-The assessment skill provides iterative analysis and planning with approval gates. Agents invoke assessment when detecting ambiguity, contradictions, insufficient detail, or complexity requiring explicit planning before execution.
+Input skills (`smaqit.input-[layer]`) detect common issues before spec generation: insufficient requirements, conflicts with upstream specs, and internal contradictions. Any ambiguity that survives input validation is handled inline by the agent:
 
-### Purpose
-
-Assessment prevents wasted execution on poor-quality inputs. It provides:
-
-- Critical evaluation of input quality and completeness
-- Identification of assumptions, gaps, and conflicts
-- Generation of execution plan with explicit steps
-- User review and approval mechanism
-- Iterative refinement based on feedback
-
-### Workflow
-
-The assessment skill executes a five-step workflow:
-
-1. **Question the premise** — Evaluate necessity, duplication, hidden assumptions
-2. **Check existing state** — Empirically verify current state without guessing
-3. **Identify trade-offs** — Compare alternatives with cost-benefit analysis
-4. **Flag problems upfront** — Surface issues before execution begins
-5. **Present assessment** — Deliver findings with clear recommendations and request direction
-
-**Stop and Explain Risks:** For high-impact changes (configuration files, security practices, stability risks, convention violations, functionality duplication), assessment stops immediately and explains risks explicitly before proceeding.
-
-### Invocation Triggers
-
-Agents invoke assessment skill when detecting:
-
-- **Ambiguous requirements** — Multiple valid interpretations exist
-- **Conflicting inputs** — Prompt contradicts upstream specs or internal inconsistencies
-- **Insufficient detail** — Cannot proceed without making assumptions
-- **Complex multi-part work** — Requires explicit planning for coordination
-
-### Approval Mechanisms
-
-Assessment skill adapts its approval mechanism to invocation context:
-
-**User input context:**
-
-When agents operate with direct user input, assessment waits for explicit approval before proceeding. User responds with "proceed" to continue, "revise" to modify requirements, or provides clarification that triggers reassessment.
-
-**Autonomous context:**
-
-When agents operate autonomously within larger workflows, assessment evaluates available options and selects the most appropriate based on context. Execution continues without waiting for user approval, but assessment results are logged for user review.
-
-### Output Format
-
-Assessment skill returns structured results:
-
-- Summary of premise evaluation
-- Current state findings (verified, not assumed)
-- Trade-off analysis with recommendations
-- Flagged problems requiring attention
-- Proposed execution plan with explicit steps
-- Approval status (user confirmed or autonomous selection)
+- Surface the specific issue with enough detail for the user to act on it
+- State clearly what information is missing or contradictory
+- Request clarification before proceeding
+- Do not invent or silently resolve ambiguous requirements
 
 ## Future Skills
 

@@ -42,12 +42,16 @@ grep "## \\[X.Y.Z\\]" CHANGELOG.md
 
 **A. Move Unreleased content to new version section:**
 
-Find the `## [Unreleased]` section and move its content to a new version section with current date (YYYY-MM-DD):
+Find the `## [Unreleased]` section and move its content to a new version section with current date (YYYY-MM-DD).
+
+**Section structure:** See `references/CHANGELOG_TEMPLATE.md` for the canonical 7-section layout (Added, Changed, Deprecated, Removed, Fixed, Security, Chore). All 7 sections MUST be present; use `- Nothing to add.` for empty sections.
 
 ```markdown
 ## [Unreleased]
 
-(empty or minimal content)
+### Added
+- Nothing to add.
+(... remaining empty sections ...)
 
 ## [X.Y.Z] - YYYY-MM-DD
 ### Added
@@ -55,6 +59,9 @@ Find the `## [Unreleased]` section and move its content to a new version section
 
 ### Fixed
 - Bug Y
+
+### Chore
+- Nothing to add.
 ```
 
 **B. Update comparison links at bottom of CHANGELOG.md:**
@@ -68,7 +75,7 @@ Update the link structure:
 
 **C. If creating CHANGELOG.md from scratch:**
 
-Use Keep a Changelog format:
+Use Keep a Changelog format with the 7-section structure from `references/CHANGELOG_TEMPLATE.md`:
 ```markdown
 # Changelog
 
@@ -79,9 +86,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Nothing to add.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
 ## [X.Y.Z] - YYYY-MM-DD
 ### Added
-- Initial release
+- Initial release.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
 
 [Unreleased]: https://github.com/owner/repo/compare/vX.Y.Z...HEAD
 [X.Y.Z]: https://github.com/owner/repo/releases/tag/vX.Y.Z

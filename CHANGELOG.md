@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-16
+
+### Added
+- 8 `smaqit.input-*` skills — per-layer and per-phase requirement validation gates (PR #69)
+  - `smaqit.input-business`, `smaqit.input-functional`, `smaqit.input-stack`, `smaqit.input-infrastructure`, `smaqit.input-coverage` (spec layers)
+  - `smaqit.input-development`, `smaqit.input-deployment`, `smaqit.input-validation` (implementation phases)
+  - Each skill validates required inputs, checks existing specs, and detects conflicts before execution begins
+
+### Changed
+- All 8 specification and phase agents now invoke their corresponding input skill as a validation gate before execution (PR #69)
+- Consolidated release workflows into single `post-merge-release.yml` — handles both tag-push (local) and PR-merge (CI) release paths (PR #69)
+- `framework/AGENTS.md` and `framework/SKILLS.md` updated to reflect input skill pattern and removal of assessment skill (PR #69)
+
+### Removed
+- Prompts feature fully deprecated — `prompts/`, `framework/PROMPTS.md`, `templates/prompts/` and all prompt files removed (PR #69)
+  - Input was always read from session context; prompt files were unused placeholders
+- Assessment skill (`skills/assessment/`) deprecated — conflict detection and sufficiency validation absorbed into input skills; residual ambiguity handled inline by agents (PR #69)
+
+### Fixed
+- Stray `prompt_version` and prompt file references cleaned from agents, framework, and spec templates (PR #69)
+
+### Chore
+- Disabled e2e-test workflow automatic triggers; workflow_dispatch only (PR #69)
+- Dev environment `.github/` agent and skill files updated (PR #69)
+
 ## [0.9.0] - 2026-04-25
 
 ### Added
@@ -294,7 +319,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/ruifrvaz/smaqit/compare/v0.9.1...v1.0.0
 [0.9.0]: https://github.com/ruifrvaz/smaqit/compare/v0.8.2-beta...v0.9.0
 [0.8.2-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.8.1-beta...v0.8.2-beta
 [0.8.1-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.8.0-beta...v0.8.1-beta

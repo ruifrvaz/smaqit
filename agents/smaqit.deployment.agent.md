@@ -319,7 +319,7 @@ Phase 2 (Deploy) is now complete with your application running in the target env
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
 | Cross-layer conflict | Request spec amendments before proceeding |
-| Ambiguous, conflicting, insufficient, or complex inputs | Invoke `.github/skills/assessment/` for critical assessment |
+| Ambiguous or complex inputs beyond input validation scope | Invoke `smaqit.session-assess` skill |
 | Deployment failure | Document with scrubbed logs, iterate up to retry threshold |
 | Health check failure | Report endpoint status, verify against infrastructure specs |
 

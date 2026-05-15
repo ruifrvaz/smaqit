@@ -12,7 +12,7 @@ Agents receive requirements from session context:
 
 - **Read session context**: Agents MUST read requirements from current session context (including context in compacted blocks) or open tasks
 - **Invoke input skill**: Specification agents MUST invoke their layer-specific `smaqit.input-[layer]` skill to validate requirements are sufficient before generating specifications; phase agents invoke their phase-specific `smaqit.input-[phase]` skill to confirm execution parameters before proceeding
-- **Apply assessment skill**: Agents invoke the assessment skill when input is ambiguous, conflicting, or insufficient
+- **Apply `smaqit.session-assess` skill**: Agents invoke the session assessment skill when input is ambiguous, conflicting, or insufficient beyond what the input skill resolves
 - **Interpret free-style input**: Agents consume natural language requirements without rigid structure enforcement
 - **Validate sufficiency**: Agents MUST request clarification if session context is insufficient, using natural language guidance (e.g., "Please specify measurable success criteria" not "Missing: Success Metrics section")
 - **Equivalent outcomes**: Given equivalent session context across all layers, acceptance criteria should pass/fail consistently (acknowledging LLM variance in artifact style)
@@ -31,7 +31,7 @@ Agents receive requirements from session context:
 - Agents request clarification when input is ambiguous
 - Agents do not invent requirements not present in input
 - Agents flag assumptions explicitly when clarification is unavailable
-- Agents invoke assessment skill when detecting ambiguity requiring iterative analysis and planning
+- Agents invoke `smaqit.session-assess` skill when detecting ambiguity requiring iterative analysis and planning
 
 ### Fail-Fast on Inconsistency
 - Agents MUST verify coherence across all input sources before producing output
@@ -69,7 +69,7 @@ Agent extensions inherit these foundations and add specialized behaviors. The ba
 
 Agents invoke skills when detecting specific conditions requiring specialized handling. Skills are reusable capabilities providing structured workflows that multiple agent types share.
 
-Skills reside in `.github/skills/` and include assessment, conflict resolution, gap detection, and other cross-cutting workflows. When agents detect ambiguity, contradictions, or complexity, they invoke the appropriate skill rather than implementing the workflow inline.
+Skills reside in `.github/skills/` and include session assessment, input validation, conflict resolution, and other cross-cutting workflows. When agents detect ambiguity, contradictions, or complexity, they invoke the appropriate skill rather than implementing the workflow inline.
 
 ## Naming Convention
 

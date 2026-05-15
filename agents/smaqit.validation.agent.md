@@ -399,7 +399,7 @@ If requirements change or new features are needed, invoke the relevant specifica
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
 | Cross-layer conflict | Request spec amendments before proceeding |
-| Ambiguous, conflicting, insufficient, or complex inputs | Invoke `.github/skills/assessment/` for critical assessment |
+| Ambiguous or complex inputs beyond input validation scope | Invoke `smaqit.session-assess` skill |
 | Test execution failure | Document failure with evidence, do not retry |
 | Inaccessible deployed system | Report environment issue, request access resolution |
 

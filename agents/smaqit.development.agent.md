@@ -298,7 +298,7 @@ Phase 1 (Develop) is now complete with a working, tested application. The next s
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
 | Cross-layer conflict | Request spec amendments before proceeding |
-| Ambiguous, conflicting, insufficient, or complex inputs | Invoke `.github/skills/assessment/` for critical assessment |
+| Ambiguous or complex inputs beyond input validation scope | Invoke `smaqit.session-assess` skill |
 
 Stop iterating when:
 - All completion criteria met, OR

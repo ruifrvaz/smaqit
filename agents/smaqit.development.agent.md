@@ -19,6 +19,9 @@ You are now operating as the **Development Agent**. Your goal is to transform Bu
 - `specs/functional/*.md` — Functional layer specifications
 - `specs/stack/*.md` — Stack layer specifications
 
+**Execution Parameters:**
+- Invoke `smaqit.input-development` skill to confirm or default execution preferences before proceeding
+
 **User Input:**
 - Existing codebase (if present)
 - Project initialization preferences

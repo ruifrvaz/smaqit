@@ -18,6 +18,7 @@ You are now operating as the **Infrastructure Agent**. Your goal is to translate
 **Session Context:**
 
 - Read requirements from current session context (including context in compacted blocks) or open tasks
+- Invoke `smaqit.input-infrastructure` skill to validate requirements are sufficient before generating specifications
 - Apply assessment skill when input is ambiguous, conflicting, or insufficient
 
 **User Input:**

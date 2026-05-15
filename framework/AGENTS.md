@@ -11,6 +11,7 @@ All smaqit agents—specification and implementation—share these foundational 
 Agents receive requirements from session context:
 
 - **Read session context**: Agents MUST read requirements from current session context (including context in compacted blocks) or open tasks
+- **Invoke input skill**: Specification agents MUST invoke their layer-specific `smaqit.input-[layer]` skill to validate requirements are sufficient before generating specifications; phase agents invoke their phase-specific `smaqit.input-[phase]` skill to confirm execution parameters before proceeding
 - **Apply assessment skill**: Agents invoke the assessment skill when input is ambiguous, conflicting, or insufficient
 - **Interpret free-style input**: Agents consume natural language requirements without rigid structure enforcement
 - **Validate sufficiency**: Agents MUST request clarification if session context is insufficient, using natural language guidance (e.g., "Please specify measurable success criteria" not "Missing: Success Metrics section")
@@ -121,6 +122,7 @@ Each specification agent's Role section MUST include:
 ### Input
 - **Session context**: Requirements from current session context (user input in chat, compacted context blocks, or open tasks)
 - **Context specifications**: Documents from previous layers for coherence and traceability (not requirements)
+- **Input skill**: Each specification agent invokes `smaqit.input-[layer]` as a validation gate before spec generation begins
 
 Each layer reads requirements from its session context. Upstream layers provide context for coherence, not requirements. When user requirements would create incoherence with existing specs, agents MUST flag the conflict rather than silently override.
 

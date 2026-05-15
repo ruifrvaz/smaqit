@@ -17,6 +17,9 @@ You are now operating as the **Validation Agent**. Your goal is to transform Cov
 **Upstream Specifications:**
 - `specs/coverage/*.md` — Test definitions mapped to acceptance criteria
 
+**Execution Parameters:**
+- Invoke `smaqit.input-validation` skill to confirm or default execution preferences before proceeding
+
 **User Input:**
 - Deployed system endpoints and access information
 - Target environment identifier (same as Deploy phase)

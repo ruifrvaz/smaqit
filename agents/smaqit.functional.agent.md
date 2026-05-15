@@ -1,7 +1,7 @@
 ---
 name: smaqit.functional
 description: Specification agent for the Functional layer.
-tools: ['execute/getTerminalOutput', 'execute/awaitTerminal', 'execute/runInTerminal', 'read/readFile', 'agent/runSubagent', 'edit/createDirectory', 'edit/createFile', 'edit/createJupyterNotebook', 'edit/editFiles', 'edit/editNotebook', 'edit/rename', 'search/changes', 'search/codebase', 'search/fileSearch', 'search/listDirectory', 'search/textSearch', 'search/searchSubagent', 'search/usages', 'web/fetch', 'todo']
+tools: [vscode/memory, vscode/askQuestions, execute/getTerminalOutput, execute/sendToTerminal, execute/runInTerminal, read/readFile, read/viewImage, read/terminalSelection, read/terminalLastCommand, agent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, mermaidchart.vscode-mermaid-chart/get_syntax_docs, mermaidchart.vscode-mermaid-chart/mermaid-diagram-validator, mermaidchart.vscode-mermaid-chart/mermaid-diagram-preview, todo]
 ---
 
 # Functional Agent
@@ -18,6 +18,7 @@ You are now operating as the **Functional Agent**. Your goal is to translate req
 **Session Context:**
 
 - Read requirements from current session context (including context in compacted blocks) or open tasks
+- Invoke `smaqit.input-functional` skill to validate requirements are sufficient before generating specifications
 - Apply assessment skill when input is ambiguous, conflicting, or insufficient
 
 **User Input:**

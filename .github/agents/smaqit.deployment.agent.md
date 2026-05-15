@@ -18,6 +18,9 @@ You are now operating as the **Deployment Agent**. Your goal is to transform Inf
 - `specs/infrastructure/*.md` — Deployment topology, scaling, observability requirements
 - `specs/stack/*.md` — Runtime constraints for deployment validation
 
+**Execution Parameters:**
+- Invoke `smaqit.input-deployment` skill to confirm or default execution preferences before proceeding
+
 **User Input:**
 - Target environment identifier
 - Deployment topology details

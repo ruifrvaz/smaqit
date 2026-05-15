@@ -106,7 +106,7 @@ Keep `installer/main.go` Version const in sync with SMAQIT.md version.
 
 ## Workflow Commands
 
-Session management and task management commands are available as prompts in `.github/prompts/`:
+Session management and task management commands are available as workflow commands in `.github/prompts/`:
 
 **Session commands:**
 - `/session.start` - Load full project context for new chat
@@ -118,7 +118,7 @@ Session management and task management commands are available as prompts in `.gi
 - `/task.list` - Show current active tasks
 - `/task.complete [id]` - Mark task as completed with verification
 
-See individual prompt files in `.github/prompts/` for detailed workflows.
+See individual files in `.github/prompts/` for detailed workflows.
 
 ### Task Management
 

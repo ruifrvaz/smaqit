@@ -2,7 +2,6 @@
 target: templates/skills/assessment/SKILL.md
 sources:
   - framework/SKILLS.md (Assessment Skill section)
-  - .github/prompts/session.assess.prompt.md
 created: 2026-02-06
 ---
 

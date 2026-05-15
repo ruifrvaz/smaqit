@@ -100,10 +100,10 @@ These rules are specific to the Coverage layer and must be followed when produci
 ### MUST
 
 - Scan ALL upstream specs and map every upstream acceptance criterion by ID to a test case
-- Define test case for each testable criterion using test requirements from prompt
+- Define test case for each testable criterion using test requirements from session context, user input, and project state
 - Map format: Upstream Requirement ID → Test Case → Expected Outcome
 - Flag untestable upstream acceptance criteria explicitly
-- Include integration, E2E, and acceptance test definitions per prompt test requirements
+- Include integration, E2E, and acceptance test definitions per test requirements from session context, user input, and project state
 - Report spec coverage (% of upstream acceptance criteria with corresponding tests)
 - Calculate coverage: (mapped criteria / total testable criteria) × 100%
 

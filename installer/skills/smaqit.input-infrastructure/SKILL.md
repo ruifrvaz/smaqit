@@ -11,10 +11,12 @@ Validate that session context contains sufficient deployment and environment req
 
 ## Steps
 
-1. **Extract from session context** — Scan current session, compacted blocks, open tasks, and all Phase 1 specs
-2. **Assess each required section** — Determine if environment information is specific enough to produce deployment specs
-3. **Elicit gaps** — Ask the targeted question for each insufficient section; collect one section at a time
-4. **Confirm readiness** — Once all required sections are satisfied, proceed directly to Infrastructure spec generation
+1. **Extract from session context** — Scan current session, compacted blocks, open tasks, and all upstream specs
+2. **Check existing specs** — Scan `specs/infrastructure/` for existing documents. If specs already exist, confirm whether the intent is to add new specs or revise existing ones before proceeding.
+3. **Assess requirements** — Determine if environment information is specific enough to produce deployment specs
+4. **Check for conflicts** — If deployment requirements conflict with Stack or Functional specs, flag them explicitly before proceeding; do not silently resolve.
+5. **Elicit gaps** — Ask the targeted question for each insufficient section; collect one section at a time
+6. **Confirm readiness** — Once all required sections are satisfied, proceed directly to Infrastructure spec generation
 
 ## Required Sections
 

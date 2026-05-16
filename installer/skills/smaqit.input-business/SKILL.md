@@ -12,9 +12,11 @@ Validate that session context contains sufficient business requirements before g
 ## Steps
 
 1. **Extract from session context** — Scan current session, compacted blocks, and open tasks for existing requirements
-2. **Assess each required section** — Check whether content is substantive: not generic, not a placeholder, actionable enough to produce testable acceptance criteria
-3. **Elicit gaps** — For each insufficient section, ask the targeted question below; collect one section at a time, not all at once
-4. **Confirm readiness** — Once all required sections are satisfied, proceed directly to Business spec generation without requesting further confirmation
+2. **Check existing specs** — Scan `specs/business/` for existing documents. If specs already exist, confirm whether the intent is to add new specs or revise existing ones before proceeding.
+3. **Assess requirements** — Check whether content is substantive: not generic, not a placeholder, actionable enough to produce testable acceptance criteria
+4. **Check for conflicts** — If requirements contain internal contradictions or conflict with each other, flag them explicitly before proceeding; do not silently resolve.
+5. **Elicit gaps** — For each insufficient section, ask the targeted question below; collect one section at a time, not all at once
+6. **Confirm readiness** — Once all required sections are satisfied, proceed directly to Business spec generation without requesting further confirmation
 
 ## Required Sections
 

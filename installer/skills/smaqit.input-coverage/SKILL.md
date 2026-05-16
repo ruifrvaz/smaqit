@@ -12,9 +12,11 @@ Validate that session context contains sufficient verification requirements befo
 ## Steps
 
 1. **Extract from session context** — Scan current session, compacted blocks, open tasks, and all upstream specs
-2. **Assess each required section** — Determine if testing requirements are specific enough to produce coverage specs
-3. **Elicit gaps** — Ask the targeted question for each insufficient section; collect one section at a time
-4. **Confirm readiness** — Once all required sections are satisfied, proceed directly to Coverage spec generation
+2. **Check existing specs** — Scan `specs/coverage/` for existing documents. If specs already exist, confirm whether the intent is to add new specs or revise existing ones before proceeding.
+3. **Assess requirements** — Determine if testing requirements are specific enough to produce coverage specs
+4. **Check for conflicts** — If verification requirements conflict with or are untrackable against upstream acceptance criteria, flag them explicitly before proceeding; do not silently resolve.
+5. **Elicit gaps** — Ask the targeted question for each insufficient section; collect one section at a time
+6. **Confirm readiness** — Once all required sections are satisfied, proceed directly to Coverage spec generation
 
 ## Required Sections
 

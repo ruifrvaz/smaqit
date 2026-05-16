@@ -4,16 +4,17 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |
-| 070 | E2E Boundary Enforcement Validation | new | High |
-| 025 | Integrate testing agent with CI/CD | in progress | Medium |
+| 070 | E2E Boundary Enforcement Validation | new | Low |
 
 ## Completed
 
 | ID | Title |
 |----|-------|
+| 082 | Orchestration-First Phase Agents |
 | 081 | Deprecate Prompts |
 | 079 | Spec Agents Revert Status to Draft on Modification |
 | 069 | Strengthen Bounded Agents Principle |
@@ -94,6 +95,7 @@ Tasks that were started but abandoned due to being superseded, no longer relevan
 
 | ID | Title | Reason |
 |----|-------|--------|
+| 025 | Integrate Testing Agent with CI/CD | Original scope (Makefile target, report-parsing script, automatic PR/release triggers) superseded by e2e-test.yml workflow (manual dispatch). Criteria never implemented. |
 | 075 | Dual Release Architecture: SDK and Product | Requires deep refactoring with high risk to existing codebase. SDK extracted to separate repository (smaqit-sdk) for clean development without contaminating product. |
 | 076 | Separate SDK and App Installers | Duplicate of Task 075 (more comprehensive dual-release architecture) |
 | 066 | Clean Up Level 2 Product Agents | Superseded by smaqit-adk extraction. Level agents (L0/L1/L2) and generic compilation infrastructure migrated to smaqit-adk; product agents are fully compiled and self-contained. |

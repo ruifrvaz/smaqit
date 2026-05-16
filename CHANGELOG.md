@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Nothing to add.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
+## [1.1.0] - 2026-05-17
+
+### Added
+- Autonomous and assisted (maker-checker) execution modes added to all 3 phase agents (development, deployment, validation)
+  - Autonomous mode: spec agents invoked in sequence without user breaks
+  - Assisted mode: maker-checker loop with user as checker; max 3 iterations per spec layer
+
+### Changed
+- Phase agents (development, deployment, validation) rewritten with orchestration-first workflow — spec generation is always the primary first step, not a conditional fallback
+- Pre-Orchestration Validation replaced: upstream spec presence check removed; context sufficiency check added (requirements present, actionable, no conflicts)
+- Spec agent invocation sequence hardcoded per phase with scoped context passing (user requirements + upstream specs only)
+- `smaqit plan` scoped to implementation routing only; empty output interpreted as "specs up to date — proceed to implementation"
+- All 5 spec agent Role sections updated: added note that session context includes requirements propagated from orchestrating phase agent
+- `framework/PHASES.md` updated: orchestration-first as primary workflow, deterministic routing, context scoping documented
+- `framework/AGENTS.md` Phase Orchestration section rewritten: orchestration-first, deterministic routing, scoped context, iteration caps, autonomous/assisted modes
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- CHANGELOG_TEMPLATE.md added to release-prepare-files skill; 7-section structure locked
+- Task 082 closed
+
 ## [1.0.0] - 2026-05-16
 
 ### Added
@@ -319,7 +372,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/ruifrvaz/smaqit/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ruifrvaz/smaqit/compare/v0.9.1...v1.0.0
 [0.9.0]: https://github.com/ruifrvaz/smaqit/compare/v0.8.2-beta...v0.9.0
 [0.8.2-beta]: https://github.com/ruifrvaz/smaqit/compare/v0.8.1-beta...v0.8.2-beta

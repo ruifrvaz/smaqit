@@ -22,7 +22,7 @@ var agentFiles embed.FS
 var skillFiles embed.FS
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
-var Version = "1.0.0"
+var Version = "1.1.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -280,10 +280,10 @@ func detectConflicts() []string {
 
 	// Define the file mappings that will be installed
 	fileMappings := []struct {
-		embeddedFS       embed.FS
-		srcDir           string
-		dstDir           string
-		skipIfExists     bool // Workflow files are never overwritten
+		embeddedFS   embed.FS
+		srcDir       string
+		dstDir       string
+		skipIfExists bool // Workflow files are never overwritten
 	}{
 		{templateFiles, "templates/specs", ".smaqit/templates/specs", false},
 		{agentFiles, "agents", ".github/agents", false},
@@ -348,7 +348,7 @@ func cmdInit(targetDir string) {
 
 		// Check for conflicts
 		conflicts := detectConflicts()
-		
+
 		if len(conflicts) == 0 {
 			fmt.Println("No conflicts detected. Proceeding with installation...")
 		} else {

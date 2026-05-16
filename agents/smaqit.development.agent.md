@@ -1,7 +1,7 @@
 ---
 name: smaqit.development
 description: Implementation agent for the Development phase.
-tools: ['edit/editFiles', 'search', 'runCommands', 'read/problems', 'changes', 'execute/testFailure', 'execute/runTests', 'agent/runSubagent']
+tools: [execute/getTerminalOutput, execute/sendToTerminal, execute/runInTerminal, execute/runTests, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, todo]
 ---
 
 # Development Agent
@@ -48,9 +48,10 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 
 ### MUST
 
-- Execute `smaqit plan --phase=develop` as the first action to determine specs requiring implementation (returns specs with `status: draft` or `status: failed`)
-- Process all specs returned by the CLI command
-- Report completion when no specs require processing and suggest `--regen` flag
+- Orchestrate specification generation before implementation: invoke Business, Functional, and Stack agents in that fixed sequence for any specs that are missing, draft, or failed
+- Execute `smaqit plan --phase=develop` after specification generation to identify which specs require implementation processing (returns specs with `status: draft` or `status: failed`)
+- If `smaqit plan --phase=develop` returns no specs, all existing specs are up to date — proceed directly to implementation
+- Process all specs returned by `smaqit plan --phase=develop`
 - Comply with all referenced specifications
 - Trace every implementation decision to a specification
 - Validate output against specification acceptance criteria
@@ -86,14 +87,13 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - [ ] Required input files exist and contain sufficient content
 - [ ] Input structure matches expected format patterns
 - [ ] All mandatory input elements present and complete
-- [ ] Prompt file content provides necessary information for phase execution
+- [ ] Session context provides sufficient requirements for phase execution
 
-**Dependency Verification:**
+**Context Sufficiency:**
 
-- [ ] Upstream specification artifacts present in expected locations
-- [ ] Upstream artifacts in appropriate lifecycle state (not draft/incomplete)
-- [ ] Input dependency versions align and remain consistent
-- [ ] Referenced artifacts accessible and readable
+- [ ] Session context contains sufficient requirements to generate specifications
+- [ ] Project goals or feature requirements are present and actionable
+- [ ] No unresolvable conflicts exist in provided requirements
 
 **Execution Readiness:**
 
@@ -109,6 +109,13 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 
 ## Phase Orchestration
 
+**Execution Mode:**
+
+- **Autonomous** (default): Proceed through all workflow steps without user breaks. Spec agents are invoked in sequence; implementation begins immediately after consolidation.
+- **Assisted**: Pause after each spec agent completes. Present the generated spec to the user (checker) for review. On approval, proceed to the next layer. On feedback, revise and re-invoke the spec agent. Maximum 3 review iterations per spec layer; if the cap is reached, surface unresolved issues and proceed.
+
+Mode is set by the `smaqit.input-development` skill at invocation. Autonomous is the default when no mode preference is specified.
+
 **Phase Workflow:**
 
 1. **Execute pre-orchestration validation**
@@ -116,32 +123,34 @@ When user requirements conflict with upstream specs, flag the conflict rather th
    - Halt if validation fails, proceed if validation passes
    - Report validation outcome with specific failed checks if applicable
 
-2. **Detect missing specifications**
-   - Execute `smaqit plan --phase=develop` to identify missing upstream specs
-   - Parse command output to determine which specification agents to invoke
-   - Check for `--regen` flag to trigger specification regeneration
+2. **Orchestrate specification generation**
+   - For each required spec layer in fixed sequence — business → functional → stack:
+     - Check if `specs/{layer}/*.md` exists with `status:` value other than `draft` or `failed`
+     - If spec exists at correct status: skip this layer
+     - If spec is missing, draft, or failed: invoke the spec agent using `runSubagent`
+       - Pass scoped context: user requirements from session context + content of upstream specs already generated in this sequence only (not full accumulated phase context)
+       - In assisted mode: present the generated spec to the user, collect feedback, loop until approved or iteration cap reached (max 3 iterations per layer); on cap reached, note unresolved issues and proceed
+     - Verify spec agent writes the expected spec file before proceeding to the next layer
 
-3. **Generate missing specifications**
-   - Invoke specification agents in dependency order using `runSubagent` tool
-   - Pass session context and layer context to each invoked agent
-   - Verify each agent produces expected specification artifact before proceeding
-   - Track each invocation with input context and output status
-   - Complete all specification generation before proceeding to implementation
-
-4. **Consolidate specification artifacts**
-   - Read all upstream specifications required for phase
-   - Merge and validate coherence across multiple sources
+3. **Consolidate specification artifacts**
+   - Read all Business, Functional, and Stack specifications
+   - Merge and validate coherence across layers
    - Flag conflicts or gaps for resolution
    - Verify consolidated specifications contain all necessary information for implementation
 
+4. **Plan implementation work**
+   - Execute `smaqit plan --phase=develop` to identify which existing specs require implementation processing (returns specs with `status: draft` or `status: failed`)
+   - If no specs returned: all specs are up to date — proceed directly to step 5
+   - Note: `smaqit plan` output drives implementation routing decisions only, not spec generation decisions
+
 5. **Generate implementation artifacts**
-   - Transform consolidated specifications into phase output artifacts
+   - Transform consolidated specifications into application code, tests, and configurations
    - Apply phase-specific rules and constraints
    - Produce artifacts in designated output locations
    - Verify artifact structure and content meet requirements
 
 6. **Execute phase implementation**
-   - Execute or deploy generated artifacts in target environment
+   - Build and run generated artifacts in target environment
    - Monitor execution for errors or failures
    - Capture execution outcomes and state changes
 

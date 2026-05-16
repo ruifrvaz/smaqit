@@ -204,11 +204,19 @@ Implementation agents orchestrate their entire phase including specification gen
 
 **Specification Generation Coordination:**
 
-Implementation agents coordinate specification generation when upstream artifacts are missing or regeneration is requested:
-- **Artifact detection** — Agents check for required specification artifacts before beginning implementation
-- **Agent invocation** — Missing specifications trigger invocation of specification agents
-- **Dependency ordering** — Specification agents invoked in dependency sequence based on artifact requirements
-- **Generation completion** — Specification generation completes before implementation activities begin
+Implementation agents always orchestrate specification generation as the primary first phase activity. Orchestration is not conditional on missing artifacts — it is the primary path:
+- **Orchestration-first** — Spec generation is always step 1; each layer is checked and generated if missing, draft, or failed
+- **Deterministic routing** — The invocation sequence is hardcoded per phase, not derived at runtime; status checks on spec files determine which layers to skip
+- **Scoped context passing** — Each spec agent receives user requirements from session context plus content of upstream specs already generated in the current sequence; full accumulated phase context is not passed
+- **Dependency ordering** — Business → Functional → Stack for Development; Infrastructure for Deployment; Coverage for Validation
+- **Generation completion** — All required spec layers complete before implementation begins
+- **Iteration caps** — Spec generation retries cap at 3 per layer; on cap reached, unresolved issues are surfaced to the user before proceeding
+
+**Execution Modes:**
+
+Phase agents support two execution modes selected via the phase input skill at invocation:
+- **Autonomous** (default) — Proceed through all workflow steps without user breaks; spec agents invoked in sequence and implementation begins immediately after consolidation
+- **Assisted** (maker-checker) — Pause after each spec agent completes; spec agent (maker) produces output; user (checker) reviews and approves or provides feedback; loop repeats until approved or iteration cap reached (max 3 per layer); on cap, surface unresolved issues and proceed
 
 **Multi-Agent Coordination:**
 
@@ -257,14 +265,13 @@ Input sources undergo validation before workflow begins:
 
 Validation failures produce guidance describing what's missing or incorrect.
 
-**Dependency Verification:**
+**Context Sufficiency:**
 
-Upstream artifacts and dependencies verified for accessibility:
-- **Existence check** — Referenced artifacts present in expected locations
-- **State verification** — Upstream artifacts in appropriate lifecycle state
-- **Version consistency** — Input versions align across dependencies
+Session context verified to contain sufficient requirements for specification generation:
+- **Requirements presence** — Session context contains project goals or feature requirements that are present and actionable
+- **Conflict check** — No unresolvable conflicts exist in provided requirements
 
-Missing dependencies halt execution with clear identification of gaps.
+Insufficient context halts execution with guidance describing what requirements are missing.
 
 **Execution Readiness:**
 

@@ -51,16 +51,16 @@ The Develop phase transforms user requirements into a working, tested applicatio
 Implementation agents perform pre-orchestration validation to verify readiness (see AGENTS.md Pre-Orchestration Validation concept). For Development phase, validation includes:
 
 - Input sufficiency check for session context
-- Dependency verification for upstream artifacts
+- Context sufficiency check — session context contains actionable requirements for spec generation
 - Execution environment readiness
 
 Validation failures halt workflow with guidance describing missing requirements or configuration issues.
 
 **Phase Activities:**
 
-Specification agents produce Business, Functional, and Stack layer specifications from user requirements.
+The Development agent orchestrates specification generation as the primary first activity. For each required spec layer in fixed sequence (Business → Functional → Stack), it checks whether an up-to-date spec already exists. Missing, draft, or failed specs trigger invocation of the corresponding specification agent.
 
-The Development agent consolidates specs for coherence, generates application code and tests, builds the application, and verifies it works as specified in an isolated environment.
+The Development agent then consolidates specs for coherence, generates application code and tests, builds the application, and verifies it works as specified in an isolated environment.
 
 **Environment:** Implicit — local developer machine or agent runner (e.g., GitHub Actions runner)
 
@@ -93,7 +93,7 @@ The Deploy phase transforms a working application into a running system in a tar
 Implementation agents perform pre-orchestration validation to verify readiness (see AGENTS.md Pre-Orchestration Validation concept). For Deployment phase, validation includes:
 
 - Input sufficiency check for infrastructure requirements
-- Dependency verification for development phase outputs
+- Context sufficiency check — session context contains actionable deployment requirements
 - Execution environment and credentials readiness
 
 Validation failures halt workflow with guidance describing missing requirements or configuration issues.
@@ -113,9 +113,9 @@ Validation failures halt workflow with guidance describing missing requirements 
 
 **Phase Activities:**
 
-The Infrastructure agent produces infrastructure specifications from user deployment requirements.
+The Deployment agent orchestrates infrastructure specification generation as the primary first activity. It checks whether an up-to-date infrastructure spec already exists. If the spec is missing, draft, or failed, the Infrastructure agent is invoked.
 
-The Deployment agent consolidates infrastructure and stack specifications for coherence, generates Infrastructure as Code with credential references (never values) and triggers a trusted execution layer that resolves secrets and performs deployment. Once execution outcome is received, which may contain success/failure, health status and endpoints, the agent verifies system health in the target environment.
+The Deployment agent then consolidates infrastructure and stack specifications for coherence, generates Infrastructure as Code with credential references (never values) and triggers a trusted execution layer that resolves secrets and performs deployment. Once execution outcome is received, which may contain success/failure, health status and endpoints, the agent verifies system health in the target environment.
 
 **Trusted Execution Layer:**
 The deployment agent operates on credential references, never values. Actual deployment happens in a trusted execution layer:
@@ -172,16 +172,16 @@ The Validate phase verifies that the deployed system satisfies all specification
 Implementation agents perform pre-orchestration validation to verify readiness (see AGENTS.md Pre-Orchestration Validation concept). For Validation phase, validation includes:
 
 - Input sufficiency check for test requirements
-- Dependency verification for deployed system accessibility
-- Test execution environment readiness
+- Context sufficiency check — session context contains actionable test requirements
+- Deployed system accessibility and test execution environment readiness
 
 Validation failures halt workflow with guidance describing missing requirements or configuration issues.
 
 **Phase Activities:**
 
-The Coverage agent translates acceptance criteria from all upstream specs into executable test definitions, mapping each requirement to expected outcomes and flagging criteria that cannot be automatically verified.
+The Validation agent orchestrates coverage specification generation as the primary first activity. It checks whether an up-to-date coverage spec already exists. If the spec is missing, draft, or failed, the Coverage agent is invoked.
 
-The Validation agent generates test artifacts that can run independently of agent execution, executes those tests against the deployed system, and produces a validation report documenting coverage and results.
+The Validation agent then generates test artifacts that can run independently of agent execution, executes those tests against the deployed system, and produces a validation report documenting coverage and results.
 
 **Environment:** Same target environment as Deploy phase
 

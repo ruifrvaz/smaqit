@@ -18,7 +18,7 @@ var workflowFiles embed.FS
 //go:embed agents/*.md
 var agentFiles embed.FS
 
-//go:embed skills/**/*.md
+//go:embed skills
 var skillFiles embed.FS
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)

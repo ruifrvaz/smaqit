@@ -14,9 +14,11 @@ installer/test/
 releases/
 
 # Embedded copies (installer needs local copies for go:embed)
+# These are auto-populated by `make sync` — never edit or commit manually
 installer/framework/
 installer/templates/
 installer/agents/
+installer/skills/
 installer/prompts/
 
 docs/temp

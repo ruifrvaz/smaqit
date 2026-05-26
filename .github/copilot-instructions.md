@@ -100,6 +100,14 @@ The installer embeds and copies these files into user projects:
 - `skills/**/*.md` → `.github/skills/`
 - Creates empty `specs/{layer}/` directories
 
+**Installer subdirectories are gitignored and must never be manually synced or committed:**
+- `installer/agents/` — populated by `make sync` from `agents/`
+- `installer/skills/` — populated by `make sync` from `skills/`
+- `installer/framework/` — populated by `make sync` from `framework/`
+- `installer/templates/` — populated by `make sync` from `templates/`
+
+To update embedded files, run `make sync` in `installer/`. Never copy files into these directories by hand.
+
 ### Version Sync
 
 Keep `installer/main.go` Version const in sync with SMAQIT.md version.

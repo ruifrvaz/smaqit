@@ -28,6 +28,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [1.2.0] - 2026-05-26
+
+### Added
+- 14 new skills migrated from SPECtacular under `smaqit.infrastructure-*` namespace
+  - `smaqit.infrastructure-cicd-generate` — generate canonical 3-workflow GitHub Actions CI/CD set
+  - `smaqit.infrastructure-deploy-rsync` — deploy Node.js + React app to VM via rsync
+  - `smaqit.infrastructure-deploy-verify` — verify deployment health after any deploy
+  - `smaqit.infrastructure-domain-tls` — configure custom domain with Let's Encrypt TLS via Certbot
+  - `smaqit.infrastructure-hook-post-deploy-stamp` — write deploy stamp files (DEPLOY_SHA, DEPLOY_TIME) to VM
+  - `smaqit.infrastructure-hook-pre-commit-validate` — pre-commit validation hook (secrets, draft specs, large files)
+  - `smaqit.infrastructure-provider-cyso` — Cyso Cloud (OpenStack) reference and pre-flight checks
+  - `smaqit.infrastructure-provision-cyso` — provision cloud infrastructure on Cyso Cloud via Terraform
+  - `smaqit.infrastructure-repo-config` — configure GitHub repository secrets and variables for CI/CD
+  - `smaqit.infrastructure-vault-loader` — load project secrets into local HashiCorp Vault
+  - `smaqit.infrastructure-vm-bootstrap` — bootstrap a fresh VM for application deployment
+  - `smaqit.new-greenfield-project` — orchestrate full zero-to-prod workflow for new projects (renamed from `smaqit.project-zero-to-prod`)
+  - `smaqit.requirements-extract` — extract structured requirements from raw user input
+  - `smaqit.spec-status-update` — update spec file lifecycle status fields
+
+### Changed
+- `installer/main.go` embed directive fixed: `skills/**/*.md` → `skills` (recursive embed for nested reference dirs and scripts)
+- `installer/skills/` added to `.gitignore` alongside other installer embed dirs; previously tracked `smaqit.input-*` files removed from git index
+- `.github/copilot-instructions.md` updated: installer subdirectories documented as gitignored, `make sync` workflow documented
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- `installer/skills/smaqit.input-*/SKILL.md` removed from git tracking (files remain on disk, now gitignored)
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Task 083 closed
+- Session 056 history documented
+
 ## [1.1.0] - 2026-05-17
 
 ### Added
@@ -372,7 +412,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/ruifrvaz/smaqit/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/ruifrvaz/smaqit/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ruifrvaz/smaqit/compare/v0.9.1...v1.0.0
 [0.9.0]: https://github.com/ruifrvaz/smaqit/compare/v0.8.2-beta...v0.9.0

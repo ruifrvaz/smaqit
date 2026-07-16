@@ -28,6 +28,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [1.3.0] - 2026-07-16
+
+### Added
+- Claude Code support alongside GitHub Copilot — `smaqit init` now installs `.claude/agents/`, `.claude/commands/`, and `.claude/skills/` in addition to the existing `.github/agents/`, `.github/skills/`, `.github/workflows/`
+- 4 Claude Code slash commands: `/smaqit.development`, `/smaqit.deployment`, `/smaqit.validation`, `/smaqit.qa`
+- `scripts/generate-agents.py` — compiles agents, commands, and skills from a single source (`agents/`, `commands/`, `skills/`, `.smaqit/definitions/agents/`) into platform-specific installer output (`installer/agents-copilot/`, `installer/agents-claude/`, `installer/commands-claude/`, `installer/skills-copilot/`, `installer/skills-claude/`)
+- Copilot → Claude Code tool-mapping reference table in `docs/wiki/agent-tools-reference.md`
+- `.claude/settings.json` hook parity with `.github/hooks/` for this repo's own development tooling (not shipped to installed projects)
+
+### Changed
+- Agent source of truth restructured: `agents/<name>.md` (shared body, with `{{PLACEHOLDER}}` tokens for platform-varying phrasing) + `.smaqit/definitions/agents/<name>.frontmatter.yaml` (per-platform frontmatter/metadata), replacing one hand-written `agents/*.agent.md` file per agent
+- Skills' self-referential install paths now use a `[SMAQIT_SKILLS_DIR]` placeholder resolved at compile time, instead of a hardcoded `.github/skills/...` path
+- Skills that read `copilot-instructions.md` (vault-loader, cicd-generate, repo-config, deploy-rsync, provision-cyso) now check `CLAUDE.md` first, falling back to `.github/copilot-instructions.md`
+- `installer/main.go` and `installer/Makefile` updated to compile and install both platforms' agents, commands, and skills; `installer/agents/` and `installer/skills/` renamed to `installer/agents-copilot/` and `installer/skills-copilot/` for naming symmetry with the new `-claude` output directories
+
+### Fixed
+- `qa` agent's frontmatter `name` field corrected from `qa` to `smaqit.qa`, matching the naming convention every other agent follows
+
+### Chore
+- Nothing to add.
+
 ## [1.2.0] - 2026-05-26
 
 ### Added

@@ -62,6 +62,8 @@ func main() {
 		cmdHelp()
 	case "uninstall":
 		cmdUninstall()
+	case "update":
+		runUpdate()
 	case "version", "--version", "-v":
 		fmt.Printf("smaqit %s\n", Version)
 	default:
@@ -83,6 +85,7 @@ Commands:
   validate   Verify project structure integrity
   help       Show detailed command help
   uninstall  Remove smaqit from project
+  update     Update smaqit to the latest release
   version    Show smaqit version`)
 }
 
@@ -114,6 +117,11 @@ func cmdHelp() {
 	fmt.Println("  smaqit uninstall  Remove smaqit from project")
 	fmt.Println("                    Removes .smaqit/, .github/agents/, .github/skills/,")
 	fmt.Println("                    .claude/agents/, .claude/skills/, .claude/commands/")
+	fmt.Println()
+	fmt.Println("  smaqit update     Update to the latest release")
+	fmt.Println("                    Downloads the latest GitHub release for your platform,")
+	fmt.Println("                    replaces the running binary, and re-initializes project")
+	fmt.Println("                    assets if .smaqit/ exists")
 	fmt.Println()
 	fmt.Println("  smaqit version    Show smaqit version")
 	fmt.Println()

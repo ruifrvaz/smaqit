@@ -61,6 +61,7 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 | `smaqit validate` | Verify project structure integrity |
 | `smaqit help` | Show detailed command help |
 | `smaqit uninstall` | Remove smaqit from project |
+| `smaqit update` | Update smaqit to the latest release |
 | `smaqit version` | Show smaqit version |
 
 **Agents** (invoke with `/` in GitHub Copilot chat or Claude Code):

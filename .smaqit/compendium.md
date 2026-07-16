@@ -1,6 +1,6 @@
 # Project Compendium
 
-Last updated: 2026-05-17 | Total entries: 3
+Last updated: 2026-07-16 | Total entries: 5
 
 ## Hooks
 
@@ -14,3 +14,10 @@ Last updated: 2026-05-17 | Total entries: 3
 | Question | Answer | Last Updated | Sessions |
 |----------|--------|--------------|----------|
 | What Microsoft AI agent orchestration pattern does smaqit's phase orchestration match? | Sequential Workflow (phase agent as orchestrator invoking spec agents in fixed order). The assisted mode (user reviews each spec) maps to Maker-Checker. Spec agent invocations are Nested Composition. Microsoft guidance: deterministic routing must be hardcoded — never delegated to agents at runtime. | 2026-05-17 | 1 |
+
+## Claude Code Support
+
+| Question | Answer | Last Updated | Sessions |
+|----------|--------|--------------|----------|
+| What's the Claude Code equivalent of `copilot-setup-steps.yml`? | There isn't a direct one — no magic-filename auto-detection exists in Claude Code. Copilot's coding agent auto-detects that exact filename as a GitHub-native convention. Closest local equivalent: a `SessionStart` hook in `.claude/settings.json` (fires when a `claude` session starts/resumes, can run setup commands). Closest cloud/CI equivalent: `anthropics/claude-code-action`, but it requires manually adding setup steps to your own workflow YAML — no auto-detection. `CLAUDE.md` is NOT the equivalent — it's just project-context markdown loaded into the system prompt, not a bootstrap mechanism. smaqit ruled this out of scope since GitHub Actions deployments continue to use Copilot. | 2026-07-16 | 1 |
+| What is `installer/commands-claude/`? | The gitignored compiled-output directory holding Claude Code slash command files, generated from `commands/*.md` at repo root by `scripts/generate-agents.py`, installed to `.claude/commands/` in target projects. It exists because Claude Code needs a separate command file per slash command, unlike Copilot where an agent's own `name:` frontmatter field doubles as its `/name` invocation — so there is no `commands-copilot` equivalent. Only agents meant to be directly user-invocable get a command file (development/deployment/validation/qa); the five spec agents do not, reproducing Copilot's `user-invocable: false` on the Claude Code side. | 2026-07-16 | 1 |

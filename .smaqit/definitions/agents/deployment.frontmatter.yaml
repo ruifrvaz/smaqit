@@ -1,0 +1,22 @@
+copilot:
+  name: smaqit.deployment
+  description: Implementation agent for the Deployment phase.
+  tools:
+  - edit/editFiles
+  - search
+  - runCommands
+  - read/problems
+  - changes
+  - execute/testFailure
+  - execute/runTests
+  - agent/runSubagent
+
+claude:
+  name: smaqit-deployment
+  description: Implementation agent for the Deployment phase. Orchestrates the Infrastructure spec agent via Task, then deploys Infrastructure + Stack specs to the target environment. Invoked via the /smaqit.deployment command.
+  tools: Read, Write, Edit, Grep, Glob, Bash, Task
+  
+placeholders:
+  DELEGATE_INFRASTRUCTURE:
+    copilot: invoke `smaqit.infrastructure` using `runSubagent`
+    claude: invoke the `smaqit-infrastructure` subagent via the Task tool

@@ -1,0 +1,35 @@
+copilot:
+  name: smaqit.stack
+  description: Specification agent for the Stack layer.
+  user-invocable: false
+  tools:
+  - execute/getTerminalOutput
+  - execute/awaitTerminal
+  - execute/runInTerminal
+  - read/readFile
+  - agent/runSubagent
+  - edit/createDirectory
+  - edit/createFile
+  - edit/createJupyterNotebook
+  - edit/editFiles
+  - edit/editNotebook
+  - edit/rename
+  - search/changes
+  - search/codebase
+  - search/fileSearch
+  - search/listDirectory
+  - search/textSearch
+  - search/searchSubagent
+  - search/usages
+  - web/fetch
+  - todo
+
+claude:
+  name: smaqit-stack
+  description: Specification agent for the Stack layer. Invoked via Task by the smaqit-development phase agent to select and justify the technology stack; not a direct user entry point.
+  tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+  
+placeholders:
+  WEB_TOOL:
+    copilot: fetch
+    claude: WebFetch

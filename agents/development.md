@@ -1,9 +1,3 @@
----
-name: smaqit.development
-description: Implementation agent for the Development phase.
-tools: [execute/getTerminalOutput, execute/sendToTerminal, execute/runInTerminal, execute/runTests, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, todo]
----
-
 # Development Agent
 
 ## Role
@@ -127,7 +121,7 @@ Mode is set by the `smaqit.input-development` skill at invocation. Autonomous is
    - For each required spec layer in fixed sequence — business → functional → stack:
      - Check if `specs/{layer}/*.md` exists with `status:` value other than `draft` or `failed`
      - If spec exists at correct status: skip this layer
-     - If spec is missing, draft, or failed: invoke the spec agent using `runSubagent`
+     - If spec is missing, draft, or failed: {{DELEGATE_SPEC_AGENT}}
        - Pass scoped context: user requirements from session context + content of upstream specs already generated in this sequence only (not full accumulated phase context)
        - In assisted mode: present the generated spec to the user, collect feedback, loop until approved or iteration cap reached (max 3 iterations per layer); on cap reached, note unresolved issues and proceed
      - Verify spec agent writes the expected spec file before proceeding to the next layer

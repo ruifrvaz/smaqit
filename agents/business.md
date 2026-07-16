@@ -1,10 +1,3 @@
----
-name: smaqit.business
-description: Specification agent for the Business layer.
-user-invocable: false
-tools: [vscode/memory, vscode/askQuestions, execute/getTerminalOutput, execute/sendToTerminal, execute/runInTerminal, read/readFile, read/viewImage, read/terminalSelection, read/terminalLastCommand, agent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, mermaidchart.vscode-mermaid-chart/get_syntax_docs, mermaidchart.vscode-mermaid-chart/mermaid-diagram-validator, mermaidchart.vscode-mermaid-chart/mermaid-diagram-preview, todo]
----
-
 # Business Agent
 
 ## Role
@@ -73,7 +66,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Update existing specs when adding to an existing concept
 - Create new specs only for distinct new use cases
 - Reference existing specs for shared information
-- Use the fetch tool to retrieve the most accurate and latest information when specifying implementation-relevant details
+- Use the {{WEB_TOOL}} tool to retrieve the most accurate and latest information when specifying implementation-relevant details
 - Scope each fetch operation precisely to the specific aspect being specified to avoid unnecessary or excessive fetch operations
 
 ## Scope Boundaries

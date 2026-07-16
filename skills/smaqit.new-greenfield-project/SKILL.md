@@ -57,18 +57,18 @@ The operator triggers this phase manually and sets execution mode before any wor
 Run each spec agent sequentially. Each agent reads the previous layer's output and invokes its own input skill internally.
 
 1. Invoke `smaqit.task-start` for the Phase 2 task.
-2. Invoke `@smaqit.business` agent.
-3. Invoke `@smaqit.functional` agent.
-4. Invoke `@smaqit.stack` agent.
-5. Invoke `@smaqit.infrastructure` agent.
-6. Invoke `@smaqit.coverage` agent.
+2. Invoke `/smaqit.business` agent.
+3. Invoke `/smaqit.functional` agent.
+4. Invoke `/smaqit.stack` agent.
+5. Invoke `/smaqit.infrastructure` agent.
+6. Invoke `/smaqit.coverage` agent.
 7. **Gate:** All specs have `status: draft` and acceptance criteria written. User reviews and approves the full spec set.
 8. Invoke `smaqit.task-complete` for the Phase 2 task.
 
 ### Phase 3 — Development
 
 1. Invoke `smaqit.task-start` for the Phase 3 task.
-2. Invoke `@smaqit.development` agent to implement all specs with `status: draft`.
+2. Invoke `/smaqit.development` agent to implement all specs with `status: draft`.
 3. If any spec requires amendment to proceed: amend the spec in-place with an `amendment:` annotation and continue. Structural divergences that change architecture must be paused for operator approval before continuing.
 4. **Gate:** Build passes (backend and frontend). All MVP acceptance criteria met. Development agent sets specs to `status: implemented`.
 5. Invoke `smaqit.task-complete` for the Phase 3 task, ensuring any amendments are captured under `Decisions made`.
@@ -79,7 +79,7 @@ Validates the full infrastructure and deployment approach on a dedicated dev VM 
 
 1. Invoke `smaqit.task-start` for the Phase 4 task.
 2. Invoke `smaqit.infrastructure-vault-loader`. Confirm Vault is running, unsealed, and all `secret/<project-slug>/*` paths are populated. Do not proceed until confirmed.
-3. Invoke `@smaqit.deployment` agent with context: generate all IaC artifacts — Terraform files in `deployment/terraform/` and GitHub Actions workflow files in `.github/workflows/` using `smaqit.infrastructure-cicd-generate` patterns as reference; Terraform state key `dev/terraform.tfstate`; do not trigger deployment execution.
+3. Invoke `/smaqit.deployment` agent with context: generate all IaC artifacts — Terraform files in `deployment/terraform/` and GitHub Actions workflow files in `.github/workflows/` using `smaqit.infrastructure-cicd-generate` patterns as reference; Terraform state key `dev/terraform.tfstate`; do not trigger deployment execution.
 4. Invoke `smaqit.infrastructure-provision-cyso` with dev environment variables. Note the `fixed_ip` output.
 5. Invoke `smaqit.infrastructure-vm-bootstrap` with the dev VM `fixed_ip`.
 6. Invoke `smaqit.infrastructure-deploy-rsync` to deploy to the dev VM.
@@ -118,7 +118,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 ### Phase 7 — Validation
 
 1. Invoke `smaqit.task-start` for the Phase 7 task.
-2. Invoke `@smaqit.validation` agent.
+2. Invoke `/smaqit.validation` agent.
 3. If any spec is found inconsistent with the live system: amend in-place with an `amendment:` annotation.
 4. **Gate:** All validation checks pass. User signs off.
 5. Invoke `smaqit.task-complete` for the Phase 7 task, ensuring any amendments are captured under `Decisions made`.
@@ -126,7 +126,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 ### Phase 8 — Release
 
 1. Confirm all phase tasks (1–7) are closed in `PLANNING.md`. If any remain open, resolve before continuing.
-2. Run the amendment scan: `bash .github/skills/smaqit.new-greenfield-project/scripts/check-amendments.sh specs/`. If the script reports matches, review each `amendment:` annotation against the `Blockers encountered` and `Follow-up identified` fields of the relevant phase task and confirm all are resolved or accepted. If no matches are found, skip this step entirely.
+2. Run the amendment scan: `bash [SMAQIT_SKILLS_DIR]/smaqit.new-greenfield-project/scripts/check-amendments.sh specs/`. If the script reports matches, review each `amendment:` annotation against the `Blockers encountered` and `Follow-up identified` fields of the relevant phase task and confirm all are resolved or accepted. If no matches are found, skip this step entirely.
 3. Invoke `smaqit.release-analysis` → `smaqit.release-approval` → `smaqit.release-prepare-files`.
 4. Invoke `smaqit.release-git-local` (or `smaqit.release-git-pr` for PR-based releases).
 5. **Final output:** Application running at `https://<domain>/` (or `http://<fixed_ip>/` if Phase 6 was skipped), with a tagged release on GitHub.
@@ -150,7 +150,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 ## Gotchas
 
 - **Spec amendment protocol** — when an implementation phase must diverge from a spec (package mismatch, config change, structural adaptation): amend the spec in-place with an `amendment:` annotation describing what changed and why. Tactical divergences (versions, minor config) proceed autonomously. Structural divergences (data model, architecture) require operator approval before continuing. At `task-complete` time, the amendment is captured in `Decisions made`. Phase 8 runs `check-amendments.sh` to detect any open annotations; if none are found the review step is skipped.
-- **Source path contract** — `smaqit.infrastructure-deploy-rsync` and generated CI/CD workflows assume `backend/` and `frontend/` as local source directories. The `@smaqit.stack` agent (Phase 2) must declare these exact paths in the stack spec. If the project type differs (e.g. api-only), instruct the stack agent explicitly.
+- **Source path contract** — `smaqit.infrastructure-deploy-rsync` and generated CI/CD workflows assume `backend/` and `frontend/` as local source directories. The `/smaqit.stack` agent (Phase 2) must declare these exact paths in the stack spec. If the project type differs (e.g. api-only), instruct the stack agent explicitly.
 - **Separate Terraform state keys** — dev and production must use different state keys (e.g. `dev/terraform.tfstate` vs `prod/terraform.tfstate`). Using the same key causes state conflicts and unintended VM replacement.
 - **`GITHUB_TOKEN` reserved name** — enforced in Phase 5 via `smaqit.infrastructure-repo-config`. Never set an env var named `GITHUB_TOKEN` in any workflow to a PAT.
 - **PR body sentinel** — Coding Agent must include `smaqit:deploy` as a line in any PR body to trigger post-merge deployment. Must be set at PR creation time, not via label.
@@ -158,7 +158,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 - **Floating IP (Cyso)** — use `fixed_ip` from Terraform outputs, not the floating IP. The floating IP does not route on Cyso's flat network.
 - **CI/CD idempotency** — if dev VM was not torn down in Phase 4, the `terraform apply` in the Phase 5 CI/CD pipeline will show no changes and skip provisioning, deploying to the existing VM. Ensure the production state key points to a fresh state if a new VM is required.
 - **Re-entry** — resume from the first incomplete phase. IaC generation in Phase 4 is idempotent; re-running it overwrites generated files but does not affect cloud resources.
-- **Context collapse / phase re-read** — in long sessions the conversation is summarised by the model. Summaries capture phase names and outcomes but not the exact tool calls each phase requires. On resume, the agent operates from the summary's shorthand (e.g. "Phase 7: smoke tests PASS") rather than the SKILL.md instruction set, and substitutes a cheaper action it already ran (e.g. `smaqit.infrastructure-deploy-verify` curl checks from Phase 5) for the correct one (`@smaqit.validation` agent). Mitigation: at every phase boundary, re-read this SKILL.md (`read_file` the full steps for the upcoming phase) before executing any step. Do not rely on session memory or conversation summaries as a substitute for the canonical instruction set.
+- **Context collapse / phase re-read** — in long sessions the conversation is summarised by the model. Summaries capture phase names and outcomes but not the exact tool calls each phase requires. On resume, the agent operates from the summary's shorthand (e.g. "Phase 7: smoke tests PASS") rather than the SKILL.md instruction set, and substitutes a cheaper action it already ran (e.g. `smaqit.infrastructure-deploy-verify` curl checks from Phase 5) for the correct one (`/smaqit.validation` agent). Mitigation: at every phase boundary, re-read this SKILL.md (`read_file` the full steps for the upcoming phase) before executing any step. Do not rely on session memory or conversation summaries as a substitute for the canonical instruction set.
 
 ## Examples
 

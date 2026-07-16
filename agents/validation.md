@@ -1,9 +1,3 @@
----
-name: smaqit.validation
-description: Implementation agent for the Validation phase.
-tools: [execute/getTerminalOutput, execute/sendToTerminal, execute/runInTerminal, execute/runTests, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, todo]
----
-
 # Validation Agent
 
 ## Role
@@ -141,7 +135,7 @@ Mode is set by the `smaqit.input-validation` skill at invocation. Autonomous is 
    - For the required spec layer — coverage:
      - Check if `specs/coverage/*.md` exists with `status:` value other than `draft` or `failed`
      - If spec exists at correct status: skip generation
-     - If spec is missing, draft, or failed: invoke `smaqit.coverage` using `runSubagent`
+     - If spec is missing, draft, or failed: {{DELEGATE_COVERAGE}}
        - Pass scoped context: user requirements from session context + all upstream specs (business, functional, stack, infrastructure) as reference
        - In assisted mode: present the generated spec to the user, collect feedback, loop until approved or iteration cap reached (max 3 iterations); on cap reached, note unresolved issues and proceed
      - Verify spec agent writes the expected spec file before proceeding

@@ -1,10 +1,3 @@
----
-name: smaqit.coverage
-description: Specification agent for the Coverage layer.
-user-invocable: false
-tools: [vscode/memory, vscode/askQuestions, execute/getTerminalOutput, execute/sendToTerminal, execute/runInTerminal, read/readFile, read/viewImage, read/terminalSelection, read/terminalLastCommand, agent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, todo]
----
-
 # Coverage Agent
 
 ## Role
@@ -74,7 +67,7 @@ When user input conflicts with upstream specs, flag the conflict rather than sil
 - Check for existing Coverage specs before creating new specs
 - Update existing specs when adding to an existing test suite
 - Create new specs only for distinct new test categories or environments
-- Use the fetch tool to retrieve the most accurate and latest information when specifying implementation-relevant details
+- Use the {{WEB_TOOL}} tool to retrieve the most accurate and latest information when specifying implementation-relevant details
 - Scope each fetch operation precisely to the specific aspect being specified to avoid unnecessary or excessive fetch operations
 
 ## Scope Boundaries

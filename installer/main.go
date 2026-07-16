@@ -15,11 +15,20 @@ var templateFiles embed.FS
 //go:embed templates/workflows/*.yml
 var workflowFiles embed.FS
 
-//go:embed agents/*.md
+//go:embed agents-copilot/*.md
 var agentFiles embed.FS
 
-//go:embed skills
-var skillFiles embed.FS
+//go:embed agents-claude/*.md
+var claudeAgentFiles embed.FS
+
+//go:embed commands-claude/*.md
+var claudeCommandFiles embed.FS
+
+//go:embed skills-copilot
+var skillFilesCopilot embed.FS
+
+//go:embed skills-claude
+var skillFilesClaude embed.FS
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
 var Version = "1.2.0"
@@ -61,7 +70,7 @@ func printUsage() {
 Usage: smaqit <command>
 
 Commands:
-  init [dir] Scaffold .smaqit/ and .github/ directories
+  init [dir] Scaffold .smaqit/, .github/, and .claude/ directories
              Optional: specify target directory (default: current)
   plan       Show specs to process (for agents)
   status     Show project state and spec coverage
@@ -77,8 +86,9 @@ func cmdHelp() {
 
 	fmt.Println("CLI Commands:")
 	fmt.Println("  smaqit init [dir] Scaffold smaqit project structure")
-	fmt.Println("                    Creates .smaqit/ and .github/ directories with")
-	fmt.Println("                    spec templates, skills, and agent definitions")
+	fmt.Println("                    Creates .smaqit/, .github/, and .claude/ directories with")
+	fmt.Println("                    spec templates, skills, and agent definitions for both")
+	fmt.Println("                    GitHub Copilot and Claude Code")
 	fmt.Println("                    Optional: specify target directory (created if needed)")
 	fmt.Println()
 	fmt.Println("  smaqit plan       Show work plan for current phase")
@@ -96,11 +106,12 @@ func cmdHelp() {
 	fmt.Println("  smaqit help       Show this help message")
 	fmt.Println()
 	fmt.Println("  smaqit uninstall  Remove smaqit from project")
-	fmt.Println("                    Removes .smaqit/, .github/agents/, .github/skills/")
+	fmt.Println("                    Removes .smaqit/, .github/agents/, .github/skills/,")
+	fmt.Println("                    .claude/agents/, .claude/skills/, .claude/commands/")
 	fmt.Println()
 	fmt.Println("  smaqit version    Show smaqit version")
 	fmt.Println()
-	fmt.Println("Copilot Prompts (use in GitHub Copilot chat with /):")
+	fmt.Println("Agent Commands (GitHub Copilot chat or Claude Code, use /):")
 	fmt.Println("  /smaqit.development   Run Development implementation agent (build from specs)")
 	fmt.Println("  /smaqit.deployment    Run Deployment implementation agent (deploy from specs)")
 	fmt.Println("  /smaqit.validation    Run Validation implementation agent (test from specs)")
@@ -110,9 +121,15 @@ func cmdHelp() {
 	fmt.Println("  /smaqit.infrastructure Create infrastructure layer specifications")
 	fmt.Println("  /smaqit.coverage      Create coverage layer specifications")
 	fmt.Println()
+	fmt.Println("  Note: in Claude Code, only /smaqit.development, /smaqit.deployment,")
+	fmt.Println("  /smaqit.validation, and /smaqit.qa are slash commands. The five spec")
+	fmt.Println("  agents (business/functional/stack/infrastructure/coverage) are invoked")
+	fmt.Println("  automatically by those phase commands — this matches Copilot's")
+	fmt.Println("  user-invocable:false behavior for the same five agents.")
+	fmt.Println()
 	fmt.Println("Getting Started:")
 	fmt.Println("  1. Run 'smaqit init' in your project directory")
-	fmt.Println("  2. Open GitHub Copilot chat in VS Code")
+	fmt.Println("  2. Open GitHub Copilot chat in VS Code, or start Claude Code")
 	fmt.Println("  3. Type '/smaqit.development' to run the Development implementation step")
 	fmt.Println()
 	fmt.Println("Documentation: https://github.com/ruifrvaz/smaqit")
@@ -286,9 +303,12 @@ func detectConflicts() []string {
 		skipIfExists bool // Workflow files are never overwritten
 	}{
 		{templateFiles, "templates/specs", ".smaqit/templates/specs", false},
-		{agentFiles, "agents", ".github/agents", false},
-		{skillFiles, "skills", ".github/skills", false},
+		{agentFiles, "agents-copilot", ".github/agents", false},
+		{skillFilesCopilot, "skills-copilot", ".github/skills", false},
 		{workflowFiles, "templates/workflows", ".github/workflows", true},
+		{claudeAgentFiles, "agents-claude", ".claude/agents", false},
+		{claudeCommandFiles, "commands-claude", ".claude/commands", false},
+		{skillFilesClaude, "skills-claude", ".claude/skills", false},
 	}
 
 	// Check each file mapping for conflicts
@@ -385,6 +405,9 @@ func cmdInit(targetDir string) {
 		".github/agents",
 		".github/skills",
 		".github/workflows",
+		".claude/agents",
+		".claude/commands",
+		".claude/skills",
 	}
 
 	for _, dir := range dirs {
@@ -401,13 +424,13 @@ func cmdInit(targetDir string) {
 	}
 
 	// Copy agent files
-	if err := copyEmbeddedDir(agentFiles, "agents", ".github/agents"); err != nil {
+	if err := copyEmbeddedDir(agentFiles, "agents-copilot", ".github/agents"); err != nil {
 		fmt.Printf("Error copying agent files: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Copy skill files
-	if err := copyEmbeddedDir(skillFiles, "skills", ".github/skills"); err != nil {
+	if err := copyEmbeddedDir(skillFilesCopilot, "skills-copilot", ".github/skills"); err != nil {
 		fmt.Printf("Error copying skill files: %v\n", err)
 		os.Exit(1)
 	}
@@ -418,16 +441,35 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
+	// Copy Claude Code agent files
+	if err := copyEmbeddedDir(claudeAgentFiles, "agents-claude", ".claude/agents"); err != nil {
+		fmt.Printf("Error copying Claude Code agent files: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Copy Claude Code slash commands
+	if err := copyEmbeddedDir(claudeCommandFiles, "commands-claude", ".claude/commands"); err != nil {
+		fmt.Printf("Error copying Claude Code command files: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Copy skill files for Claude Code (same skills, resolved for the .claude/ install path)
+	if err := copyEmbeddedDir(skillFilesClaude, "skills-claude", ".claude/skills"); err != nil {
+		fmt.Printf("Error copying Claude Code skill files: %v\n", err)
+		os.Exit(1)
+	}
+
 	fmt.Println("✓ Created .smaqit/ directory structure")
 	fmt.Println("✓ Copied templates")
-	fmt.Println("✓ Copied agent definitions")
-	fmt.Println("✓ Copied skill files")
+	fmt.Println("✓ Copied agent definitions (GitHub Copilot + Claude Code)")
+	fmt.Println("✓ Copied skill files (GitHub Copilot + Claude Code)")
 	fmt.Println("✓ Copied workflow files")
+	fmt.Println("✓ Copied Claude Code slash commands")
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
-	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
+	fmt.Println("  1. Open GitHub Copilot chat in VS Code, or start Claude Code in this project")
 	fmt.Println("  2. Type '/smaqit.development' to orchestrate the entire Development phase")
-	fmt.Println("  3. Or type '/smaqit.business' to begin with business specifications only")
+	fmt.Println("  3. Or type '/smaqit.business' to begin with business specifications only (GitHub Copilot only — see 'smaqit help')")
 }
 
 // copyEmbeddedDir copies files from an embedded FS to a target directory
@@ -496,6 +538,9 @@ func cmdUninstall() {
 	fmt.Println("  • .smaqit/")
 	fmt.Println("  • .github/agents/")
 	fmt.Println("  • .github/skills/")
+	fmt.Println("  • .claude/agents/")
+	fmt.Println("  • .claude/skills/")
+	fmt.Println("  • .claude/commands/")
 	fmt.Print("\nContinue? [y/N]: ")
 
 	var response string
@@ -538,25 +583,29 @@ func cmdUninstall() {
 		fmt.Println("✓ Kept specs/ (user specifications)")
 	}
 
-	if err := os.RemoveAll(filepath.Join(".github", "agents")); err != nil && !os.IsNotExist(err) {
-		fmt.Printf("Error removing .github/agents/: %v\n", err)
-		errors++
-	} else {
-		fmt.Println("✓ Removed .github/agents/")
+	for _, dir := range []string{
+		filepath.Join(".github", "agents"),
+		filepath.Join(".github", "skills"),
+		filepath.Join(".claude", "agents"),
+		filepath.Join(".claude", "skills"),
+		filepath.Join(".claude", "commands"),
+	} {
+		if err := os.RemoveAll(dir); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("Error removing %s/: %v\n", dir, err)
+			errors++
+		} else {
+			fmt.Printf("✓ Removed %s/\n", dir)
+		}
 	}
 
-	if err := os.RemoveAll(filepath.Join(".github", "skills")); err != nil && !os.IsNotExist(err) {
-		fmt.Printf("Error removing .github/skills/: %v\n", err)
-		errors++
-	} else {
-		fmt.Println("✓ Removed .github/skills/")
-	}
-
-	// Check if .github is empty and remove it
-	entries, err := os.ReadDir(".github")
-	if err == nil && len(entries) == 0 {
-		if err := os.Remove(".github"); err == nil {
-			fmt.Println("✓ Removed empty .github/")
+	// Remove .github/ and .claude/ themselves if now empty (.github/workflows/ is never
+	// auto-removed, so .github/ commonly survives with just that directory left behind)
+	for _, dir := range []string{".github", ".claude"} {
+		entries, err := os.ReadDir(dir)
+		if err == nil && len(entries) == 0 {
+			if err := os.Remove(dir); err == nil {
+				fmt.Printf("✓ Removed empty %s/\n", dir)
+			}
 		}
 	}
 
@@ -589,6 +638,9 @@ func cmdValidate() {
 		"specs/coverage",
 		".github/agents",
 		".github/skills",
+		".claude/agents",
+		".claude/skills",
+		".claude/commands",
 	}
 
 	for _, dir := range requiredDirs {

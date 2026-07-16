@@ -1,10 +1,3 @@
----
-name: smaqit.infrastructure
-description: Specification agent for the Infrastructure layer.
-user-invocable: false
-tools: [execute/getTerminalOutput, execute/sendToTerminal, execute/runInTerminal, execute/runTests, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, todo]
----
-
 # Infrastructure Agent
 
 ## Role
@@ -101,7 +94,7 @@ Foundation specs (base networking, shared security policies, common observabilit
 - Create new specs only for distinct new infrastructure components or environments
 - Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
 - Reference all Phase 1 specs (Business, Functional, Stack) when creating foundation infrastructure serving multiple components
-- Use the fetch tool to retrieve the most accurate and latest information when specifying implementation-relevant details
+- Use the {{WEB_TOOL}} tool to retrieve the most accurate and latest information when specifying implementation-relevant details
 - Scope each fetch operation precisely to the specific aspect being specified to avoid unnecessary or excessive fetch operations
 
 **Note:** Foundation infrastructure without Phase 1 references and without justification indicates scope creep.

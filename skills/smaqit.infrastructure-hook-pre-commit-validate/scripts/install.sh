@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/install.sh
 # Installs pre-commit.sh as a git hook for this repository.
-# Run from the repository root: bash .github/skills/smaqit.infrastructure-hook-pre-commit-validate/scripts/install.sh
+# Run from the repository root: bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-hook-pre-commit-validate/scripts/install.sh
 
 set -euo pipefail
 

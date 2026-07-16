@@ -11,7 +11,7 @@ metadata:
 
 1. **Read existing workflows** from `.github/workflows/`. If workflows exist and are substantially complete, offer to diff rather than overwrite.
 
-2. **Resolve configuration values** from Infrastructure specs and `copilot-instructions.md`. Use these defaults if not found:
+2. **Resolve configuration values** from Infrastructure specs and `CLAUDE.md` (or `copilot-instructions.md`). Use these defaults if not found:
 
    | Reference | Default |
    |-----------|---------|

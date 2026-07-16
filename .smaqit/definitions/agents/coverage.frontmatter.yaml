@@ -1,0 +1,32 @@
+copilot:
+  name: smaqit.coverage
+  description: Specification agent for the Coverage layer.
+  user-invocable: false
+  tools:
+  - vscode/memory
+  - vscode/askQuestions
+  - execute/getTerminalOutput
+  - execute/sendToTerminal
+  - execute/runInTerminal
+  - read/readFile
+  - read/viewImage
+  - read/terminalSelection
+  - read/terminalLastCommand
+  - agent
+  - edit/createDirectory
+  - edit/createFile
+  - edit/editFiles
+  - edit/rename
+  - search
+  - web
+  - todo
+
+claude:
+  name: smaqit-coverage
+  description: Specification agent for the Coverage layer. Invoked via Task by the smaqit-validation phase agent to translate upstream acceptance criteria into test coverage specs; not a direct user entry point.
+  tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+  
+placeholders:
+  WEB_TOOL:
+    copilot: fetch
+    claude: WebFetch

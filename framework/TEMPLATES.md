@@ -178,9 +178,12 @@ Agent definitions contain these sections:
 
 ### Agent Definition Format
 
-Agent definitions follow GitHub Custom Agent format with YAML frontmatter, markdown sections, and placeholder resolution during compilation.
+Each agent has one canonical source split across two committed locations: `agents/<name>.md` (the shared body, with `{{PLACEHOLDER}}` tokens for the small number of phrases that differ by platform, e.g. how an agent describes delegating to a subagent) and `.smaqit/definitions/agents/<name>.frontmatter.yaml` (per-platform frontmatter metadata plus the resolved value of each placeholder). `scripts/generate-agents.py` compiles this into two shipped formats:
 
-Frontmatter captures agent metadata. Sections contain behavioral guidelines compiled from framework principles. Placeholders enable template reuse across agent instances.
+- **GitHub Copilot Custom Agent format** — YAML frontmatter (`name`, `description`, `tools`, `user-invocable`) + markdown body, installed to `.github/agents/*.agent.md`
+- **Claude Code subagent format** — YAML frontmatter (`name`, `description`, `tools`) + markdown body, installed to `.claude/agents/*.md`
+
+Frontmatter captures agent metadata per platform. The markdown body — behavioral guidelines compiled from framework principles — is shared verbatim between both formats except for the placeholder-resolved phrases.
 
 ## Template Completeness
 

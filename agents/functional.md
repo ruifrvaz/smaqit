@@ -1,10 +1,3 @@
----
-name: smaqit.functional
-description: Specification agent for the Functional layer.
-user-invocable: false
-tools: [vscode/memory, vscode/askQuestions, execute/getTerminalOutput, execute/sendToTerminal, execute/runInTerminal, read/readFile, read/viewImage, read/terminalSelection, read/terminalLastCommand, agent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search, web, mermaidchart.vscode-mermaid-chart/get_syntax_docs, mermaidchart.vscode-mermaid-chart/mermaid-diagram-validator, mermaidchart.vscode-mermaid-chart/mermaid-diagram-preview, todo]
----
-
 # Functional Agent
 
 ## Role
@@ -85,7 +78,7 @@ Foundation specs (shared components, cross-cutting concerns, common contracts) a
 - Update existing specs when adding to an existing concept
 - Create new specs only for distinct new behaviors or contracts
 - Reference existing specs for shared information using Foundation Reference (same-layer) or Implements/Enables (upstream)
-- Use the fetch tool to retrieve the most accurate and latest information when specifying implementation-relevant details
+- Use the {{WEB_TOOL}} tool to retrieve the most accurate and latest information when specifying implementation-relevant details
 - Scope each fetch operation precisely to the specific aspect being specified to avoid unnecessary or excessive fetch operations
 
 ## Scope Boundaries

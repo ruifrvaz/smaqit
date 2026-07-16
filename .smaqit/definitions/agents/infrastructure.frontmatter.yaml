@@ -1,0 +1,31 @@
+copilot:
+  name: smaqit.infrastructure
+  description: Specification agent for the Infrastructure layer.
+  user-invocable: false
+  tools:
+  - execute/getTerminalOutput
+  - execute/sendToTerminal
+  - execute/runInTerminal
+  - execute/runTests
+  - read/problems
+  - read/readFile
+  - read/terminalSelection
+  - read/terminalLastCommand
+  - agent
+  - edit/createDirectory
+  - edit/createFile
+  - edit/editFiles
+  - edit/rename
+  - search
+  - web
+  - todo
+
+claude:
+  name: smaqit-infrastructure
+  description: Specification agent for the Infrastructure layer. Invoked via Task by the smaqit-deployment phase agent to translate deployment requirements into Infrastructure specs; not a direct user entry point.
+  tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+  
+placeholders:
+  WEB_TOOL:
+    copilot: fetch
+    claude: WebFetch

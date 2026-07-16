@@ -1,0 +1,30 @@
+copilot:
+  name: smaqit.development
+  description: Implementation agent for the Development phase.
+  tools:
+  - execute/getTerminalOutput
+  - execute/sendToTerminal
+  - execute/runInTerminal
+  - execute/runTests
+  - read/problems
+  - read/readFile
+  - read/terminalSelection
+  - read/terminalLastCommand
+  - agent
+  - edit/createDirectory
+  - edit/createFile
+  - edit/editFiles
+  - edit/rename
+  - search
+  - web
+  - todo
+
+claude:
+  name: smaqit-development
+  description: Implementation agent for the Development phase. Orchestrates the Business, Functional, and Stack spec agents via Task, then builds a working, tested application from the consolidated specs. Invoked via the /smaqit.development command.
+  tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+  
+placeholders:
+  DELEGATE_SPEC_AGENT:
+    copilot: invoke the spec agent using `runSubagent`
+    claude: invoke the corresponding spec subagent via the Task tool

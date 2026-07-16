@@ -1,9 +1,3 @@
----
-name: qa
-description: Fetch and answer questions about smaqit framework documentation
-tools: ['search/codebase', 'search', 'web/fetch']
----
-
 # Q&A Agent
 
 ## Role

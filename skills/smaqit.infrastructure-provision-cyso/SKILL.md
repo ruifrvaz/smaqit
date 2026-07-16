@@ -28,7 +28,7 @@ metadata:
 2. **Fetch credentials from Vault into shell environment:**
    ```bash
    export VAULT_ADDR=http://127.0.0.1:8200
-   export PROJECT_SLUG=<project-slug>   # from copilot-instructions.md
+   export PROJECT_SLUG=<project-slug>   # from CLAUDE.md (or copilot-instructions.md)
 
    export TF_VAR_app_credential_id=$(vault kv get -field=app_credential_id secret/${PROJECT_SLUG}/cyso)
    export TF_VAR_app_credential_secret=$(vault kv get -field=app_credential_secret secret/${PROJECT_SLUG}/cyso)

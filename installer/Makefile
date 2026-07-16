@@ -17,8 +17,8 @@ prepare:
 	@mkdir -p templates/workflows
 	@cp -r ../templates/specs templates/
 	@cp ../.github/workflows/copilot-setup-steps.yml templates/workflows/
-	@cp -r ../agents .
-	@cp -r ../skills .
+	@echo "Compiling agents-copilot/, agents-claude/, commands-claude/, skills-copilot/, skills-claude/ from ../agents/, ../commands/, ../skills/, ../.smaqit/definitions/agents/..."
+	@python3 ../scripts/generate-agents.py
 
 # Default target: build for current platform
 .PHONY: build
@@ -99,12 +99,12 @@ uninstall:
 				;; \
 		esac; \
 	fi; \
-	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "agents" ] || [ -d "prompts" ] || [ -d "skills" ] || [ -d "test" ] || [ -d "../.test-venv" ]; then \
+	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "agents-copilot" ] || [ -d "agents-claude" ] || [ -d "commands-claude" ] || [ -d "prompts" ] || [ -d "skills-copilot" ] || [ -d "skills-claude" ] || [ -d "test" ] || [ -d "../.test-venv" ]; then \
 		printf "\nAlso clean build artifacts (dist/, embedded files, test/, .test-venv)? [y/N]: "; \
 		read clean_response; \
 		case "$$clean_response" in \
 			[yY]|[yY][eE][sS]) \
-				rm -rf $(DIST_DIR) framework/ templates/ agents/ skills/ test/ ../.test-venv; \
+				rm -rf $(DIST_DIR) framework/ templates/ agents-copilot/ agents-claude/ commands-claude/ skills-copilot/ skills-claude/ test/ ../.test-venv; \
 				echo "✓ Cleaned build artifacts"; \
 				;; \
 			*) \

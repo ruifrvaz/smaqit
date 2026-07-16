@@ -1,43 +1,100 @@
 #!/usr/bin/env bash
 # smaqit.infrastructure-vault-loader — interactive credential loader
-# Prompts for all project secrets and writes them to a local Vault instance.
-# Skips paths that already exist. Generates SSH keypair automatically.
-# Usage: bash .github/skills/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
+# Handles Vault start, unseal, and login — then prompts for all project secrets.
+# All sensitive input uses hidden prompts (read -s). Nothing sensitive is ever
+# passed as a command argument or written to shell history.
+# Skips credential paths that already exist. Generates SSH keypair automatically.
+#
+# Usage: bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
 
 set -euo pipefail
 
 # ── Environment ───────────────────────────────────────────────────────────────
 
 export VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
-export VAULT_TOKEN="${VAULT_TOKEN:-$(cat ~/.vault-token 2>/dev/null || true)}"
 
-# ── Pre-flight: Vault must be running and unsealed ────────────────────────────
+# ── Helper: read a secret without echoing, then export to named variable ──────
+# Usage: read_secret VAR_NAME "Prompt label"
+read_secret() {
+  local _var="$1"
+  local _prompt="$2"
+  local _value
+  IFS= read -rs -p "  ${_prompt}: " _value </dev/tty && echo >&2
+  # Assign to the caller's variable name without eval
+  printf -v "$_var" '%s' "$_value"
+  unset _value
+}
+
+# ── Step 0: Start Vault if not reachable ──────────────────────────────────────
 
 echo "==> Checking Vault status..."
-if ! vault status > /dev/null 2>&1; then
-  echo "ERROR: Cannot reach Vault at $VAULT_ADDR"
-  echo "Start it with: vault server -config=~/.vault/config.hcl &"
-  exit 1
+# vault status exit codes: 0=running+unsealed, 1=error/unreachable, 2=running+sealed
+# Use set +e to safely capture the non-zero exit without aborting
+set +e
+vault status > /dev/null 2>&1
+VAULT_STATUS=$?
+set -e
+if [ "$VAULT_STATUS" -eq 1 ]; then
+  echo "    Vault not running at $VAULT_ADDR — attempting to start..."
+  VAULT_CONFIG="${HOME}/.vault/config.hcl"
+  if [ ! -f "$VAULT_CONFIG" ]; then
+    echo "ERROR: Config not found at $VAULT_CONFIG"
+    echo "       Follow one-time setup in the skill README, then re-run."
+    exit 1
+  fi
+  vault server -config="$VAULT_CONFIG" > /tmp/vault-server.log 2>&1 &
+  VAULT_PID=$!
+  sleep 4
+  set +e
+  vault status > /dev/null 2>&1
+  VAULT_STATUS=$?
+  set -e
+  if [ "$VAULT_STATUS" -eq 1 ]; then
+    echo "ERROR: Failed to start Vault. Check /tmp/vault-server.log"
+    exit 1
+  fi
+  echo "    Started Vault (PID $VAULT_PID)"
 fi
 
-SEALED=$(vault status -format=json | python3 -c "import sys,json; print(json.load(sys.stdin)['sealed'])")
-if [ "$SEALED" = "True" ]; then
-  echo "ERROR: Vault is sealed. Run: vault operator unseal"
-  exit 1
+# ── Step 0b: Unseal if sealed ─────────────────────────────────────────────────
+
+set +e
+SEALED=$(vault status -format=json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['sealed'])" 2>/dev/null)
+[ -z "$SEALED" ] && SEALED="true"
+set -e
+if [ "$SEALED" = "True" ] || [ "$SEALED" = "true" ]; then
+  echo "    Vault is sealed — prompting for unseal key (input hidden)"
+  read_secret _UNSEAL_KEY "Unseal Key"
+  vault operator unseal "$_UNSEAL_KEY" > /dev/null
+  unset _UNSEAL_KEY
+  echo "    Unsealed"
 fi
+
+# ── Step 0c: Authenticate if no valid token ───────────────────────────────────
 
 if ! vault token lookup > /dev/null 2>&1; then
-  echo "ERROR: No valid Vault token. Run: vault login"
-  exit 1
+  echo "    No valid token — prompting for root/scoped token (input hidden)"
+  read_secret _VAULT_TOKEN "Vault Token"
+  export VAULT_TOKEN="$_VAULT_TOKEN"
+  unset _VAULT_TOKEN
+  if ! vault token lookup > /dev/null 2>&1; then
+    echo "ERROR: Token rejected by Vault."
+    exit 1
+  fi
+  echo "    Authenticated"
 fi
 
 echo "    Vault: running, unsealed, authenticated"
 
 # ── Derive project slug ───────────────────────────────────────────────────────
 
-INSTRUCTIONS_FILE=".github/copilot-instructions.md"
+# CLAUDE.md takes precedence when present; falls back to Copilot's instructions file.
+INSTRUCTIONS_FILE="CLAUDE.md"
 if [ ! -f "$INSTRUCTIONS_FILE" ]; then
-  echo "ERROR: $INSTRUCTIONS_FILE not found. Run from repo root."
+  INSTRUCTIONS_FILE=".github/copilot-instructions.md"
+fi
+if [ ! -f "$INSTRUCTIONS_FILE" ]; then
+  echo "ERROR: Neither CLAUDE.md nor .github/copilot-instructions.md found. Run from repo root."
   exit 1
 fi
 
@@ -49,7 +106,7 @@ if [ -z "$PROJECT_SLUG" ]; then
 fi
 
 if [ -z "$PROJECT_SLUG" ]; then
-  read -p "Could not derive project slug from copilot-instructions.md. Enter manually: " PROJECT_SLUG
+  read -p "Could not derive project slug from $INSTRUCTIONS_FILE. Enter manually: " PROJECT_SLUG
 fi
 
 echo "==> Project slug: $PROJECT_SLUG"

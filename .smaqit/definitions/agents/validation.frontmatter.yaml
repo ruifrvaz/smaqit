@@ -1,0 +1,30 @@
+copilot:
+  name: smaqit.validation
+  description: Implementation agent for the Validation phase.
+  tools:
+  - execute/getTerminalOutput
+  - execute/sendToTerminal
+  - execute/runInTerminal
+  - execute/runTests
+  - read/problems
+  - read/readFile
+  - read/terminalSelection
+  - read/terminalLastCommand
+  - agent
+  - edit/createDirectory
+  - edit/createFile
+  - edit/editFiles
+  - edit/rename
+  - search
+  - web
+  - todo
+
+claude:
+  name: smaqit-validation
+  description: Implementation agent for the Validation phase. Orchestrates the Coverage spec agent via Task, then generates and executes test artifacts against the deployed system. Invoked via the /smaqit.validation command.
+  tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+  
+placeholders:
+  DELEGATE_COVERAGE:
+    copilot: invoke `smaqit.coverage` using `runSubagent`
+    claude: invoke the `smaqit-coverage` subagent via the Task tool

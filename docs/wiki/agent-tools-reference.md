@@ -123,3 +123,24 @@ Read and search only — no file modification.
 ```yaml
 tools: ['search/codebase', 'search', 'web/fetch']
 ```
+
+---
+
+## Claude Code Tool Mapping
+
+Agent tool lists live in `.smaqit/definitions/agents/<name>.frontmatter.yaml` (the shared body is in `agents/<name>.md`) and are compiled to both formats by `scripts/generate-agents.py` (see `framework/TEMPLATES.md`). When editing an agent's Copilot tool list, keep the Claude Code side in sync using this mapping:
+
+| Copilot tool ID(s) | Claude Code tool |
+|---|---|
+| `edit/editFiles`, `edit/createFile`, `edit/createDirectory`, `edit/rename` | `Write`, `Edit` |
+| `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/sendToTerminal`, `execute/awaitTerminal`, `runCommands`, `execute/runTests`, `execute/testFailure` | `Bash` |
+| `read/readFile`, `read/problems`, `read/terminalLastCommand`, `read/terminalSelection`, `read/viewImage` | `Read` |
+| `search`, `search/codebase`, `search/usages`, `search/textSearch`, `search/fileSearch`, `search/listDirectory` | `Grep`, `Glob` |
+| `web`, `web/fetch` | `WebFetch` |
+| `agent`, `agent/runSubagent` | `Task` |
+| `todo` | `TodoWrite` |
+| `changes`, `activePullRequest`, `githubRepo`, `search/changes` | `Bash` (shell out to `git`/`gh` — no native equivalent) |
+| `search/searchSubagent` | `Task` |
+| `vscode/memory`, `vscode/askQuestions`, `mermaidchart.vscode-mermaid-chart/*`, `edit/createJupyterNotebook`, `edit/editNotebook` | dropped — no Claude Code equivalent |
+
+There is no Claude Code equivalent of `user-invocable: false`. The same effect — an agent reachable only via delegation, never as a direct user command — is reproduced by simply not creating a `commands/<name>.md` for that agent, so no `.claude/commands/` entry exists for it (see the five specification agents: business, functional, stack, infrastructure, coverage).

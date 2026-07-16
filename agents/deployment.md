@@ -1,9 +1,3 @@
----
-name: smaqit.deployment
-description: Implementation agent for the Deployment phase.
-tools: ['edit/editFiles', 'search', 'runCommands', 'read/problems', 'changes', 'execute/testFailure', 'execute/runTests', 'agent/runSubagent']
----
-
 # Deployment Agent
 
 ## Role
@@ -133,7 +127,7 @@ Mode is set by the `smaqit.input-deployment` skill at invocation. Autonomous is 
    - For the required spec layer — infrastructure:
      - Check if `specs/infrastructure/*.md` exists with `status:` value other than `draft` or `failed`
      - If spec exists at correct status: skip generation
-     - If spec is missing, draft, or failed: invoke `smaqit.infrastructure` using `runSubagent`
+     - If spec is missing, draft, or failed: {{DELEGATE_INFRASTRUCTURE}}
        - Pass scoped context: user requirements from session context + Development phase specs (business, functional, stack) as reference
        - In assisted mode: present the generated spec to the user, collect feedback, loop until approved or iteration cap reached (max 3 iterations); on cap reached, note unresolved issues and proceed
      - Verify spec agent writes the expected spec file before proceeding

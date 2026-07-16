@@ -80,7 +80,7 @@ Remove backend/.env from staged files before committing.
 
 **Input:** Operator asks to install the pre-commit hook on a fresh clone.
 
-**Output:** Run `bash .github/skills/smaqit.infrastructure-hook-pre-commit-validate/scripts/install.sh` from the repo root. Confirm: "pre-commit hook installed. Run `git commit` to test."
+**Output:** Run `bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-hook-pre-commit-validate/scripts/install.sh` from the repo root. Confirm: "pre-commit hook installed. Run `git commit` to test."
 
 ## Gotchas
 

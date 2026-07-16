@@ -20,6 +20,7 @@ Currently supported:
 | Platform | Status |
 |----------|--------|
 | GitHub Copilot (VS Code) | ✅ Supported |
+| Claude Code | ✅ Supported |
 | Other AI assistants | Planned |
 
 ## Getting Started
@@ -38,7 +39,7 @@ smaqit init
 
 **Build something:**
 
-1. Open GitHub Copilot chat and run `/smaqit.development`
+1. Open GitHub Copilot chat (or start Claude Code) and run `/smaqit.development`
 2. The agent will validate your requirements are sufficient before proceeding — describe what you want to build when prompted
 3. Watch specs generate, then code build
 
@@ -62,18 +63,21 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 | `smaqit uninstall` | Remove smaqit from project |
 | `smaqit version` | Show smaqit version |
 
-**Agents** (invoke in GitHub Copilot chat with `/`):
+**Agents** (invoke with `/` in GitHub Copilot chat or Claude Code):
 
-| Agent | Purpose |
-|-------|---------|
-| `/smaqit.business` | Generate Business specifications |
-| `/smaqit.functional` | Generate Functional specifications |
-| `/smaqit.stack` | Generate Stack specifications |
-| `/smaqit.infrastructure` | Generate Infrastructure specifications |
-| `/smaqit.coverage` | Generate Coverage specifications |
-| `/smaqit.development` | Build working app from specs |
-| `/smaqit.deployment` | Deploy to target environment |
-| `/smaqit.validation` | Run tests against deployed system |
+| Agent | Purpose | Claude Code |
+|-------|---------|-------------|
+| `/smaqit.business` | Generate Business specifications | via `/smaqit.development` only |
+| `/smaqit.functional` | Generate Functional specifications | via `/smaqit.development` only |
+| `/smaqit.stack` | Generate Stack specifications | via `/smaqit.development` only |
+| `/smaqit.infrastructure` | Generate Infrastructure specifications | via `/smaqit.deployment` only |
+| `/smaqit.coverage` | Generate Coverage specifications | via `/smaqit.validation` only |
+| `/smaqit.development` | Build working app from specs | ✅ direct command |
+| `/smaqit.deployment` | Deploy to target environment | ✅ direct command |
+| `/smaqit.validation` | Run tests against deployed system | ✅ direct command |
+| `/smaqit.qa` | Answer questions about the smaqit framework | ✅ direct command |
+
+On Claude Code, the five specification agents are Task-delegated subagents rather than standalone slash commands — the same `user-invocable: false` boundary they already have in GitHub Copilot.
 
 ### Reinstallation and Updates
 

@@ -11,7 +11,7 @@ Skills are reusable agent capabilities invoked when agents detect specific condi
 
 **Structure:**
 
-- Skills reside in `.github/skills/[skill-name]/`
+- Skills reside in `.github/skills/[skill-name]/` (GitHub Copilot) or `.claude/skills/[skill-name]/` (Claude Code) — `smaqit init` installs the same skill content to both
 - Each skill directory contains `SKILL.md` with YAML frontmatter and markdown instructions
 - Follow agentskills.io specification format
 - Optional directories: `scripts/`, `references/`, `assets/` for supporting resources
@@ -31,18 +31,21 @@ Skills provide structured workflows for common agent needs. When agents detect c
 
 ### Location
 
-Skills live in `.github/skills/`. Each skill occupies its own subdirectory following agentskills.io specification.
+Skills live in `.github/skills/` (GitHub Copilot) and `.claude/skills/` (Claude Code). Each skill occupies its own subdirectory following agentskills.io specification. `smaqit init` installs identical skill content to both locations — a skill that needs to reference its own install path uses the `[SMAQIT_SKILLS_DIR]` placeholder, which the installer resolves per target (see `scripts/generate-agents.py` in the smaqit source repo).
 
 **User project structure:**
 ```
 project/
-└── .github/
+├── .github/
+│   └── skills/
+│       └── smaqit.input-business/
+│           ├── SKILL.md          # Required: YAML frontmatter + instructions
+│           ├── scripts/          # Optional: executable code
+│           ├── references/       # Optional: additional documentation
+│           └── assets/           # Optional: templates, images, data
+└── .claude/
     └── skills/
-        └── smaqit.input-business/
-            ├── SKILL.md          # Required: YAML frontmatter + instructions
-            ├── scripts/          # Optional: executable code
-            ├── references/       # Optional: additional documentation
-            └── assets/           # Optional: templates, images, data
+        └── smaqit.input-business/   # same content, installed for Claude Code
 ```
 
 ### Format

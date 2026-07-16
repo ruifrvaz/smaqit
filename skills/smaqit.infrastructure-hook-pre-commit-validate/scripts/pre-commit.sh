@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/pre-commit.sh
 # Runs checks 1-3 on staged files. No agent context required.
-# Install via: bash .github/skills/smaqit.infrastructure-hook-pre-commit-validate/scripts/install.sh
+# Install via: bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-hook-pre-commit-validate/scripts/install.sh
 
 EXIT_CODE=0
 

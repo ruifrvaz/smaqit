@@ -1,0 +1,12 @@
+copilot:
+  name: smaqit.qa
+  description: Fetch and answer questions about smaqit framework documentation
+  tools:
+  - search/codebase
+  - search
+  - web/fetch
+  
+claude:
+  name: smaqit-qa
+  description: Read-only Q&A agent for smaqit framework documentation (wiki + framework/*.md). Invoked via the /smaqit.qa command.
+  tools: Read, Grep, Glob, WebFetch

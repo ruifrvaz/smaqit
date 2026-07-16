@@ -20,7 +20,7 @@ metadata:
 > this skill to sync. No values are typed manually or sourced from disk.
 
 
-1. **Confirm repository** — resolve `<owner>/<repo>` from `copilot-instructions.md` or user input.
+1. **Confirm repository** — resolve `<owner>/<repo>` from `CLAUDE.md` (or `copilot-instructions.md`) or user input.
 
 2. **Set SSH deploy key** (piped from Vault — never touches disk):
    ```bash

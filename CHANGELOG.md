@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
-## [1.3.0] - 2026-07-16
+## [1.3.1] - 2026-07-16
 
 ### Added
 - Claude Code support alongside GitHub Copilot — `smaqit init` now installs `.claude/agents/`, `.claude/commands/`, and `.claude/skills/` in addition to the existing `.github/agents/`, `.github/skills/`, `.github/workflows/`

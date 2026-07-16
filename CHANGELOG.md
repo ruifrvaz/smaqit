@@ -28,6 +28,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [1.4.0] - 2026-07-16
+
+### Added
+- `smaqit update` command — self-updates the installed binary to the latest GitHub release. Fetches release metadata, compares semantic versions, downloads the matching platform asset, atomically replaces the running binary, and re-initializes `.smaqit/` project assets if present.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
 ## [1.3.1] - 2026-07-16
 
 ### Added
@@ -434,7 +457,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/ruifrvaz/smaqit/compare/v1.3.1...v1.4.0
+[1.3.1]: https://github.com/ruifrvaz/smaqit/compare/v1.2.0...v1.3.1
 [1.2.0]: https://github.com/ruifrvaz/smaqit/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/ruifrvaz/smaqit/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ruifrvaz/smaqit/compare/v0.9.1...v1.0.0

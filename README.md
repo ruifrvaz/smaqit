@@ -55,7 +55,7 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 
 | Command | Description |
 |---------|-------------|
-| `smaqit init` | Scaffold `.smaqit/` and `.github/` directories |
+| `smaqit init` | Scaffold `.smaqit/`, `.github/`, and `.claude/` directories, plus `AGENTS.md`/`CLAUDE.md` |
 | `smaqit status` | Show project state and spec coverage |
 | `smaqit plan` | Show specs to process (for agents) |
 | `smaqit validate` | Verify project structure integrity |

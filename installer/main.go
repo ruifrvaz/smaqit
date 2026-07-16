@@ -30,6 +30,12 @@ var skillFilesCopilot embed.FS
 //go:embed skills-claude
 var skillFilesClaude embed.FS
 
+//go:embed templates/AGENTS.md.template
+var agentsMdTemplate embed.FS
+
+//go:embed templates/CLAUDE.md.template
+var claudeMdTemplate embed.FS
+
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
 var Version = "1.3.0"
 
@@ -459,17 +465,74 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
+	// Install project-instructions files: AGENTS.md (read natively by GitHub Copilot) with a
+	// thin CLAUDE.md pointing at it (Claude Code does not read AGENTS.md on its own). Existing
+	// files are never overwritten — smaqit's section is appended if not already present.
+	agentsStatus, err := installInstructionsFile(agentsMdTemplate, "templates/AGENTS.md.template", "AGENTS.md")
+	if err != nil {
+		fmt.Printf("Error installing AGENTS.md: %v\n", err)
+		os.Exit(1)
+	}
+	claudeStatus, err := installInstructionsFile(claudeMdTemplate, "templates/CLAUDE.md.template", "CLAUDE.md")
+	if err != nil {
+		fmt.Printf("Error installing CLAUDE.md: %v\n", err)
+		os.Exit(1)
+	}
+
 	fmt.Println("✓ Created .smaqit/ directory structure")
 	fmt.Println("✓ Copied templates")
 	fmt.Println("✓ Copied agent definitions (GitHub Copilot + Claude Code)")
 	fmt.Println("✓ Copied skill files (GitHub Copilot + Claude Code)")
 	fmt.Println("✓ Copied workflow files")
 	fmt.Println("✓ Copied Claude Code slash commands")
+	fmt.Printf("✓ AGENTS.md %s, CLAUDE.md %s\n", agentsStatus, claudeStatus)
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code, or start Claude Code in this project")
 	fmt.Println("  2. Type '/smaqit.development' to orchestrate the entire Development phase")
 	fmt.Println("  3. Or type '/smaqit.business' to begin with business specifications only (GitHub Copilot only — see 'smaqit help')")
+}
+
+const instructionsMarkerBegin = "<!-- smaqit:instructions:begin -->"
+
+// installInstructionsFile installs a project-instructions file (AGENTS.md, CLAUDE.md):
+//   - Destination absent: write the template as a new file.
+//   - Destination exists, no smaqit marker found: append the template to the end (never
+//     overwrite user content — the destination may already hold the user's own instructions).
+//   - Destination exists with the smaqit marker already present: no-op (already installed).
+//
+// Returns a short status word ("created", "appended", "up to date") for reporting.
+func installInstructionsFile(embeddedFS embed.FS, srcPath, dstPath string) (string, error) {
+	content, err := embeddedFS.ReadFile(srcPath)
+	if err != nil {
+		return "", fmt.Errorf("reading %s: %w", srcPath, err)
+	}
+
+	existing, err := os.ReadFile(dstPath)
+	if os.IsNotExist(err) {
+		if err := os.WriteFile(dstPath, content, 0644); err != nil {
+			return "", fmt.Errorf("writing %s: %w", dstPath, err)
+		}
+		return "created", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("reading %s: %w", dstPath, err)
+	}
+
+	if strings.Contains(string(existing), instructionsMarkerBegin) {
+		return "up to date", nil
+	}
+
+	appended := string(existing)
+	if !strings.HasSuffix(appended, "\n") {
+		appended += "\n"
+	}
+	appended += "\n" + string(content)
+
+	if err := os.WriteFile(dstPath, []byte(appended), 0644); err != nil {
+		return "", fmt.Errorf("writing %s: %w", dstPath, err)
+	}
+	return "appended", nil
 }
 
 // copyEmbeddedDir copies files from an embedded FS to a target directory

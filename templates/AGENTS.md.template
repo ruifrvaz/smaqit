@@ -1,0 +1,31 @@
+<!-- smaqit:instructions:begin -->
+# smaqit
+
+This project uses [smaqit](https://github.com/ruifrvaz/smaqit) for spec-driven AI-assisted development. Specifications are the source of truth: implementation code should trace back to a spec in `specs/`, not the other way around.
+
+## Scaffolding to ignore
+
+The following paths are smaqit tooling, not part of this project's business domain. When reasoning about architecture, domain logic, or conventions, ignore them:
+
+- `.smaqit/` — task/spec state, session history, templates
+- `.github/agents/`, `.github/skills/` — GitHub Copilot agent and skill definitions
+- `.github/workflows/copilot-setup-steps.yml` — Copilot coding-agent bootstrap workflow
+- `.claude/agents/`, `.claude/commands/`, `.claude/skills/` — Claude Code agent, command, and skill definitions
+
+## Working with smaqit
+
+Specs live under `specs/{business,functional,stack,infrastructure,coverage}/`, one file per distinct concept, each tracking a lifecycle status (`draft` → `implemented` → `deployed` → `validated`).
+
+Invoke with `/` in GitHub Copilot chat or Claude Code:
+
+| Command | Purpose |
+|---|---|
+| `/smaqit.development` | Build a working app from Business/Functional/Stack specs |
+| `/smaqit.deployment` | Deploy using Infrastructure specs |
+| `/smaqit.validation` | Run tests against the deployed system |
+| `/smaqit.qa` | Answer questions about the smaqit framework |
+
+On GitHub Copilot, the five specification agents (`/smaqit.business`, `/smaqit.functional`, `/smaqit.stack`, `/smaqit.infrastructure`, `/smaqit.coverage`) are also directly invocable. On Claude Code they run automatically as part of the phase commands above.
+
+Run `smaqit status` for spec coverage and next steps, or `smaqit help` for the full CLI reference.
+<!-- smaqit:instructions:end -->

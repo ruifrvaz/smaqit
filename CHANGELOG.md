@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 4 Claude Code slash commands: `/smaqit.development`, `/smaqit.deployment`, `/smaqit.validation`, `/smaqit.qa`
 - `scripts/generate-agents.py` — compiles agents, commands, and skills from a single source (`agents/`, `commands/`, `skills/`, `.smaqit/definitions/agents/`) into platform-specific installer output (`installer/agents-copilot/`, `installer/agents-claude/`, `installer/commands-claude/`, `installer/skills-copilot/`, `installer/skills-claude/`)
 - Copilot → Claude Code tool-mapping reference table in `docs/wiki/agent-tools-reference.md`
+- `smaqit init` now installs `AGENTS.md` (read natively by GitHub Copilot) and a thin `CLAUDE.md` (`@AGENTS.md` import — Claude Code does not read `AGENTS.md` on its own). Existing files are never overwritten; smaqit's section is appended if not already present.
 - `.claude/settings.json` hook parity with `.github/hooks/` for this repo's own development tooling (not shipped to installed projects)
 
 ### Changed

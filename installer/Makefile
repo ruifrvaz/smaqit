@@ -17,6 +17,7 @@ prepare:
 	@mkdir -p templates/workflows
 	@cp -r ../templates/specs templates/
 	@cp ../.github/workflows/copilot-setup-steps.yml templates/workflows/
+	@cp ../templates/AGENTS.md.template ../templates/CLAUDE.md.template templates/
 	@echo "Compiling agents-copilot/, agents-claude/, commands-claude/, skills-copilot/, skills-claude/ from ../agents/, ../commands/, ../skills/, ../.smaqit/definitions/agents/..."
 	@python3 ../scripts/generate-agents.py
 

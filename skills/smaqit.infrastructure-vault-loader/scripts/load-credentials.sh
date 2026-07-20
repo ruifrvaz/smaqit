@@ -21,6 +21,10 @@ set -euo pipefail
 export VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
 PROVISIONING_MODE="${PROVISIONING_MODE:-provision}"
 
+# If a previous `vault login` already wrote a token to disk, reuse it instead of prompting —
+# harmless no-op if the file doesn't exist or VAULT_TOKEN is already exported.
+export VAULT_TOKEN="${VAULT_TOKEN:-$(cat ~/.vault-token 2>/dev/null || true)}"
+
 # ── Helper: read a secret without echoing, then export to named variable ──────
 # Usage: read_secret VAR_NAME "Prompt label"
 read_secret() {

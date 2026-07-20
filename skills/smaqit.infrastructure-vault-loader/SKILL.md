@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-vault-loader
 description: Use before any local deployment or credential operation that requires secrets from a local HashiCorp Vault instance. Verifies Vault is running, unsealed, and authenticated on 127.0.0.1:8200. Also runs an interactive credential loader script that prompts for all project secrets and writes them to Vault. Use for first-time setup, adding a new project's credentials, or when a Vault path is missing. Also use when setting up Vault for the first time on a new machine, or when a caller cannot reach Vault and needs troubleshooting guidance.
 metadata:
-  version: "3.1.0"
+  version: "3.2.0"
 ---
 
 # Vault Loader
@@ -140,4 +140,7 @@ then reminds you to sync the new value to GitHub Secrets via `smaqit.infrastruct
   intentional — Vault is not a persistent service on this machine
 - **`VAULT_ADDR` must be exported** — every `vault` CLI call in subshells needs this variable;
   export it at the start of each session or add to `.bashrc`
+- **`~/.vault-token` is read automatically** — if a prior `vault login` on this machine wrote a
+  token there, `load-credentials.sh` reuses it instead of prompting. Harmless no-op if the file
+  is absent or the token has expired (falls through to the normal prompt).
 

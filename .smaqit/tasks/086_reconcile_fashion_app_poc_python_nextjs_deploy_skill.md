@@ -1,8 +1,9 @@
 # Reconcile fashion-app-poc's Python/FastAPI + Next.js Deploy Skill Into Canonical smaqit
 
-**Status:** Not Started
+**Status:** In Progress
 **Mode:** Assisted
 **Created:** 2026-07-20
+**Started:** 2026-07-20
 
 ## Description
 
@@ -117,41 +118,88 @@ copy — see Design Decisions.
    `validated`/`validated-stack` metadata fields on the newly-imported skill.
 
 ## Known Issues Triage
+**Triaged:** 2026-07-20
+**Tools searched:** docker/compose, vercel/next.js
+**Result:** Clear
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+- None
+
+### Advisory Issues
+- None — `docker/compose` keyword search (`health exec`) returned one loosely-matched networking
+  bug in an unrelated version/scenario; `vercel/next.js` search (`NEXT_PUBLIC build-time`) returned
+  one loosely-matched issue about standalone-build server-side env vars, not the client-side
+  `NEXT_PUBLIC_*` build-time baking this task's imported skill already relies on (standard,
+  well-documented Next.js behavior, not a bug). Neither matches both a platform and feature
+  keyword; neither is relevant to the specific patterns being imported.
+
+### Historical (Closed)
+- None
+
+### Unresolvable Tools
+- FastAPI, Alembic, PostgreSQL, pnpm — no task-specific bug search performed; this task imports
+  already-validated content (tested against a real Cyso Cloud deploy per the source skill's own
+  metadata) rather than newly integrating with these tools, so the risk this triage step guards
+  against is low.
 
 ## Acceptance Criteria
 
-- [ ] `smaqit.infrastructure-deploy-rsync-python-nextjs` exists under canonical `skills/`, with
+- [x] `smaqit.infrastructure-deploy-rsync-python-nextjs` exists under canonical `skills/`, with
       `__APP_DIR__`/`<project-slug>`/`[SMAQIT_SKILLS_DIR]` conventions matching the rest of the
       skill family (not the ad-hoc tokens or compiled-path literals from the source install)
-- [ ] The imported skill's nginx vhost step invokes the shared `write-vhost.sh` — no second,
+- [x] The imported skill's nginx vhost step invokes the shared `write-vhost.sh` — no second,
       independent implementation of the `default_server`-vs-name-based decision
-- [ ] The stray `prior-shared-vm` example reference is gone
-- [ ] `smaqit.new-greenfield-project` Phase 4 Step 6 branches on stack type (Node vs Python/Next.js)
+- [x] The stray `prior-shared-vm` example reference is gone
+- [x] `smaqit.new-greenfield-project` Phase 4 Step 6 branches on stack type (Node vs Python/Next.js)
       *and* still carries the full Task 084 `provisioning_mode` branching — neither axis regressed
       by the other
-- [ ] `smaqit.infrastructure-vault-loader/scripts/load-credentials.sh` reads `~/.vault-token` when
+- [x] `smaqit.infrastructure-vault-loader/scripts/load-credentials.sh` reads `~/.vault-token` when
       `VAULT_TOKEN` isn't already exported
-- [ ] `run-migrations.sh` passes `bash -n` and `shellcheck`
-- [ ] This task does NOT modify anything under `/home/ruifrvaz/projects/fashion-app-poc/` — the
-      reconciliation is one-directional, into this repo only
+- [x] `run-migrations.sh` passes `bash -n` and `shellcheck`
+- [x] This task does NOT modify anything under `/home/ruifrvaz/projects/fashion-app-poc/` — the
+      reconciliation is one-directional, into this repo only (verified via `git -C
+      .../fashion-app-poc status --short`: only that project's own pre-existing, unrelated local
+      changes are present, nothing from this session)
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
-**Implementation approach:**
-- TBD
+**Implementation approach (interim — task not yet complete, Assisted mode):**
+- Followed the 8 Implementation Steps in order. Copied `SKILL.md` + `scripts/run-migrations.sh`
+  verbatim first, then harmonized in place (sed for the mechanical token/path substitutions,
+  manual edit for the nginx-handling replacement, which needed real restructuring, not just
+  substitution).
+- Reused `smaqit.infrastructure-deploy-rsync/scripts/write-vhost.sh` as-is for the Python/Next.js
+  skill rather than writing a second copy — it was already stack-agnostic by construction (Task
+  085), so no changes were needed to that script itself, only to how this skill invokes it.
+- Verified the one-directional constraint explicitly at the end via `git -C
+  .../fashion-app-poc status --short` in a separate invocation (an earlier combined-invocation
+  check was accidentally checking the same directory twice due to a persisted `cd`; redone
+  correctly with `-C`).
 
 **Decisions made:**
-- TBD
+- Kept the imported skill's `validated`/`validated-stack` metadata fields as-is (2026-07-17,
+  Python 3.12/FastAPI 0.115/Next.js 15/pnpm 9/PostgreSQL 16) — real provenance worth preserving,
+  not something to regenerate or generalize away.
+- Bumped the imported skill to `1.2.0` (from `1.1.0` at the source) to reflect the write-vhost.sh
+  integration change made during import, not just a mechanical copy.
 
 **Blockers encountered:**
-- TBD
+- None.
+
+**Post-handback fix (user review, before `/task.complete`):** the imported skill's Step 2 and
+Step 1 each carried an inline troubleshooting remedy (a root-container `rm -rf .next` for a
+Docker-owned-permissions EACCES, and a base64-encode/decode fix for an "error in libcrypto" SSH
+key issue) that duplicated content already correctly documented in Gotchas and Failure Handling.
+User flagged the `.next` one specifically as concerning given its destructive-looking shape
+(`docker run ... rm -rf .next`) sitting in the main happy-path step rather than a troubleshooting
+section. Trimmed both to one-line pointers at the exact spot they'd trigger, keeping the full
+remedy only in Gotchas/Failure Handling — verified nothing was lost by checking both target
+sections still contain the complete fix. Bumped to `1.3.0`.
 
 **Follow-up identified:**
-- TBD
+- Two follow-ups already flagged in this task's own Notes (not part of this task): a Python/Next.js
+  variant of Task 085's `cicd-generate` templates, and backporting this repo's own `vm-bootstrap`/
+  `provider-cyso` refinements down into `fashion-app-poc`'s installed copy.
 
 ## Files to Create / Modify
 

@@ -2,7 +2,7 @@
 name: smaqit.new-greenfield-project
 description: Use when orchestrating the complete SDLC for a new project — from raw project assets to a running production application accessible via browser. Covers requirements extraction, specification (business, functional, stack, infrastructure, coverage), task creation, development, IaC generation + dev environment sweep (local provisioning + deploy + verify), CI/CD production deployment, optional domain/TLS, validation, and tagged release. Re-entrant: use the pre-condition checklist to resume at any phase. Also use when the user says "take this from zero to prod", "run the full smaqit pipeline", "deploy a new project end-to-end", or when starting implementation on a freshly initialized repository.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Project: Zero to Production
@@ -101,8 +101,11 @@ Validates the full infrastructure and deployment approach on a dedicated dev VM 
    → **`existing-shared`:** **skip this step entirely.** This project never provisions Terraform for a VM it doesn't own. Set the target IP via `gh variable set VM_HOST` instead (see Phase 5).
 5. Invoke `smaqit.infrastructure-vm-bootstrap` with the dev VM `fixed_ip`.
    → **`existing-shared`:** use the manually-set target IP in place of a Terraform `fixed_ip` output.
-6. Invoke `smaqit.infrastructure-deploy-rsync` to deploy to the dev VM.
-   → **`existing-shared`:** if this is not the first site on the VM, the nginx vhost must be name-based only — never `default_server` (see `smaqit.infrastructure-deploy-rsync`'s vhost rule).
+6. Invoke the deploy skill matching the stack declared in `specs/stack/platform-stack.md`:
+   - **Node.js + Vite/React** → `smaqit.infrastructure-deploy-rsync`
+   - **Python/FastAPI + Next.js** → `smaqit.infrastructure-deploy-rsync-python-nextjs`
+   - If neither matches, default to `smaqit.infrastructure-deploy-rsync` and adapt steps as needed.
+   → **`existing-shared`:** if this is not the first site on the VM, the nginx vhost must be name-based only — never `default_server`. Both deploy skills call the same `smaqit.infrastructure-deploy-rsync/scripts/write-vhost.sh` to enforce this — it is not stack-specific.
 7. Invoke `smaqit.infrastructure-deploy-verify` against the dev VM. If any check fails, stop and fix before continuing.
 8. If any infrastructure or stack spec required amendment to proceed: amend in-place with an `amendment:` annotation.
 9. Commit all generated IaC artifacts: `git add deployment/ .github/workflows/ && git commit -m "ci: add infrastructure and CI/CD workflows"`.
@@ -176,7 +179,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 ## Gotchas
 
 - **Spec amendment protocol** — when an implementation phase must diverge from a spec (package mismatch, config change, structural adaptation): amend the spec in-place with an `amendment:` annotation describing what changed and why. Tactical divergences (versions, minor config) proceed autonomously. Structural divergences (data model, architecture) require operator approval before continuing. At `task-complete` time, the amendment is captured in `Decisions made`. Phase 8 runs `check-amendments.sh` to detect any open annotations; if none are found the review step is skipped.
-- **Source path contract** — `smaqit.infrastructure-deploy-rsync` and generated CI/CD workflows assume `backend/` and `frontend/` as local source directories. The `/smaqit.stack` agent (Phase 2) must declare these exact paths in the stack spec. If the project type differs (e.g. api-only), instruct the stack agent explicitly.
+- **Source path contract** — both deploy skills (`smaqit.infrastructure-deploy-rsync` and `smaqit.infrastructure-deploy-rsync-python-nextjs`) and generated CI/CD workflows assume `backend/` and `frontend/` as local source directories, and `__APP_DIR__` as the remote deploy path. The `/smaqit.stack` agent (Phase 2) must declare these exact paths in the stack spec, and its declared stack (Node.js+Vite vs Python/FastAPI+Next.js) is what Phase 4 Step 6 uses to pick the matching deploy skill. If the project type differs from both (e.g. api-only, or a third stack), instruct the stack agent explicitly.
 - **Separate Terraform state keys** — dev and production must use different state keys (e.g. `dev/terraform.tfstate` vs `prod/terraform.tfstate`). Using the same key causes state conflicts and unintended VM replacement.
 - **`GITHUB_TOKEN` reserved name** — enforced in Phase 5 via `smaqit.infrastructure-repo-config`. Never set an env var named `GITHUB_TOKEN` in any workflow to a PAT.
 - **PR body sentinel** — Coding Agent must include `smaqit:deploy` as a line in any PR body to trigger post-merge deployment. Must be set at PR creation time, not via label.

@@ -2,8 +2,7 @@
 name: smaqit.release.pr
 description: Orchestrate a release process via pull request (CI/CD, Coding Agent)
 metadata:
-  version: "0.2.0"
-tools: ['edit', 'search', 'runCommands', 'usages', 'changes', 'todos']
+  version: "0.4.0"
 ---
 
 # Release Agent (PR)
@@ -29,10 +28,13 @@ Execute these skills in order:
 ### 1. Use `smaqit.release-analysis` skill
 
 Collects changes from:
-- Git commit history since last tag
+- Git commit history since last tag (fetches tags first to handle shallow/grafted clones)
+- **`gh pr list --state merged`** — authoritative cross-check that catches PRs missed by truncated git log
 - `.smaqit/history/` session documentation (if exists)
+- Existing `[Unreleased]` section in CHANGELOG.md (as a starting point, not the sole source)
 
 Outputs:
+- **Complete** change list suitable for direct use in CHANGELOG.md (one entry per PR or meaningful commit; includes a PR reference for every entry)
 - Change severity assessment (MAJOR/MINOR/PATCH)
 - Suggested next version following semver
 
@@ -56,7 +58,9 @@ Validates and prepares release files:
 - Verifies git working tree is clean
 - Confirms current branch (feature branch is OK for PR workflow)
 - Checks version doesn't already exist in CHANGELOG.md
-- Updates CHANGELOG.md with approved version and current date
+- **Fetches tags first** to ensure git log works in shallow/grafted clones
+- **Reconciles** `[Unreleased]` against both git log and `gh pr list --state merged` — every merged PR since the last release must appear in the version section
+- Promotes the reconciled `[Unreleased]` section to the new version with current date
 - Optionally syncs version files (package.json, etc.) if specified in issue
 
 Outputs:
@@ -72,6 +76,26 @@ Executes PR operations:
 
 Outputs:
 - Commit SHA and PR update confirmation
+
+### 5. Verify PR title (CRITICAL — do not skip)
+
+After pushing, **verify the PR title** matches the post-merge workflow trigger pattern.
+
+Use the GitHub API or `gh` CLI to check the current PR title:
+```bash
+gh pr view --json title -q .title
+```
+
+The PR title **MUST** start with one of:
+- `Prepare release vX.Y.Z`
+- `Release vX.Y.Z`
+
+If the PR title does NOT match, update it immediately:
+```bash
+gh pr edit --title "Prepare release vX.Y.Z"
+```
+
+**WARNING:** A non-conforming PR title (e.g., "fix: release prep" or "Prepare release metadata for v1.0.4") will cause the post-merge workflow to skip all jobs and no GitHub Release will be created.
 
 ## Post-Merge Release Automation
 
@@ -98,7 +122,7 @@ Before declaring success, verify:
 - [ ] Version files synced (if applicable)
 - [ ] Commit created with "Prepare release vX.Y.Z" message
 - [ ] PR created/updated with changes via `report_progress`
-- [ ] PR title follows format for post-merge automation
+- [ ] **PR title verified** — must start with "Prepare release vX.Y.Z" or "Release vX.Y.Z"; if wrong, corrected via `gh pr edit --title`
 
 **After PR merge:** Post-merge workflow automatically creates tag, builds binaries, and publishes GitHub Release.
 

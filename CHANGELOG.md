@@ -8,10 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing to add.
+- `smaqit.infrastructure-provision-cyso/scripts/plan-guard.sh` — deterministic guard that runs `terraform plan`, inspects the machine-readable output for any `delete`/`replace` action, and exits non-zero naming the specific resource(s) before `terraform apply` is ever reached.
+- `smaqit.infrastructure-vm-bootstrap/scripts/remove-default-nginx-site.sh` — idempotent removal of the distro's stock `default` nginx site, so it can never conflict with the application's own `default_server` vhost once a second, co-hosted site is added.
+- `smaqit.infrastructure-provider-cyso/references/openstack-forcenew-attributes.md` — documents which `openstack_compute_instance_v2` attributes (`user_data`, `image_id`/`image_name`, `key_pair`) are `ForceNew`, including the gotcha where a comment added inside a `file()`-referenced cloud-init file forces replacement even though the same comment as an HCL comment would not.
+- `smaqit.infrastructure-provider-cyso/references/github-provider-import-ids.md` — documents the `integrations/github` provider's `<repository>:<name>` import ID format for `github_actions_variable`/`github_actions_secret`, and the "pick one owner" rule for Terraform-vs-manual resource management.
 
 ### Changed
-- Nothing to add.
+- `smaqit.infrastructure-provision-cyso` — plan review step now requires invoking `plan-guard.sh`, never a bare `terraform plan` eyeballed by the agent. (v1.0.0 → v1.1.0)
+- `smaqit.infrastructure-provider-cyso` — load-condition table now routes to the two new reference files; description and Gotchas/Failure Handling updated to match. (v1.0.0 → v1.1.0)
+- `smaqit.infrastructure-vm-bootstrap` — added a bootstrap step invoking `remove-default-nginx-site.sh`; documented that `systemctl enable nginx` does not start the service immediately, so downstream deploy skills must use `reload-or-restart`, not a bare `reload`. (v1.0.0 → v1.1.0)
+- `smaqit.infrastructure-cicd-generate` — generated `deploy.yml`/`provision.yml` now gate every `terraform apply` behind `plan-guard.sh`, and the generated nginx reload step uses `reload-or-restart`. (v1.0.0 → v1.1.0)
 
 ### Deprecated
 - Nothing to add.

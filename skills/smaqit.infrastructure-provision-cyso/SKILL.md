@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-provision-cyso
 description: Use when provisioning cloud infrastructure for the HIM Corporate application on Cyso Cloud (OpenStack) using Terraform. Covers application credential sourcing, Object Storage backend initialization, SSH keypair variable configuration, `terraform init/plan/apply`, and fixed IP retrieval. Produces a running Cyso VM accessible via SSH, with Cinder data volume attached and security group configured on ports 22/80/443. Also use when re-running Terraform after infrastructure changes or when an operator invokes `/provision.cyso`.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Provision Target: Cyso Cloud
@@ -62,13 +62,17 @@ metadata:
    Confirms remote state backend connectivity. `.terraform.lock.hcl` is committed; if regeneration is
    needed: `terraform providers lock -platform=linux_amd64 -platform=darwin_arm64`.
 
-6. **Review plan.** Expected resources on first apply: 1 Nova VM, 1 boot volume (20 GB),
-   1 security group (ports 22/80/443), 1 keypair, 1 GitHub Actions variable.
+6. **Review the plan via the guard script — never a bare `terraform plan`.** Expected resources on
+   first apply: 1 Nova VM, 1 boot volume (20 GB), 1 security group (ports 22/80/443), 1 keypair,
+   1 GitHub Actions variable.
    ```bash
-   terraform plan
+   scripts/plan-guard.sh .
    ```
+   Exits non-zero and names the specific resource(s) if the plan would delete or replace anything
+   (e.g. a `user_data` edit forcing VM replacement) — a deterministic gate, not a prompt to review
+   the plan carefully. Do not run `terraform apply` if this script exits non-zero.
 
-7. **Apply:**
+7. **Apply (only after `plan-guard.sh` exits 0):**
    ```bash
    terraform apply
    ```
@@ -135,6 +139,11 @@ accessible with `him_deploy_key`, Terraform state in `him-corporate-tfstate`. Re
 - **Do not run `terraform destroy`** — it tears down live infrastructure. Not part of any deployment
   or acceptance step.
 
+- **Any `user_data` edit forces VM replacement — always run `scripts/plan-guard.sh` first** — a
+  destroy-then-recreate can happen from something as small as a comment-only edit inside the
+  `user_data` content (whether inline or loaded via `file()`). Never run `terraform apply` on the
+  strength of a manually eyeballed `terraform plan`; let the script gate it.
+
 ## Completion
 
 - [ ] OpenRC sourced; `openstack token issue` succeeded
@@ -142,7 +151,7 @@ accessible with `him_deploy_key`, Terraform state in `him-corporate-tfstate`. Re
 - [ ] Backend variables set (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 - [ ] Terraform provider variables set (correct casing; `TF_VAR_github_token`; ssh key newline stripped)
 - [ ] `terraform init` succeeded with remote state backend
-- [ ] `terraform plan` reviewed; expected resource count confirmed
+- [ ] `scripts/plan-guard.sh` run and exited 0 — plan is additive/update-only, no delete or replace
 - [ ] `terraform apply` succeeded; `fixed_ip` noted from outputs
 - [ ] SSH access to VM confirmed via `him_deploy_key`
 - [ ] `.terraform.lock.hcl` committed if regenerated
@@ -160,3 +169,4 @@ accessible with `him_deploy_key`, Terraform state in `him-corporate-tfstate`. Re
 | Image ID not found | Run `openstack image list`; update `variables.tf` with current ID |
 | Keypair replacement shown in plan | Strip trailing newline; re-export `TF_VAR_ssh_public_key` using `tr -d '\n'` |
 | SSH access fails after apply | Verify security group allows port 22; confirm key fingerprint matches uploaded keypair |
+| `scripts/plan-guard.sh` exits non-zero | Do NOT apply. Review the named resource(s); if the destroy/replace is genuinely intentional, apply manually outside this guarded path with explicit sign-off |

@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-provider-cyso
-description: Use this skill when making any Cyso Cloud decision — selecting a VM flavor, estimating cost, configuring Terraform credentials, looking up platform endpoints or resource IDs, setting up the OpenStack CLI, or running pre-flight checks. Routes the agent to the correct reference documentation before acting, preventing guesses on Cyso-specific facts (auth URL, image IDs, flavor names, credential formats).
+description: Use this skill when making any Cyso Cloud decision — selecting a VM flavor, estimating cost, configuring Terraform credentials, looking up platform endpoints or resource IDs, setting up the OpenStack CLI, editing the compute instance or its user_data, running pre-flight checks, or importing a github_actions_variable/secret. Routes the agent to the correct reference documentation before acting, preventing guesses on Cyso-specific facts (auth URL, image IDs, flavor names, credential formats, ForceNew attributes, provider import ID formats).
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Cyso Knowledge Base
@@ -19,7 +19,9 @@ This skill has no procedural steps. It is a knowledge router: a set of load cond
 | Creating an Application Credential, downloading OpenRC, generating S3 keys, or any manual cloud portal action | `references/cyso-deployment-setup.md` |
 | Looking up platform endpoints (auth URL, S3 endpoint), image IDs, network names, OpenStack resource IDs, or the Terraform provider block | `references/cyso-reference.md` |
 | Installing the OpenStack CLI, sourcing credentials locally, or running pre-flight checks against `variables.tf` | `references/openstack-cli-setup-and-preflight.md` |
-| Any uncertainty about Cyso Cloud — if the load condition is ambiguous | Read all four reference files before proceeding |
+| Editing `openstack_compute_instance_v2` (or its `user_data`/cloud-init content), or any uncertainty about whether an attribute change will force VM replacement | `references/openstack-forcenew-attributes.md` |
+| Running `terraform import` on a `github_actions_variable`/`github_actions_secret`, or resolving ownership drift between Terraform and a manual `gh variable set`/`gh secret set` | `references/github-provider-import-ids.md` |
+| Any uncertainty about Cyso Cloud — if the load condition is ambiguous | Read all six reference files before proceeding |
 | Question not answered by the reference files | Fetch `https://cyso.cloud/docs/cloud/` and navigate to the relevant section |
 
 ## Output
@@ -55,6 +57,8 @@ Output: Step-by-step instructions covering app credential creation, OpenRC downl
 - `openrc.sh` contains the application credential secret. It must never be committed to git. This constraint is documented in `references/cyso-deployment-setup.md`.
 - The HIM Corporate production VM uses `s5.small` at €17.50/month (verified 2026-04-05). Pricing is hourly-billed, invoiced monthly.
 - Reference files are copies of `docs/wiki/` content kept inside the skill's `references/` subdirectory for portability. If the wiki files are updated, the skill references must be updated too.
+- `user_data` (and `image_id`/`image_name`/`key_pair`) on `openstack_compute_instance_v2` is `ForceNew` — any edit, including a comment-only one, destroys and recreates the instance. Always read `references/openstack-forcenew-attributes.md` before touching that resource, and always gate the apply with `smaqit.infrastructure-provision-cyso/scripts/plan-guard.sh` rather than eyeballing the plan.
+- `github_actions_variable`/`github_actions_secret` import IDs are `<repository>:<name>` — not `<owner>/<repo>`. Getting this wrong produces a confusing "resource not found" on `terraform import` that looks like a permissions issue.
 
 ## Completion
 
@@ -72,3 +76,5 @@ Output: Step-by-step instructions covering app credential creation, OpenRC downl
 | A decision spans multiple load conditions | Read all implicated reference files before acting |
 | A reference file is missing from `references/` | Fetch `https://cyso.cloud/docs/cloud/` as a fallback; report the missing file to the user |
 | A fact in the reference files is stale (e.g., a price changed) | Fetch `https://cyso.cloud/docs/cloud/` to verify the current value; note that local references were last verified 2026-04-05 |
+| `terraform plan` shows an unexpected `replace` on the compute instance | Read `references/openstack-forcenew-attributes.md`; check whether `user_data`/`image_id`/`key_pair` changed, including comment-only edits |
+| `terraform import` on a GitHub provider resource fails with "not found" | Check the ID format against `references/github-provider-import-ids.md` — likely `<owner>/<repo>` was used instead of `<repository>:<name>` |

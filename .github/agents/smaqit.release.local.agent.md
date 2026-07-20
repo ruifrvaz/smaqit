@@ -2,7 +2,7 @@
 name: smaqit.release.local
 description: Orchestrate a release process with direct git access (local development)
 metadata:
-  version: "0.2.0"
+  version: "0.4.0"
 tools: [execute/getTerminalOutput, execute/runInTerminal, read/readFile, read/terminalSelection, read/terminalLastCommand, edit, search, todo]
 ---
 
@@ -27,10 +27,13 @@ Execute these skills in order:
 ### 1. Use `smaqit.release-analysis` skill
 
 Collects changes from:
-- Git commit history since last tag
+- Git commit history since last tag (fetches tags first to handle shallow/grafted clones)
+- **`gh pr list --state merged`** — authoritative cross-check that catches PRs missed by truncated git log
 - `.smaqit/history/` session documentation (if exists)
+- Existing `[Unreleased]` section in CHANGELOG.md (as a starting point, not the sole source)
 
 Outputs:
+- **Complete** change list suitable for direct use in CHANGELOG.md (one entry per PR or meaningful commit; includes a PR reference for every entry)
 - Change severity assessment (MAJOR/MINOR/PATCH)
 - Suggested next version following semver
 
@@ -54,7 +57,9 @@ Validates and prepares release files:
 - Verifies git working tree is clean
 - Confirms current branch is `main` (or warns if not)
 - Checks version doesn't already exist in CHANGELOG.md
-- Updates CHANGELOG.md with approved version and current date
+- **Fetches tags first** to ensure git log works in shallow/grafted clones
+- **Reconciles** `[Unreleased]` against both git log and `gh pr list --state merged` — every merged PR since the last release must appear in the version section
+- Promotes the reconciled `[Unreleased]` section to the new version with current date
 - Optionally syncs version files (package.json, etc.) if confirmed
 
 Outputs:

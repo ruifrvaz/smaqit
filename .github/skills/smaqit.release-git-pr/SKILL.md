@@ -1,13 +1,13 @@
 ---
 name: smaqit.release-git-pr
-description: Execute git operations for PR-based releases (commit, push via report_progress)
+description: Execute git operations for PR-based releases (commit, push, and enforce the post-merge automation PR title)
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
 # Release Git PR
 
-Execute git operations required for PR-based releases: stage changes, commit to PR branch, and push via report_progress tool.
+Execute git operations required for PR-based releases: stage changes, commit to PR branch, and push via `report_progress` tool (handles credentials internally).
 
 ## When to use this skill
 
@@ -66,15 +66,30 @@ Use the `report_progress` tool to push changes to the PR branch:
 - Use `git push` directly (credentials not available in agent environment)
 - Create git tags at this stage (tags must be created after merge to main)
 
-### Step 4: Verify PR Title for Post-Merge Automation
+### Step 4: Verify and Enforce PR Title for Post-Merge Automation
 
-**CRITICAL:** Ensure the PR title matches the pattern required for post-merge automation.
+**CRITICAL:** This step is not optional. A wrong PR title causes the post-merge release workflow to skip all jobs silently.
 
-The PR title must follow one of these formats:
+Check the current PR title:
+```bash
+gh pr view --json title -q .title
+```
+
+The PR title **MUST** match one of these patterns:
 - `Prepare release vX.Y.Z`
 - `Release vX.Y.Z`
 
-(Both case-insensitive variants are supported)
+If the title does NOT match, **update it immediately**:
+```bash
+gh pr edit --title "Prepare release vX.Y.Z"
+```
+
+**Common failure patterns to watch for:**
+- "Prepare release metadata for v1.0.4" ❌ (extra words before version)
+- "fix: release prep v1.0.4" ❌ (wrong format)
+- "chore: prepare v1.0.4 release" ❌ (wrong format)
+- "Prepare release v1.0.4" ✅
+- "Release v1.0.4" ✅
 
 **Post-merge workflow automatically:**
 1. Creates and pushes git tag `vX.Y.Z`
@@ -133,7 +148,7 @@ post_merge_automation: true
 | **Branch** | main | Feature/PR branch |
 | **Commit message** | "Release vX.Y.Z" | "Prepare release vX.Y.Z" |
 | **Tag creation** | ✅ Yes, immediately | ❌ No, after merge to main |
-| **Push method** | `git push` directly | `report_progress` tool |
+| **Push method** | `git push` directly | `report_progress` tool (handles credentials internally) |
 | **Git credentials** | User's local credentials | Handled by report_progress |
 | **When to use** | Developer's local machine | CI/CD or agent workflow |
 
@@ -142,7 +157,7 @@ post_merge_automation: true
 - This skill is for **PR-based release workflows only**
 - Tags are intentionally NOT created on PR branches
 - Complete release automation happens via post-merge workflow after PR merge
-- `report_progress` tool handles authentication - no need for credential setup
+- Push authentication is handled by `report_progress` tool (handles credentials internally)
 - PR title must match pattern for post-merge automation to trigger
 - Release completes automatically after PR merge: tag, builds, GitHub Release
 - See `.github/workflows/post-merge-release.yml` for workflow details

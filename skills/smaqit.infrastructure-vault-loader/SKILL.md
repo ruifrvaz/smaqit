@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-vault-loader
 description: Use before any local deployment or credential operation that requires secrets from a local HashiCorp Vault instance. Verifies Vault is running, unsealed, and authenticated on 127.0.0.1:8200. Also runs an interactive credential loader script that prompts for all project secrets and writes them to Vault. Use for first-time setup, adding a new project's credentials, or when a Vault path is missing. Also use when setting up Vault for the first time on a new machine, or when a caller cannot reach Vault and needs troubleshooting guidance.
 metadata:
-  version: "3.0.0"
+  version: "3.1.0"
 ---
 
 # Vault Loader
@@ -80,6 +80,30 @@ one pass. If all paths are already populated and a valid token exists, it exits 
 export VAULT_ADDR=http://127.0.0.1:8200
 bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
 ```
+
+### Provisioning-mode-aware loading
+
+Pass `PROVISIONING_MODE` (defaults to `provision`, resolved upstream by `smaqit.input-deployment`
+for a given deploy) to control which paths the script populates:
+
+```
+PROVISIONING_MODE=existing-shared bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
+```
+
+- **`provision` / `existing-owned`** — unchanged: all four paths (`cyso`, `ssh`, `tfstate`,
+  `github`) are checked/populated.
+- **`existing-shared`** — targeting a VM a different project owns. `cyso` and `tfstate` are
+  never prompted for; this project has no Terraform state to provision or back with remote
+  state. Only `ssh` and `github` are populated. For `ssh`, the script offers two mechanisms:
+  1. **Copy from another project's Vault namespace** — prompts for the source project slug and
+     copies `secret/<source-slug>/ssh` into `secret/<this-slug>/ssh` verbatim. Requires the
+     operator to already have Vault access to the owning project's namespace.
+  2. **Generate a new keypair** — same as the default path, but the script cannot append the
+     public key to the shared VM's `authorized_keys` itself (it has no access to that VM); it
+     prints the public key and the operator appends it manually, once.
+
+  Neither mechanism is "the" automated path — both require a one-time manual trust step between
+  two otherwise-independent projects, since Vault namespaces are not automatically shared.
 
 ---
 

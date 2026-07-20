@@ -1,8 +1,9 @@
 # Deploy Target Resolution — Branch the Flow for Existing / Shared VMs
 
-**Status:** Not Started
+**Status:** In Progress
 **Mode:** Assisted
 **Created:** 2026-07-20
+**Started:** 2026-07-20
 
 ## Description
 
@@ -64,8 +65,13 @@ source of truth.)
   to already have access to the owning project's key once, which cannot be automated without
   assuming trust between two otherwise-independent projects' Vault instances. Document both; don't
   pick one as "the" automated path.
-- **`VM_HOST` for `existing-shared` mode is set manually** (`gh variable set VM_HOST`), never derived
-  from a Terraform output — there is no Terraform run on the deploying project's side to produce one.
+- **`VM_HOST` is a GitHub Actions *variable*, not a secret, in every `provisioning_mode`** — it's
+  just an IP/hostname, not sensitive, and unlike a secret it can be read back via `gh variable get`.
+  That read-back is what lets `smaqit.infrastructure-provision-cyso`'s ownership guard (Step 4)
+  query the currently-declared target directly, instead of depending on the caller having already
+  exported it into the environment. For `existing-shared` mode specifically, the variable is set
+  manually (`gh variable set VM_HOST`), never derived from a Terraform output — there is no
+  Terraform run on the deploying project's side to produce one.
 
 ## Implementation Steps
 
@@ -119,35 +125,80 @@ source of truth.)
    (patch-level bump for doc-only changes, minor for new steps/parameters).
 
 ## Known Issues Triage
+**Triaged:** 2026-07-20
+**Tools searched:** terraform-provider-openstack, hashicorp/vault
+**Result:** Clear
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+- None
+
+### Advisory Issues
+- None — Vault keyword search (`namespace copy secret`) returned 11 loosely-matched issues, none pertaining to reading a secret path in one namespace/slug and writing it under another; none labeled `bug`/`regression`; none relevant to the cross-project SSH-key-copy design in Step 3.
+
+### Historical (Closed)
+- None
+
+### Unresolvable Tools
+- GitHub CLI (`gh`), GitHub Actions, nginx — no task-specific bug search performed; these are used per their documented, stable CLI/workflow-syntax behavior only, not a version-specific feature this task depends on.
 
 ## Acceptance Criteria
 
-- [ ] `smaqit.input-deployment` resolves and surfaces a `provisioning_mode` value (`provision` /
+- [x] `smaqit.input-deployment` resolves and surfaces a `provisioning_mode` value (`provision` /
       `existing-owned` / `existing-shared`), defaulting safely and eliciting only when genuinely
       ambiguous
-- [ ] `smaqit.new-greenfield-project` Phase 4/5 steps branch explicitly on `provisioning_mode`, with
+- [x] `smaqit.new-greenfield-project` Phase 4/5 steps branch explicitly on `provisioning_mode`, with
       all three paths documented (not just the default)
-- [ ] `existing-shared` mode never invokes `smaqit.infrastructure-provision-cyso`
-- [ ] `smaqit.infrastructure-vault-loader` supports populating only `ssh` + `github` for a project
+- [x] `existing-shared` mode never invokes `smaqit.infrastructure-provision-cyso`
+- [x] `smaqit.infrastructure-vault-loader` supports populating only `ssh` + `github` for a project
       slug, without prompting for `cyso`/`tfstate`, and offers a documented path to reuse an SSH
       keypair across two projects' Vault namespaces
-- [ ] `smaqit.infrastructure-repo-config` no longer hard-fails when `tfstate`/`cyso` Vault paths are
+- [x] `smaqit.infrastructure-repo-config` no longer hard-fails when `tfstate`/`cyso` Vault paths are
       absent — skips those steps cleanly and reports what was skipped and why
-- [ ] `smaqit.infrastructure-provision-cyso` has a pre-flight guard against provisioning a second VM
+- [x] `smaqit.infrastructure-provision-cyso` has a pre-flight guard against provisioning a second VM
       when one is already declared for the target but not owned by this project's state
-- [ ] `smaqit.infrastructure-cicd-generate` supports a `deploy-only` mode producing a single-job
+- [x] `smaqit.infrastructure-cicd-generate` supports a `deploy-only` mode producing a single-job
       `deploy.yml` with no Terraform/provision step
-- [ ] The nginx `default_server`-vs-name-based-vhost rule is documented in whichever skill actually
+- [x] The nginx `default_server`-vs-name-based-vhost rule is documented in whichever skill actually
       writes the vhost file, not only in a downstream project's own task notes
 - [ ] All acceptance criteria above are exercised, at minimum, by walking through the
       `tested-deployment`-onto-`fashion-app-poc`'s-VM scenario end-to-end in a real session and confirming
-      each step does what this task says it should
+      each step does what this task says it should — **not done in this session**: requires a live
+      walkthrough in those projects' own working environments, not available here
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
+**Implementation approach (interim — task not yet complete, Assisted mode):**
+- Followed the 9 Implementation Steps in order. Added one new script not explicitly named in the
+  task (`smaqit.infrastructure-provision-cyso/scripts/ownership-guard.sh`) to implement Step 4's
+  pre-flight guard as a deterministic check (mirroring the existing `plan-guard.sh` pattern)
+  rather than a prose instruction.
+- `VM_HOST` storage went through three passes before landing: (1) initially implemented as a
+  GitHub Actions *variable* only for `existing-shared`, reading the Design Decisions' literal
+  `gh variable set VM_HOST` wording; (2) reverted to a **secret** in every mode after the user
+  flagged that wording as a miscommunication; (3) on reassessment, moved to a **variable** in
+  every mode (not just `existing-shared`) — `VM_HOST` is just an IP/hostname, not sensitive, and
+  unlike a secret it can be read back via `gh variable get`. That read-back directly simplifies
+  `smaqit.infrastructure-provision-cyso/scripts/ownership-guard.sh`: it can query the declared
+  target itself rather than depending on the caller (operator or workflow `env:` block) having
+  already exported it. Final state applies uniformly across `smaqit.infrastructure-cicd-generate`,
+  `smaqit.infrastructure-repo-config`, `smaqit.new-greenfield-project`,
+  `smaqit.infrastructure-provision-cyso` (SKILL.md + `ownership-guard.sh`), and
+  `smaqit.infrastructure-hook-post-deploy-stamp` (collateral wording fix — not in the original
+  Files to Create/Modify table, but referenced `VM_HOST` as a secret and would have been
+  inconsistent otherwise).
+
+**Decisions made:**
+- All branching is documented inline in each affected SKILL.md (`→ existing-owned:` /
+  `→ existing-shared:` callouts under the relevant step) rather than duplicating full step
+  sequences per mode — keeps the default (`provision`) path unchanged and readable.
+
+**Blockers encountered:**
+- None.
+
+**Follow-up identified:**
+- Acceptance criterion "exercise end-to-end via the `tested-deployment`-onto-`fashion-app-poc` scenario"
+  is unmet — it requires a live session in those projects' own working environments, not available
+  in this repo's session. Flagging for the user to run separately before invoking `/task.complete 084`.
 
 **Implementation approach:**
 - TBD
@@ -170,9 +221,11 @@ source of truth.)
 | `skills/smaqit.infrastructure-vault-loader/SKILL.md` | Modify — mode-aware credential population |
 | `skills/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh` | Modify — skip cyso/tfstate prompts in `existing-shared` mode; add cross-project SSH key copy path |
 | `skills/smaqit.infrastructure-provision-cyso/SKILL.md` | Modify — add pre-flight ownership guard |
-| `skills/smaqit.infrastructure-repo-config/SKILL.md` | Modify — skip absent Vault paths cleanly instead of hard-failing |
-| `skills/smaqit.infrastructure-cicd-generate/SKILL.md` | Modify — add `deploy-only` generation mode |
+| `skills/smaqit.infrastructure-provision-cyso/scripts/ownership-guard.sh` | New — deterministic Step 0 guard; resolves declared `VM_HOST` via arg/env/`gh variable get` and checks it against Terraform state |
+| `skills/smaqit.infrastructure-repo-config/SKILL.md` | Modify — skip absent Vault paths cleanly instead of hard-failing; `VM_HOST` set via `gh variable set` |
+| `skills/smaqit.infrastructure-cicd-generate/SKILL.md` | Modify — add `deploy-only` generation mode; `VM_HOST` read via `${{ vars.VM_HOST }}` |
 | `skills/smaqit.infrastructure-deploy-rsync/SKILL.md` | Modify — document `default_server` vs name-based vhost rule |
+| `skills/smaqit.infrastructure-hook-post-deploy-stamp/SKILL.md` | Modify (collateral) — wording fix: `VM_HOST` is a variable, not a secret |
 
 ## Notes
 

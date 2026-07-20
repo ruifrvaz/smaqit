@@ -6,12 +6,20 @@
 # Skips credential paths that already exist. Generates SSH keypair automatically.
 #
 # Usage: bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
+#
+# PROVISIONING_MODE controls which paths are populated:
+#   provision | existing-owned (default) — all four paths (cyso, ssh, tfstate, github)
+#   existing-shared — only ssh + github; cyso/tfstate are never prompted for since
+#     this project never provisions Terraform for a VM it doesn't own.
+#
+#   PROVISIONING_MODE=existing-shared bash .../load-credentials.sh
 
 set -euo pipefail
 
 # ── Environment ───────────────────────────────────────────────────────────────
 
 export VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
+PROVISIONING_MODE="${PROVISIONING_MODE:-provision}"
 
 # ── Helper: read a secret without echoing, then export to named variable ──────
 # Usage: read_secret VAR_NAME "Prompt label"
@@ -110,6 +118,7 @@ if [ -z "$PROJECT_SLUG" ]; then
 fi
 
 echo "==> Project slug: $PROJECT_SLUG"
+echo "==> Provisioning mode: $PROVISIONING_MODE"
 echo ""
 
 # ── Helper: check if path already populated ───────────────────────────────────
@@ -118,26 +127,77 @@ path_exists() {
   vault kv get "secret/${PROJECT_SLUG}/$1" > /dev/null 2>&1
 }
 
-# ── Step 1: Cyso app credentials ──────────────────────────────────────────────
-
-echo "--- [1/4] Cyso Cloud app credentials (secret/${PROJECT_SLUG}/cyso) ---"
-if path_exists "cyso"; then
-  echo "    SKIP — path already populated"
+if [ "$PROVISIONING_MODE" = "existing-shared" ]; then
+  REQUIRED_PATHS=(ssh github)
+  TOTAL_STEPS=2
 else
-  read -p "  app_credential_id: " CYSO_ID
-  read -s -p "  app_credential_secret: " CYSO_SECRET && echo
-  vault kv put "secret/${PROJECT_SLUG}/cyso" \
-    app_credential_id="$CYSO_ID" \
-    app_credential_secret="$CYSO_SECRET" > /dev/null
-  unset CYSO_ID CYSO_SECRET
-  echo "    DONE"
+  REQUIRED_PATHS=(cyso ssh tfstate github)
+  TOTAL_STEPS=4
 fi
 
-# ── Step 2: SSH deploy keypair ────────────────────────────────────────────────
+# ── Step: Cyso app credentials ────────────────────────────────────────────────
 
-echo "--- [2/4] SSH deploy keypair (secret/${PROJECT_SLUG}/ssh) ---"
+if [ "$PROVISIONING_MODE" = "existing-shared" ]; then
+  echo "--- Cyso Cloud app credentials (secret/${PROJECT_SLUG}/cyso) ---"
+  echo "    SKIP — existing-shared mode never provisions Terraform for this project"
+else
+  echo "--- [1/${TOTAL_STEPS}] Cyso Cloud app credentials (secret/${PROJECT_SLUG}/cyso) ---"
+  if path_exists "cyso"; then
+    echo "    SKIP — path already populated"
+  else
+    read -p "  app_credential_id: " CYSO_ID
+    read -s -p "  app_credential_secret: " CYSO_SECRET && echo
+    vault kv put "secret/${PROJECT_SLUG}/cyso" \
+      app_credential_id="$CYSO_ID" \
+      app_credential_secret="$CYSO_SECRET" > /dev/null
+    unset CYSO_ID CYSO_SECRET
+    echo "    DONE"
+  fi
+fi
+
+# ── Step: SSH deploy keypair ──────────────────────────────────────────────────
+
+SSH_STEP_LABEL="[2/${TOTAL_STEPS}]"
+[ "$PROVISIONING_MODE" = "existing-shared" ] && SSH_STEP_LABEL="[1/${TOTAL_STEPS}]"
+
+echo "--- ${SSH_STEP_LABEL} SSH deploy keypair (secret/${PROJECT_SLUG}/ssh) ---"
 if path_exists "ssh"; then
   echo "    SKIP — path already populated"
+elif [ "$PROVISIONING_MODE" = "existing-shared" ]; then
+  echo "  Targeting a VM this project doesn't own — choose how to get SSH access:"
+  echo "    1) Copy the owning project's keypair into this project's Vault namespace"
+  echo "    2) Generate a new keypair (you will manually append the public key to"
+  echo "       the shared VM's authorized_keys yourself — this script cannot do that"
+  echo "       part, since it has no access to the shared VM)"
+  read -p "  Choice [1/2]: " SSH_CHOICE
+  if [ "$SSH_CHOICE" = "1" ]; then
+    read -p "  Source project slug (owns the keypair already in Vault): " SOURCE_SLUG
+    if ! vault kv get "secret/${SOURCE_SLUG}/ssh" > /dev/null 2>&1; then
+      echo "ERROR: secret/${SOURCE_SLUG}/ssh not found — cannot copy."
+      exit 1
+    fi
+    SRC_PRIV=$(vault kv get -field=private_key "secret/${SOURCE_SLUG}/ssh")
+    SRC_PUB=$(vault kv get -field=public_key "secret/${SOURCE_SLUG}/ssh")
+    vault kv put "secret/${PROJECT_SLUG}/ssh" \
+      private_key="$SRC_PRIV" \
+      public_key="$SRC_PUB" > /dev/null
+    unset SRC_PRIV SRC_PUB
+    echo "    DONE — copied secret/${SOURCE_SLUG}/ssh into secret/${PROJECT_SLUG}/ssh"
+  else
+    TMPDIR_KEY=$(mktemp -d)
+    SSH_KEY_PATH="${TMPDIR_KEY}/deploy_key"
+    ssh-keygen -t ed25519 -f "$SSH_KEY_PATH" -N "" -q
+    vault kv put "secret/${PROJECT_SLUG}/ssh" \
+      private_key="$(cat "${SSH_KEY_PATH}")" \
+      public_key="$(cat "${SSH_KEY_PATH}.pub" | tr -d '\n')" > /dev/null
+    echo "    DONE — ed25519 keypair generated and stored"
+    echo "    ACTION REQUIRED: append the following public key to the shared VM's"
+    echo "    ~/.ssh/authorized_keys yourself — this script has no access to that VM:"
+    echo ""
+    cat "${SSH_KEY_PATH}.pub"
+    echo ""
+    rm -rf "$TMPDIR_KEY"
+  fi
 else
   TMPDIR_KEY=$(mktemp -d)
   SSH_KEY_PATH="${TMPDIR_KEY}/deploy_key"
@@ -149,24 +209,29 @@ else
   echo "    DONE — ed25519 keypair generated and stored"
 fi
 
-# ── Step 3: Terraform state S3 credentials ────────────────────────────────────
+# ── Step: Terraform state S3 credentials ──────────────────────────────────────
 
-echo "--- [3/4] Terraform state S3 credentials (secret/${PROJECT_SLUG}/tfstate) ---"
-if path_exists "tfstate"; then
-  echo "    SKIP — path already populated"
+if [ "$PROVISIONING_MODE" = "existing-shared" ]; then
+  echo "--- Terraform state S3 credentials (secret/${PROJECT_SLUG}/tfstate) ---"
+  echo "    SKIP — existing-shared mode has no Terraform state for this project"
 else
-  read -p "  s3_access_key: " S3_KEY
-  read -s -p "  s3_secret_key: " S3_SECRET && echo
-  vault kv put "secret/${PROJECT_SLUG}/tfstate" \
-    access_key="$S3_KEY" \
-    secret_key="$S3_SECRET" > /dev/null
-  unset S3_KEY S3_SECRET
-  echo "    DONE"
+  echo "--- [3/${TOTAL_STEPS}] Terraform state S3 credentials (secret/${PROJECT_SLUG}/tfstate) ---"
+  if path_exists "tfstate"; then
+    echo "    SKIP — path already populated"
+  else
+    read -p "  s3_access_key: " S3_KEY
+    read -s -p "  s3_secret_key: " S3_SECRET && echo
+    vault kv put "secret/${PROJECT_SLUG}/tfstate" \
+      access_key="$S3_KEY" \
+      secret_key="$S3_SECRET" > /dev/null
+    unset S3_KEY S3_SECRET
+    echo "    DONE"
+  fi
 fi
 
-# ── Step 4: GitHub token ──────────────────────────────────────────────────────
+# ── Step: GitHub token ─────────────────────────────────────────────────────────
 
-echo "--- [4/4] GitHub fine-grained PAT (secret/${PROJECT_SLUG}/github) ---"
+echo "--- [${TOTAL_STEPS}/${TOTAL_STEPS}] GitHub fine-grained PAT (secret/${PROJECT_SLUG}/github) ---"
 if path_exists "github"; then
   echo "    SKIP — path already populated"
 else
@@ -181,9 +246,9 @@ fi
 # ── Verification ──────────────────────────────────────────────────────────────
 
 echo ""
-echo "==> Verifying all paths..."
+echo "==> Verifying required paths for mode '${PROVISIONING_MODE}'..."
 ALL_OK=true
-for PATH_NAME in cyso ssh tfstate github; do
+for PATH_NAME in "${REQUIRED_PATHS[@]}"; do
   if path_exists "$PATH_NAME"; then
     echo "    secret/${PROJECT_SLUG}/${PATH_NAME} — OK"
   else

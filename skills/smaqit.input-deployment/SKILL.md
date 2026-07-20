@@ -2,7 +2,7 @@
 name: smaqit.input-deployment
 description: Validate and elicit deployment phase parameters from session context before deployment begins. Invoke automatically before starting the Deployment phase to confirm or default execution preferences.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Deployment Input
@@ -32,6 +32,18 @@ Validate session context for deployment execution preferences before the Deploym
 **Default:** Standard output; deployment steps and results shown  
 **Elicit when:** Sensitive environment where log scrubbing is needed  
 **Question:** "How should output be displayed? (verbose, scrub sensitive data from logs)"
+
+### Provisioning Mode
+**Default:** `provision`  
+**Elicit when:** Session context mentions co-hosting, an existing/shared VM, or names infrastructure another project already owns, and the mode cannot be resolved unambiguously from that context  
+**Question:** "Is this a new VM, a redeploy of your own existing VM, or targeting a VM another project already manages?"
+
+**Values:**
+- `provision` — this project provisions its own new VM via Terraform. Unchanged, current behavior. Default whenever nothing in session context suggests otherwise.
+- `existing-owned` — redeploying to a VM this project's own Terraform state already manages. Same skill sequence as `provision`; `terraform apply` is expected to no-op.
+- `existing-shared` — targeting a VM a *different* project owns and manages via its own Terraform state (e.g., co-hosting a second app on a VM another project provisioned). Skips Terraform provisioning for this project entirely; downstream skills (`smaqit.infrastructure-vault-loader`, `smaqit.infrastructure-provision-cyso`, `smaqit.infrastructure-repo-config`, `smaqit.infrastructure-cicd-generate`) branch on this value — see `smaqit.new-greenfield-project` Phase 4/5.
+
+Surface the resolved `provisioning_mode` value alongside the Deployment Target so downstream phases can read it from session context without re-eliciting.
 
 ## Readiness Condition
 

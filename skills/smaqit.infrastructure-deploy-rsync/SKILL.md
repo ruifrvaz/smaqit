@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-deploy-rsync
 description: Use when deploying a Node.js backend + React frontend application to a remote VM via rsync. Used in the Phase 5 dev environment sweep of `smaqit.new-greenfield-project` to validate the deployment approach locally before CI/CD. Also use as a manual fallback for direct VM deployment outside the CI/CD pipeline.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Deploy Application via rsync
@@ -72,6 +72,19 @@ metadata:
    scp -i "$TMPKEY" deployment/docker-compose.yml ubuntu@<host>:/opt/him/docker-compose.yml
    scp -i "$TMPKEY" deployment/nginx/him.conf ubuntu@<host>:/etc/nginx/sites-available/him
    ```
+   **Before transferring the nginx conf, check whether this is the first site on the VM** — this
+   matters whenever the target is co-hosted (e.g. `provisioning_mode: existing-shared`, or any VM
+   already serving another project):
+   ```bash
+   ssh -i "$TMPKEY" ubuntu@<host> "ls /etc/nginx/sites-enabled/ 2>/dev/null"
+   ```
+   - **Nothing else enabled (first site on this VM):** `deployment/nginx/him.conf`'s `listen` line
+     includes `default_server` (`listen 80 default_server;`) — this is the catch-all for requests
+     with no matching `Host` header.
+   - **Another site is already enabled (co-hosted, this is not the first):** the vhost's `listen`
+     line MUST be name-based only — `listen 80;` with `server_name <this-app's-domain-or-host>;`
+     set explicitly, and **no** `default_server`. Two vhosts both claiming `default_server` on the
+     same port fails `nginx -t` outright; conf files should never assume they own the catch-all.
 
 7. **Write deploy stamp files** (enables SHA verification in the health endpoint):
    ```bash
@@ -125,6 +138,12 @@ returning correct SHA and `deployedAt` timestamp.
   with Docker 24+.
 - **`--force-recreate`** — required even when no image changed; ensures the container restarts with
   updated files.
+- **`default_server` vs name-based vhost on a co-hosted VM** — only the *first* site deployed to a
+  VM should claim `default_server` in its nginx conf. Every subsequent co-hosted site's vhost must
+  be name-based only (`listen 80;` + explicit `server_name`), never `default_server` — a second
+  `default_server` on the same port makes `nginx -t` fail. This applies whenever a VM serves more
+  than one project, most commonly under `provisioning_mode: existing-shared`. Check
+  `/etc/nginx/sites-enabled/` before writing the conf (see Step 6) rather than assuming.
 
 ## Completion
 
@@ -133,7 +152,7 @@ returning correct SHA and `deployedAt` timestamp.
 - [ ] Backend artifacts rsynced to `/opt/him/backend/dist/`
 - [ ] `node_modules` installed via Docker on VM
 - [ ] Frontend dist rsynced to `/opt/him/frontend/`
-- [ ] `docker-compose.yml` and nginx config transferred
+- [ ] `docker-compose.yml` and nginx config transferred — `default_server` only if this is the first site on the VM; name-based vhost otherwise (checked against `/etc/nginx/sites-enabled/`)
 - [ ] Deploy stamp files written to `/opt/him/backend/`
 - [ ] Container restarted with `--force-recreate`
 - [ ] nginx reloaded without errors
@@ -151,4 +170,5 @@ returning correct SHA and `deployedAt` timestamp.
 | rsync permission denied | Check SSH key and `ubuntu` user write permissions on `/opt/him/` |
 | `Cannot find module` in container logs | Check rsync target depth; re-run step 3 with explicit `mkdir -p` |
 | nginx config test fails | Show the nginx error; do not reload — current config remains active |
+| `nginx -t` fails with a duplicate `default_server` error | Another site already claims `default_server` on this VM — remove `default_server` from this vhost and set an explicit `server_name` instead |
 | deploy-verify reports SHA mismatch | Check `docker ps`; old container may still be running; retry step 8 |

@@ -2,7 +2,7 @@
 name: smaqit.new-greenfield-project
 description: Use when orchestrating the complete SDLC for a new project — from raw project assets to a running production application accessible via browser. Covers requirements extraction, specification (business, functional, stack, infrastructure, coverage), task creation, development, IaC generation + dev environment sweep (local provisioning + deploy + verify), CI/CD production deployment, optional domain/TLS, validation, and tagged release. Re-entrant: use the pre-condition checklist to resume at any phase. Also use when the user says "take this from zero to prod", "run the full smaqit pipeline", "deploy a new project end-to-end", or when starting implementation on a freshly initialized repository.
 metadata:
-  version: "1.0.0"
+  version: "1.2.0"
 ---
 
 # Project: Zero to Production
@@ -19,12 +19,16 @@ All items below must be satisfied before starting. When re-entering at a later p
 - [ ] Git repository created on GitHub (public or private)
 
 **Required before Phase 4 (Dev Sweep)**
-- [ ] Cloud account available (Cyso or equivalent)
-- [ ] Application credential created in cloud portal; loaded into local Vault at `secret/<project-slug>/cyso`
-- [ ] Object Storage state bucket created (with separate state keys for dev and prod); S3 keys loaded into Vault at `secret/<project-slug>/tfstate`
-- [ ] SSH keypair generated (passphrase-free); both keys loaded into Vault at `secret/<project-slug>/ssh`
-- [ ] Fine-grained PAT with `variables:write` loaded into Vault at `secret/<project-slug>/github`
-- [ ] Local Vault initialised and running on 127.0.0.1:8200 (`smaqit.infrastructure-vault-loader` one-time setup complete)
+
+Applicability below depends on `provisioning_mode` (resolved by `smaqit.input-deployment` — see "Provisioning Mode" under Phase 4/5). Items marked `[provision/existing-owned]` apply when this project provisions or owns the target VM's Terraform state; items marked `[existing-shared]` apply when targeting a VM a different project owns.
+
+- [ ] `[provision/existing-owned]` Cloud account available (Cyso or equivalent)
+- [ ] `[provision/existing-owned]` Application credential created in cloud portal; loaded into local Vault at `secret/<project-slug>/cyso`
+- [ ] `[provision/existing-owned]` Object Storage state bucket created (with separate state keys for dev and prod); S3 keys loaded into Vault at `secret/<project-slug>/tfstate`
+- [ ] `[all modes]` SSH keypair generated (passphrase-free); both keys loaded into Vault at `secret/<project-slug>/ssh` — for `existing-shared`, either reused from the owning project's Vault namespace or freshly generated and manually appended to the shared VM's `authorized_keys` (see `smaqit.infrastructure-vault-loader`)
+- [ ] `[all modes]` Fine-grained PAT with `variables:write` loaded into Vault at `secret/<project-slug>/github`
+- [ ] `[existing-shared]` Target VM's fixed IP known; will be set via `gh variable set VM_HOST` rather than read from a Terraform output
+- [ ] `[all modes]` Local Vault initialised and running on 127.0.0.1:8200 (`smaqit.infrastructure-vault-loader` one-time setup complete)
 
 <!-- amendment: 2026-05-25 — Phase 4 pre-conditions updated to require local Vault as credential source. Manual exports, OpenRC file, and SSH key disk paths removed. smaqit.infrastructure-vault-loader is now the gate before Phase 4 execution. -->
 
@@ -73,22 +77,40 @@ Run each spec agent sequentially. Each agent reads the previous layer's output a
 4. **Gate:** Build passes (backend and frontend). All MVP acceptance criteria met. Development agent sets specs to `status: implemented`.
 5. Invoke `smaqit.task-complete` for the Phase 3 task, ensuring any amendments are captured under `Decisions made`.
 
+### Provisioning Mode (applies to Phases 4 and 5)
+
+Before Phase 4 begins, `smaqit.input-deployment` resolves `provisioning_mode` — one of:
+
+- **`provision`** (default) — this project provisions its own new VM via Terraform.
+- **`existing-owned`** — redeploying to a VM this project's own Terraform state already manages.
+- **`existing-shared`** — targeting a VM a *different* project owns and manages via its own Terraform state (co-hosting).
+
+Phase 4 and Phase 5 steps below are written for `provision`. Where a step differs under `existing-owned` or `existing-shared`, that difference is called out immediately under the step as `→ existing-owned:` / `→ existing-shared:`. Steps with no callout are identical across all three modes.
+
 ### Phase 4 — Dev Environment Sweep
 
 Validates the full infrastructure and deployment approach on a dedicated dev VM before committing to CI/CD.
 
 1. Invoke `smaqit.task-start` for the Phase 4 task.
 2. Invoke `smaqit.infrastructure-vault-loader`. Confirm Vault is running, unsealed, and all `secret/<project-slug>/*` paths are populated. Do not proceed until confirmed.
+   → **`existing-shared`:** only `ssh` and `github` paths are required; `cyso`/`tfstate` are never prompted for. Confirm the SSH path is populated via one of the two documented mechanisms (reused key from the owning project's Vault namespace, or a freshly generated key manually appended to the shared VM's `authorized_keys`).
 3. Invoke `/smaqit.deployment` agent with context: generate all IaC artifacts — Terraform files in `deployment/terraform/` and GitHub Actions workflow files in `.github/workflows/` using `smaqit.infrastructure-cicd-generate` patterns as reference; Terraform state key `dev/terraform.tfstate`; do not trigger deployment execution.
+   → **`existing-shared`:** invoke `smaqit.infrastructure-cicd-generate` in `deploy-only` mode. No Terraform files are generated for this project; `provision.yml` is not generated and `deploy.yml` has a single `deploy` job.
 4. Invoke `smaqit.infrastructure-provision-cyso` with dev environment variables. Note the `fixed_ip` output.
+   → **`existing-owned`:** `terraform apply` is expected to no-op (gated by `plan-guard.sh`) — this is correct, idempotent behavior, not a failure. The existing `fixed_ip` remains unchanged.
+   → **`existing-shared`:** **skip this step entirely.** This project never provisions Terraform for a VM it doesn't own. Set the target IP via `gh variable set VM_HOST` instead (see Phase 5).
 5. Invoke `smaqit.infrastructure-vm-bootstrap` with the dev VM `fixed_ip`.
+   → **`existing-shared`:** use the manually-set target IP in place of a Terraform `fixed_ip` output.
 6. Invoke `smaqit.infrastructure-deploy-rsync` to deploy to the dev VM.
+   → **`existing-shared`:** if this is not the first site on the VM, the nginx vhost must be name-based only — never `default_server` (see `smaqit.infrastructure-deploy-rsync`'s vhost rule).
 7. Invoke `smaqit.infrastructure-deploy-verify` against the dev VM. If any check fails, stop and fix before continuing.
 8. If any infrastructure or stack spec required amendment to proceed: amend in-place with an `amendment:` annotation.
 9. Commit all generated IaC artifacts: `git add deployment/ .github/workflows/ && git commit -m "ci: add infrastructure and CI/CD workflows"`.
+   → **`existing-shared`:** no `deployment/terraform/` directory exists to commit; commit `.github/workflows/` only.
 10. **Gate:** All `deploy-verify` checks PASS on dev VM. IaC artifacts committed.
 11. Invoke `smaqit.task-complete` for the Phase 4 task, ensuring any amendments are captured under `Decisions made`.
 12. *(Optional)* Tear down dev VM: run `terraform destroy` using dev state to avoid ongoing cloud costs.
+   → **`existing-shared`:** not applicable — there is no Terraform state for this project to destroy, and the VM is owned by another project regardless.
 
 ### Phase 5 — Production Deployment via CI/CD
 
@@ -96,8 +118,11 @@ Uses IaC artifacts from Phase 4. Configures production secrets, pushes to main, 
 
 1. Invoke `smaqit.task-start` for the Phase 5 task.
 2. Invoke `smaqit.infrastructure-vault-loader`. Confirm Vault is running and all credential paths are populated.
+   → **`existing-shared`:** only `ssh` and `github` are required, as in Phase 4 step 2.
 3. Invoke `smaqit.infrastructure-repo-config` to sync all production secrets from Vault to GitHub Secrets (cloud credentials, Terraform backend, SSH key).
+   → **`existing-shared`:** `repo-config` runs in restricted mode — it detects the absent `tfstate`/`cyso` Vault paths and skips syncing those secrets cleanly (not a hard failure), syncing only `ssh` + `github`-derived secrets. Additionally run `gh variable set VM_HOST --body <shared-vm-ip>` — same variable as the default path, just set manually since this project has no Terraform output to derive `VM_HOST` from.
 4. Push to main: `git push origin main`. The `deploy.yml` workflow triggers automatically (provision job → deploy job).
+   → **`existing-shared`:** `deploy.yml` has only a `deploy` job (no `provision` job) — generated that way by `smaqit.infrastructure-cicd-generate`'s `deploy-only` mode in Phase 4.
 5. Monitor the pipeline: `gh run watch` — wait for the workflow run to complete.
 6. Invoke `smaqit.infrastructure-deploy-verify` against the production VM. If any check fails, stop and report.
 7. If any spec required amendment during deployment: amend in-place with an `amendment:` annotation.
@@ -143,6 +168,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 ## Scope
 
 - Covers the single-app, two-environment path: dev VM (Phase 4 local sweep) + production VM (Phase 5 CI/CD).
+- Covers three `provisioning_mode` values (`provision`, `existing-owned`, `existing-shared`) — see "Provisioning Mode" above Phase 4. Does NOT cover two independent Terraform states both managing resources on the same VM; if a project genuinely needs its own state on a VM another project also has opinions about, that is out of scope here and needs its own design.
 - Does NOT handle database schema migrations. The current project uses SQLite with append-only schema changes.
 - Does NOT cover post-MVP feature cycles. Use individual smaqit agents for iterative feature work after this skill completes.
 - Phase 6 (domain/TLS) is conditional on domain purchase — a human action outside the system.

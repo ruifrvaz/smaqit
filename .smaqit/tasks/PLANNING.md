@@ -4,6 +4,8 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 085 | Deterministic CI/CD Workflow Templates + Guard-Script Vendoring | Not Started | High |
+| 084 | Deploy Target Resolution — Branch the Flow for Existing / Shared VMs | In Progress | High |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |

@@ -2,14 +2,14 @@
 name: smaqit.infrastructure-hook-post-deploy-stamp
 description: Use when writing deploy stamp files (DEPLOY_SHA, DEPLOY_TIME) to the VM after a successful deployment, or when re-stamping without a full redeploy. Also use when the health endpoint returns "sha":"unknown" after deployment, when a deployed PR needs a notification comment, or when smaqit.infrastructure-deploy-rsync invokes the post-deploy stamp step. Produces DEPLOY_SHA and DEPLOY_TIME files in /opt/him/backend/ on the VM and optionally posts a deploy comment on the merged PR.
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # Post-Deploy Stamp
 
 ## Steps
 
-1. **Resolve target:** Determine the VM host from the `VM_HOST` secret, the Infrastructure spec, or an explicit argument. Confirm the app directory is `/opt/him/backend/`.
+1. **Resolve target:** Determine the VM host from the `VM_HOST` variable, the Infrastructure spec, or an explicit argument. Confirm the app directory is `/opt/him/backend/`.
 
 2. **Determine SHA:** Run `git rev-parse HEAD` locally to obtain the current commit SHA.
 

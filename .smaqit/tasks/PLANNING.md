@@ -4,7 +4,8 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 085 | Deterministic CI/CD Workflow Templates + Guard-Script Vendoring | Not Started | High |
+| 086 | Reconcile fashion-app-poc's Python/FastAPI + Next.js Deploy Skill Into Canonical smaqit | Not Started | High |
+| 085 | Deterministic CI/CD Workflow Templates + Guard-Script Vendoring | In Progress | High |
 | 084 | Deploy Target Resolution — Branch the Flow for Existing / Shared VMs | In Progress | High |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |

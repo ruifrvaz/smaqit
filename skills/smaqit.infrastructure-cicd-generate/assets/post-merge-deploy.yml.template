@@ -1,0 +1,20 @@
+name: Trigger Deploy After Merge
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  actions: write
+
+jobs:
+  trigger-deploy:
+    # PR body sentinel, not a label — Copilot Coding Agent tokens lack issues:write and
+    # cannot apply labels. Must be set in the PR body at creation time.
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.body, 'smaqit:deploy')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch deploy.yml
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref "${{ github.event.pull_request.base.ref }}"

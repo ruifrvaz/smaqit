@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-repo-config
 description: Use when configuring a GitHub repository with the secrets and variables required for CI/CD workflows. Covers Actions secrets (VM_SSH_KEY, Terraform backend credentials, cloud provider credentials, GH_TERRAFORM_TOKEN) and Actions variables (VM_HOST, DEMO_MODE). Uses the `gh` CLI. Prevents GITHUB_TOKEN reserved-name collisions and SSH key trailing-newline drift. Also use when setting up a new deployment repository, rotating CI/CD credentials, or verifying that all required repository secrets and variables are present.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Configure GitHub Repository Secrets and Variables
@@ -16,8 +16,8 @@ metadata:
 - `PROJECT_SLUG` and `VAULT_ADDR=http://127.0.0.1:8200` exported in current shell
 - **Restricted mode for `provisioning_mode: existing-shared`:** only `secret/<project-slug>/ssh`
   and `secret/<project-slug>/github` are expected to be populated — `tfstate` and `cyso` are never
-  populated for this mode (see `smaqit.infrastructure-vault-loader`) and steps 3–5 below adapt
-  accordingly rather than assuming all four paths exist.
+  populated for this mode (see `smaqit.infrastructure-vault-loader`) and `scripts/sync-secrets.sh`
+  (Step 3) adapts accordingly rather than assuming all four paths exist.
 
 > **Role of this skill:** Vault is the source of truth. GitHub Secrets are a derived copy. This skill
 > reads from Vault and pushes to GitHub. On credential rotation, update Vault first, then re-run
@@ -26,74 +26,32 @@ metadata:
 
 1. **Confirm repository** — resolve `<owner>/<repo>` from `CLAUDE.md` (or `copilot-instructions.md`) or user input.
 
-2. **Set SSH deploy key** (piped from Vault — never touches disk):
-   ```bash
-   vault kv get -field=private_key secret/${PROJECT_SLUG}/ssh \
-     | tr -d '\n' \
-     | gh secret set VM_SSH_KEY -R <owner>/<repo> --stdin
-   ```
-   `tr -d '\n'` strips trailing newline. Without it, Terraform marks the keypair for replacement
-   on every plan.
+2. **Resolve the VM host value** — from `terraform output -raw fixed_ip` after Phase 4
+   provisioning (`provision`/`existing-owned`), or a manually-supplied value (`existing-shared` —
+   there is no Terraform output on this project's side to derive it from).
 
-3. **Set VM host** — a repository **variable**, not a secret. It's just an IP/hostname, not
-   sensitive, and unlike secrets, variables can be read back via `gh variable get` — which is
-   what `smaqit.infrastructure-provision-cyso`'s ownership guard relies on:
+3. **Run the sync script** — this replaces the individual `vault kv get | gh secret set` steps
+   with one deterministic script that enforces the `tfstate`/`cyso` skip-if-absent logic
+   structurally, and prints its own verification report:
    ```bash
-   gh variable set VM_HOST --body "<vm-ip-or-hostname>" -R <owner>/<repo>
+   scripts/sync-secrets.sh <owner>/<repo> <vm-host-value>
    ```
-   - **`provision` / `existing-owned`:** populated from `terraform output -raw fixed_ip` after
-     Phase 4 provisioning.
-   - **`existing-shared`:** same variable, but set manually — there is no Terraform output on this
-     project's side to derive it from.
+   It syncs, in order: `VM_SSH_KEY` (trailing newline stripped — without this, Terraform marks the
+   keypair for replacement on every plan) and `VM_SSH_PUBLIC_KEY` from `secret/<slug>/ssh`;
+   `VM_HOST` as a repository **variable**, not a secret — it's just an IP/hostname, not sensitive,
+   and unlike a secret it can be read back via `gh variable get`, which is what
+   `smaqit.infrastructure-provision-cyso`'s ownership guard relies on; `TF_BACKEND_ACCESS_KEY`/
+   `TF_BACKEND_SECRET_KEY` from `secret/<slug>/tfstate` — skipped cleanly and reported (not an
+   error) if that path is absent, expected for `existing-shared`; `OS_APPLICATION_CREDENTIAL_ID`/
+   `OS_APPLICATION_CREDENTIAL_SECRET` from `secret/<slug>/cyso` — same skip-if-absent handling; and
+   `GH_TERRAFORM_TOKEN` from `secret/<slug>/github`. CRITICAL: the workflow YAML env var for that
+   last one MUST be `TF_VAR_github_token`, NOT `GITHUB_TOKEN` — that name is reserved and the
+   runner overwrites it before any step executes, and the installation token has no
+   `variables:write` scope, causing a 401 on `github_actions_variable` resources.
 
-4. **Set Terraform backend credentials** — skip cleanly if the Vault path is absent (expected for
-   `existing-shared`; this project has no Terraform state to back):
-   ```bash
-   if vault kv get secret/${PROJECT_SLUG}/tfstate > /dev/null 2>&1; then
-     vault kv get -field=access_key secret/${PROJECT_SLUG}/tfstate \
-       | gh secret set TF_BACKEND_ACCESS_KEY -R <owner>/<repo> --stdin
-     vault kv get -field=secret_key secret/${PROJECT_SLUG}/tfstate \
-       | gh secret set TF_BACKEND_SECRET_KEY -R <owner>/<repo> --stdin
-   else
-     echo "SKIP — secret/${PROJECT_SLUG}/tfstate absent (expected for provisioning_mode: existing-shared)"
-   fi
-   ```
-
-5. **Set cloud provider credentials** — skip cleanly if the Vault path is absent (expected for
-   `existing-shared`; this project never provisions Terraform against the cloud provider):
-   ```bash
-   if vault kv get secret/${PROJECT_SLUG}/cyso > /dev/null 2>&1; then
-     vault kv get -field=app_credential_id secret/${PROJECT_SLUG}/cyso \
-       | gh secret set OS_APPLICATION_CREDENTIAL_ID -R <owner>/<repo> --stdin
-     vault kv get -field=app_credential_secret secret/${PROJECT_SLUG}/cyso \
-       | gh secret set OS_APPLICATION_CREDENTIAL_SECRET -R <owner>/<repo> --stdin
-   else
-     echo "SKIP — secret/${PROJECT_SLUG}/cyso absent (expected for provisioning_mode: existing-shared)"
-   fi
-   ```
-
-6. **Set GitHub Terraform token:**
-   ```bash
-   vault kv get -field=token secret/${PROJECT_SLUG}/github \
-     | gh secret set GH_TERRAFORM_TOKEN -R <owner>/<repo> --stdin
-   ```
-   CRITICAL: The workflow YAML env var for this secret MUST be `TF_VAR_github_token`, NOT `GITHUB_TOKEN`.
-   `GITHUB_TOKEN` is reserved — the runner injects its own installation token under that name before
-   any step executes, overwriting the PAT. The installation token has no `variables:write` scope →
-   401 on `github_actions_variable` resources.
-
-7. **Set VM SSH public key:**
-   ```bash
-   vault kv get -field=public_key secret/${PROJECT_SLUG}/ssh \
-     | gh secret set VM_SSH_PUBLIC_KEY -R <owner>/<repo> --stdin
-   ```
-
-8. **Verify:**
-   ```bash
-   gh secret list -R <owner>/<repo>
-   gh variable list -R <owner>/<repo>
-   ```
-   Confirm all expected names appear (see Completion checklist).
+4. **Review the script's verification output** — it runs `gh secret list -R <owner>/<repo>` and
+   `gh variable list -R <owner>/<repo>` itself and reports which secrets (if any) were skipped and
+   why. Confirm all expected names appear (see Completion checklist) before considering this done.
 
 ## Output
 
@@ -107,7 +65,7 @@ metadata:
 - Does NOT generate SSH keys — the caller must provide a passphrase-free deploy key file path
 - Does NOT create or configure the GitHub repository itself
 - Does NOT manage environment-level secrets (repository-level only)
-- Does NOT hard-fail when `tfstate`/`cyso` Vault paths are absent — see Steps 4/5 for `provisioning_mode: existing-shared` handling
+- Does NOT hard-fail when `tfstate`/`cyso` Vault paths are absent — see Step 3 / `scripts/sync-secrets.sh` for `provisioning_mode: existing-shared` handling
 
 ## Examples
 
@@ -143,6 +101,7 @@ metadata:
 | Output artifact already exists | Confirm with user before overwriting |
 | `gh` not authenticated | Run `gh auth login` before proceeding |
 | Secret value not available | Request the value from the operator; do not proceed with missing secrets |
-| `secret/<project-slug>/tfstate` or `/cyso` absent | Skip that step cleanly (log which secrets were skipped and why) — expected for `provisioning_mode: existing-shared`, not an error |
+| `secret/<project-slug>/tfstate` or `/cyso` absent | `scripts/sync-secrets.sh` skips that block cleanly and reports it — expected for `provisioning_mode: existing-shared`, not an error |
+| `scripts/sync-secrets.sh` exits 1 | `secret/<project-slug>/ssh` or `/github` is missing — these are required in every mode; populate them via `smaqit.infrastructure-vault-loader` before retrying |
 | `GITHUB_TOKEN` collision in existing workflow YAML | Flag it explicitly and require renaming before the workflow is triggered |
 | `gh variable set` returns 403 | Verify the PAT used for `gh auth login` has `write:variables` scope |

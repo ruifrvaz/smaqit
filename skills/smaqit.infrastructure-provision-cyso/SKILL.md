@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-provision-cyso
 description: Use when provisioning cloud infrastructure for the HIM Corporate application on Cyso Cloud (OpenStack) using Terraform. Covers application credential sourcing, Object Storage backend initialization, SSH keypair variable configuration, `terraform init/plan/apply`, and fixed IP retrieval. Produces a running Cyso VM accessible via SSH, with Cinder data volume attached and security group configured on ports 22/80/443. Also use when re-running Terraform after infrastructure changes or when an operator invokes `/provision.cyso`.
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # Provision Target: Cyso Cloud
@@ -12,6 +12,16 @@ project owns and manages via its own Terraform state (co-hosting), do not invoke
 all — use `provisioning_mode: existing-shared` instead (see `smaqit.new-greenfield-project`
 Phase 4/5). Step 0 below is a defense-in-depth guard for a direct/manual invocation that bypasses
 that orchestration.
+
+## Canonical vs. vendored guard scripts
+
+`scripts/plan-guard.sh` and `scripts/ownership-guard.sh` in *this* skill directory are canonical —
+edit them here. `smaqit.infrastructure-cicd-generate` copies both, verbatim, into a target
+project's `deployment/scripts/` at generation time (`full`/`existing-owned` modes only), so the
+generated `deploy.yml`/`provision.yml` have a real, checked-in path to invoke them from on a
+GitHub-hosted runner, which has no access to the smaqit skill directory. The vendored copies are
+**generated output** — they are overwritten the next time `cicd-generate` runs, and should never
+be hand-edited in a target project expecting the edit to persist.
 
 ## Pre-conditions (one-time manual steps — complete before first run)
 

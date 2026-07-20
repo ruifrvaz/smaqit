@@ -1,0 +1,64 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    paths:
+      - "deployment/terraform/**"
+
+permissions:
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_app_credential_id: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+      TF_VAR_app_credential_secret: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+      # provision.yml also needs TF_VAR_github_token — omitting it causes interactive
+      # prompt hangs in PR preview plans.
+      TF_VAR_github_token: ${{ secrets.GH_TERRAFORM_TOKEN }}
+      TF_VAR_ssh_public_key: ${{ secrets.VM_SSH_PUBLIC_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_BACKEND_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_BACKEND_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.0"
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: deployment/terraform
+        run: terraform init
+
+      # NO terraform apply — this workflow only ever plans. plan-guard.sh's PASS/BLOCKED
+      # verdict, plus the raw plan output, are posted to the PR; a human decides what
+      # happens next, this workflow never applies anything itself.
+      - name: Plan guard
+        id: guard
+        continue-on-error: true
+        run: deployment/scripts/plan-guard.sh deployment/terraform | tee /tmp/plan-guard-output.txt
+
+      - name: Capture guard verdict
+        if: always()
+        run: |
+          if [ "${{ steps.guard.outcome }}" = "success" ]; then
+            echo "verdict=PASS" >> "$GITHUB_ENV"
+          else
+            echo "verdict=BLOCKED" >> "$GITHUB_ENV"
+          fi
+
+      - name: Post PR comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "### Terraform Plan — verdict: \`${verdict}\`"
+            echo
+            echo '```'
+            cat /tmp/plan-guard-output.txt
+            echo '```'
+          } > /tmp/pr-comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/pr-comment.md

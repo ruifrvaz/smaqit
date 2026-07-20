@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-deploy-rsync
 description: Use when deploying a Node.js backend + React frontend application to a remote VM via rsync. Used in the Phase 5 dev environment sweep of `smaqit.new-greenfield-project` to validate the deployment approach locally before CI/CD. Also use as a manual fallback for direct VM deployment outside the CI/CD pipeline.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Deploy Application via rsync
@@ -47,11 +47,11 @@ metadata:
 
 3. **Transfer backend artifacts to VM:**
    ```bash
-   ssh -i "$TMPKEY" ubuntu@<host> "mkdir -p /opt/him/backend/dist"
-   rsync -avz --delete backend/dist/ ubuntu@<host>:/opt/him/backend/dist/
-   rsync -avz backend/package.json backend/package-lock.json ubuntu@<host>:/opt/him/backend/
+   ssh -i "$TMPKEY" ubuntu@<host> "mkdir -p __APP_DIR__/backend/dist"
+   rsync -avz --delete backend/dist/ ubuntu@<host>:__APP_DIR__/backend/dist/
+   rsync -avz backend/package.json backend/package-lock.json ubuntu@<host>:__APP_DIR__/backend/
    ```
-   CRITICAL: Always `mkdir -p /opt/him/backend/dist` before rsyncing. The trailing slash on
+   CRITICAL: Always `mkdir -p __APP_DIR__/backend/dist` before rsyncing. The trailing slash on
    `backend/dist/` copies the directory's *contents* — if the target directory does not exist, rsync
    creates it one level too shallow and the container fails with
    `Cannot find module '/app/dist/index.js'`.
@@ -59,45 +59,49 @@ metadata:
 4. **Install `node_modules` on VM** (production only, inside a throwaway container):
    ```bash
    ssh -i "$TMPKEY" ubuntu@<host> \
-     "cd /opt/him/backend && docker run --rm -v \$(pwd):/app -w /app node:22-alpine npm install --production"
+     "cd __APP_DIR__/backend && docker run --rm -v \$(pwd):/app -w /app node:22-alpine npm install --production"
    ```
 
 5. **Transfer frontend build:**
    ```bash
-   rsync -avz --delete frontend/dist/ ubuntu@<host>:/opt/him/frontend/
+   rsync -avz --delete frontend/dist/ ubuntu@<host>:__APP_DIR__/frontend/
    ```
 
 6. **Transfer config files:**
    ```bash
-   scp -i "$TMPKEY" deployment/docker-compose.yml ubuntu@<host>:/opt/him/docker-compose.yml
-   scp -i "$TMPKEY" deployment/nginx/him.conf ubuntu@<host>:/etc/nginx/sites-available/him
+   scp -i "$TMPKEY" deployment/docker-compose.yml ubuntu@<host>:__APP_DIR__/docker-compose.yml
    ```
-   **Before transferring the nginx conf, check whether this is the first site on the VM** — this
-   matters whenever the target is co-hosted (e.g. `provisioning_mode: existing-shared`, or any VM
-   already serving another project):
+   The nginx conf is written by `scripts/write-vhost.sh`, not `scp`'d directly — it decides
+   `default_server` vs. name-based on its own by inspecting `/etc/nginx/sites-enabled/` on the
+   target VM (this matters whenever the target is co-hosted, e.g.
+   `provisioning_mode: existing-shared`, or any VM already serving another project), rather than
+   that decision being made in prose here:
    ```bash
-   ssh -i "$TMPKEY" ubuntu@<host> "ls /etc/nginx/sites-enabled/ 2>/dev/null"
+   scripts/write-vhost.sh "$TMPKEY" <host> deployment/nginx/him.conf <project-slug> [<server-name-if-co-hosted>]
    ```
-   - **Nothing else enabled (first site on this VM):** `deployment/nginx/him.conf`'s `listen` line
-     includes `default_server` (`listen 80 default_server;`) — this is the catch-all for requests
-     with no matching `Host` header.
-   - **Another site is already enabled (co-hosted, this is not the first):** the vhost's `listen`
-     line MUST be name-based only — `listen 80;` with `server_name <this-app's-domain-or-host>;`
-     set explicitly, and **no** `default_server`. Two vhosts both claiming `default_server` on the
-     same port fails `nginx -t` outright; conf files should never assume they own the catch-all.
+   - **Nothing else enabled (first site on this VM):** the script sets `listen 80 default_server;`
+     — this is the catch-all for requests with no matching `Host` header.
+   - **Another site is already enabled (co-hosted, this is not the first):** the script requires
+     an explicit `<server-name-if-co-hosted>` argument and writes a name-based vhost only — `listen
+     80;` with that `server_name`, and no `default_server`. It refuses to proceed without that
+     argument rather than guessing one. Two vhosts both claiming `default_server` on the same port
+     fails `nginx -t` outright.
+   - The script uploads to `/etc/nginx/sites-available/<project-slug>`, symlinks into
+     `sites-enabled/`, and runs `nginx -t` itself — a non-zero exit means the previous config is
+     still active and nothing was reloaded (see Step 9).
 
 7. **Write deploy stamp files** (enables SHA verification in the health endpoint):
    ```bash
    ssh -i "$TMPKEY" ubuntu@<host> \
-     "printf '%s' '$(git rev-parse HEAD)' > /opt/him/backend/DEPLOY_SHA && \
-      printf '%s' '$(date -u +%Y-%m-%dT%H:%M:%SZ)' > /opt/him/backend/DEPLOY_TIME"
+     "printf '%s' '$(git rev-parse HEAD)' > __APP_DIR__/backend/DEPLOY_SHA && \
+      printf '%s' '$(date -u +%Y-%m-%dT%H:%M:%SZ)' > __APP_DIR__/backend/DEPLOY_TIME"
    ```
-   Write to `/opt/him/backend/`, not `/opt/him/` — the container mounts `/opt/him/backend/` as `/app`;
+   Write to `__APP_DIR__/backend/`, not `__APP_DIR__/` — the container mounts `__APP_DIR__/backend/` as `/app`;
    files one level up are invisible to the container.
 
 8. **Restart containers:**
    ```bash
-   ssh -i "$TMPKEY" ubuntu@<host> "cd /opt/him && docker compose up -d --force-recreate"
+   ssh -i "$TMPKEY" ubuntu@<host> "cd __APP_DIR__ && docker compose up -d --force-recreate"
    ```
    Use `docker compose` (v2, no hyphen). `--force-recreate` is required because the app is deployed
    as files, not as a new image.
@@ -111,7 +115,7 @@ metadata:
 
 ## Output
 
-Application artifacts deployed to `/opt/him/` on the VM, container running, nginx serving.
+Application artifacts deployed to `__APP_DIR__/` on the VM, container running, nginx serving.
 
 ## Scope
 
@@ -129,11 +133,11 @@ returning correct SHA and `deployedAt` timestamp.
 
 - **Hardcoded source paths** — this skill assumes `backend/` and `frontend/` as local source directories. If the project uses different paths, update steps 1–5 accordingly and ensure the stack spec declares the same paths.
 - **`Cannot find module '/app/dist/index.js'`** — rsync trailing slash puts files at the wrong depth.
-  Always `mkdir -p /opt/him/backend/dist` before rsyncing `backend/dist/`.
+  Always `mkdir -p __APP_DIR__/backend/dist` before rsyncing `backend/dist/`.
 - **`VITE_DEMO_MODE` is build-time only** — changing the GitHub Actions variable and re-running the
   workflow triggers a rebuild. Changing it in the running environment has no effect.
-- **Deploy stamp path** — write to `/opt/him/backend/DEPLOY_SHA` and `/opt/him/backend/DEPLOY_TIME`,
-  not `/opt/him/`. Files in `/opt/him/` are invisible to the container.
+- **Deploy stamp path** — write to `__APP_DIR__/backend/DEPLOY_SHA` and `__APP_DIR__/backend/DEPLOY_TIME`,
+  not `__APP_DIR__/`. Files in `__APP_DIR__/` are invisible to the container.
 - **`docker compose` vs `docker-compose`** — use `docker compose` (v2, no hyphen) on Ubuntu 24.04
   with Docker 24+.
 - **`--force-recreate`** — required even when no image changed; ensures the container restarts with
@@ -142,18 +146,19 @@ returning correct SHA and `deployedAt` timestamp.
   VM should claim `default_server` in its nginx conf. Every subsequent co-hosted site's vhost must
   be name-based only (`listen 80;` + explicit `server_name`), never `default_server` — a second
   `default_server` on the same port makes `nginx -t` fail. This applies whenever a VM serves more
-  than one project, most commonly under `provisioning_mode: existing-shared`. Check
-  `/etc/nginx/sites-enabled/` before writing the conf (see Step 6) rather than assuming.
+  than one project, most commonly under `provisioning_mode: existing-shared`.
+  `scripts/write-vhost.sh` (Step 6) makes this decision deterministically by inspecting
+  `/etc/nginx/sites-enabled/` itself — it is not something to reconstruct in prose or by hand.
 
 ## Completion
 
 - [ ] Backend TypeScript build succeeded
 - [ ] Frontend Vite build succeeded
-- [ ] Backend artifacts rsynced to `/opt/him/backend/dist/`
+- [ ] Backend artifacts rsynced to `__APP_DIR__/backend/dist/`
 - [ ] `node_modules` installed via Docker on VM
-- [ ] Frontend dist rsynced to `/opt/him/frontend/`
-- [ ] `docker-compose.yml` and nginx config transferred — `default_server` only if this is the first site on the VM; name-based vhost otherwise (checked against `/etc/nginx/sites-enabled/`)
-- [ ] Deploy stamp files written to `/opt/him/backend/`
+- [ ] Frontend dist rsynced to `__APP_DIR__/frontend/`
+- [ ] `docker-compose.yml` transferred; nginx config written via `scripts/write-vhost.sh` (`default_server` vs name-based decided deterministically, not assumed) and `nginx -t` passed
+- [ ] Deploy stamp files written to `__APP_DIR__/backend/`
 - [ ] Container restarted with `--force-recreate`
 - [ ] nginx reloaded without errors
 - [ ] `smaqit.infrastructure-deploy-verify` invoked and passed
@@ -167,8 +172,9 @@ returning correct SHA and `deployedAt` timestamp.
 | Subagent invocation fails | Report the failure with context; do not silently retry |
 | Output artifact already exists | Confirm with user before overwriting |
 | `npm run build` fails | Show the build error; stop — do not deploy broken artifacts |
-| rsync permission denied | Check SSH key and `ubuntu` user write permissions on `/opt/him/` |
+| rsync permission denied | Check SSH key and `ubuntu` user write permissions on `__APP_DIR__/` |
 | `Cannot find module` in container logs | Check rsync target depth; re-run step 3 with explicit `mkdir -p` |
 | nginx config test fails | Show the nginx error; do not reload — current config remains active |
-| `nginx -t` fails with a duplicate `default_server` error | Another site already claims `default_server` on this VM — remove `default_server` from this vhost and set an explicit `server_name` instead |
+| `scripts/write-vhost.sh` exits 1 with "no server-name was supplied" | This VM already serves another site (co-hosted) — re-run with an explicit `<server-name-if-co-hosted>` argument |
+| `scripts/write-vhost.sh`'s `nginx -t` step fails with a duplicate `default_server` error | Another site already claims `default_server` on this VM outside of what the script detected (e.g. a manually-added vhost) — investigate `/etc/nginx/sites-enabled/` directly before re-running |
 | deploy-verify reports SHA mismatch | Check `docker ps`; old container may still be running; retry step 8 |

@@ -55,9 +55,9 @@ copy — see Design Decisions.
   deploy-skill selection and the provisioning-mode branching are two independent axes that both
   apply to the same step; merge them legibly rather than picking one and dropping the other.
 - **Fix the stray third-party project reference while importing.** `run-migrations.sh`'s own usage
-  example references a project called `prior-shared-vm` — neither `fashion-app-poc` nor this repo's
-  generic placeholder convention. Cosmetic only (an illustrative comment, not functional code),
-  but real evidence of cross-project copy history worth cleaning up rather than propagating.
+  example references a specific, unrelated project's deploy path — neither `fashion-app-poc` nor
+  this repo's generic placeholder convention. Cosmetic only (an illustrative comment, not functional
+  code), but real evidence of cross-project copy history worth cleaning up rather than propagating.
   Replace with the generic `<project-slug>` example convention used elsewhere.
 - **Explicitly out of scope: a Python/Next.js variant of Task 085's `cicd-generate` templates.**
   The imported skill is a manual/agent-followed deploy runbook, not a GitHub Actions workflow
@@ -78,8 +78,9 @@ copy — see Design Decisions.
    - `{project}` → `<project-slug>` throughout.
    - `.github/skills/smaqit.infrastructure-vm-bootstrap/scripts/remove-default-nginx-site.sh` →
      `[SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vm-bootstrap/scripts/remove-default-nginx-site.sh`.
-   - `run-migrations.sh`'s usage example: `/opt/prior-shared-vm` → `__APP_DIR__` (or a generic
-     `<project-slug>`-based example), matching the fix already made in the SKILL.md prose.
+   - `run-migrations.sh`'s usage example: replace the stray specific project path → `__APP_DIR__`
+     (or a generic `<project-slug>`-based example), matching the fix already made in the SKILL.md
+     prose.
 
 3. **Replace Step 5's inline nginx handling** with an invocation of
    `smaqit.infrastructure-deploy-rsync/scripts/write-vhost.sh`, matching how
@@ -149,7 +150,7 @@ copy — see Design Decisions.
       skill family (not the ad-hoc tokens or compiled-path literals from the source install)
 - [x] The imported skill's nginx vhost step invokes the shared `write-vhost.sh` — no second,
       independent implementation of the `default_server`-vs-name-based decision
-- [x] The stray `prior-shared-vm` example reference is gone
+- [x] The stray third-party project example reference is gone
 - [x] `smaqit.new-greenfield-project` Phase 4 Step 6 branches on stack type (Node vs Python/Next.js)
       *and* still carries the full Task 084 `provisioning_mode` branching — neither axis regressed
       by the other

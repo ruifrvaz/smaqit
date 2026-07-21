@@ -1,12 +1,13 @@
 # Dynamic Stack Detection + On-the-Fly Deploy Skill Synthesis
 
-**Status:** Not Started
+**Status:** In Progress
 **Mode:** Assisted
 **Created:** 2026-07-20
+**Started:** 2026-07-21
 
 ## Description
 
-While preparing to test-deploy `tested-deployment` (a plain Tornado app — pure Python, no framework,
+While preparing to test-deploy `<tested-deployment>` (a plain Tornado app — pure Python, no framework,
 no `backend/`/`frontend` split, deployed via systemd + nginx directly on the VM, no Docker at all)
 to a fresh Cyso VM, its stack turned out to match **neither** existing deploy skill:
 `smaqit.infrastructure-deploy-rsync` (Node.js + Vite/React, Docker Compose) nor
@@ -27,7 +28,7 @@ spec, compiles it via `smaqit.L2`, no back-and-forth questions), present it for 
 checkpoint, then invoke it to perform the actual deploy. This is a capability change to the
 orchestration logic in `smaqit.new-greenfield-project` only — it does not pre-author any specific
 new stack skill itself; that happens live, driven by whatever project actually triggers the
-fallback next (immediately: `tested-deployment`).
+fallback next (immediately: `<tested-deployment>`).
 
 ## Design Decisions
 
@@ -51,7 +52,7 @@ fallback next (immediately: `tested-deployment`).
   for Copilot-style installs, `.claude/skills/` for Claude-Code-style), plus its `smaqit.L2`
   compiler dependency (`.github/agents/smaqit.L2.agent.md` or equivalent) and `.smaqit/templates/skills/`
   — all three are required for the pipeline to actually run, not just the skill file's presence.
-  **Confirmed present in `tested-deployment`** (the project that triggered this task): `smaqit.create-skill`
+  **Confirmed present in `<tested-deployment>`** (the project that triggered this task): `smaqit.create-skill`
   v2.0.0 at `.github/skills/smaqit.create-skill/`, `smaqit.L2` at `.github/agents/smaqit.L2.agent.md`,
   and `.smaqit/templates/skills/` all verified — so the primary path applies for that project's
   upcoming real test, not the fallback. It already does exactly what's needed: gather a name, scan
@@ -133,48 +134,93 @@ fallback next (immediately: `tested-deployment`).
 5. Bump `metadata.version` on `smaqit.new-greenfield-project`.
 
 ## Known Issues Triage
+**Triaged:** N/A
+**Tools searched:** none
+**Result:** Not run
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+Implementation happened in a sibling session via `smaqit.task-plan 087` rather than the full
+`smaqit.task-start` ceremony, so formal triage was skipped at the time. Reconstructing this
+retroactively (this task file's Status/Findings update, 2026-07-21) has no planning value now —
+the code is already written, committed (`cecb59a`), and live-validated. No third-party tools are
+introduced by this task's own change (pure orchestration prose in `new-greenfield-project`); the
+tools it references (`smaqit.create-skill`, `smaqit.L2`) are internal to the smaqit ecosystem, not
+external dependencies triage would search for.
 
 ## Acceptance Criteria
 
-- [ ] Phase 4 Step 6 reads the declared stack from `specs/stack/platform-stack.md` (not
+- [x] Phase 4 Step 6 reads the declared stack from `specs/stack/platform-stack.md` (not
       filesystem re-detection) and judges the match against currently-installed deploy skills
       generically — no hardcoded per-stack list — reporting what was checked either way, rather
       than silently defaulting
-- [ ] `smaqit.create-skill` is documented as the primary synthesis path, with an always-available
+- [x] `smaqit.create-skill` is documented as the primary synthesis path, with an always-available
       manual-authoring fallback when it isn't present
-- [ ] The four required-inherited-context items (`__APP_DIR__`, `write-vhost.sh` reuse, deploy-stamp
+- [x] The four required-inherited-context items (`__APP_DIR__`, `write-vhost.sh` reuse, deploy-stamp
       pattern reuse, guard-script reuse) are documented as explicit synthesis inputs, not left
       implicit
-- [ ] The human checkpoint between synthesis and execution is documented and not silently skippable
+- [x] The human checkpoint between synthesis and execution is documented and not silently skippable
       in Assisted mode
-- [ ] Synthesized-skill provenance metadata convention is documented
-- [ ] Task 084's `provisioning_mode` branching is still intact and legible after this change; Task
+- [x] Synthesized-skill provenance metadata convention is documented
+- [x] Task 084's `provisioning_mode` branching is still intact and legible after this change; Task
       086's hardcoded two-way stack list is deliberately superseded by the generic lookup (not kept
       alongside it) — confirm no leftover hardcoded enumeration remains
-- [ ] **Not part of this task's own completion, but the reason it exists:** this capability gets
-      exercised for real against `tested-deployment`'s actual Tornado/systemd stack as the next,
-      separate step (the live test-deploy playbook) once this task lands, targeting a newly
-      provisioned VM (`provisioning_mode: provision` — new Terraform-provisioned VM, new Object
-      Storage state bucket, new Cinder volume; not the pre-existing shared `prior-shared-vm` VM
-      from `tested-deployment`'s earlier manual 2026-07-14 deploy)
+- [x] **Live-validated 2026-07-21** against `<tested-deployment>`'s real Tornado/systemd/no-Docker stack,
+      on a newly-provisioned dedicated VM (`<tested-deployment-vm>`, `<vm-fixed-ip>`, fresh Terraform state —
+      `provisioning_mode: provision`, not the old shared VM from the 2026-07-14 deploy). Step 6's
+      no-match path fired exactly as designed: no existing `deploy-rsync*` skill matched, the agent
+      invoked `smaqit.create-skill` → `smaqit.L2`, produced
+      `smaqit.infrastructure-deploy-rsync-python-tornado`, presented it for human approval (the
+      checkpoint held — not silently skipped), then invoked it to actually deploy. The synthesized
+      skill correctly reused `write-vhost.sh` rather than reinventing vhost logic, confirming the
+      required-inherited-context constraint was followed in practice, not just documented. See the
+      validation project's own session history for the full account.
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
+**Note on process:** the implementation and live validation below happened in two sibling
+sessions on 2026-07-21 (canonical `smaqit` work, then a switch to `<tested-deployment>` to actually
+deploy) that did not go through this task's formal `task-start`/`task-complete` ceremony — Status
+stayed "Not Started" and every Acceptance Criteria checkbox stayed unchecked despite the real work
+being committed. This entry reconstructs and verifies that work retroactively (2026-07-21) against
+primary sources (`git log`, both projects' own `.smaqit/history/` files, and direct inspection of
+the committed `SKILL.md` content) before checking anything off — see the session recap in the
+parent conversation for the full verification trail.
 
 **Implementation approach:**
-- TBD
+- Rewrote `smaqit.new-greenfield-project` Phase 4 Step 6 exactly per this task's design: read the
+  stack spec (authoritative), generic lookup against installed `deploy-rsync*` skills, and on no
+  match: report → check `smaqit.create-skill` availability → synthesize (primary: create-skill,
+  fallback: manual) → human checkpoint → invoke. Committed as `cecb59a`.
+- The task file's own Notes were stale at the time (claimed no connection to `<tested-deployment>`) —
+  corrected before implementation, per that session's own account.
+- Live validation happened immediately after, in `<tested-deployment>` itself: a genuinely new dedicated
+  VM (`<tested-deployment-vm>`) was provisioned, no existing deploy skill matched its Tornado/systemd/no-Docker
+  stack, and the no-match path fired for real — `smaqit.create-skill` → `smaqit.L2` synthesized
+  `smaqit.infrastructure-deploy-rsync-python-tornado`, it was presented for approval (checkpoint
+  held), then invoked to actually deploy and verify the application.
 
 **Decisions made:**
-- TBD
+- No new canonical deploy skill is authored as part of Task 087 itself — `deploy-rsync-python-tornado`
+  lives only in `<tested-deployment>` for now, exactly as designed (a future Task-086-style reconciliation
+  is the deliberate next step, not automatic).
+- `<tested-deployment>` was given a dedicated new VM rather than returning to the shared VM from its
+  earlier (2026-07-14) manual deploy — this was the right target for proving `provisioning_mode:
+  provision` end-to-end, not just the synthesis mechanism in isolation.
 
 **Blockers encountered:**
-- TBD
+- None blocking Task 087 itself. The live session did surface a real, separate IaC-drift near-miss
+  (an out-of-band manual SSH fix left `main.tf` and the live VM's `user_data` diverged; a later bare,
+  unguarded `terraform plan` proposed replacing the running instance) — root-caused to a stale
+  downstream copy of `smaqit.infrastructure-provision-cyso` (v1.0.0, pre-dating `plan-guard.sh`
+  entirely), not a flaw in Task 087's design. Tracked and being resolved separately, in
+  `<tested-deployment>` — not part of this task's scope.
 
 **Follow-up identified:**
-- TBD
+- Consider a Task-086-style reconciliation of `smaqit.infrastructure-deploy-rsync-python-tornado`
+  into canonical `smaqit` now that it's been proven by real use — not yet done.
+- This task file's own process gap (real work landing without the formal task-start/complete
+  ceremony) is itself worth a lighter-touch note for future sessions: `smaqit.task-plan` alone
+  doesn't set `Status: In Progress` or touch `PLANNING.md` the way `smaqit.task-start` does — worth
+  keeping in mind when starting substantial work directly from a plan.
 
 ## Files to Create / Modify
 
@@ -184,23 +230,23 @@ fallback next (immediately: `tested-deployment`).
 
 ## Notes
 
-- Originates directly from attempting to plan a real test-deploy of `tested-deployment` to a new Cyso
+- Originates directly from attempting to plan a real test-deploy of `<tested-deployment>` to a new Cyso
   VM and discovering its stack (Tornado + systemd + nginx, no Docker) matches neither existing
   deploy skill. User explicitly asked for a *dynamic, real-time* adaptation (detect → synthesize →
   run) rather than either pre-building a third static skill or leaving the fallback as unstructured
   prose.
 - `smaqit.create-skill`'s own preconditions — the skill itself, its `smaqit.L2` compiler
-  dependency, and `.smaqit/templates/skills/` — were checked directly in `tested-deployment` (not
+  dependency, and `.smaqit/templates/skills/` — were checked directly in `<tested-deployment>` (not
   assumed) and are confirmed present: `smaqit.create-skill` v2.0.0 at
   `.github/skills/smaqit.create-skill/`, `smaqit.L2` at `.github/agents/smaqit.L2.agent.md`,
   `.smaqit/templates/skills/` present. The primary synthesis path applies for the upcoming real
   test there.
 - This task's own scope only changes `smaqit.new-greenfield-project` in this canonical repo — it
-  does not author or reconcile any new stack-specific deploy skill itself. `tested-deployment` is the
+  does not author or reconcile any new stack-specific deploy skill itself. `<tested-deployment>` is the
   concrete downstream project that motivates it and is the immediate next step once this task
   lands: a separate, subsequent live test-deploy that synthesizes a Tornado/systemd deploy skill
   (via `smaqit.create-skill`, confirmed present and working there) and uses it to deploy
-  `tested-deployment` to a **newly provisioned** VM — fresh Terraform VM + Object Storage state bucket
+  `<tested-deployment>` to a **newly provisioned** VM — fresh Terraform VM + Object Storage state bucket
   + Cinder volume, not a reuse of the shared VM from its earlier manual deploy. That live run also
   supplies the outstanding "real target project" live-walkthrough evidence still open on Tasks 084
   and 085 (each has exactly one unchecked acceptance criterion for lack of a real project to test

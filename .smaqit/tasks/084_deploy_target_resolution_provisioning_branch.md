@@ -27,7 +27,7 @@ sites sharing an IP behind nginx). Run naively, the flow:
 
 This was confirmed by directly reading the deployment agent, `smaqit.new-greenfield-project`, and
 the five infrastructure skills above, in the context of a real deploy (`fashion-app-poc`, plus a
-second project — `tested-deployment` — that needs to land on the same VM). None of this is a bug in any
+second project — `<tested-deployment>` — that needs to land on the same VM). None of this is a bug in any
 one skill; it's a decision the flow currently never makes explicitly, because it's never had to.
 
 A companion flowchart mapping every branch point, which skill each touches, and what changes on
@@ -161,7 +161,7 @@ source of truth.)
 - [x] The nginx `default_server`-vs-name-based-vhost rule is documented in whichever skill actually
       writes the vhost file, not only in a downstream project's own task notes
 - [ ] All acceptance criteria above are exercised, at minimum, by walking through the
-      `tested-deployment`-onto-`fashion-app-poc`'s-VM scenario end-to-end in a real session and confirming
+      `<tested-deployment>`-onto-`fashion-app-poc`'s-VM scenario end-to-end in a real session and confirming
       each step does what this task says it should — **not done in this session**: requires a live
       walkthrough in those projects' own working environments, not available here
 
@@ -196,7 +196,7 @@ source of truth.)
 - None.
 
 **Follow-up identified:**
-- Acceptance criterion "exercise end-to-end via the `tested-deployment`-onto-`fashion-app-poc` scenario"
+- Acceptance criterion "exercise end-to-end via the `<tested-deployment>`-onto-`fashion-app-poc` scenario"
   is unmet — it requires a live session in those projects' own working environments, not available
   in this repo's session. Flagging for the user to run separately before invoking `/task.complete 084`.
 
@@ -230,11 +230,11 @@ source of truth.)
 ## Notes
 
 - Originates from hardening and deploying `fashion-app-poc`'s infrastructure, then assessing whether
-  the same tooling would work for redeploying a second project (`tested-deployment`) onto the same VM.
+  the same tooling would work for redeploying a second project (`<tested-deployment>`) onto the same VM.
   It would not, without this task. Optional background, if that repo happens to be available in the
-  working environment: its `.smaqit/tasks/008_infrastructure_remediation_and_reprovision.md` has the
-  full incident and fix history that led here — not required to execute this task, everything
-  actionable is captured in Description and Implementation Steps above.
+  working environment: its own task history has the full incident and fix history that led here —
+  not required to execute this task, everything actionable is captured in Description and
+  Implementation Steps above.
 - [`084-flowchart.md`](084-flowchart.md) is the design reference — read it before starting
   implementation; it has the full branch-by-branch reasoning this description only summarizes.
 - Explicitly out of scope: automating cross-project trust for SSH key sharing, and supporting two

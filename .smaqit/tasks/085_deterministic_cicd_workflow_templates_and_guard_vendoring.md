@@ -225,12 +225,32 @@ these skills, not just the one being worked on when the bug is introduced.
 - **Not exercised in this session:** a real target project with live Vault, a real GitHub repo,
   and a real VM. This sandbox has none available — same limitation Task 084 hit for its own
   end-to-end acceptance criterion. Recommend running `cicd-generate` for real against
-  `fashion-app-poc` or `tested-deployment` (or a fresh throwaway repo) before treating this as the
-  default path for production use.
+  `fashion-app-poc` or another downstream project (or a fresh throwaway repo) before treating this
+  as the default path for production use.
 - The `~/.bashrc` `PATH` addition for the three linters is local-machine-only and not part of any
   repo file — a fresh environment (new devbox, CI runner) won't have these tools unless installed
   again. Not blocking for this task (which only needed them for the validation gate), but worth
   noting if `actionlint`/`yamllint`/`shellcheck` become a recurring need.
+
+**Addendum, 2026-07-21 — partial real-world evidence, gate still not satisfied:** a live deploy of
+`<tested-deployment>` to a new Cyso VM (`<tested-deployment-vm>`) happened in a sibling session (see
+Task 087's Findings and that project's own session history for the full account).
+Verified directly (direct inspection of `<tested-deployment>`'s installed skills)
+before writing this — the result is a **mix**, not a clean pass of the final review gate:
+- **Real evidence gained:** `plan-guard.sh` genuinely gated a real `terraform apply` against a real
+  VM (added as a targeted patch to the project's pre-existing `deploy.yml`). `write-vhost.sh` was
+  vendored and genuinely used to write a real nginx vhost on that VM.
+- **Still not exercised:** the actual template-generation mechanism this task built —
+  `smaqit.infrastructure-cicd-generate`'s `assets/*.template` files, `__APP_DIR__` substitution,
+  and guard-script vendoring *by `cicd-generate` itself* — was never invoked. `<tested-deployment>`'s
+  installed copy of `cicd-generate` has no `assets/` directory at all (stale, predates this task);
+  its `deploy.yml` was hand-patched, not regenerated. `sync-secrets.sh` doesn't exist anywhere in
+  that project. `ownership-guard.sh` was synced in but never actually triggered its detection logic
+  (this was a fresh-VM `provision` scenario, which doesn't hit the "VM_HOST already declared but
+  unowned" case the script exists to catch).
+- **Net effect on the gate criterion below:** left unchecked. Two of the four scripts got genuine
+  live validation; the core templating mechanism and one of the four scripts (`sync-secrets.sh`)
+  remain unexercised against real infrastructure.
 
 ## Files to Create / Modify
 

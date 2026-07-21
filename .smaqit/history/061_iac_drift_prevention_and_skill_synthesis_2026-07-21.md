@@ -1,7 +1,7 @@
 # IaC Drift Prevention and Skill Synthesis
 
 **Date:** 2026-07-21
-**Session Focus:** Plan and execute Task 087 (dynamic deploy-skill synthesis), discover and fix a real IaC-drift near-miss during the live validation deploy of `tested-deployment`, fix two vault-loader bugs found in that same first-run, and remove residual "HIM Corporate" project-specific traces from canonical skill templates.
+**Session Focus:** Plan and execute Task 087 (dynamic deploy-skill synthesis), discover and fix a real IaC-drift near-miss during the live validation deploy of `<tested-deployment>`, fix two vault-loader bugs found in that same first-run, and remove residual "HIM Corporate" project-specific traces from canonical skill templates.
 **Tasks Referenced:** 087 (Dynamic Stack Detection + On-the-Fly Deploy Skill Synthesis)
 **Tasks Completed:** 087 (canonical-repo scope only — see Next Steps)
 
@@ -10,25 +10,25 @@
 ## Actions Taken
 
 ### Task 087 Planning and Implementation
-- Ran `smaqit.task-plan 087`; discovery revealed the task's own Notes were stale — it claimed no connection to `tested-deployment` and no relation to a new VM, when in fact `tested-deployment` was the concrete motivating project and the live validation target
-- User corrected: `tested-deployment` gets a **new**, dedicated Terraform-provisioned VM (not the shared VM from an earlier manual deploy); task sequencing is canonical rewrite first, then a separate live validation pass; the live validation also supplies the missing evidence for Tasks 084/085's one remaining unchecked acceptance criterion each
+- Ran `smaqit.task-plan 087`; discovery revealed the task's own Notes were stale — it claimed no connection to `<tested-deployment>` and no relation to a new VM, when in fact `<tested-deployment>` was the concrete motivating project and the live validation target
+- User corrected: `<tested-deployment>` gets a **new**, dedicated Terraform-provisioned VM (not the shared VM from an earlier manual deploy); task sequencing is canonical rewrite first, then a separate live validation pass; the live validation also supplies the missing evidence for Tasks 084/085's one remaining unchecked acceptance criterion each
 - Corrected task file Notes and Acceptance Criteria accordingly
 - Rewrote `smaqit.new-greenfield-project` Phase 4 Step 6: replaced the hardcoded two-way stack list + "default and adapt as needed" fallback with a deterministic precondition → judgment → synthesis procedure — read the declared stack from `specs/stack/platform-stack.md`, judge against currently-installed `smaqit.infrastructure-deploy-rsync*` skills generically (no hardcoded enumeration), and on no match invoke `smaqit.create-skill` (primary) or manual authoring (fallback) with a mandatory human checkpoint before invoking the synthesized skill
 - Added a Gotcha documenting the four required-inherited-context items any synthesized deploy skill must reuse: `__APP_DIR__` token, shared `write-vhost.sh`, deploy-stamp pattern, guard-script reuse
 - Bumped `smaqit.new-greenfield-project` to 1.4.0, then 1.4.1 (incidental trace fix, see below)
 
-### Live Validation — IaC Drift Near-Miss (via sibling `tested-deployment` session)
-- While validating Task 087 for real against `tested-deployment`'s Tornado/systemd/no-Docker stack, the agent manually SSH'd into the freshly-provisioned VM to fix a broken `cloud-init user_data` step (`pip3 install tornado` failing under PEP 668) instead of only fixing it through Terraform
+### Live Validation — IaC Drift Near-Miss (via sibling `<tested-deployment>` session)
+- While validating Task 087 for real against `<tested-deployment>`'s Tornado/systemd/no-Docker stack, the agent manually SSH'd into the freshly-provisioned VM to fix a broken `cloud-init user_data` step (`pip3 install tornado` failing under PEP 668) instead of only fixing it through Terraform
 - This diverged the live instance from Terraform's declared config; a subsequent `terraform plan` (run as a bare, unguarded command — not through any guard script) proposed **replacing** the running instance and its volume attachment, which would have reassigned `fixed_ip` and broken `VM_HOST`
 - Caught before `apply` by manually reading the plan output — not because any guard blocked it
 - User flagged this directly: despite prior sessions building `plan-guard.sh`/`ownership-guard.sh` specifically to prevent this class of destructive apply, the agent still ran a bare `terraform plan` and only avoided disaster by chance
 
 ### IaC Drift Prevention Fix
-- Root-caused: the downstream `tested-deployment` copy of `smaqit.infrastructure-provision-cyso` was stale at v1.0.0 — it predated `plan-guard.sh`'s existence entirely and its Step 6 literally said "Review plan. `terraform plan`", with no guard mandate at all. The guard scripts existed and worked correctly in canonical (confirmed: `plan-guard.sh` and `ownership-guard.sh` are byte-identical between canonical and a properly-synced downstream copy) — this was a sync gap, not a design flaw in the guards themselves
+- Root-caused: the downstream `<tested-deployment>` copy of `smaqit.infrastructure-provision-cyso` was stale at v1.0.0 — it predated `plan-guard.sh`'s existence entirely and its Step 6 literally said "Review plan. `terraform plan`", with no guard mandate at all. The guard scripts existed and worked correctly in canonical (confirmed: `plan-guard.sh` and `ownership-guard.sh` are byte-identical between canonical and a properly-synced downstream copy) — this was a sync gap, not a design flaw in the guards themselves
 - Added to `agents/deployment.md`: new MUST NOT (never patch a live IaC-managed resource out-of-band without reconciling IaC config/state in the same change) and new MUST (route every plan/apply against already-provisioned infrastructure through the project's guard script, including diagnostic-only checks with no intent to apply) — plus a new "IaC Drift Prevention" section spelling out the remediation path (`lifecycle { ignore_changes }` or a deliberate, reviewed `terraform apply -replace`)
 - Added a matching Gotcha to `smaqit.infrastructure-provision-cyso/SKILL.md` documenting the same failure mode
 
-### Vault-Loader Bug Fixes (found during `tested-deployment`'s first-ever `load-credentials.sh` run)
+### Vault-Loader Bug Fixes (found during `<tested-deployment>`'s first-ever `load-credentials.sh` run)
 - **SSH key "error in libcrypto"**: `vault kv put private_key="$(cat file)"` strips the private key's trailing newline via shell command substitution; OpenSSH's parser requires it. Fixed all three occurrences (default path, `existing-shared` copy-from-source, `existing-shared` generate-new) to use Vault's `@file` syntax instead, which preserves exact bytes. New Gotcha documents the root cause and warns against regressing to `$(cat ...)`
 - **Project-slug misdetection**: the slug-derivation regex matched an unfilled `AGENTS.md` placeholder (`[TODO: add project name]`), and the extraction regex itself sliced off the word "TODO" before a post-extraction guard could catch it — silently writing all four credentials to `secret/add-project-name/*` instead of the real slug. Fixed by excluding any line containing "TODO" (case-insensitive) *before* extraction, not after. Confirmed the same bug and fix applied to both canonical and the (differently-structured) downstream copy
 
@@ -41,7 +41,7 @@
 ### Commits
 - `cecb59a` — feat(087): dynamic stack detection + skill synthesis for deploy dispatch
 - `ff63f1f` — fix: prevent IaC drift from out-of-band manual VM fixes
-- `396c71f` — fix: two vault-loader bugs found in live tested-deployment first-run
+- `396c71f` — fix: two vault-loader bugs found during a live downstream-project first-run
 - `f18b664` — chore: remove HIM Corporate project-specific traces from skill templates
 
 All local only — nothing pushed this session (SSH still unavailable in this sandbox, same recurring blocker as prior sessions).
@@ -57,7 +57,7 @@ All local only — nothing pushed this session (SSH still unavailable in this sa
 
 ## Decisions Made
 
-- Task 087's canonical-repo work (Phase 4 Step 6 rewrite) is scoped separately from its live validation (a distinct, subsequent step against `tested-deployment`) — no new canonical deploy skill is authored as part of Task 087 itself; that only happens via a future Task-086-style reconciliation once the synthesized skill is proven by real use.
+- Task 087's canonical-repo work (Phase 4 Step 6 rewrite) is scoped separately from its live validation (a distinct, subsequent step against `<tested-deployment>`) — no new canonical deploy skill is authored as part of Task 087 itself; that only happens via a future Task-086-style reconciliation once the synthesized skill is proven by real use.
 - Drift remediation offers two paths (`ignore_changes` vs. deliberate `apply -replace`) without picking one — left as an explicit downstream decision since both have real trade-offs.
 - Historical citations in Gotchas (e.g. "Observed in HIM Corporate session 005") were genericized rather than deleted — the lesson-learned content is preserved, only the project name is removed.
 
@@ -83,8 +83,8 @@ All local only — nothing pushed this session (SSH still unavailable in this sa
 
 - **Push required**: 4 new local commits (`cecb59a`, `ff63f1f`, `396c71f`, `f18b664`) plus the pre-existing unpushed `bd0b9c2` and the still-unpushed `v1.4.0` release from session 060 — all need a machine with GitHub SSH access.
 - **Package this batch into a proper release** rather than pushing incrementally, per user's stated preference this session.
-- **Task 087 completion**: canonical-repo scope is done; still pending is the live validation exercise against `tested-deployment` proving the synthesis procedure end-to-end (this was in fact completed this session, in the sibling `tested-deployment` project — see that project's own session history for the full account). Consider closing Task 087 formally next session once both sides are confirmed.
-- **Drift remediation decision still open**: `tested-deployment`'s `main.tf` needs either `lifecycle { ignore_changes = [user_data] }` or a deliberate reviewed replace to resolve the `user_data` drift flagged as `INF-DEPLOYMENT-011: [!]` in that project's infrastructure spec — not yet applied.
+- **Task 087 completion**: canonical-repo scope is done; still pending is the live validation exercise against `<tested-deployment>` proving the synthesis procedure end-to-end (this was in fact completed this session, in the sibling `<tested-deployment>` project — see that project's own session history for the full account). Consider closing Task 087 formally next session once both sides are confirmed.
+- **Drift remediation decision still open**: `<tested-deployment>`'s `main.tf` needs either `lifecycle { ignore_changes = [user_data] }` or a deliberate reviewed replace to resolve the `user_data` drift flagged as `INF-DEPLOYMENT-011: [!]` in that project's infrastructure spec — not yet applied.
 - **PLANNING.md cleanup still pending** (flagged across sessions 060 and this one, never actioned): tasks 071/074 likely already complete in the codebase; task 070's priority discrepancy (High in file vs. Low in table) unresolved.
 
 ---

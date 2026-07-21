@@ -143,4 +143,13 @@ then reminds you to sync the new value to GitHub Secrets via `smaqit.infrastruct
 - **`~/.vault-token` is read automatically** — if a prior `vault login` on this machine wrote a
   token there, `load-credentials.sh` reuses it instead of prompting. Harmless no-op if the file
   is absent or the token has expired (falls through to the normal prompt).
+- **SSH private key trailing newline / "error in libcrypto"** — `vault kv put private_key="$(cat file)"`
+  strips the private key's trailing newline via shell command substitution. OpenSSH's key parser
+  requires it; without it, every subsequent `ssh`/`ssh-keygen -y` against the fetched key fails with
+  `error in libcrypto` (not an auth or permissions issue — the key content itself is malformed).
+  `load-credentials.sh` writes `private_key` using Vault's `@file` syntax (`private_key=@"$SSH_KEY_PATH"`),
+  which preserves the file's exact bytes including the trailing newline. Never rewrite this back to
+  `"$(cat ...)"` — that regresses the bug silently (re-fetching, patching, and writing back via
+  command substitution reintroduces it even after a one-time manual fix). If you ever hand-load an
+  SSH key manually (bypassing the script), use `@`-file syntax, not `$(cat ...)`, for `private_key`.
 

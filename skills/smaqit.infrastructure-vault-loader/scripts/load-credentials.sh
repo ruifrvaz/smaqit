@@ -180,19 +180,26 @@ elif [ "$PROVISIONING_MODE" = "existing-shared" ]; then
       echo "ERROR: secret/${SOURCE_SLUG}/ssh not found — cannot copy."
       exit 1
     fi
-    SRC_PRIV=$(vault kv get -field=private_key "secret/${SOURCE_SLUG}/ssh")
     SRC_PUB=$(vault kv get -field=public_key "secret/${SOURCE_SLUG}/ssh")
+    # Fetch private_key to a file and re-append trailing newline before storing via @file —
+    # command substitution ("$(...)") on either side of this copy strips the newline OpenSSH's
+    # key parser requires (see "error in libcrypto" Gotcha).
+    SRC_PRIV_TMP=$(mktemp)
+    vault kv get -field=private_key "secret/${SOURCE_SLUG}/ssh" > "$SRC_PRIV_TMP"
+    printf '\n' >> "$SRC_PRIV_TMP"
     vault kv put "secret/${PROJECT_SLUG}/ssh" \
-      private_key="$SRC_PRIV" \
+      private_key=@"$SRC_PRIV_TMP" \
       public_key="$SRC_PUB" > /dev/null
-    unset SRC_PRIV SRC_PUB
+    rm -f "$SRC_PRIV_TMP"
+    unset SRC_PUB
     echo "    DONE — copied secret/${SOURCE_SLUG}/ssh into secret/${PROJECT_SLUG}/ssh"
   else
     TMPDIR_KEY=$(mktemp -d)
     SSH_KEY_PATH="${TMPDIR_KEY}/deploy_key"
     ssh-keygen -t ed25519 -f "$SSH_KEY_PATH" -N "" -q
+    # Use @file syntax (not "$(cat ...)") for private_key — see "error in libcrypto" Gotcha.
     vault kv put "secret/${PROJECT_SLUG}/ssh" \
-      private_key="$(cat "${SSH_KEY_PATH}")" \
+      private_key=@"${SSH_KEY_PATH}" \
       public_key="$(cat "${SSH_KEY_PATH}.pub" | tr -d '\n')" > /dev/null
     echo "    DONE — ed25519 keypair generated and stored"
     echo "    ACTION REQUIRED: append the following public key to the shared VM's"
@@ -206,8 +213,11 @@ else
   TMPDIR_KEY=$(mktemp -d)
   SSH_KEY_PATH="${TMPDIR_KEY}/deploy_key"
   ssh-keygen -t ed25519 -f "$SSH_KEY_PATH" -N "" -q
+  # Use @file syntax (not "$(cat ...)") for private_key — command substitution strips the
+  # trailing newline that OpenSSH's key parser requires; without it, ssh/ssh-keygen fail with
+  # "error in libcrypto" on every subsequent fetch from Vault. @file preserves exact file bytes.
   vault kv put "secret/${PROJECT_SLUG}/ssh" \
-    private_key="$(cat "${SSH_KEY_PATH}")" \
+    private_key=@"${SSH_KEY_PATH}" \
     public_key="$(cat "${SSH_KEY_PATH}.pub" | tr -d '\n')" > /dev/null
   rm -rf "$TMPDIR_KEY"
   echo "    DONE — ed25519 keypair generated and stored"

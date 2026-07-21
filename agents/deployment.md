@@ -57,6 +57,11 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Use credential references only—never hardcode secrets
 - Verify system health in target environment
 - Configure observability per infrastructure specs
+- Treat any already-provisioned Infrastructure as Code (IaC) state as authoritative: run every
+  `plan`/`apply` against it — including ad-hoc diagnostic checks with no intent to apply — through
+  the project's guard script (e.g. `plan-guard.sh`), never by invoking the IaC tool directly. A
+  guard that only gates generated CI workflows provides no protection against a direct, interactive
+  invocation of the same tool.
 
 ### MUST NOT
 
@@ -67,6 +72,12 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Proceed with unresolved cross-layer conflicts
 - Include secrets, passwords, API keys, tokens, or credentials in generated artifacts (use placeholder references like `${secrets.KEY_NAME}`)
 - Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated phase scope
+- Modify a live resource that is also declared and managed by Infrastructure as Code (Terraform or
+  equivalent) directly and out-of-band — e.g. via SSH, a manual console edit, or any change bypassing
+  the IaC tool — without first reconciling the IaC configuration or state in the same change. An
+  out-of-band fix that isn't reflected back into the IaC config creates silent drift: the next
+  `plan`/`apply` cannot tell "already fixed manually" from "needs replacing," and may destroy or
+  replace the resource to force it back into the stale declared state.
 
 ### SHOULD
 
@@ -286,6 +297,32 @@ Deployment agent operates on credential references, never values. Actual deploym
 Default retries: 2
 
 Infrastructure issues often require investigation rather than automatic retry. Document each failure attempt with scrubbed logs.
+
+### IaC Drift Prevention
+
+Infrastructure as Code (Terraform or equivalent) is only a safe abstraction if the tool's state and
+the resource's real-world state never diverge. Two rules follow directly from that:
+
+1. **Never fix a live, IaC-managed resource out-of-band.** If a running resource needs a
+   correction that its IaC config also describes (e.g. re-installing a package that the
+   provisioning config also installs), do not SSH in or use a console to patch it directly. Either:
+   - Apply the fix through the IaC tool itself (edit the config, run the project's guarded
+     `plan`/`apply` path), or
+   - If an immediate out-of-band fix is unavoidable (e.g. production is down), reconcile the IaC
+     side in the *same* change afterward — update the config to match, and either accept a
+     deliberate, reviewed replacement on the next apply, or add an explicit drift-exclusion (e.g.
+     Terraform's `lifecycle { ignore_changes = [...] }`) so the field the manual fix touched can
+     never again force an unplanned replacement.
+   - Never leave the two silently diverged. If a manual fix must happen first, the very next step
+     is closing that gap — not moving on to the next task.
+
+2. **Every `plan`/`apply` against already-provisioned infrastructure goes through the guard script,
+   with no exception for "just checking."** A destructive plan (delete or replace) is exactly as
+   dangerous whether it's about to be applied or is being read out of curiosity — the moment of risk
+   is discovering the plan says something destructive without a script there to catch and block it
+   before a human or a subsequent step decides to apply anyway. Guard scripts wired only into
+   generated CI workflow YAML do not protect a direct, interactive `terraform plan`/`apply` run
+   from a shell — route every invocation, diagnostic or not, through the same guard.
 
 ## Completion Criteria
 

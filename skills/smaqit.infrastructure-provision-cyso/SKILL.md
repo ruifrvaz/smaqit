@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-provision-cyso
-description: Use when provisioning cloud infrastructure for the HIM Corporate application on Cyso Cloud (OpenStack) using Terraform. Covers application credential sourcing, Object Storage backend initialization, SSH keypair variable configuration, `terraform init/plan/apply`, and fixed IP retrieval. Produces a running Cyso VM accessible via SSH, with Cinder data volume attached and security group configured on ports 22/80/443. Also use when re-running Terraform after infrastructure changes or when an operator invokes `/provision.cyso`.
+description: Use when provisioning cloud infrastructure for a project's target application on Cyso Cloud (OpenStack) using Terraform. Covers application credential sourcing, Object Storage backend initialization, SSH keypair variable configuration, `terraform init/plan/apply`, and fixed IP retrieval. Produces a running Cyso VM accessible via SSH, with Cinder data volume attached and security group configured on ports 22/80/443. Also use when re-running Terraform after infrastructure changes or when an operator invokes `/provision.cyso`.
 metadata:
-  version: "1.4.0"
+  version: "1.4.1"
 ---
 
 # Provision Target: Cyso Cloud
@@ -33,7 +33,7 @@ be hand-edited in a target project expecting the edit to persist.
 - Terraform 1.14+ installed locally
 - Local Vault running and unsealed (`smaqit.infrastructure-vault-loader` complete)
 
-<!-- amendment: 2026-05-25 — credential sourcing moved from OpenRC file + manual exports to local Vault (smaqit.infrastructure-vault-loader). SSH key no longer stored at ~/.ssh/him_deploy_key. OpenRC file no longer required. -->
+<!-- amendment: 2026-05-25 — credential sourcing moved from OpenRC file + manual exports to local Vault (smaqit.infrastructure-vault-loader). SSH key no longer stored at a static local path. OpenRC file no longer required. -->
 
 ## Steps
 
@@ -123,7 +123,7 @@ be hand-edited in a target project expecting the edit to persist.
 - Cyso VM running and SSH-accessible at `fixed_ip`
 - Cinder data volume attached (appears as `/dev/sdb` inside VM)
 - Security group open on ports 22, 80, 443
-- Terraform state stored remotely in `him-corporate-tfstate` Object Storage bucket
+- Terraform state stored remotely in the `<project-slug>-tfstate` Object Storage bucket
 
 ## Scope
 
@@ -136,8 +136,8 @@ be hand-edited in a target project expecting the edit to persist.
 
 **Input:** Cyso account set up, OpenRC file ready, state bucket created. Operator invokes `/provision.cyso`.
 
-**Output:** VM at `fixed_ip` (e.g. `81.24.10.203`), Cinder data volume attached as `/dev/sdb`, SSH
-accessible with `him_deploy_key`, Terraform state in `him-corporate-tfstate`. Ready for
+**Output:** VM at `fixed_ip` (e.g. `<vm-fixed-ip>`), Cinder data volume attached as `/dev/sdb`, SSH
+accessible with the project's deploy keypair, Terraform state in `<project-slug>-tfstate`. Ready for
 `smaqit.infrastructure-vm-bootstrap`.
 
 ## Gotchas
@@ -174,6 +174,20 @@ accessible with `him_deploy_key`, Terraform state in `him-corporate-tfstate`. Re
   `user_data` content (whether inline or loaded via `file()`). Never run `terraform apply` on the
   strength of a manually eyeballed `terraform plan`; let the script gate it.
 
+- **Never patch a live, Terraform-managed VM out-of-band (SSH, console) instead of through
+  Terraform** — e.g. fixing a broken `user_data` step by SSHing in and running the corrected
+  command directly on the VM. The running VM and Terraform's declared config immediately diverge:
+  Terraform still thinks the *old* `user_data` was applied, but the file on disk now says
+  something different. The next `plan` sees only that the `user_data` hash changed and proposes a
+  **replace** (destroy + recreate) to reconcile it — which reassigns `fixed_ip` and breaks anything
+  depending on it (`VM_HOST`, DNS, bookmarked URLs). If a `main.tf` fix is applied manually to
+  unblock deployment right now, immediately follow up in the same session with either
+  `lifecycle { ignore_changes = [user_data] }` on the instance resource (correct when cloud-init
+  only matters at first boot, as it usually does) or a deliberate `terraform apply -replace=...`
+  once the replacement is genuinely wanted and reviewed. Do not leave the drift undocumented or
+  unresolved across sessions — run `scripts/plan-guard.sh` again afterward to confirm the plan is
+  clean.
+
 ## Completion
 
 - [ ] `scripts/ownership-guard.sh` run and exited 0 — no undeclared target VM, or target already owned by this project's state
@@ -184,7 +198,7 @@ accessible with `him_deploy_key`, Terraform state in `him-corporate-tfstate`. Re
 - [ ] `terraform init` succeeded with remote state backend
 - [ ] `scripts/plan-guard.sh` run and exited 0 — plan is additive/update-only, no delete or replace
 - [ ] `terraform apply` succeeded; `fixed_ip` noted from outputs
-- [ ] SSH access to VM confirmed via `him_deploy_key`
+- [ ] SSH access to VM confirmed via the project's deploy keypair
 - [ ] `.terraform.lock.hcl` committed if regenerated
 
 ## Failure Handling

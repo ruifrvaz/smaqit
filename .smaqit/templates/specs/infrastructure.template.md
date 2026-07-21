@@ -139,4 +139,4 @@ If any criterion cannot be automatically validated, flag it:
 
 ---
 
-*Generated with smaqit v0.8.2-beta*
+*Generated with smaqit v1.5.1*

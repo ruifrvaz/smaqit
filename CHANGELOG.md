@@ -8,16 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `smaqit.infrastructure-provision-cyso/scripts/plan-guard.sh` — deterministic guard that runs `terraform plan`, inspects the machine-readable output for any `delete`/`replace` action, and exits non-zero naming the specific resource(s) before `terraform apply` is ever reached.
-- `smaqit.infrastructure-vm-bootstrap/scripts/remove-default-nginx-site.sh` — idempotent removal of the distro's stock `default` nginx site, so it can never conflict with the application's own `default_server` vhost once a second, co-hosted site is added.
-- `smaqit.infrastructure-provider-cyso/references/openstack-forcenew-attributes.md` — documents which `openstack_compute_instance_v2` attributes (`user_data`, `image_id`/`image_name`, `key_pair`) are `ForceNew`, including the gotcha where a comment added inside a `file()`-referenced cloud-init file forces replacement even though the same comment as an HCL comment would not.
-- `smaqit.infrastructure-provider-cyso/references/github-provider-import-ids.md` — documents the `integrations/github` provider's `<repository>:<name>` import ID format for `github_actions_variable`/`github_actions_secret`, and the "pick one owner" rule for Terraform-vs-manual resource management.
+- Nothing to add.
 
 ### Changed
-- `smaqit.infrastructure-provision-cyso` — plan review step now requires invoking `plan-guard.sh`, never a bare `terraform plan` eyeballed by the agent. (v1.0.0 → v1.1.0)
-- `smaqit.infrastructure-provider-cyso` — load-condition table now routes to the two new reference files; description and Gotchas/Failure Handling updated to match. (v1.0.0 → v1.1.0)
-- `smaqit.infrastructure-vm-bootstrap` — added a bootstrap step invoking `remove-default-nginx-site.sh`; documented that `systemctl enable nginx` does not start the service immediately, so downstream deploy skills must use `reload-or-restart`, not a bare `reload`. (v1.0.0 → v1.1.0)
-- `smaqit.infrastructure-cicd-generate` — generated `deploy.yml`/`provision.yml` now gate every `terraform apply` behind `plan-guard.sh`, and the generated nginx reload step uses `reload-or-restart`. (v1.0.0 → v1.1.0)
+- Nothing to add.
 
 ### Deprecated
 - Nothing to add.
@@ -33,6 +27,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chore
 - Nothing to add.
+
+## [1.5.0] - 2026-07-21
+
+### Added
+- **Deploy-target provisioning modes** — `smaqit.input-deployment` gained a new "Provisioning Mode" parameter with three values: `provision` (default, this project provisions its own VM), `existing-owned` (redeploy to a VM this project's own Terraform state already manages), and `existing-shared` (deploy onto a VM a *different* project owns and manages, e.g. co-hosting). `smaqit.new-greenfield-project` Phase 4/5 now branches explicitly on this value at every step where behavior differs.
+- `smaqit.infrastructure-provision-cyso/scripts/ownership-guard.sh` — pre-flight guard stopping a direct/manual invocation of the skill from silently provisioning a second VM when a target is already declared (via `VM_HOST`) but not owned by this project's Terraform state — the `existing-shared` case.
+- Mode-aware credential loading in `smaqit.infrastructure-vault-loader`: `existing-shared` skips the `cyso`/`tfstate` Vault paths entirely and offers two mechanisms for the SSH key — copy it from the owning project's Vault namespace, or generate a new key and manually append it to the shared VM's `authorized_keys`.
+- Mode-aware `smaqit.infrastructure-repo-config`: restricted-mode secret sync for `existing-shared` (only `ssh`/`github`-derived secrets populated; `tfstate`/`cyso` are skipped cleanly, not treated as an error); `VM_HOST` changed from a GitHub Actions secret to a **variable**, since it's non-sensitive and needs to be readable back by `ownership-guard.sh`.
+- `full` / `deploy-only` generation modes for `smaqit.infrastructure-cicd-generate`, matching `provisioning_mode` — `deploy-only` skips all Terraform generation (`provision.yml` is not generated at all) for `existing-shared` targets.
+- Co-hosted-VM nginx vhost rule in `smaqit.infrastructure-deploy-rsync`: only the first site deployed to a VM may claim `default_server`; every subsequent co-hosted site's vhost must be name-based only, checked against `/etc/nginx/sites-enabled/` before writing the conf.
+- Deterministic CI/CD generation (**partial** — see Notes below): real template assets (`deploy.yml.deploy-only.template`, `deploy.yml.full.template`, `post-merge-deploy.yml.template`, `provision.yml.template`) in `smaqit.infrastructure-cicd-generate`, replacing prose-based YAML generation.
+- `smaqit.infrastructure-deploy-rsync/scripts/write-vhost.sh` and `smaqit.infrastructure-repo-config/scripts/sync-secrets.sh` — deterministic scripts vendored into target projects, replacing agent-interpreted prose for the two riskiest judgment calls (vhost `default_server` assignment, and Vault→GitHub-Secrets sync with `existing-shared` skip-if-absent logic).
+- New canonical skill `smaqit.infrastructure-deploy-rsync-python-nextjs`, including `scripts/run-migrations.sh` — a real, validated Python/FastAPI + Next.js rsync deploy skill reconciled from a downstream project.
+- Deterministic stack-detection + on-the-fly deploy-skill synthesis in `smaqit.new-greenfield-project` Phase 4 Step 6 — reads the declared stack from the stack spec (authoritative), judges it against currently-installed `smaqit.infrastructure-deploy-rsync*` skills generically (no hardcoded enumeration), and on no match synthesizes a new deploy skill via `smaqit.create-skill`/`smaqit.L2` with a mandatory human checkpoint before the synthesized skill is ever invoked. Live-validated end-to-end against a real downstream project on an unmatched stack (Tornado/systemd, no Docker).
+- `smaqit.infrastructure-provision-cyso/scripts/plan-guard.sh` — deterministic guard that runs `terraform plan`, inspects the machine-readable output for any `delete`/`replace` action, and exits non-zero naming the specific resource(s) before `terraform apply` is ever reached.
+- `smaqit.infrastructure-vm-bootstrap/scripts/remove-default-nginx-site.sh` — idempotent removal of the distro's stock `default` nginx site, so it can never conflict with the application's own `default_server` vhost once a second, co-hosted site is added.
+- `smaqit.infrastructure-provider-cyso/references/openstack-forcenew-attributes.md` — documents which `openstack_compute_instance_v2` attributes (`user_data`, `image_id`/`image_name`, `key_pair`) are `ForceNew`, including the gotcha where a comment added inside a `file()`-referenced cloud-init file forces replacement even though the same comment as an HCL comment would not.
+- `smaqit.infrastructure-provider-cyso/references/github-provider-import-ids.md` — documents the `integrations/github` provider's `<repository>:<name>` import ID format for `github_actions_variable`/`github_actions_secret`, and the "pick one owner" rule for Terraform-vs-manual resource management.
+- New "IaC Drift Prevention" section in `agents/deployment.md` — MUST NOT patch a live IaC-managed resource out-of-band without reconciling IaC config/state in the same change; MUST route every plan/apply against already-provisioned infrastructure through the project's guard script, including diagnostic-only checks with no intent to apply. Matching Gotcha added to `smaqit.infrastructure-provision-cyso`.
+- Claude Code skill parity completed: all `.github/skills/*` skills mirrored into `.claude/skills/*` (28 skills), plus 3 new `.claude/agents/*` (`release.local`, `release.pr`, `user-testing`) with corresponding updates to their existing `.github/agents/*` counterparts.
+- 7 brand-new skills landed in both `.github/` and `.claude/` simultaneously: `smaqit.parity-assess`, `smaqit.project-compendium`, `smaqit.project-diagnose`, `smaqit.task-plan`, `smaqit.task-refresh`, `smaqit.test-complete`, `smaqit.test-create`.
+
+### Changed
+- `smaqit.infrastructure-provision-cyso` — plan review step now requires invoking `plan-guard.sh`, never a bare `terraform plan` eyeballed by the agent; Step 0 runs `ownership-guard.sh` before touching Vault or Terraform; documents the canonical-vs-vendored relationship with `smaqit.infrastructure-cicd-generate` (guard scripts are copied verbatim into a target project at generation time — never hand-edit the vendored copy). (v1.0.0 → v1.4.1)
+- `smaqit.infrastructure-provider-cyso` — load-condition table now routes to the two new reference files; description and Gotchas/Failure Handling updated to match. (v1.0.0 → v1.1.1)
+- `smaqit.infrastructure-vm-bootstrap` — added a bootstrap step invoking `remove-default-nginx-site.sh`; documented that `systemctl enable nginx` does not start the service immediately, so downstream deploy skills must use `reload-or-restart`, not a bare `reload`. (v1.0.0 → v1.1.1)
+- `smaqit.infrastructure-cicd-generate` — generated `deploy.yml`/`provision.yml` now gate every `terraform apply` behind `plan-guard.sh`; the generated nginx reload step uses `reload-or-restart`; generation now branches on `full`/`deploy-only` mode and uses real template assets instead of prose. (v1.0.0 → v2.0.0)
+- `smaqit.infrastructure-repo-config` — refactored to call `sync-secrets.sh` instead of inline `vault kv get | gh secret set` steps; restricted-mode handling for `existing-shared`. (v1.0.0 → v1.3.0)
+- `smaqit.infrastructure-vault-loader` — mode-aware credential loading for `existing-shared`; gained `~/.vault-token` auto-reuse (skips re-prompting if a valid local token already exists). (v3.0.0 → v3.2.0)
+- `smaqit.new-greenfield-project` — Phase 4 pre-conditions and Phase 4/5 steps now branch on `provisioning_mode`; Phase 4 Step 6 rewritten for deterministic stack-detection + skill synthesis (see Added). (v1.0.0 → v1.4.1)
+
+### Fixed
+- Two real `smaqit.infrastructure-vault-loader` bugs found during a live first-run: SSH private keys losing their required trailing newline via `$(cat file)` command substitution when written to Vault (`error in libcrypto` on every subsequent use) — fixed to use Vault's `@file` syntax, which preserves exact bytes; a project-slug misdetection where an unfilled `AGENTS.md` template placeholder (`[TODO: add project name]`) was parsed as a real slug, silently misdirecting credential writes to the wrong Vault path.
+
+### Security
+- Removed inadvertently-committed project-specific configuration from templates and repository history (11 canonical skill template files genericized: hardcoded IPs, nginx site names, health-check paths, spec filenames, Terraform resource labels, and example domains replaced with generic placeholders; the one commit message that itself contained the leaked name was reworded).
+
+### Chore
+- Session history and compendium documentation updates; a follow-up commit-SHA citation fix.
+
+### Notes
+- Tasks 084 (provisioning-mode branching), 086 (Python/FastAPI + Next.js deploy skill), and 087 (dynamic stack detection + skill synthesis) are shipped and verified against real live validation runs, though not yet formally closed via `task-complete`.
+- Task 085 (deterministic CI/CD templates) ships in this release as **partial**: the template-based generation mechanism itself has not yet been exercised against a live target end-to-end, and only 2 of its 4 new scripts (`write-vhost.sh`, `sync-secrets.sh`) have been live-validated; `plan-guard.sh`/`ownership-guard.sh` were validated separately as part of Task 084/087's live runs.
 
 ## [1.4.0] - 2026-07-16
 
@@ -463,7 +500,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/ruifrvaz/smaqit/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/ruifrvaz/smaqit/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/ruifrvaz/smaqit/compare/v1.2.0...v1.3.1
 [1.2.0]: https://github.com/ruifrvaz/smaqit/compare/v1.1.0...v1.2.0

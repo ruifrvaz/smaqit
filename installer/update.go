@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -104,7 +105,13 @@ func runUpdate() {
 
 	fmt.Printf("Updated from %s to %s\n", localVersion, release.TagName)
 
-	checkAndReInit(".")
+	// Re-exec the freshly-downloaded binary to perform the reinit, rather than
+	// reinitializing in this (now stale) process. go:embed content is compiled into
+	// the binary at build time, so this still-running process only has the OLD
+	// version's embedded skills/agents/templates in memory even though the file on
+	// disk was just replaced — reinitializing here would silently skip anything new
+	// in the release just downloaded.
+	reinitWithBinary(currentBin, ".")
 }
 
 // fetchLatestRelease queries the GitHub API and returns release metadata.
@@ -270,6 +277,9 @@ func copyFile(src, dst string) error {
 
 // checkAndReInit checks whether dir contains a .smaqit/ directory. If so it
 // re-runs the init command to deploy updated agents, skills, and templates.
+// Safe to run in-process only when this process's own embedded content is known to
+// match what's on disk (i.e., no binary replacement just happened in this run) — see
+// reinitWithBinary for the post-replacement case.
 func checkAndReInit(dir string) {
 	smaqitPath := filepath.Join(dir, ".smaqit")
 	if _, err := os.Stat(smaqitPath); err != nil {
@@ -281,4 +291,29 @@ func checkAndReInit(dir string) {
 	fmt.Println("Detected .smaqit/ — re-initializing project assets...")
 	cmdInit(dir)
 	fmt.Println("Re-initialized project assets")
+}
+
+// reinitWithBinary checks whether dir contains a .smaqit/ directory. If so it
+// re-invokes binaryPath (the just-downloaded binary on disk) as a subprocess to
+// perform the reinit, instead of calling cmdInit() in this process. This process's
+// own go:embed content was compiled in at build time and does not reflect the binary
+// that now sits on disk after a self-update — only a fresh process image loaded from
+// that file has the new release's skills, agents, and templates.
+func reinitWithBinary(binaryPath, dir string) {
+	smaqitPath := filepath.Join(dir, ".smaqit")
+	if _, err := os.Stat(smaqitPath); err != nil {
+		// .smaqit/ not present — skip auto-init
+		fmt.Println("Run `smaqit init` to update your project assets")
+		return
+	}
+
+	fmt.Println("Detected .smaqit/ — re-initializing project assets with the updated binary...")
+	cmd := exec.Command(binaryPath, "init", dir)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error re-initializing project assets: %v\n", err)
+		os.Exit(1)
+	}
 }

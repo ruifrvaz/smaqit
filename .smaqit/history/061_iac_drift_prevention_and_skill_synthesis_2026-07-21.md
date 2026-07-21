@@ -39,10 +39,10 @@
 - Confirmed via a final full-tree grep: zero remaining traces
 
 ### Commits
-- `cecb59a` — feat(087): dynamic stack detection + skill synthesis for deploy dispatch
-- `ff63f1f` — fix: prevent IaC drift from out-of-band manual VM fixes
-- `396c71f` — fix: two vault-loader bugs found during a live downstream-project first-run
-- `f18b664` — chore: remove HIM Corporate project-specific traces from skill templates
+- `b20a1ed` — feat(087): dynamic stack detection + skill synthesis for deploy dispatch
+- `7b81a84` — fix: prevent IaC drift from out-of-band manual VM fixes
+- `1085a21` — fix: two vault-loader bugs found during a live downstream-project first-run
+- `03d1c7b` — chore: remove HIM Corporate project-specific traces from skill templates
 
 All local only — nothing pushed this session (SSH still unavailable in this sandbox, same recurring blocker as prior sessions).
 
@@ -81,7 +81,7 @@ All local only — nothing pushed this session (SSH still unavailable in this sa
 
 ## Next Steps
 
-- **Push required**: 4 new local commits (`cecb59a`, `ff63f1f`, `396c71f`, `f18b664`) plus the pre-existing unpushed `bd0b9c2` and the still-unpushed `v1.4.0` release from session 060 — all need a machine with GitHub SSH access.
+- **Push required**: 4 new local commits (`b20a1ed`, `7b81a84`, `1085a21`, `03d1c7b`) plus the pre-existing unpushed `bd0b9c2` and the still-unpushed `v1.4.0` release from session 060 — all need a machine with GitHub SSH access.
 - **Package this batch into a proper release** rather than pushing incrementally, per user's stated preference this session.
 - **Task 087 completion**: canonical-repo scope is done; still pending is the live validation exercise against `<tested-deployment>` proving the synthesis procedure end-to-end (this was in fact completed this session, in the sibling `<tested-deployment>` project — see that project's own session history for the full account). Consider closing Task 087 formally next session once both sides are confirmed.
 - **Drift remediation decision still open**: `<tested-deployment>`'s `main.tf` needs either `lifecycle { ignore_changes = [user_data] }` or a deliberate reviewed replace to resolve the `user_data` drift flagged as `INF-DEPLOYMENT-011: [!]` in that project's infrastructure spec — not yet applied.
@@ -92,7 +92,7 @@ All local only — nothing pushed this session (SSH still unavailable in this sa
 ## Session Metrics
 
 - **Date:** 2026-07-21
-- **Commits:** 4 local (`cecb59a`, `ff63f1f`, `396c71f`, `f18b664`) — none pushed
+- **Commits:** 4 local (`b20a1ed`, `7b81a84`, `1085a21`, `03d1c7b`) — none pushed
 - **Skills genericized:** 12 files (Category C sweep)
 - **Bugs fixed:** 2 (vault-loader SSH key newline, project-slug misdetection)
 - **New agent directive section:** IaC Drift Prevention (`agents/deployment.md`)

@@ -141,7 +141,7 @@ fallback next (immediately: `<tested-deployment>`).
 Implementation happened in a sibling session via `smaqit.task-plan 087` rather than the full
 `smaqit.task-start` ceremony, so formal triage was skipped at the time. Reconstructing this
 retroactively (this task file's Status/Findings update, 2026-07-21) has no planning value now —
-the code is already written, committed (`cecb59a`), and live-validated. No third-party tools are
+the code is already written, committed (`b20a1ed`), and live-validated. No third-party tools are
 introduced by this task's own change (pure orchestration prose in `new-greenfield-project`); the
 tools it references (`smaqit.create-skill`, `smaqit.L2`) are internal to the smaqit ecosystem, not
 external dependencies triage would search for.
@@ -189,7 +189,7 @@ parent conversation for the full verification trail.
 - Rewrote `smaqit.new-greenfield-project` Phase 4 Step 6 exactly per this task's design: read the
   stack spec (authoritative), generic lookup against installed `deploy-rsync*` skills, and on no
   match: report → check `smaqit.create-skill` availability → synthesize (primary: create-skill,
-  fallback: manual) → human checkpoint → invoke. Committed as `cecb59a`.
+  fallback: manual) → human checkpoint → invoke. Committed as `b20a1ed`.
 - The task file's own Notes were stale at the time (claimed no connection to `<tested-deployment>`) —
   corrected before implementation, per that session's own account.
 - Live validation happened immediately after, in `<tested-deployment>` itself: a genuinely new dedicated

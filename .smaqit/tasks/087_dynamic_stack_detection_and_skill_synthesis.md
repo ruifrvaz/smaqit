@@ -155,7 +155,10 @@ fallback next (immediately: `tested-deployment`).
       alongside it) — confirm no leftover hardcoded enumeration remains
 - [ ] **Not part of this task's own completion, but the reason it exists:** this capability gets
       exercised for real against `tested-deployment`'s actual Tornado/systemd stack as the next,
-      separate step (the live test-deploy playbook) once this task lands
+      separate step (the live test-deploy playbook) once this task lands, targeting a newly
+      provisioned VM (`provisioning_mode: provision` — new Terraform-provisioned VM, new Object
+      Storage state bucket, new Cinder volume; not the pre-existing shared `prior-shared-vm` VM
+      from `tested-deployment`'s earlier manual 2026-07-14 deploy)
 
 ## Findings
 
@@ -192,7 +195,14 @@ fallback next (immediately: `tested-deployment`).
   `.github/skills/smaqit.create-skill/`, `smaqit.L2` at `.github/agents/smaqit.L2.agent.md`,
   `.smaqit/templates/skills/` present. The primary synthesis path applies for the upcoming real
   test there.
-- This task does not touch `tested-deployment` at all — it only changes `smaqit.new-greenfield-project`
-  in this canonical repo. The actual live test (synthesizing a Tornado/systemd deploy skill and
-  using it to deploy `tested-deployment` to a new VM) is deliberately a separate, subsequent piece of
-  work — the original ask this whole detour started from.
+- This task's own scope only changes `smaqit.new-greenfield-project` in this canonical repo — it
+  does not author or reconcile any new stack-specific deploy skill itself. `tested-deployment` is the
+  concrete downstream project that motivates it and is the immediate next step once this task
+  lands: a separate, subsequent live test-deploy that synthesizes a Tornado/systemd deploy skill
+  (via `smaqit.create-skill`, confirmed present and working there) and uses it to deploy
+  `tested-deployment` to a **newly provisioned** VM — fresh Terraform VM + Object Storage state bucket
+  + Cinder volume, not a reuse of the shared VM from its earlier manual deploy. That live run also
+  supplies the outstanding "real target project" live-walkthrough evidence still open on Tasks 084
+  and 085 (each has exactly one unchecked acceptance criterion for lack of a real project to test
+  against in-sandbox) — the same session that validates this task's Step 6 rewrite closes out that
+  gap for both.

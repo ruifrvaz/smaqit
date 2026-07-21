@@ -37,7 +37,7 @@ var agentsMdTemplate embed.FS
 var claudeMdTemplate embed.FS
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
-var Version = "1.5.0"
+var Version = "1.5.1"
 
 func main() {
 	if len(os.Args) < 2 {

@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [1.5.1] - 2026-07-21
+
+### Fixed
+- `smaqit update` no longer silently skips new skills/scripts added in the release just downloaded. It replaced the binary on disk but then re-initialized project assets in the same still-running process — `go:embed` content is baked in at compile time, so the old process only had the previous release's embedded content in memory even though the file on disk was already the new version. Reinit now re-execs the freshly-downloaded binary as a subprocess, so it always reflects what was actually just installed.
+
+### Chore
+- Closed Task 084 (deploy-target provisioning-mode branching) findings, documenting the one knowingly-accepted gap (no live `existing-shared` co-hosting walkthrough performed yet).
+
 ## [1.5.0] - 2026-07-21
 
 ### Added
@@ -500,7 +508,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/ruifrvaz/smaqit/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/ruifrvaz/smaqit/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/ruifrvaz/smaqit/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/ruifrvaz/smaqit/compare/v1.2.0...v1.3.1

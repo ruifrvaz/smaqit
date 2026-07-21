@@ -167,7 +167,7 @@ source of truth.)
 
 ## Findings
 
-**Implementation approach (interim — task not yet complete, Assisted mode):**
+**Implementation approach:**
 - Followed the 9 Implementation Steps in order. Added one new script not explicitly named in the
   task (`smaqit.infrastructure-provision-cyso/scripts/ownership-guard.sh`) to implement Step 4's
   pre-flight guard as a deterministic check (mirroring the existing `plan-guard.sh` pattern)
@@ -196,21 +196,19 @@ source of truth.)
 - None.
 
 **Follow-up identified:**
-- Acceptance criterion "exercise end-to-end via the `<tested-deployment>`-onto-`fashion-app-poc` scenario"
-  is unmet — it requires a live session in those projects' own working environments, not available
-  in this repo's session. Flagging for the user to run separately before invoking `/task.complete 084`.
-
-**Implementation approach:**
-- TBD
-
-**Decisions made:**
-- TBD
-
-**Blockers encountered:**
-- TBD
-
-**Follow-up identified:**
-- TBD
+- The specific named acceptance criterion — exercising this task end-to-end via the
+  `<tested-deployment>`-onto-`fashion-app-poc` scenario (co-hosted/`existing-shared` mode) — remains
+  formally unmet and is left unchecked below. A real live deploy did happen (Task 087's validation,
+  2026-07-21), but it exercised a *different* scenario: `<tested-deployment>` provisioning its own
+  new, dedicated VM (`provisioning_mode: provision`), not the co-hosted/`existing-shared` case this
+  criterion names. That run did validate most of the underlying machinery this task built
+  (`ownership-guard.sh`, mode-aware `vault-loader`/`repo-config`, the `provisioning_mode` concept
+  itself) in a real environment, just not this exact named path.
+- User explicitly directed closing this task now regardless, having weighed this gap directly (same
+  call already made for the v1.5.0 release, which shipped this work without gating on it). Closed
+  with this known, documented limitation rather than left open indefinitely — a real
+  `existing-shared` co-hosting walkthrough remains a good candidate for whenever a second project
+  genuinely needs to land on a VM another project owns.
 
 ## Files to Create / Modify
 

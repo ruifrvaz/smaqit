@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-domain-tls
-description: Use when configuring a custom domain with a Let's Encrypt TLS certificate for a running nginx server. Covers DNS propagation verification, nginx server_name update, Certbot certificate issuance, HTTPS smoke tests, and auto-renewal verification. Also use when activating a purchased domain for a deployed application, setting up HTTPS post-deployment, or when a spec references INF-TOPOLOGY-004 through INF-TOPOLOGY-007 as pending TLS configuration.
+description: Use when configuring a custom domain with a Let's Encrypt TLS certificate for a running nginx server. Covers DNS propagation verification, nginx server_name update, Certbot certificate issuance, HTTPS smoke tests, and auto-renewal verification. Also use when activating a purchased domain for a deployed application, setting up HTTPS post-deployment, or when the infrastructure spec references pending TLS/domain acceptance criteria.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Configure Domain TLS with Let's Encrypt
@@ -10,28 +10,31 @@ metadata:
 ## Pre-conditions
 
 Operator must complete before invoking:
-- Domain purchased and DNS A record pointing at the VM's public IP (`81.24.10.203` for this project)
+- Domain purchased and DNS A record pointing at the VM's fixed IP (`<vm-fixed-ip>`)
 - nginx installed and serving the app on HTTP
 - SSH access to the VM
 
-Verify Certbot is available before Step 4: `which certbot`. It is pre-installed by cloud-init in this project.
+Verify Certbot is available before Step 4: `which certbot`. If cloud-init did not pre-install it
+for this project, install with `sudo apt install python3-certbot-nginx` first.
 
 ## Steps
 
 All commands that run on the VM are executed via SSH.
 
 1. **Fix any stale spec reference:**
-   Check `specs/infrastructure/deployment-topology.md` for the `DNS prerequisite` constraint. If it references "Floating IP", update it to the fixed IP (`81.24.10.203`) and commit before proceeding.
+   Check the infrastructure spec (e.g. `specs/infrastructure/deployment.md`) for a `DNS
+   prerequisite` constraint. If it references "Floating IP", update it to the fixed IP
+   (`<vm-fixed-ip>`) and commit before proceeding.
 
 2. **Verify DNS propagation:**
    ```bash
    dig <domain> A +short
    ```
-   Must return `81.24.10.203`. If not resolved, wait and retry — do NOT proceed until confirmed.
+   Must return `<vm-fixed-ip>`. If not resolved, wait and retry — do NOT proceed until confirmed.
 
 3. **Update nginx `server_name`:**
    ```bash
-   sudo sed -i 's/server_name _;/server_name <domain>;/' /etc/nginx/sites-available/him
+   sudo sed -i 's/server_name _;/server_name <domain>;/' /etc/nginx/sites-available/<project-slug>
    sudo nginx -t
    sudo systemctl reload nginx
    ```
@@ -50,7 +53,7 @@ All commands that run on the VM are executed via SSH.
    ```bash
    curl -sI https://<domain>/            # assert HTTP 200, Content-Type: text/html
    curl -sI http://<domain>/             # assert HTTP 301 redirect to https://
-   curl -sf https://<domain>/api/health  # assert HTTP 200
+   curl -sf https://<domain>/<health-check-path>  # assert HTTP 200
    ```
 
 6. **Certificate verification:**
@@ -65,13 +68,14 @@ All commands that run on the VM are executed via SSH.
    ```
    Must succeed without errors. Run this even if auto-renewal appears configured — the systemd timer may not be active on first boot.
 
-8. **Update specs:** Invoke `smaqit.spec-status-update` for `specs/infrastructure/deployment-topology.md` — mark INF-TOPOLOGY-004 through INF-TOPOLOGY-007 as `[x]`.
+8. **Update specs:** Invoke `smaqit.spec-status-update` for the infrastructure spec (e.g.
+   `specs/infrastructure/deployment.md`) — mark the domain/TLS acceptance criteria as `[x]`.
 
 ## Output
 
 - nginx configured with real `server_name` and TLS
 - Let's Encrypt certificate issued and auto-renewal configured
-- INF-TOPOLOGY-004 through INF-TOPOLOGY-007 checked off in `specs/infrastructure/deployment-topology.md`
+- Domain/TLS acceptance criteria checked off in the infrastructure spec
 
 ## Scope
 
@@ -81,28 +85,30 @@ All commands that run on the VM are executed via SSH.
 
 ## Examples
 
-**Input:** Domain `himcorp.com` purchased, A record set to `81.24.10.203`. User invokes `/domain.tls himcorp.com`.
-**Output:** TLS certificate issued, HTTPS live at `https://himcorp.com/`, HTTP redirects to HTTPS, health check passing, INF-TOPOLOGY-004–007 checked off.
+**Input:** Domain `<domain>` purchased, A record set to `<vm-fixed-ip>`. User invokes `/domain.tls <domain>`.
+**Output:** TLS certificate issued, HTTPS live at `https://<domain>/`, HTTP redirects to HTTPS, health check passing, domain/TLS acceptance criteria checked off.
 
 ## Gotchas
 
 - `dig` propagation can take minutes to hours depending on DNS TTL. Do NOT run Certbot before DNS is confirmed — Certbot will fail the ACME HTTP-01 challenge if the domain doesn't resolve to the VM.
 - Certbot rewrites the nginx config file. After issuance, the `listen 443 ssl` blocks are managed by Certbot — do not manually edit the nginx file for TLS settings post-issuance.
-- `81.24.10.90` (Cyso floating IP) does not route on the flat network. Always use the fixed IP `81.24.10.203` as the DNS A record target.
+- A cloud provider's floating IP may not route on a flat network (this is the case on Cyso, for
+  example). Always use the VM's actual fixed/routable IP as the DNS A record target — confirm
+  which one applies for the target provider before configuring DNS.
 - Port 80 must be open in the VM firewall during the ACME HTTP-01 challenge. If Certbot fails, check `ufw status` and ensure port 80 is allowed.
 
 ## Completion
 
 - [ ] Stale spec reference fixed (if applicable)
-- [ ] DNS propagation confirmed: `dig <domain>` returns `81.24.10.203`
+- [ ] DNS propagation confirmed: `dig <domain>` returns `<vm-fixed-ip>`
 - [ ] nginx `server_name` updated and config tested (`nginx -t` passes)
 - [ ] Certbot certificate issued without errors
 - [ ] HTTPS smoke test passes (HTTP 200 + `text/html`)
 - [ ] HTTP → HTTPS redirect confirmed (301)
-- [ ] `/api/health` accessible via HTTPS (HTTP 200)
+- [ ] `<health-check-path>` accessible via HTTPS (HTTP 200)
 - [ ] Certificate issuer: Let's Encrypt, not expired
 - [ ] Auto-renewal dry-run passes
-- [ ] INF-TOPOLOGY-004 through INF-TOPOLOGY-007 checked off in spec
+- [ ] Domain/TLS acceptance criteria checked off in the infrastructure spec
 
 ## Failure Handling
 

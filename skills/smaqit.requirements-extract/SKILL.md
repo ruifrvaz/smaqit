@@ -2,7 +2,7 @@
 name: smaqit.requirements-extract
 description: Use this skill when the user wants to extract structured requirements candidates from raw project assets such as code prototypes, documents, or meeting notes. Produces `.smaqit/requirements-extract.md` — an enumerated, categorised inventory that specification agents can consume directly. Also use when the user asks to analyse assets, mine files for requirements, or prepare input for any spec workflow.
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # Requirements Extraction
@@ -52,7 +52,7 @@ metadata:
 
 ## Gotchas
 
-- Source files may use inconsistent ranges for overlapping concepts. In HIM Corporate, `CD-RISC` uses a 0–4 range while other instrument scales use 1–5. Annotate range values with their source file and do not normalise — preserve the discrepancy as-is and flag it in `## Ambiguities`.
+- Source files may use inconsistent ranges for overlapping concepts (e.g. one instrument scale using a 0–4 range while another uses 1–5). Annotate range values with their source file and do not normalise — preserve the discrepancy as-is and flag it in `## Ambiguities`.
 - Code files (e.g. React components) embed formulas and state machine rules inside component logic, not just in data declarations or comments. Scan the full file body.
 - The extraction output is not a specification. Functional specification agents resolve ambiguities — this skill only surfaces them.
 

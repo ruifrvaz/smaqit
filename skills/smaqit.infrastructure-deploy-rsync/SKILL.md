@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-deploy-rsync
 description: Use when deploying a Node.js backend + React frontend application to a remote VM via rsync. Used in the Phase 5 dev environment sweep of `smaqit.new-greenfield-project` to validate the deployment approach locally before CI/CD. Also use as a manual fallback for direct VM deployment outside the CI/CD pipeline.
 metadata:
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
 # Deploy Application via rsync
@@ -12,7 +12,7 @@ metadata:
 - VM bootstrapped (`smaqit.infrastructure-vm-bootstrap` complete)
 - Local Vault running and unsealed (`smaqit.infrastructure-vault-loader` complete); SSH private key at `secret/<project-slug>/ssh`
 - Docker running on VM and `ubuntu` in docker group
-- `deployment/docker-compose.yml` and `deployment/nginx/him.conf` present locally
+- `deployment/docker-compose.yml` and `deployment/nginx/<project-slug>.conf` present locally
 
 ## Steps
 
@@ -77,7 +77,7 @@ metadata:
    `provisioning_mode: existing-shared`, or any VM already serving another project), rather than
    that decision being made in prose here:
    ```bash
-   scripts/write-vhost.sh "$TMPKEY" <host> deployment/nginx/him.conf <project-slug> [<server-name-if-co-hosted>]
+   scripts/write-vhost.sh "$TMPKEY" <host> deployment/nginx/<project-slug>.conf <project-slug> [<server-name-if-co-hosted>]
    ```
    - **Nothing else enabled (first site on this VM):** the script sets `listen 80 default_server;`
      — this is the catch-all for requests with no matching `Host` header.

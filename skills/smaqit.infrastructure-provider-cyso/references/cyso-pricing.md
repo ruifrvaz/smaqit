@@ -47,7 +47,7 @@ Ephemeral storage (root disk) is included in the instance price.
 | m5.2xlarge | 32 | 256 GB | 400 GB | € 0.63244 | € 425.00 |
 | m5.4xlarge | 64 | 512 GB | 800 GB | € 1.26488 | € 850.00 |
 
-> **HIM Corporate uses `s5.small`** — € 17.50/month. Single-tenant Node.js backend + SQLite. Sufficient for initial production load.
+> **A typical single-tenant Node.js backend + SQLite deployment uses `s5.small`** — € 17.50/month. Sufficient for initial production load.
 
 ---
 
@@ -73,7 +73,7 @@ Ephemeral storage (root disk) is included in the instance price.
 | Category A (PUT, LIST) | € 0.055 per 10,000 ops |
 | Category B (other) | € 0.004 per 10,000 ops |
 
-> **HIM Corporate uses:** 10 GB Tier-1 Cinder data volume (≈ € 0.95/month) + Object Storage bucket for Terraform state (negligible cost).
+> **Typical usage:** 10 GB Tier-1 Cinder data volume (≈ € 0.95/month) + Object Storage bucket for Terraform state (negligible cost).
 
 ---
 
@@ -87,7 +87,7 @@ Ephemeral storage (root disk) is included in the instance price.
 | LBaaS Medium | € 27.45 |
 | LBaaS Large | € 54.95 |
 
-> **HIM Corporate uses:** 1 Floating IP — € 1.99/month.
+> **Typical usage:** 1 Floating IP — € 1.99/month.
 
 ---
 
@@ -105,7 +105,7 @@ Ephemeral storage (root disk) is included in the instance price.
 
 ---
 
-## HIM Corporate estimated monthly cost
+## Example estimated monthly cost (single s5.small deployment)
 
 | Resource | Spec | Cost |
 |---|---|---|

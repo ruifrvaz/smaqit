@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-provider-cyso
 description: Use this skill when making any Cyso Cloud decision — selecting a VM flavor, estimating cost, configuring Terraform credentials, looking up platform endpoints or resource IDs, setting up the OpenStack CLI, editing the compute instance or its user_data, running pre-flight checks, or importing a github_actions_variable/secret. Routes the agent to the correct reference documentation before acting, preventing guesses on Cyso-specific facts (auth URL, image IDs, flavor names, credential formats, ForceNew attributes, provider import ID formats).
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
 ---
 
 # Cyso Knowledge Base
@@ -55,7 +55,7 @@ Output: Step-by-step instructions covering app credential creation, OpenRC downl
 - Cyso Cloud is OpenStack-based but branded as Cyso. The auth endpoint is `https://core.fuga.cloud:5000/v3` (Fuga Cloud, which powers Cyso). Do not substitute generic OpenStack defaults.
 - Application Credentials and S3/Object Storage credentials are **separate** — created through different portal flows. Read `references/cyso-reference.md` to see both.
 - `openrc.sh` contains the application credential secret. It must never be committed to git. This constraint is documented in `references/cyso-deployment-setup.md`.
-- The HIM Corporate production VM uses `s5.small` at €17.50/month (verified 2026-04-05). Pricing is hourly-billed, invoiced monthly.
+- `s5.small` is a validated production choice at €17.50/month (verified 2026-04-05). Pricing is hourly-billed, invoiced monthly.
 - Reference files are copies of `docs/wiki/` content kept inside the skill's `references/` subdirectory for portability. If the wiki files are updated, the skill references must be updated too.
 - `user_data` (and `image_id`/`image_name`/`key_pair`) on `openstack_compute_instance_v2` is `ForceNew` — any edit, including a comment-only one, destroys and recreates the instance. Always read `references/openstack-forcenew-attributes.md` before touching that resource, and always gate the apply with `smaqit.infrastructure-provision-cyso/scripts/plan-guard.sh` rather than eyeballing the plan.
 - `github_actions_variable`/`github_actions_secret` import IDs are `<repository>:<name>` — not `<owner>/<repo>`. Getting this wrong produces a confusing "resource not found" on `terraform import` that looks like a permissions issue.

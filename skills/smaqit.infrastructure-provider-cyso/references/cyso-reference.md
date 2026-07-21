@@ -1,6 +1,7 @@
 # Cyso Cloud Reference
 
-Authoritative reference for HIM Corporate infrastructure on Cyso Cloud (OpenStack, region `ams2`).  
+Authoritative reference for Cyso Cloud (OpenStack, region `ams2`) infrastructure facts, applicable
+to any project deployed there.
 All facts verified against live documentation as of **2026-04-05**.
 
 ---
@@ -11,7 +12,7 @@ All facts verified against live documentation as of **2026-04-05**.
 |---|---|
 | Platform | OpenStack (Cyso-managed) |
 | Primary region | `ams2` (Amsterdam) |
-| Secondary region | `fra` (Frankfurt) — not used by HIM Corporate |
+| Secondary region | `fra` (Frankfurt) |
 | Dashboard | https://my.cyso.cloud |
 | Auth endpoint (Keystone) | `https://core.fuga.cloud:5000/v3` |
 | Object Storage S3 endpoint | `https://core.fuga.cloud:8080` |
@@ -27,7 +28,7 @@ Cyso Cloud uses **Application Credentials** for all automation. These are OpenSt
 
 1. Log in at https://my.cyso.cloud
 2. Navigate to **Access → Credentials**
-3. Click **Create** — choose a name (e.g. `him-corporate-terraform`), optionally set an expiry
+3. Click **Create** — choose a name (e.g. `<project-slug>-terraform`), optionally set an expiry
 4. **Copy the ID and Secret immediately** — the secret is shown only once
 5. Download the credential in one of four formats (see below)
 
@@ -66,7 +67,7 @@ provider "openstack" {
 }
 ```
 
-In HIM Corporate's Terraform, credentials are passed via `TF_VAR_*` environment variables — never hardcoded. The `auth_url` is hardcoded in `main.tf` as it is a public platform constant.
+Credentials are passed via `TF_VAR_*` environment variables — never hardcoded. The `auth_url` is hardcoded in `main.tf` as it is a public platform constant.
 
 ### clouds.yaml format
 
@@ -90,7 +91,7 @@ Place at `~/.config/openstack/clouds.yaml`. Use with: `openstack --os-cloud fuga
 
 All services available in regions `ams2` (AMS) and `fra` (FRA). Project-specific endpoint URLs are shown at https://my.cyso.cloud/account/api-endpoints.
 
-| Service | OpenStack component | Used by HIM Corporate |
+| Service | OpenStack component | Typical use |
 |---|---|---|
 | `compute` | Nova | ✓ VM provisioning |
 | `volumev3` | Cinder | ✓ Boot volume + data volume |
@@ -122,7 +123,7 @@ openstack image list --name "Ubuntu 24.04" --format table
 
 Three families. Naming scheme: `{family}.{size}`.
 
-#### Standard (s5) — chosen for HIM Corporate
+#### Standard (s5) — validated production choice
 
 | Flavor | vCPU | RAM | Disk | Monthly |
 |---|---|---|---|---|
@@ -130,7 +131,7 @@ Three families. Naming scheme: `{family}.{size}`.
 | s5.medium | 4 | 16 GB | 100 GB | € 37.50 |
 | s5.large | 8 | 32 GB | 200 GB | € 75.00 |
 
-**HIM Corporate uses `s5.small`** — sufficient for Node.js backend + SQLite at MVP scale.
+**`s5.small` is a proven baseline** — sufficient for a Node.js backend + SQLite at MVP scale.
 
 #### CPU Optimised (c5)
 
@@ -169,7 +170,7 @@ network {
 
 Ubuntu 24.04 instances use `ubuntu` as the default user:
 ```bash
-ssh -i ~/.ssh/him_key ubuntu@<FLOATING_IP>
+ssh -i ~/.ssh/<project-slug>_key ubuntu@<FLOATING_IP>
 ```
 
 ### Dashboard sidebar structure
@@ -211,7 +212,7 @@ Access
 | Tier-2 | 25 | 25k | No | € 0.250 /GB/month |
 | Tier-2m | 25 | 25k | Yes | € 0.300 /GB/month |
 
-**HIM Corporate uses Tier-1** (10 GB ≈ € 0.95/month) for the SQLite data volume.
+**Tier-1 is a proven baseline** (10 GB ≈ € 0.95/month) for a SQLite data volume.
 
 ### Volume attachment
 
@@ -241,12 +242,12 @@ block_device {
 
 # Separate data volume
 resource "openstack_blockstorage_volume_v3" "data" {
-  name = "him-data"
+  name = "<project-slug>-data"
   size = 10
 }
 
 resource "openstack_compute_volume_attach_v2" "data" {
-  instance_id = openstack_compute_instance_v2.him.id
+  instance_id = openstack_compute_instance_v2.app.id
   volume_id   = openstack_blockstorage_volume_v3.data.id
 }
 ```
@@ -286,8 +287,8 @@ Object Storage uses **EC2/S3 credentials**, which are separate from application 
 ```hcl
 terraform {
   backend "s3" {
-    bucket   = "him-corporate-tfstate"
-    key      = "him/terraform.tfstate"
+    bucket   = "<project-slug>-tfstate"
+    key      = "<project-slug>/terraform.tfstate"
     region   = "ams2"
     endpoint = "https://core.fuga.cloud:8080"
 
@@ -320,13 +321,13 @@ The bucket must be created manually in the dashboard before `terraform init` —
 
 Terraform:
 ```hcl
-resource "openstack_networking_floatingip_v2" "him" {
+resource "openstack_networking_floatingip_v2" "app" {
   pool = "public"
 }
 
-resource "openstack_compute_floatingip_associate_v2" "him" {
-  floating_ip = openstack_networking_floatingip_v2.him.address
-  instance_id = openstack_compute_instance_v2.him.id
+resource "openstack_compute_floatingip_associate_v2" "app" {
+  floating_ip = openstack_networking_floatingip_v2.app.address
+  instance_id = openstack_compute_instance_v2.app.id
 }
 ```
 
@@ -345,8 +346,8 @@ To allow SSH and ICMP (ping):
 
 Terraform security group resources:
 ```hcl
-resource "openstack_networking_secgroup_v2" "him" {
-  name        = "him-corporate-sg"
+resource "openstack_networking_secgroup_v2" "app" {
+  name        = "<project-slug>-sg"
   description = "Allow SSH, HTTP, HTTPS"
 }
 
@@ -357,7 +358,7 @@ resource "openstack_networking_secgroup_rule_v2" "ssh" {
   port_range_min    = 22
   port_range_max    = 22
   remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = openstack_networking_secgroup_v2.him.id
+  security_group_id = openstack_networking_secgroup_v2.app.id
 }
 ```
 
@@ -389,8 +390,8 @@ The provider reads credentials from environment variables if not set in the bloc
 ### Key pair resource
 
 ```hcl
-resource "openstack_compute_keypair_v2" "him" {
-  name       = "him-key"
+resource "openstack_compute_keypair_v2" "app" {
+  name       = "<project-slug>-key"
   public_key = var.ssh_public_key
 }
 ```
@@ -400,11 +401,11 @@ Key pairs can also be uploaded via the dashboard: **Access → Key Pairs → Imp
 ### Instance resource
 
 ```hcl
-resource "openstack_compute_instance_v2" "him" {
-  name            = "him-corporate"
+resource "openstack_compute_instance_v2" "app" {
+  name            = "<project-slug>"
   flavor_name     = "s5.small"
-  key_pair        = openstack_compute_keypair_v2.him.name
-  security_groups = [openstack_networking_secgroup_v2.him.name]
+  key_pair        = openstack_compute_keypair_v2.app.name
+  security_groups = [openstack_networking_secgroup_v2.app.name]
 
   block_device {
     uuid                  = "bcdcd204-65b6-440c-afd0-b91ac812d43c"  # Ubuntu 24.04 LTS
@@ -425,7 +426,7 @@ resource "openstack_compute_instance_v2" "him" {
 
 ```bash
 # 1. Source application credentials
-source ~/him-openrc.sh
+source ~/<project-slug>-openrc.sh
 
 # 2. Export Object Storage credentials for S3 backend
 export AWS_ACCESS_KEY_ID=<s3-access-key>
@@ -493,9 +494,9 @@ Or via pipx (recommended on Ubuntu 24.04 where pip is externally managed):
 pipx install python-openstackclient
 ```
 
-Useful commands for HIM Corporate pre-deploy verification:
+Useful commands for pre-deploy verification:
 ```bash
-source ~/him-openrc.sh
+source ~/<project-slug>-openrc.sh
 
 # Verify auth works
 openstack token issue
@@ -518,7 +519,7 @@ openstack floating ip list
 
 ---
 
-## HIM Corporate cost summary
+## Example monthly cost (single s5.small deployment)
 
 | Resource | Spec | Monthly cost |
 |---|---|---|

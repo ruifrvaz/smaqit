@@ -1,7 +1,9 @@
 # Cyso Cloud Deployment Setup
 
-Operational runbook for deploying HIM Corporate to Cyso Cloud (OpenStack, region `ams2`).  
+Operational runbook for deploying a project to Cyso Cloud (OpenStack, region `ams2`).
 Covers all manual pre-conditions required before `terraform init` can run.
+
+Replace `<project-slug>` below with the project's own lowercase hyphenated slug throughout.
 
 ---
 
@@ -22,8 +24,8 @@ Application Credentials are scoped, revokable tokens used for automation and Ter
 3. Navigate to **Access** → **Credentials**
 4. Click **Create Application Credential**
 5. Fill in:
-   - **Name:** `him-corporate-terraform`
-   - **Description:** `Terraform deployment for HIM Corporate`
+   - **Name:** `<project-slug>-terraform`
+   - **Description:** `Terraform deployment for <project-slug>`
    - **Expiration:** set a date appropriate for your deploy window (or leave blank for no expiry)
    - **Roles:** leave as default (inherits your project roles)
 6. Click **Create**
@@ -41,12 +43,12 @@ OpenRC is a shell script that exports the OpenStack environment variables Terraf
 
 1. Still on the **Application Credentials** page, find the credential you just created
 2. Click **Download OpenRC File** next to it
-3. Save as `openrc.sh` outside the git repo (e.g. `~/him-openrc.sh`)
+3. Save as `openrc.sh` outside the git repo (e.g. `~/<project-slug>-openrc.sh`)
 
 **Load credentials in your terminal:**
 
 ```bash
-source ~/him-openrc.sh
+source ~/<project-slug>-openrc.sh
 # No password prompt — the application credential secret is embedded
 ```
 
@@ -66,7 +68,7 @@ Terraform state is stored in a Cyso Object Storage container (S3-compatible).
 This bucket must exist **before** `terraform init` runs — it cannot be created by Terraform itself.
 
 1. In the Cyso Cloud Portal, navigate to **Object Storage**
-2. Create a new container named: `him-corporate-tfstate`
+2. Create a new container named: `<project-slug>-tfstate`
 3. Set visibility to **Private**
 4. Under **S3 Credentials**, generate an access key + secret key pair
 5. Note down both values — you will need them for `backend.tf`
@@ -76,15 +78,15 @@ This bucket must exist **before** `terraform init` runs — it cannot be created
 ## Step 4 — Generate and upload SSH keypair
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/him_key -C "him-corporate-deploy"
+ssh-keygen -t ed25519 -f ~/.ssh/<project-slug>_key -C "<project-slug>-deploy"
 ```
 
-Upload the **public key** (`~/.ssh/him_key.pub`) to Cyso:
+Upload the **public key** (`~/.ssh/<project-slug>_key.pub`) to Cyso:
 
 1. In the Cyso Cloud Portal, navigate to **Compute** → **Key Pairs**
 2. Click **Import Key Pair**
-3. Name: `him-key`
-4. Paste the contents of `~/.ssh/him_key.pub`
+3. Name: `<project-slug>-key`
+4. Paste the contents of `~/.ssh/<project-slug>_key.pub`
 5. Save
 
 ---
@@ -122,7 +124,7 @@ With all pre-conditions met:
 # Export Terraform credentials (never hardcode in files)
 export TF_VAR_app_credential_id=<application-credential-id>
 export TF_VAR_app_credential_secret=<application-credential-secret>
-export TF_VAR_ssh_public_key="$(cat ~/.ssh/him_key.pub)"
+export TF_VAR_ssh_public_key="$(cat ~/.ssh/<project-slug>_key.pub)"
 
 # Export Object Storage credentials for remote state backend
 export AWS_ACCESS_KEY_ID=<object-storage-access-key>
@@ -149,7 +151,7 @@ Note the `floating_ip` value from the output — you'll need it for all subseque
 SSH into the VM (cloud-init may still be running — wait ~60 seconds after apply):
 
 ```bash
-ssh -i ~/.ssh/him_key ubuntu@<FLOATING_IP>
+ssh -i ~/.ssh/<project-slug>_key ubuntu@<FLOATING_IP>
 ```
 
 **Format and mount the Cinder data volume** (run once):
@@ -164,13 +166,13 @@ echo '/dev/vdb /data ext4 defaults,nofail 0 2' | sudo tee -a /etc/fstab
 **Create the `.env` file** (never in Terraform state):
 
 ```bash
-sudo tee /opt/him/.env > /dev/null <<EOF
+sudo tee __APP_DIR__/.env > /dev/null <<EOF
 NODE_ENV=production
-PORT=3001
-DB_PATH=/data/him.db
+PORT=<app-port>
+DB_PATH=/data/<project-slug>.db
 ANTHROPIC_API_KEY=<your-key-here>
 EOF
-sudo chmod 600 /opt/him/.env
+sudo chmod 600 __APP_DIR__/.env
 ```
 
 **Deploy app files** from your local machine:
@@ -180,24 +182,24 @@ sudo chmod 600 /opt/him/.env
 cd backend && npm run build && cd ..
 
 # Copy compiled backend and Docker Compose file to VM
-scp -r -i ~/.ssh/him_key backend/dist ubuntu@<FLOATING_IP>:/opt/him/backend/
-scp -i ~/.ssh/him_key backend/package.json ubuntu@<FLOATING_IP>:/opt/him/backend/
-scp -i ~/.ssh/him_key deployment/docker-compose.yml ubuntu@<FLOATING_IP>:/opt/him/
+scp -r -i ~/.ssh/<project-slug>_key backend/dist ubuntu@<FLOATING_IP>:__APP_DIR__/backend/
+scp -i ~/.ssh/<project-slug>_key backend/package.json ubuntu@<FLOATING_IP>:__APP_DIR__/backend/
+scp -i ~/.ssh/<project-slug>_key deployment/docker-compose.yml ubuntu@<FLOATING_IP>:__APP_DIR__/
 
 # Install production dependencies on VM
-ssh -i ~/.ssh/him_key ubuntu@<FLOATING_IP> \
-  "cd /opt/him/backend && npm install --omit=dev"
+ssh -i ~/.ssh/<project-slug>_key ubuntu@<FLOATING_IP> \
+  "cd __APP_DIR__/backend && npm install --omit=dev"
 
 # Copy built frontend assets for Nginx to serve
 cd frontend && npm run build && cd ..
-scp -r -i ~/.ssh/him_key frontend/dist ubuntu@<FLOATING_IP>:/opt/him/frontend/
+scp -r -i ~/.ssh/<project-slug>_key frontend/dist ubuntu@<FLOATING_IP>:__APP_DIR__/frontend/
 ```
 
 **Start the backend container:**
 
 ```bash
-ssh -i ~/.ssh/him_key ubuntu@<FLOATING_IP> \
-  "cd /opt/him && docker compose up -d"
+ssh -i ~/.ssh/<project-slug>_key ubuntu@<FLOATING_IP> \
+  "cd __APP_DIR__ && docker compose up -d"
 ```
 
 ---
@@ -219,14 +221,14 @@ Certbot will add the HTTPS server block and configure auto-renewal.
 
 ```bash
 # Via HTTPS (after DNS propagation + Certbot)
-curl https://<your-domain>/api/health
+curl https://<your-domain>/<health-check-path>
 # Expected: {"status":"ok"}
 
 # OpenStack CLI health checks
-source ~/him-openrc.sh
-openstack server show him-corporate          # VM in ACTIVE state
+source ~/<project-slug>-openrc.sh
+openstack server show <project-slug>          # VM in ACTIVE state
 openstack floating ip list                   # Floating IP attached
-openstack volume show him-data              # Data volume in-use
+openstack volume show <project-slug>-data    # Data volume in-use
 ```
 
 ---

@@ -2,7 +2,7 @@
 name: smaqit.spec-status-update
 description: Use when implementation or deployment is confirmed and spec files need to be brought in sync with the live codebase. Updates frontmatter fields (`status`, `deployed`, `updated`) and flips acceptance criteria checkboxes (`[ ]→[x]` or `[ ]→[!]`) without running a full spec agent. Also use when the user asks to mark a spec as deployed, update spec status after a release, or record which acceptance criteria are met.
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # Spec Status Update
@@ -44,7 +44,7 @@ metadata:
 
 ## Gotchas
 
-- Some spec files carry `status: draft` even after partial implementation. Verify all criteria under the new status are actually met before updating. (Observed in HIM Corporate session 005: `smaqit plan` returned empty because `STK-BACKEND` was still `implemented` when new criteria had not been addressed.)
+- Some spec files carry `status: draft` even after partial implementation. Verify all criteria under the new status are actually met before updating. (Observed in a past session: `smaqit plan` returned empty because a stack spec was still `implemented` when new criteria had not been addressed.)
 - `deployed` is a **datetime**, not a date. Always include the time component (`T00:00:00Z` is acceptable if the exact time is unknown).
 - The `[!]` marker is a project convention for deferred or untestable criteria. Always add a brief inline note when using it.
 

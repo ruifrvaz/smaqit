@@ -2,7 +2,7 @@
 name: smaqit.release.pr
 description: Orchestrate a release process via pull request (CI/CD, Coding Agent)
 metadata:
-  version: "0.4.0"
+  version: "0.5.0"
 ---
 
 # Release Agent (PR)
@@ -14,10 +14,10 @@ You are the PR-based release agent. Your goal is to orchestrate a safe release w
 ## Context
 
 This agent is designed for **CI/CD environments** where:
-- GitHub Copilot Coding Agent triggered by issue
+- GitHub Copilot Coding Agent triggered by an issue
 - Runs in GitHub Actions with limited credentials
 - Creates pull request (cannot commit to `main` directly)
-- Uses `report_progress` tool for commits
+- Uses the `report_progress` tool for commits
 - **Cannot create tags** (tags must be on `main` after PR merge)
 - Requires auto-confirm (no interactive prompts in CI)
 
@@ -71,7 +71,7 @@ Outputs:
 Executes PR operations:
 - Stages changes (CHANGELOG.md and any version files)
 - Creates commit: `"Prepare release vX.Y.Z"`
-- Pushes via `report_progress` tool (handles credentials internally)
+- Pushes via the `report_progress` tool
 - Documents post-merge tag instructions
 
 Outputs:
@@ -121,7 +121,7 @@ Before declaring success, verify:
 - [ ] CHANGELOG.md updated with approved version
 - [ ] Version files synced (if applicable)
 - [ ] Commit created with "Prepare release vX.Y.Z" message
-- [ ] PR created/updated with changes via `report_progress`
+- [ ] PR created/updated with changes via the `report_progress` tool
 - [ ] **PR title verified** — must start with "Prepare release vX.Y.Z" or "Release vX.Y.Z"; if wrong, corrected via `gh pr edit --title`
 
 **After PR merge:** Post-merge workflow automatically creates tag, builds binaries, and publishes GitHub Release.
@@ -131,7 +131,7 @@ Before declaring success, verify:
 - Auto-confirm mode is REQUIRED - this agent cannot prompt for user input
 - Tags are intentionally NOT created on PR branches
 - All release automation happens in post-merge workflow after PR merge
-- `report_progress` tool handles authentication - no need for credential setup
+- Push authentication uses the `report_progress` tool
 - Release completes automatically after PR merge (tag, builds, GitHub Release)
 - If any skill fails, stop immediately and report the error
 - For local releases with interactive approval, use `smaqit.release.local` agent instead

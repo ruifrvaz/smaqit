@@ -26,7 +26,7 @@ Every playbook MUST include:
 
 - Objectives (2–4 sentences)
 - Prerequisites (services, tools, access)
-- Step 1: Build & Unit Test Gate — `dotnet build {solution-name}.sln --nologo --verbosity quiet` exits 0, then `dotnet test {solution-name}.sln --nologo --verbosity quiet` exits 0
+- Step 1: Build & Unit Test Gate — `dotnet build Iodis.sln --nologo --verbosity quiet` exits 0, then `dotnet test Iodis.sln --nologo --verbosity quiet` exits 0
 - Step 2: Deploy & Start Orchestrator — `bash scripts/start/orchestrator-start.sh` then `bash scripts/health/health.sh`
 - Pass/Fail Criteria
 - Evidence to Capture
@@ -35,7 +35,7 @@ Every playbook MUST include:
 
 - Turn-by-turn instructions with exact input per turn
 - Expected output/behavior per turn
-- How to verify each turn (response content, `journalctl -u {service-name} --since "2 min ago" --no-pager | grep "…"`, Metadata key via `jq`)
+- How to verify each turn (response content, `journalctl -u iodis-orchestrator --since "2 min ago" --no-pager | grep "…"`, Metadata key via `jq`)
 - A `wscat -c ws://localhost:5000/ws` WebSocket fallback with the note: "If Discord token is unavailable, use WebSocket fallback."
 
 **Conditional — Step N: Additional Validation.** Include only if the task requires config checks (`jq` against `appconfig.json`), log checks, or other domain-specific validation beyond the standard gates.

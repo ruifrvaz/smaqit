@@ -24,8 +24,8 @@
 ## Test Steps
 
 ### Step 1 — Build & Unit Test Gate
-- [ ] `dotnet build {solution-name}.sln --nologo --verbosity quiet` exits 0
-- [ ] `dotnet test {solution-name}.sln --nologo --verbosity quiet` exits 0 (zero failures)
+- [ ] `dotnet build Iodis.sln --nologo --verbosity quiet` exits 0
+- [ ] `dotnet test Iodis.sln --nologo --verbosity quiet` exits 0 (zero failures)
 
 ### Step 2 — Deploy & Start Orchestrator
 - [ ] `bash scripts/start/orchestrator-start.sh` — rebuilds, redeploys, restarts systemd unit
@@ -37,14 +37,14 @@
 
 - [ ] Turn 1: send "{exact Discord message}" in test channel → verify response {expected behavior}
 - [ ] Turn 2: send "{exact Discord message}" → verify response {expected behavior}
-- [ ] Verify in journald: `journalctl -u {service-name} --since "2 min ago" --no-pager | grep "{key log line}"`
+- [ ] Verify in journald: `journalctl -u iodis-orchestrator --since "2 min ago" --no-pager | grep "{key log line}"`
 
 {For WebSocket-based E2E (fallback or primary):}
 
 - [ ] Connect: `wscat -c ws://localhost:5000/ws`
 - [ ] Turn 1: send `{"input":"{exact input}"}` → verify response contains "{expected text}"
 - [ ] Turn 2: send `{"input":"{exact input}"}` → verify response contains "{expected text}"
-- [ ] Verify in journald: `journalctl -u {service-name} --since "2 min ago" --no-pager | grep "{key log line}"`
+- [ ] Verify in journald: `journalctl -u iodis-orchestrator --since "2 min ago" --no-pager | grep "{key log line}"`
 
 {If Discord token unavailable, add note:}
 > Note: If Discord token is unavailable, use the WebSocket fallback steps below. Connect via `wscat` instead of Discord client.
@@ -61,8 +61,8 @@
 
 ## Evidence to Capture
 
-- Output of `dotnet test {solution-name}.sln` (pass/fail summary line)
+- Output of `dotnet test Iodis.sln` (pass/fail summary line)
 - Output of `bash scripts/health/health.sh` (all services line)
 - {Turn-by-turn inputs and responses for live service E2E}
-- Relevant journald log excerpts: `journalctl -u {service-name} --since "5 min ago" --no-pager | grep -E "{pattern}"`
+- Relevant journald log excerpts: `journalctl -u iodis-orchestrator --since "5 min ago" --no-pager | grep -E "{pattern}"`
 ```

@@ -1,0 +1,90 @@
+# `smaqit.feature-new` — Post-MVP Feature Workflow Skill
+
+**Status:** In Progress
+**Created:** 2026-07-23
+**Mode:** Assisted
+**Started:** 2026-07-23
+
+## Description
+
+`smaqit.new-greenfield-project`'s own Scope section states: "Does NOT cover post-MVP feature cycles. Use individual smaqit agents for iterative feature work after this skill completes." That's a real, currently-unfilled gap — iterative feature work is left to ad hoc, per-agent invocation with none of greenfield's discipline (task-per-phase tracking, the `amendment:` annotation protocol, a release gate that confirms every phase actually closed).
+
+This was found empirically, not theoretically: a real feature cycle (Identity & Access accounts/login, `iodis-crm-poc` task 003) ran `/smaqit.development` then `/smaqit.validation` by ad hoc agent invocation, exactly as the Scope note predicts. `smaqit-development` correctly surfaced a Deploy-phase gap during implementation — a new `bcrypt` runtime dependency with no VM install step, and a new `cookie_secret` application secret with no home in the Infrastructure spec's Secrets Management table — and recorded it as a spec amendment. But the amendment was written as a prose blockquote (`> **Amendment (2026-07-22...):**`), not the canonical `<!-- amendment: DATE — description -->` tag `check-amendments.sh` (owned by this skill, `skills/smaqit.new-greenfield-project/scripts/check-amendments.sh`) greps for — and nothing invoked that script anyway, because this was a feature cycle, not a greenfield run reaching Phase 8. Running the script against `iodis-crm-poc`'s actual specs today confirms the miss: `PASS: no amendment annotations found` — a false negative on a real, live, currently-unresolved deploy gap. The feature was implemented, validated, and closed with production still unable to actually receive it.
+
+`smaqit.feature-new` closes this gap by applying greenfield's proven task-per-phase + amendment-gate pattern to the post-MVP scope greenfield explicitly excludes. It is not a straight copy — see Design Decisions for the structural differences, each grounded in either an already-implemented smaqit mechanism or a concrete finding from the `iodis-crm-poc` run.
+
+## Design Decisions
+
+- **New skill, not a mode flag on `smaqit.new-greenfield-project`.** `CONTRIBUTING.md`: "Avoid introducing new concepts/pages unless needed." Weighed and rejected in favor of a new skill because the phase *list* itself differs (no Requirements Extraction, no from-scratch 5-layer Spec phase, no dev-VM sweep), not just parameters within an unchanged step sequence — task 084's `provisioning_mode` was the right call to fold into `smaqit.input-deployment` precisely because it left every step sequence unchanged and only branched *within* steps; this is a different shape of change. A mode flag would turn every phase of `new-greenfield-project` into a conditional maze rather than keeping the default (greenfield) path readable, which is the same reasoning task 084's Design Decisions already applied when it *rejected* a new skill for a smaller-shaped problem.
+- **Spec phase is revalidation, not from-scratch generation.** Reuses two already-implemented smaqit mechanisms directly, not new logic:
+  - `framework/PHASES.md`'s **Incremental Development** model: `smaqit plan --phase=develop` (no `--regen` flag) returns only `status: draft`/`status: failed` specs. Spec agents (`/smaqit.business`, `/smaqit.functional`, `/smaqit.stack`, `/smaqit.infrastructure`, `/smaqit.coverage`) are invoked exactly as `/smaqit.development` and `/smaqit.validation` already invoke them internally — this already worked correctly, unprompted, during the `iodis-crm-poc` run (2 new business specs, 3 new functional specs generated; existing stack spec left untouched until an amendment was actually needed).
+  - `framework/AGENTS.md`'s **Incremental Spec Updates vs New Specs** decision table (Feature extends existing concept → update; distinct new concept → new spec + Foundation Reference; uncertain → favor update). `smaqit.feature-new`'s spec phase instructs agents to apply this table explicitly rather than leaving it implicit.
+  - For specs needing no content change, just a status bump (e.g. `implemented` → `validated` after this feature's tests confirm they still hold): use `smaqit.spec-status-update`, not a full spec-agent re-invocation.
+- **Deployment targets the existing environment by default, never provisions a new VM.** Reuses task 084's `provisioning_mode` concept (`provision` / `existing-owned` / `existing-shared`, resolved by `smaqit.input-deployment`, already live in `smaqit.new-greenfield-project` Phase 4/5) — but **overrides the default**. `smaqit.input-deployment` defaults `provisioning_mode` to `provision` because greenfield's default case is a brand-new project. A post-MVP feature cycle's default case is the opposite: the project already has a deployed target. `smaqit.feature-new` must resolve `provisioning_mode` by first checking whether `specs/infrastructure/*.md` already declares a `status: deployed` target — if so, default to `existing-owned` (this project's own already-provisioned VM) rather than falling through to `smaqit.input-deployment`'s generic `provision` default. Only elicit if genuinely ambiguous (e.g. no Infrastructure spec exists yet, which would itself be surprising for a project mature enough to be receiving post-MVP features).
+- **No dev-VM sweep (greenfield Phase 4).** A dev-environment validation pass makes sense for a brand-new deploy pipeline being proven for the first time; it's wasted cloud spend and time for the Nth feature landing on a pipeline task 002-equivalent work already proved. `smaqit.feature-new` deploys straight to the resolved target (skip cloud cost only when `provisioning_mode` resolves to `existing-owned`/`existing-shared` — if it resolves to `provision`, meaning no Infrastructure spec/deployed target exists yet, that's a signal this project isn't actually past MVP and `smaqit.new-greenfield-project` is the correct skill instead; flag this to the user rather than silently proceeding).
+- **Deploy-now vs. defer is an explicit phase parameter, not implicit.** Real projects batch features before deploying (a live example: `iodis-crm-poc` tasks 004→005→006 are sequenced to land together before task 006's redeploy). Forcing every feature cycle through an immediate deploy would fight that pattern. `smaqit.feature-new`'s Deployment phase must support a `defer` value: implementation and validation complete and their phase tasks close normally, but the Deployment phase task stays open (`Status: Blocked` or equivalent, not `Completed`) with a note pointing at what it's batched behind, and `smaqit.feature-new`'s own closing gate (see below) does not require it closed to consider the *feature* done — only to consider the *deploy* done. Surface this as a decision point up front (Phase 0), not something discovered mid-run.
+- **The amendment gate runs at Deployment-phase time, not only at a whole-project release boundary.** This is the direct fix for the `iodis-crm-poc` finding. Reuse `skills/smaqit.new-greenfield-project/scripts/check-amendments.sh` by cross-skill reference (same precedent as `smaqit.infrastructure-deploy-rsync/scripts/write-vhost.sh` being shared across the deploy-skill family per that skill's own Gotchas — do not fork or duplicate the script into `smaqit.feature-new`'s own directory). Run it before the Deployment phase's gate closes, every run, deploy-now or deferred: an unresolved amendment blocks `Completed` on the Deployment-phase task even in `defer` mode, so a deferred deploy doesn't quietly lose track of what it's deferred *until*.
+- **Enforce the canonical amendment-tag format, not just its existence.** The `iodis-crm-poc` finding wasn't "no amendment was written," it was "one was written in a format the existing tooling doesn't recognize." `smaqit.feature-new` must explicitly instruct the Development-phase step to use `<!-- amendment: DATE — description -->` when invoking `/smaqit.development`, rather than assuming the agent will independently converge on it — it visibly didn't, unprompted, in the one real run this task is grounded in.
+
+## Implementation Steps
+
+1. **Author `skills/smaqit.feature-new/SKILL.md`** following `templates/skills/base-skill.template.md` and the frontmatter/structure conventions in `framework/SKILLS.md` (required `name`/`description`, `metadata.version` starting at `"1.0.0"`). Model the overall shape on `skills/smaqit.new-greenfield-project/SKILL.md` (Pre-conditions → per-phase Steps/Gate → Output → Scope → Gotchas → Examples → Completion → Failure Handling) — same shape, different phase list. Phase list, informed by Design Decisions above:
+   - **Phase 0 — Task Creation (Entry Point):** decide execution mode (Assisted/Autonomous, mirroring greenfield); decide deploy-now vs. defer up front; invoke `smaqit.task-create` once per phase below (Spec Revalidation, Development, Deployment, Validation, Close-out).
+   - **Phase 1 — Spec Revalidation:** invoke `smaqit.task-start`; invoke `/smaqit.business` → `/smaqit.functional` → `/smaqit.stack` → `/smaqit.infrastructure` → `/smaqit.coverage` as needed, each applying the Incremental Spec Updates decision table; run `smaqit plan --phase=develop` (no `--regen`) to confirm scope; gate on reviewed draft/updated specs; `smaqit.task-complete`.
+   - **Phase 2 — Development:** invoke `smaqit.task-start`; invoke `/smaqit.development`, explicitly instructing it to use the canonical `<!-- amendment: DATE — description -->` tag for any spec divergence; gate on build/tests passing and specs at `status: implemented`; `smaqit.task-complete`.
+   - **Phase 3 — Deployment:** invoke `smaqit.task-start`; resolve `provisioning_mode` per the overridden-default rule above via `smaqit.input-deployment`; run the amendment gate (`check-amendments.sh`) — unresolved amendments block this phase's `Completed` status regardless of deploy-now/defer; if deploy-now: push/PR (reuse existing CI/CD — no `smaqit.infrastructure-cicd-generate` or Terraform IaC regeneration, that already exists for a project past MVP), monitor, `smaqit.infrastructure-deploy-verify`; if defer: record what it's batched behind, leave phase task open (not `Completed`); `smaqit.task-complete` only on the deploy-now path.
+   - **Phase 4 — Validation:** invoke `smaqit.task-start`; invoke `/smaqit.validation`; gate on all checks passing; `smaqit.task-complete`.
+   - **Phase 5 — Close-out:** confirm all phase tasks closed *or* explicitly deferred-with-reason (Deployment phase may legitimately be open under `defer`); re-run the amendment scan (belt-and-suspenders, matches greenfield Phase 8); release tagging is a parameter, not unconditional — only tag if this run actually deployed.
+2. **Add the `provisioning_mode` default-override rule** to `smaqit.feature-new`'s own Steps (do not modify `smaqit.input-deployment` itself — that skill's default of `provision` is correct for its primary greenfield caller; the override belongs in the caller that has a different default case, matching how `smaqit.new-greenfield-project` itself owns its Phase 4/5 branching rather than pushing project-shape assumptions into the shared input skill).
+3. **Reference `check-amendments.sh` via the `[SMAQIT_SKILLS_DIR]` placeholder** (`[SMAQIT_SKILLS_DIR]/smaqit.new-greenfield-project/scripts/check-amendments.sh`) in Phase 3 — this is the repo's actual cross-skill reference convention (used by `check-amendments.sh`'s own self-reference in greenfield Phase 8 and by the `write-vhost.sh` precedent), resolved at compile time by `scripts/generate-agents.py` for all three platforms. A literal `../` relative path was considered and rejected during planning — it would resolve correctly as a filesystem path post-install but breaks the compile-time resolution pipeline every other cross-skill reference in the repo relies on.
+4. **Write `references/` content** (optional per base-skill template, but warranted here) capturing the phase-differences-from-greenfield table from Design Decisions, so a future maintainer diffing the two skills doesn't have to reconstruct the reasoning from task history.
+5. **Bump `metadata.version`** on any skill touched incidentally (following the semver-ish convention task 084 used) — expect none beyond the new skill itself unless Step 3's path-resolution check surfaces a needed fix elsewhere.
+6. **Add a one-line mention of `smaqit.feature-new` to `README.md`** (no framework-doc skill index exists for any skill, including `smaqit.new-greenfield-project` itself — confirmed by repo-wide search during planning; `framework/PHASES.md` and `framework/SMAQIT.md` document skill mechanics, not a registry) — place it near the Getting Started/Documentation section, closing the documentation gap the Description opens with at the level of granularity the rest of the repo actually supports.
+
+## Known Issues Triage
+**Triaged:** 2026-07-23
+**Tools searched:** none
+**Result:** Clear
+
+No third-party tools identified — this task authors orchestration prose over existing smaqit skills (`smaqit.input-deployment`, `smaqit.spec-status-update`, `check-amendments.sh`, the spec agent chain). `bcrypt`/`cookie_secret` in Notes are historical context from the originating `iodis-crm-poc` incident, not dependencies this task implements. Triage not applicable.
+
+## Acceptance Criteria
+
+- [x] `skills/smaqit.feature-new/SKILL.md` exists, follows `templates/skills/base-skill.template.md` and `framework/SKILLS.md` conventions, and defines the six-phase workflow in Implementation Steps
+- [x] Spec phase explicitly invokes the Incremental Development model (`smaqit plan --phase=develop`, no `--regen`) and the Incremental Spec Updates decision table — verified by a dry-run description matching `framework/PHASES.md`/`framework/AGENTS.md`'s actual mechanics, not a re-description of them
+- [x] Deployment phase resolves `provisioning_mode` with the existing-target-first override (defaults to `existing-owned` when an Infrastructure spec already shows a deployed target, not `smaqit.input-deployment`'s generic `provision` default)
+- [x] Deployment phase supports an explicit deploy-now/defer parameter, with `defer` leaving the phase task open rather than `Completed`
+- [x] The amendment gate (`check-amendments.sh`, referenced not duplicated) runs at Deployment-phase time in both deploy-now and defer paths, and blocks phase completion on unresolved amendments
+- [x] The skill explicitly instructs the Development-phase step to use the canonical `<!-- amendment: DATE — description -->` tag
+- [x] No dev-VM sweep phase exists in `smaqit.feature-new`; deployment targets the resolved existing environment directly
+- [x] Validated end-to-end against a real post-MVP feature cycle in a project that already has this exact gap on record (`iodis-crm-poc` task 003's unresolved `bcrypt`/`cookie_secret` amendment is a ready-made test case: re-running `smaqit.feature-new`'s Deployment-phase amendment gate against `iodis-crm-poc`'s current specs, once the amendment is rewritten in canonical tag form, should correctly block and report it)
+
+## Findings
+
+[Populated by task-complete. Do not fill in manually before task is complete.]
+
+**Implementation approach:**
+- TBD
+
+**Decisions made:**
+- TBD
+
+**Blockers encountered:**
+- TBD
+
+**Follow-up identified:**
+- TBD
+
+## Files to Create / Modify
+
+| File | Action |
+|------|--------|
+| `skills/smaqit.feature-new/SKILL.md` | Create |
+| `skills/smaqit.feature-new/references/phase-differences-from-greenfield.md` | Create (optional but recommended per Step 4) |
+| `README.md` | Modify — one-line mention of `smaqit.feature-new` |
+
+## Notes
+
+- Originates from a real gap found while running `iodis-crm-poc` task 003 (Identity & Access accounts/login) through `/smaqit.development` → `/smaqit.validation` by ad hoc agent invocation, then asking whether the result was safe to deploy. It wasn't yet — `bcrypt` has no VM install step and `cookie_secret` has no secret-management home — and that gap was correctly flagged by the Development agent but had no forcing function to surface before the feature's GitHub issue was closed. Full incident detail, including the exact amendment text and the `check-amendments.sh` false-negative reproduction, lives in that project's own session history if needed as reference — not required to execute this task, everything actionable is captured above.
+- Explicitly out of scope for this task: retrofitting `smaqit.new-greenfield-project` itself to invoke `smaqit.feature-new` for its own post-Phase-8 iterative work (that would be a sensible future task once `smaqit.feature-new` is proven, not a day-one requirement) — and building any automated "is this project past MVP" detector (the `provisioning_mode`-resolution fallback of flagging to the user when no Infrastructure spec exists is sufficient; guessing project maturity automatically is not attempted here).
+- Companion validation opportunity: `iodis-crm-poc` task 003 is a live, real, currently-unresolved instance of exactly the failure mode this task fixes. Once `smaqit.feature-new` exists, running its Deployment-phase amendment gate against that project (after rewriting its existing prose amendment into the canonical tag) is a real-world proof, not a synthetic test — see the last Acceptance Criterion.

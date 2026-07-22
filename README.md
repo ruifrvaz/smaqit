@@ -46,6 +46,8 @@ smaqit init
 
 See the full [Mario Hello quickstart](docs/wiki/workflows/quickstart.md) for a complete walkthrough.
 
+Once your MVP is deployed, use `smaqit.feature-new` for iterative post-MVP feature cycles — it applies the same task-per-phase discipline without requirements extraction, from-scratch specs, or a dev-VM sweep (see [phase differences from greenfield](skills/smaqit.feature-new/references/phase-differences-from-greenfield.md)).
+
 ## Copilot Automation
 
 smaqit includes a GitHub Action workflow that automatically installs smaqit before Copilot coding agent sessions. When Copilot coding agent runs in a GitHub Actions context, it automatically executes `.github/workflows/copilot-setup-steps.yml` by convention. No additional configuration needed.

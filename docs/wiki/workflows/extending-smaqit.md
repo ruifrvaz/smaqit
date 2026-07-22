@@ -8,7 +8,7 @@ smaqit's source is structured as a three-level compilation chain:
 
 - **Level 0 (Framework)** — `framework/*.md` — Philosophy and principles (WHY/WHAT)
 - **Level 1 (Templates + Compilation Rules)** — `templates/` — Structure and directives
-- **Level 2 (Agents)** — `agents/*.agent.md` — Concrete compiled agents shipped to users
+- **Level 2 (Agents)** — `agents/*.md` plus `.smaqit/definitions/agents/*.frontmatter.yaml` — Canonical bodies and platform metadata compiled for users
 
 Extension means working in this repo by editing source files and following the compilation convention. The `smaqit.qa` agent is the primary tool for validating framework consistency.
 
@@ -29,10 +29,10 @@ smaqit/
 
 ## When to Extend
 
-- **Modify agent behavior** — Edit `agents/` source files or their `templates/agents/compiled/*.rules.md` rules
+- **Modify agent behavior** — Edit `agents/` source files, their `.smaqit/definitions/agents/` metadata, or their `templates/agents/compiled/*.rules.md` rules
 - **Change framework principles** — Edit `framework/*.md` and propagate changes downward
-- **Add a new skill** — Create `skills/<name>/SKILL.md` and add to `installer/skills/`
-- **Add a new agent** — Create compilation rules in `templates/agents/compiled/`, write `agents/` source, add to installer
+- **Add a new skill** — Create `skills/<name>/SKILL.md`; generation installs it for Copilot, Claude Code, and Codex
+- **Add a new agent** — Create compilation rules in `templates/agents/compiled/`, write the canonical `agents/` body, and add platform metadata under `.smaqit/definitions/agents/`
 
 ## Compilation Convention
 
@@ -40,14 +40,15 @@ The L0→L1→L2 chain is a convention, not automated tooling. Follow it when ma
 
 1. **Principle changes (L0)** — Edit `framework/*.md`. No directives, no file paths. Philosophical only.
 2. **Directive changes (L1)** — Update the relevant `templates/agents/compiled/*.rules.md` file.
-3. **Agent update (L2)** — Edit `agents/smaqit.<name>.agent.md` to reflect the new directives.
-4. **Validate** — Use `/smaqit.qa` to check consistency across levels.
+3. **Agent update (L2)** — Edit `agents/<name>.md` to reflect the new directives and its platform metadata when discovery fields or placeholders change.
+4. **Generate** — Run `make -C installer prepare` to compile all three platform formats.
+5. **Validate** — Use the `smaqit.qa` agent to check consistency across levels.
 
 Commit sequentially: L0 change → L1 change → L2 change, each in its own commit with prefix `L0:`, `L1:`, `L2:`.
 
 ## Using the QA Agent
 
-`/smaqit.qa` is the framework validation agent. Run it after changes to:
+`smaqit.qa` is the framework validation agent. Run it after changes to:
 
 - Detect level contamination (directives in L0, philosophy in L2)
 - Verify agent structure matches templates
@@ -56,21 +57,21 @@ Commit sequentially: L0 change → L1 change → L2 change, each in its own comm
 
 ## Installer Sync
 
-After editing source files, sync the installer mirror so builds pick up the changes:
+After editing source files, regenerate the installer staging trees so builds pick up the changes:
 
 ```bash
-cd installer && make build
+make -C installer prepare
 ```
 
-`make build` copies `agents/`, `skills/`, `templates/specs/`, and `framework/` into `installer/` subdirectories and embeds them into the binary.
+The generator compiles agents into `installer/agents-copilot/`, `installer/agents-claude/`, and `installer/agents-codex/`; skills are copied into the corresponding three staging trees. These outputs are ephemeral, gitignored build inputs embedded in the Go binary.
 
 ## Adding a New Layer Agent
 
 1. Create `templates/agents/compiled/<layer>.rules.md` with L0→L1 compilation rules
-2. Write `agents/smaqit.<layer>.agent.md` following the spec agent structure
+2. Write `agents/<layer>.md` following the spec agent structure
 3. Create `skills/smaqit.input-<layer>/SKILL.md` as the input validation skill
-4. Add agent and skill to installer embed paths in `installer/main.go`
-5. Run `make build` and validate with `/smaqit.qa`
+4. Create `.smaqit/definitions/agents/<layer>.frontmatter.yaml` with `copilot`, `claude`, and `codex` metadata and all platform placeholder values
+5. Run `make -C installer test` and validate with the `smaqit.qa` agent
 
 ## Best Practices
 
@@ -82,7 +83,7 @@ cd installer && make build
 
 ### Validation
 
-Run `/smaqit.qa` after every significant change and before committing.
+Run the `smaqit.qa` agent after every significant change and before committing.
 
 ## Contributing
 

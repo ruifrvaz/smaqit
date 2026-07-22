@@ -27,13 +27,16 @@ esac
 
 # ── Derive project slug ───────────────────────────────────────────────────────
 
-# CLAUDE.md takes precedence when present; falls back to Copilot's instructions file.
-INSTRUCTIONS_FILE="CLAUDE.md"
+# AGENTS.md is the canonical cross-platform instructions file. Fall back for older projects.
+INSTRUCTIONS_FILE="AGENTS.md"
+if [ ! -f "$INSTRUCTIONS_FILE" ]; then
+  INSTRUCTIONS_FILE="CLAUDE.md"
+fi
 if [ ! -f "$INSTRUCTIONS_FILE" ]; then
   INSTRUCTIONS_FILE=".github/copilot-instructions.md"
 fi
 if [ ! -f "$INSTRUCTIONS_FILE" ]; then
-  echo "ERROR: Run from repo root (neither CLAUDE.md nor .github/copilot-instructions.md found)"
+  echo "ERROR: Run from repo root (no AGENTS.md, CLAUDE.md, or .github/copilot-instructions.md found)"
   exit 1
 fi
 

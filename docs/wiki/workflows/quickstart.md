@@ -5,7 +5,7 @@ Build a "Hello, Mario!" console app from requirements to working code using smaq
 ## Prerequisites
 
 - smaqit installed (`curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit/main/install.sh | bash`)
-- VS Code with GitHub Copilot extension
+- GitHub Copilot in VS Code, Claude Code, or OpenAI Codex
 - A new or existing project directory
 
 ## Step 1: Initialize smaqit
@@ -19,15 +19,19 @@ This creates:
 - `.smaqit/` — Framework files and templates
 - `.github/agents/` — Agent definitions
 - `.github/skills/` — Reusable agent skills
+- `.claude/agents/`, `.claude/commands/`, `.claude/skills/` — Claude Code integration
+- `.codex/agents/`, `.agents/skills/` — Codex project agents and repository skills
 - `specs/` — Where generated specifications go
 
 ## Step 2: Run the Development Phase
 
-In VS Code's GitHub Copilot chat, invoke the Development agent:
+In GitHub Copilot chat or Claude Code, invoke the Development agent:
 
 ```
 /smaqit.development
 ```
+
+In Codex, ask it to spawn the `smaqit.development` project agent.
 
 The agent will ask you for your requirements. Describe what you want to build in the chat:
 
@@ -81,15 +85,15 @@ python src/main.py
 
 ## What's Next?
 
-- **Add features**: Invoke `/smaqit.development` again with updated requirements in chat
-- **Deploy**: Invoke `/smaqit.deployment` with your infrastructure requirements
-- **Validate**: Invoke `/smaqit.validation` with your test requirements
+- **Add features**: Invoke the `smaqit.development` agent again with updated requirements in chat
+- **Deploy**: Invoke the `smaqit.deployment` agent with your infrastructure requirements
+- **Validate**: Invoke the `smaqit.validation` agent with your test requirements
 - **Check status**: Run `smaqit status` to see spec coverage
 
 ## Troubleshooting
 
 **Agent asks for clarification?** Your requirements may be ambiguous. Add more detail in the chat response.
 
-**Specs don't match expectations?** Invoke the relevant specification agent directly (e.g., `/smaqit.business`) with updated requirements.
+**Specs don't match expectations?** Invoke the relevant specification agent directly (for example, `smaqit.business`) with updated requirements.
 
 **Build fails?** Review the Development agent's output. It will indicate what went wrong and suggest fixes.

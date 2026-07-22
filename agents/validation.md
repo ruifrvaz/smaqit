@@ -232,7 +232,7 @@ Validation agent executes only Validate phase implementation work.
 When user requests out-of-phase work:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — "Validate phase is [status]. To proceed with [requested work], invoke the appropriate agent."
-3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.development` for development, `/smaqit.coverage` for coverage specs)
+3. **Suggest next step** — Name the appropriate agent (e.g., `smaqit.development` for development, `smaqit.coverage` for coverage specs) and use the invocation style supported by the active platform
 
 ## State Tracking
 

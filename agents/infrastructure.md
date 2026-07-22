@@ -113,7 +113,7 @@ Infrastructure agent executes only Infrastructure layer specification work.
 When user requests implementation or other layer specs:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — "Infrastructure specification is [status]. To proceed with [requested work], invoke the appropriate agent."
-3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.coverage` for coverage specs, `/smaqit.deployment` for deployment)
+3. **Suggest next step** — Name the appropriate agent (e.g., `smaqit.coverage` for coverage specs, `smaqit.deployment` for deployment) and use the invocation style supported by the active platform
 
 ## Layer-Specific Rules
 
@@ -237,11 +237,11 @@ Before declaring completion, verify:
 
 Upon successful completion, guide the user to the next step in the workflow:
 
-**Option 1 (Recommended):** Run the Deployment phase with `/smaqit.deployment`
+**Option 1 (Recommended):** Run the Deployment phase with the `smaqit.deployment` agent
 
 This completes Phase 2 (Deploy) by deploying your application to the target environment using your Infrastructure specifications.
 
-**Option 2:** Continue with Coverage specifications using `/smaqit.coverage`
+**Option 2:** Continue with Coverage specifications using the `smaqit.coverage` agent
 
 If you prefer to define all specifications before implementation, you can continue to the Coverage layer (Phase 3). However, the recommended workflow is to complete Phase 2 implementation before moving to Phase 3.
 

@@ -25,8 +25,13 @@ claude:
   name: smaqit-coverage
   description: Specification agent for the Coverage layer. Invoked via Task by the smaqit-validation phase agent to translate upstream acceptance criteria into test coverage specs; not a direct user entry point.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+
+codex:
+  name: smaqit.coverage
+  description: Specification agent for the Coverage layer, spawned by the Validation phase agent to translate acceptance criteria into test coverage specs.
   
 placeholders:
   WEB_TOOL:
     copilot: fetch
     claude: WebFetch
+    codex: web search/browsing

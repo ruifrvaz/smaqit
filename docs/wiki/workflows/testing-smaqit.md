@@ -67,10 +67,12 @@ The testing agent orchestrates the complete workflow automatically and generates
 Before creating a release:
 
 - [ ] Build for all platforms: `make build-all`
+- [ ] Run generator/unit checks: `make test`
+- [ ] Run the installer lifecycle smoke test: `make smoke-test`
 - [ ] Test init/status/validate/help/uninstall on current platform
 - [ ] Verify version embedding: `dist/smaqit version` matches git tag
-- [ ] Check embedded files count: init should create 14+ files in `.smaqit/`
-- [ ] Validate clean uninstall: no residual files after uninstall
+- [ ] Check generated platform artifacts: 9 agents and 24 skills for Copilot, Claude Code, and Codex
+- [ ] Validate selective Codex uninstall: smaqit-owned files are removed while custom `.codex/agents/`, `.agents/skills/`, and `.codex/config.toml` content survives
 
 ## Test Case Design
 

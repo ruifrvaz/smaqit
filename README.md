@@ -21,6 +21,7 @@ Currently supported:
 |----------|--------|
 | GitHub Copilot (VS Code) | ✅ Supported |
 | Claude Code | ✅ Supported |
+| OpenAI Codex | ✅ Supported |
 | Other AI assistants | Planned |
 
 ## Getting Started
@@ -39,7 +40,7 @@ smaqit init
 
 **Build something:**
 
-1. Open GitHub Copilot chat (or start Claude Code) and run `/smaqit.development`
+1. Open GitHub Copilot chat or Claude Code and run `/smaqit.development`; in Codex, ask it to spawn the `smaqit.development` agent
 2. The agent will validate your requirements are sufficient before proceeding — describe what you want to build when prompted
 3. Watch specs generate, then code build
 
@@ -55,7 +56,7 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 
 | Command | Description |
 |---------|-------------|
-| `smaqit init` | Scaffold `.smaqit/`, `.github/`, and `.claude/` directories, plus `AGENTS.md`/`CLAUDE.md` |
+| `smaqit init` | Scaffold `.smaqit/`, `.github/`, `.claude/`, `.codex/`, and `.agents/`, plus `AGENTS.md`/`CLAUDE.md` |
 | `smaqit status` | Show project state and spec coverage |
 | `smaqit plan` | Show specs to process (for agents) |
 | `smaqit validate` | Verify project structure integrity |
@@ -64,21 +65,21 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 | `smaqit update` | Update smaqit to the latest release |
 | `smaqit version` | Show smaqit version |
 
-**Agents** (invoke with `/` in GitHub Copilot chat or Claude Code):
+**Agents** (invoke with `/` in GitHub Copilot chat or Claude Code; ask Codex to spawn the named agent):
 
-| Agent | Purpose | Claude Code |
-|-------|---------|-------------|
-| `/smaqit.business` | Generate Business specifications | via `/smaqit.development` only |
-| `/smaqit.functional` | Generate Functional specifications | via `/smaqit.development` only |
-| `/smaqit.stack` | Generate Stack specifications | via `/smaqit.development` only |
-| `/smaqit.infrastructure` | Generate Infrastructure specifications | via `/smaqit.deployment` only |
-| `/smaqit.coverage` | Generate Coverage specifications | via `/smaqit.validation` only |
-| `/smaqit.development` | Build working app from specs | ✅ direct command |
-| `/smaqit.deployment` | Deploy to target environment | ✅ direct command |
-| `/smaqit.validation` | Run tests against deployed system | ✅ direct command |
-| `/smaqit.qa` | Answer questions about the smaqit framework | ✅ direct command |
+| Agent | Purpose | Claude Code | Codex |
+|-------|---------|-------------|-------|
+| `smaqit.business` | Generate Business specifications | via development only | named subagent |
+| `smaqit.functional` | Generate Functional specifications | via development only | named subagent |
+| `smaqit.stack` | Generate Stack specifications | via development only | named subagent |
+| `smaqit.infrastructure` | Generate Infrastructure specifications | via deployment only | named subagent |
+| `smaqit.coverage` | Generate Coverage specifications | via validation only | named subagent |
+| `smaqit.development` | Build working app from specs | direct command | named subagent |
+| `smaqit.deployment` | Deploy to target environment | direct command | named subagent |
+| `smaqit.validation` | Run tests against deployed system | direct command | named subagent |
+| `smaqit.qa` | Answer questions about the smaqit framework | direct command | named subagent |
 
-On Claude Code, the five specification agents are Task-delegated subagents rather than standalone slash commands — the same `user-invocable: false` boundary they already have in GitHub Copilot.
+On Claude Code, the five specification agents are Task-delegated subagents rather than standalone slash commands — the same `user-invocable: false` boundary they already have in GitHub Copilot. Codex discovers all nine project agents from `.codex/agents/*.toml` and the 24 repository skills from `.agents/skills/`; skills can be selected with `/skills` or mentioned with `$`.
 
 ### Reinstallation and Updates
 
@@ -86,6 +87,7 @@ Running `smaqit init` on an existing installation will:
 
 - **Detect conflicts** — The installer checks which files would be overwritten
 - **Preserve user data** — Your specs and custom extensions in `.smaqit/` are never touched
+- **Preserve shared Codex configuration** — Unrelated `.codex/agents/`, `.agents/skills/`, and `.codex/config.toml` content is not changed
 - **Prompt for confirmation** — If smaqit files would be overwritten, you'll be asked to confirm
 - **Skip if no conflicts** — If only custom files exist, installation proceeds automatically
 

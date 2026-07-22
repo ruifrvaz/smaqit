@@ -100,13 +100,17 @@ echo "    Vault: running, unsealed, authenticated"
 
 # ── Derive project slug ───────────────────────────────────────────────────────
 
-# CLAUDE.md takes precedence when present; falls back to Copilot's instructions file.
-INSTRUCTIONS_FILE="CLAUDE.md"
+# AGENTS.md is shared by Codex and GitHub Copilot and is the canonical installed file.
+# Fall back to legacy/platform-specific instruction files for older projects.
+INSTRUCTIONS_FILE="AGENTS.md"
+if [ ! -f "$INSTRUCTIONS_FILE" ]; then
+  INSTRUCTIONS_FILE="CLAUDE.md"
+fi
 if [ ! -f "$INSTRUCTIONS_FILE" ]; then
   INSTRUCTIONS_FILE=".github/copilot-instructions.md"
 fi
 if [ ! -f "$INSTRUCTIONS_FILE" ]; then
-  echo "ERROR: Neither CLAUDE.md nor .github/copilot-instructions.md found. Run from repo root."
+  echo "ERROR: No AGENTS.md, CLAUDE.md, or .github/copilot-instructions.md found. Run from repo root."
   exit 1
 fi
 

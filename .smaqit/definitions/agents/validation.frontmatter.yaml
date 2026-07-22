@@ -23,8 +23,13 @@ claude:
   name: smaqit-validation
   description: Implementation agent for the Validation phase. Orchestrates the Coverage spec agent via Task, then generates and executes test artifacts against the deployed system. Invoked via the /smaqit.validation command.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+
+codex:
+  name: smaqit.validation
+  description: Implementation agent for the Validation phase that spawns the Coverage agent and executes tests against the deployed system.
   
 placeholders:
   DELEGATE_COVERAGE:
     copilot: invoke `smaqit.coverage` using `runSubagent`
     claude: invoke the `smaqit-coverage` subagent via the Task tool
+    codex: spawn the `smaqit.coverage` Codex subagent

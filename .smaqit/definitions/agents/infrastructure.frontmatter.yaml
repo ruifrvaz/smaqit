@@ -24,8 +24,13 @@ claude:
   name: smaqit-infrastructure
   description: Specification agent for the Infrastructure layer. Invoked via Task by the smaqit-deployment phase agent to translate deployment requirements into Infrastructure specs; not a direct user entry point.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+
+codex:
+  name: smaqit.infrastructure
+  description: Specification agent for the Infrastructure layer, spawned by the Deployment phase agent to translate deployment requirements into Infrastructure specs.
   
 placeholders:
   WEB_TOOL:
     copilot: fetch
     claude: WebFetch
+    codex: web search/browsing

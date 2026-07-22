@@ -15,6 +15,7 @@ Agents — split across two committed locations:
                                                        resolved value of each {{PLACEHOLDER}}
   -> installer/agents-copilot/<name>.agent.md   (GitHub Copilot custom agent)
   -> installer/agents-claude/<name>.md          (Claude Code subagent)
+  -> installer/agents-codex/<name>.toml         (Codex project custom agent)
 
 Commands — Claude Code-only (Copilot invokes an agent by its own `name:` directly, so it
 needs no separate command file). No metadata split needed; source is already a complete
@@ -28,11 +29,13 @@ usage comments via the [SMAQIT_SKILLS_DIR] placeholder, resolved here (not at in
   skills/<name>/**
   -> installer/skills-copilot/<name>/**   ([SMAQIT_SKILLS_DIR] -> .github/skills)
   -> installer/skills-claude/<name>/**    ([SMAQIT_SKILLS_DIR] -> .claude/skills)
+  -> installer/skills-codex/<name>/**     ([SMAQIT_SKILLS_DIR] -> .agents/skills)
 
 Run via `make -C installer prepare`, or directly after editing agents/, commands/, skills/,
 or .smaqit/definitions/agents/:
   python3 scripts/generate-agents.py
 """
+import json
 import re
 import shutil
 import sys
@@ -42,18 +45,35 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 
+PLATFORMS = ("copilot", "claude", "codex")
+
 AGENTS_BODY_SRC_DIR = ROOT / "agents"
 AGENTS_METADATA_SRC_DIR = ROOT / ".smaqit" / "definitions" / "agents"
-AGENTS_COPILOT_OUT_DIR = ROOT / "installer" / "agents-copilot"
-AGENTS_CLAUDE_OUT_DIR = ROOT / "installer" / "agents-claude"
+AGENTS_OUT_DIR_BY_PLATFORM = {
+    "copilot": ROOT / "installer" / "agents-copilot",
+    "claude": ROOT / "installer" / "agents-claude",
+    "codex": ROOT / "installer" / "agents-codex",
+}
+AGENT_OUT_SUFFIX_BY_PLATFORM = {
+    "copilot": ".agent.md",
+    "claude": ".md",
+    "codex": ".toml",
+}
 
 COMMANDS_SRC_DIR = ROOT / "commands"
 COMMANDS_OUT_DIR = ROOT / "installer" / "commands-claude"
 
 SKILLS_SRC_DIR = ROOT / "skills"
-SKILLS_COPILOT_OUT_DIR = ROOT / "installer" / "skills-copilot"
-SKILLS_CLAUDE_OUT_DIR = ROOT / "installer" / "skills-claude"
-SKILLS_DIR_BY_PLATFORM = {"copilot": ".github/skills", "claude": ".claude/skills"}
+SKILLS_OUT_DIR_BY_PLATFORM = {
+    "copilot": ROOT / "installer" / "skills-copilot",
+    "claude": ROOT / "installer" / "skills-claude",
+    "codex": ROOT / "installer" / "skills-codex",
+}
+SKILLS_DIR_BY_PLATFORM = {
+    "copilot": ".github/skills",
+    "claude": ".claude/skills",
+    "codex": ".agents/skills",
+}
 
 PLACEHOLDER_RE = re.compile(r"\{\{([A-Z0-9_]+)\}\}")
 
@@ -89,6 +109,27 @@ def resolve_placeholders(body: str, values: dict, agent_name: str, platform: str
     return PLACEHOLDER_RE.sub(replace, body)
 
 
+def render_codex_agent(metadata: dict, body: str, source_name: str) -> str:
+    """Render a Codex project custom agent as a standalone TOML file."""
+    required = ("name", "description")
+    missing = [key for key in required if not metadata.get(key)]
+    if missing:
+        raise ValueError(f"{source_name}: Codex metadata missing: {', '.join(missing)}")
+    if "'''" in body:
+        raise ValueError(
+            f"{source_name}: agent body contains triple single quotes and cannot be "
+            "rendered as a TOML literal string"
+        )
+
+    return (
+        f"name = {json.dumps(metadata['name'], ensure_ascii=False)}\n"
+        f"description = {json.dumps(metadata['description'], ensure_ascii=False)}\n"
+        "developer_instructions = '''\n\n"
+        f"{body.rstrip()}\n"
+        "'''\n"
+    )
+
+
 def generate_agent(name: str) -> None:
     body_path = AGENTS_BODY_SRC_DIR / f"{name}.md"
     fm_path = AGENTS_METADATA_SRC_DIR / f"{name}.frontmatter.yaml"
@@ -97,24 +138,34 @@ def generate_agent(name: str) -> None:
     manifest = yaml.safe_load(fm_path.read_text())
     placeholders = manifest.get("placeholders", {})
 
-    for platform, out_dir, out_suffix in (
-        ("copilot", AGENTS_COPILOT_OUT_DIR, ".agent.md"),
-        ("claude", AGENTS_CLAUDE_OUT_DIR, ".md"),
-    ):
-        if platform not in manifest:
-            continue
+    missing_platforms = [platform for platform in PLATFORMS if platform not in manifest]
+    if missing_platforms:
+        raise ValueError(f"{name}: metadata missing for: {', '.join(missing_platforms)}")
+
+    for platform in PLATFORMS:
+        out_dir = AGENTS_OUT_DIR_BY_PLATFORM[platform]
+        out_suffix = AGENT_OUT_SUFFIX_BY_PLATFORM[platform]
         frontmatter = manifest[platform]
+        missing_values = [key for key, values in placeholders.items() if platform not in values]
+        if missing_values:
+            raise ValueError(
+                f"{name}: placeholders missing values for platform '{platform}': "
+                f"{', '.join(missing_values)}"
+            )
         values = {key: platform_values[platform] for key, platform_values in placeholders.items()}
         resolved_body = resolve_placeholders(body, values, name, platform)
 
         out_name = f"smaqit.{name}{out_suffix}"
         out_path = out_dir / out_name
-        content = (
-            "---\n"
-            f"{dump_frontmatter(frontmatter)}\n"
-            "---\n\n"
-            f"{resolved_body}"
-        )
+        if platform == "codex":
+            content = render_codex_agent(frontmatter, resolved_body, name)
+        else:
+            content = (
+                "---\n"
+                f"{dump_frontmatter(frontmatter)}\n"
+                "---\n\n"
+                f"{resolved_body}"
+            )
         out_path.write_text(content)
         print(f"wrote {out_path.relative_to(ROOT)}")
 
@@ -139,8 +190,22 @@ def generate_agents() -> None:
         )
         sys.exit(1)
 
-    AGENTS_COPILOT_OUT_DIR.mkdir(parents=True, exist_ok=True)
-    AGENTS_CLAUDE_OUT_DIR.mkdir(parents=True, exist_ok=True)
+    orphan_metadata = sorted(
+        path.stem.removesuffix(".frontmatter")
+        for path in AGENTS_METADATA_SRC_DIR.glob("*.frontmatter.yaml")
+        if path.stem.removesuffix(".frontmatter") not in names
+    )
+    if orphan_metadata:
+        print(
+            f"orphan .smaqit/definitions/agents metadata for: {', '.join(orphan_metadata)}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    for out_dir in AGENTS_OUT_DIR_BY_PLATFORM.values():
+        if out_dir.exists():
+            shutil.rmtree(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     for name in names:
         generate_agent(name)
@@ -149,6 +214,8 @@ def generate_agents() -> None:
 def copy_commands() -> None:
     if not COMMANDS_SRC_DIR.exists():
         return
+    if COMMANDS_OUT_DIR.exists():
+        shutil.rmtree(COMMANDS_OUT_DIR)
     COMMANDS_OUT_DIR.mkdir(parents=True, exist_ok=True)
     for src in sorted(COMMANDS_SRC_DIR.glob("*.md")):
         out_path = COMMANDS_OUT_DIR / src.name
@@ -161,10 +228,7 @@ def generate_skills() -> None:
         print(f"no source directory at {SKILLS_SRC_DIR}", file=sys.stderr)
         sys.exit(1)
 
-    for platform, out_dir in (
-        ("copilot", SKILLS_COPILOT_OUT_DIR),
-        ("claude", SKILLS_CLAUDE_OUT_DIR),
-    ):
+    for platform, out_dir in SKILLS_OUT_DIR_BY_PLATFORM.items():
         if out_dir.exists():
             shutil.rmtree(out_dir)
         shutil.copytree(SKILLS_SRC_DIR, out_dir)

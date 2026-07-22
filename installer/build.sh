@@ -8,7 +8,7 @@ VERSION=${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo "d
 
 BINARY_NAME="smaqit"
 DIST_DIR="dist"
-LDFLAGS="-ldflags -X main.Version=$VERSION"
+LDFLAGS=(-ldflags "-X main.Version=$VERSION")
 
 # Help message
 show_help() {
@@ -20,6 +20,7 @@ show_help() {
     echo "  build          - Build for current platform"
     echo "  build-all      - Build for all platforms"
     echo "  linux          - Build for Linux (amd64)"
+    echo "  linux-arm      - Build for Linux (arm64)"
     echo "  darwin-intel   - Build for macOS Intel (amd64)"
     echo "  darwin-arm     - Build for macOS Apple Silicon (arm64)"
     echo "  windows        - Build for Windows (amd64)"
@@ -30,11 +31,16 @@ show_help() {
     echo "Current version: $VERSION"
 }
 
+prepare() {
+    echo "Preparing embedded installer artifacts..."
+    make prepare
+}
+
 # Build for current platform
 build_current() {
     echo "Building $BINARY_NAME version $VERSION for current platform..."
     mkdir -p "$DIST_DIR"
-    go build $LDFLAGS -o "$DIST_DIR/$BINARY_NAME" .
+    go build "${LDFLAGS[@]}" -o "$DIST_DIR/$BINARY_NAME" .
     echo "Built: $DIST_DIR/$BINARY_NAME"
 }
 
@@ -42,6 +48,7 @@ build_current() {
 build_all() {
     echo "Building $BINARY_NAME version $VERSION for all platforms..."
     build_linux
+    build_linux_arm
     build_darwin_intel
     build_darwin_arm
     build_windows
@@ -52,25 +59,31 @@ build_all() {
 build_linux() {
     echo "Building for linux/amd64..."
     mkdir -p "$DIST_DIR"
-    GOOS=linux GOARCH=amd64 go build $LDFLAGS -o "$DIST_DIR/${BINARY_NAME}_linux_amd64" .
+    GOOS=linux GOARCH=amd64 go build "${LDFLAGS[@]}" -o "$DIST_DIR/${BINARY_NAME}_linux_amd64" .
+}
+
+build_linux_arm() {
+    echo "Building for linux/arm64..."
+    mkdir -p "$DIST_DIR"
+    GOOS=linux GOARCH=arm64 go build "${LDFLAGS[@]}" -o "$DIST_DIR/${BINARY_NAME}_linux_arm64" .
 }
 
 build_darwin_intel() {
     echo "Building for darwin/amd64..."
     mkdir -p "$DIST_DIR"
-    GOOS=darwin GOARCH=amd64 go build $LDFLAGS -o "$DIST_DIR/${BINARY_NAME}_darwin_amd64" .
+    GOOS=darwin GOARCH=amd64 go build "${LDFLAGS[@]}" -o "$DIST_DIR/${BINARY_NAME}_darwin_amd64" .
 }
 
 build_darwin_arm() {
     echo "Building for darwin/arm64..."
     mkdir -p "$DIST_DIR"
-    GOOS=darwin GOARCH=arm64 go build $LDFLAGS -o "$DIST_DIR/${BINARY_NAME}_darwin_arm64" .
+    GOOS=darwin GOARCH=arm64 go build "${LDFLAGS[@]}" -o "$DIST_DIR/${BINARY_NAME}_darwin_arm64" .
 }
 
 build_windows() {
     echo "Building for windows/amd64..."
     mkdir -p "$DIST_DIR"
-    GOOS=windows GOARCH=amd64 go build $LDFLAGS -o "$DIST_DIR/${BINARY_NAME}_windows_amd64.exe" .
+    GOOS=windows GOARCH=amd64 go build "${LDFLAGS[@]}" -o "$DIST_DIR/${BINARY_NAME}_windows_amd64.exe" .
 }
 
 # Show version
@@ -88,21 +101,31 @@ clean() {
 # Main command dispatcher
 case "${1:-build}" in
     build)
+        prepare
         build_current
         ;;
     build-all)
+        prepare
         build_all
         ;;
     linux)
+        prepare
         build_linux
         ;;
+    linux-arm)
+        prepare
+        build_linux_arm
+        ;;
     darwin-intel)
+        prepare
         build_darwin_intel
         ;;
     darwin-arm)
+        prepare
         build_darwin_arm
         ;;
     windows)
+        prepare
         build_windows
         ;;
     version)

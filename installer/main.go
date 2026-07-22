@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -29,6 +30,12 @@ var skillFilesCopilot embed.FS
 
 //go:embed skills-claude
 var skillFilesClaude embed.FS
+
+//go:embed agents-codex/*.toml
+var codexAgentFiles embed.FS
+
+//go:embed skills-codex
+var skillFilesCodex embed.FS
 
 //go:embed templates/AGENTS.md.template
 var agentsMdTemplate embed.FS
@@ -78,7 +85,7 @@ func printUsage() {
 Usage: smaqit <command>
 
 Commands:
-  init [dir] Scaffold .smaqit/, .github/, and .claude/ directories
+  init [dir] Scaffold .smaqit/, .github/, .claude/, .codex/, and .agents/ directories
              Optional: specify target directory (default: current)
   plan       Show specs to process (for agents)
   status     Show project state and spec coverage
@@ -95,9 +102,9 @@ func cmdHelp() {
 
 	fmt.Println("CLI Commands:")
 	fmt.Println("  smaqit init [dir] Scaffold smaqit project structure")
-	fmt.Println("                    Creates .smaqit/, .github/, and .claude/ directories with")
-	fmt.Println("                    spec templates, skills, and agent definitions for both")
-	fmt.Println("                    GitHub Copilot and Claude Code")
+	fmt.Println("                    Creates .smaqit/, .github/, .claude/, .codex/, and .agents/")
+	fmt.Println("                    with templates, skills, and agent definitions for")
+	fmt.Println("                    GitHub Copilot, Claude Code, and Codex")
 	fmt.Println("                    Optional: specify target directory (created if needed)")
 	fmt.Println()
 	fmt.Println("  smaqit plan       Show work plan for current phase")
@@ -116,7 +123,8 @@ func cmdHelp() {
 	fmt.Println()
 	fmt.Println("  smaqit uninstall  Remove smaqit from project")
 	fmt.Println("                    Removes .smaqit/, .github/agents/, .github/skills/,")
-	fmt.Println("                    .claude/agents/, .claude/skills/, .claude/commands/")
+	fmt.Println("                    .claude/agents/, .claude/skills/, .claude/commands/,")
+	fmt.Println("                    and only smaqit-owned Codex agents and skills")
 	fmt.Println()
 	fmt.Println("  smaqit update     Update to the latest release")
 	fmt.Println("                    Downloads the latest GitHub release for your platform,")
@@ -125,7 +133,9 @@ func cmdHelp() {
 	fmt.Println()
 	fmt.Println("  smaqit version    Show smaqit version")
 	fmt.Println()
-	fmt.Println("Agent Commands (GitHub Copilot chat or Claude Code, use /):")
+	fmt.Println("Agents:")
+	fmt.Println("  GitHub Copilot and Claude Code: use / with these names")
+	fmt.Println("  Codex: ask Codex to spawn the named agent")
 	fmt.Println("  /smaqit.development   Run Development implementation agent (build from specs)")
 	fmt.Println("  /smaqit.deployment    Run Deployment implementation agent (deploy from specs)")
 	fmt.Println("  /smaqit.validation    Run Validation implementation agent (test from specs)")
@@ -134,17 +144,20 @@ func cmdHelp() {
 	fmt.Println("  /smaqit.stack         Create stack layer specifications")
 	fmt.Println("  /smaqit.infrastructure Create infrastructure layer specifications")
 	fmt.Println("  /smaqit.coverage      Create coverage layer specifications")
+	fmt.Println("  /smaqit.qa            Answer questions about the smaqit framework")
 	fmt.Println()
 	fmt.Println("  Note: in Claude Code, only /smaqit.development, /smaqit.deployment,")
 	fmt.Println("  /smaqit.validation, and /smaqit.qa are slash commands. The five spec")
 	fmt.Println("  agents (business/functional/stack/infrastructure/coverage) are invoked")
 	fmt.Println("  automatically by those phase commands — this matches Copilot's")
 	fmt.Println("  user-invocable:false behavior for the same five agents.")
+	fmt.Println("  In Codex, phase agents spawn the five specification agents as custom")
+	fmt.Println("  subagents. Repository skills can be selected with /skills or mentioned with $.")
 	fmt.Println()
 	fmt.Println("Getting Started:")
 	fmt.Println("  1. Run 'smaqit init' in your project directory")
-	fmt.Println("  2. Open GitHub Copilot chat in VS Code, or start Claude Code")
-	fmt.Println("  3. Type '/smaqit.development' to run the Development implementation step")
+	fmt.Println("  2. Open GitHub Copilot chat, Claude Code, or Codex")
+	fmt.Println("  3. Invoke or ask to spawn smaqit.development for the Development phase")
 	fmt.Println()
 	fmt.Println("Documentation: https://github.com/ruifrvaz/smaqit")
 }
@@ -183,7 +196,8 @@ func cmdPlan() {
 	// If no phase specified, show summary of all phases
 	if phase == "" {
 		fmt.Println("smaqit Work Plan")
-		fmt.Println("================\n")
+		fmt.Println("================")
+		fmt.Println()
 
 		phases := []struct {
 			name   string
@@ -235,7 +249,8 @@ func cmdPlan() {
 	// Verbose output (human-readable)
 	if verbose {
 		if regen {
-			fmt.Println("REGENERATION MODE: All specs marked for reprocessing\n")
+			fmt.Println("REGENERATION MODE: All specs marked for reprocessing")
+			fmt.Println()
 		}
 
 		fmt.Printf("Phase: %s\n\n", strings.Title(phase))
@@ -274,7 +289,7 @@ func cmdPlan() {
 				fmt.Printf("Use `smaqit plan --phase=%s --regen` to regenerate.\n", phase)
 			}
 		} else {
-			fmt.Printf("Next: Run /smaqit.%s to process %d spec(s)\n",
+			fmt.Printf("Next: Run the smaqit.%s agent to process %d spec(s)\n",
 				getAgentName(phase), len(toProcess))
 		}
 
@@ -323,6 +338,8 @@ func detectConflicts() []string {
 		{claudeAgentFiles, "agents-claude", ".claude/agents", false},
 		{claudeCommandFiles, "commands-claude", ".claude/commands", false},
 		{skillFilesClaude, "skills-claude", ".claude/skills", false},
+		{codexAgentFiles, "agents-codex", ".codex/agents", false},
+		{skillFilesCodex, "skills-codex", ".agents/skills", false},
 	}
 
 	// Check each file mapping for conflicts
@@ -375,13 +392,18 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
-	// Check if .smaqit already exists and handle reinstallation
-	if _, err := os.Stat(".smaqit"); err == nil {
-		fmt.Println("Existing smaqit installation detected.")
+	// Handle both reinstallation and an initial install that would overwrite an exact
+	// owned destination. Unrelated files in shared platform directories are not conflicts.
+	_, existingErr := os.Stat(".smaqit")
+	existingInstall := existingErr == nil
+	conflicts := detectConflicts()
+	if existingInstall || len(conflicts) > 0 {
+		if existingInstall {
+			fmt.Println("Existing smaqit installation detected.")
+		} else {
+			fmt.Println("Existing files conflict with the smaqit installation.")
+		}
 		fmt.Println()
-
-		// Check for conflicts
-		conflicts := detectConflicts()
 
 		if len(conflicts) == 0 {
 			fmt.Println("No conflicts detected. Proceeding with installation...")
@@ -422,6 +444,8 @@ func cmdInit(targetDir string) {
 		".claude/agents",
 		".claude/commands",
 		".claude/skills",
+		".codex/agents",
+		".agents/skills",
 	}
 
 	for _, dir := range dirs {
@@ -473,6 +497,17 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
+	// Copy Codex project custom agents and repository skills. Codex discovers these
+	// locations natively; no .codex/config.toml is generated or modified.
+	if err := copyEmbeddedDir(codexAgentFiles, "agents-codex", ".codex/agents"); err != nil {
+		fmt.Printf("Error copying Codex agent files: %v\n", err)
+		os.Exit(1)
+	}
+	if err := copyEmbeddedDir(skillFilesCodex, "skills-codex", ".agents/skills"); err != nil {
+		fmt.Printf("Error copying Codex skill files: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Install project-instructions files: AGENTS.md (read natively by GitHub Copilot) with a
 	// thin CLAUDE.md pointing at it (Claude Code does not read AGENTS.md on its own). Existing
 	// files are never overwritten — smaqit's section is appended if not already present.
@@ -489,15 +524,15 @@ func cmdInit(targetDir string) {
 
 	fmt.Println("✓ Created .smaqit/ directory structure")
 	fmt.Println("✓ Copied templates")
-	fmt.Println("✓ Copied agent definitions (GitHub Copilot + Claude Code)")
-	fmt.Println("✓ Copied skill files (GitHub Copilot + Claude Code)")
+	fmt.Println("✓ Copied agent definitions (GitHub Copilot + Claude Code + Codex)")
+	fmt.Println("✓ Copied skill files (GitHub Copilot + Claude Code + Codex)")
 	fmt.Println("✓ Copied workflow files")
 	fmt.Println("✓ Copied Claude Code slash commands")
 	fmt.Printf("✓ AGENTS.md %s, CLAUDE.md %s\n", agentsStatus, claudeStatus)
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
-	fmt.Println("  1. Open GitHub Copilot chat in VS Code, or start Claude Code in this project")
-	fmt.Println("  2. Type '/smaqit.development' to orchestrate the entire Development phase")
+	fmt.Println("  1. Open GitHub Copilot chat, Claude Code, or Codex in this project")
+	fmt.Println("  2. Invoke or ask to spawn smaqit.development for the Development phase")
 	fmt.Println("  3. Or type '/smaqit.business' to begin with business specifications only (GitHub Copilot only — see 'smaqit help')")
 }
 
@@ -597,6 +632,105 @@ func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
 	})
 }
 
+// removeEmbeddedFiles removes only files represented in an embedded source tree.
+// It is used for shared Codex directories, where unrelated user or extension files
+// must remain untouched.
+func removeEmbeddedFiles(embeddedFS embed.FS, srcDir, dstDir string) (int, error) {
+	removed := 0
+	err := fs.WalkDir(embeddedFS, srcDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		relPath := strings.TrimPrefix(path, srcDir+"/")
+		dstPath := filepath.Join(dstDir, relPath)
+		if err := os.Remove(dstPath); err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return fmt.Errorf("removing %s: %w", dstPath, err)
+		}
+		removed++
+		return nil
+	})
+	return removed, err
+}
+
+// removeEmbeddedSkillDirs removes the exact files represented by embedded skill
+// packages, then prunes only directories left empty. User-added files within a
+// smaqit skill directory therefore survive uninstall.
+func removeEmbeddedSkillDirs(embeddedFS embed.FS, srcDir, dstDir string) (int, error) {
+	entries, err := embeddedFS.ReadDir(srcDir)
+	if err != nil {
+		return 0, err
+	}
+
+	presentPackages := 0
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		dstPath := filepath.Join(dstDir, entry.Name())
+		if _, err := os.Stat(dstPath); err == nil {
+			presentPackages++
+		} else if !os.IsNotExist(err) {
+			return presentPackages, fmt.Errorf("checking %s: %w", dstPath, err)
+		}
+	}
+
+	if _, err := removeEmbeddedFiles(embeddedFS, srcDir, dstDir); err != nil {
+		return presentPackages, err
+	}
+
+	var ownedDirs []string
+	err = fs.WalkDir(embeddedFS, srcDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && path != srcDir {
+			relPath := strings.TrimPrefix(path, srcDir+"/")
+			ownedDirs = append(ownedDirs, filepath.Join(dstDir, filepath.FromSlash(relPath)))
+		}
+		return nil
+	})
+	if err != nil {
+		return presentPackages, err
+	}
+
+	// Children must be considered before their parents.
+	sort.Slice(ownedDirs, func(i, j int) bool {
+		return strings.Count(ownedDirs[i], string(filepath.Separator)) >
+			strings.Count(ownedDirs[j], string(filepath.Separator))
+	})
+	for _, dir := range ownedDirs {
+		if _, err := removeDirIfEmpty(dir); err != nil {
+			return presentPackages, fmt.Errorf("pruning %s: %w", dir, err)
+		}
+	}
+
+	return presentPackages, nil
+}
+
+func removeDirIfEmpty(path string) (bool, error) {
+	entries, err := os.ReadDir(path)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if len(entries) != 0 {
+		return false, nil
+	}
+	if err := os.Remove(path); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func cmdUninstall() {
 	// Check if .smaqit exists
 	if _, err := os.Stat(".smaqit"); os.IsNotExist(err) {
@@ -612,6 +746,7 @@ func cmdUninstall() {
 	fmt.Println("  • .claude/agents/")
 	fmt.Println("  • .claude/skills/")
 	fmt.Println("  • .claude/commands/")
+	fmt.Println("  • smaqit-owned files in .codex/agents/ and .agents/skills/")
 	fmt.Print("\nContinue? [y/N]: ")
 
 	var response string
@@ -669,14 +804,38 @@ func cmdUninstall() {
 		}
 	}
 
+	codexAgentsRemoved, err := removeEmbeddedFiles(codexAgentFiles, "agents-codex", filepath.Join(".codex", "agents"))
+	if err != nil {
+		fmt.Printf("Error removing Codex agents: %v\n", err)
+		errors++
+	} else {
+		fmt.Printf("✓ Removed %d smaqit-owned Codex agent(s)\n", codexAgentsRemoved)
+	}
+
+	codexSkillsRemoved, err := removeEmbeddedSkillDirs(skillFilesCodex, "skills-codex", filepath.Join(".agents", "skills"))
+	if err != nil {
+		fmt.Printf("Error removing Codex skills: %v\n", err)
+		errors++
+	} else {
+		fmt.Printf("✓ Cleaned %d smaqit-owned Codex skill package(s)\n", codexSkillsRemoved)
+	}
+
 	// Remove .github/ and .claude/ themselves if now empty (.github/workflows/ is never
 	// auto-removed, so .github/ commonly survives with just that directory left behind)
-	for _, dir := range []string{".github", ".claude"} {
-		entries, err := os.ReadDir(dir)
-		if err == nil && len(entries) == 0 {
-			if err := os.Remove(dir); err == nil {
-				fmt.Printf("✓ Removed empty %s/\n", dir)
-			}
+	for _, dir := range []string{
+		".github",
+		".claude",
+		filepath.Join(".codex", "agents"),
+		".codex",
+		filepath.Join(".agents", "skills"),
+		".agents",
+	} {
+		removed, err := removeDirIfEmpty(dir)
+		if err != nil {
+			fmt.Printf("Error pruning %s/: %v\n", dir, err)
+			errors++
+		} else if removed {
+			fmt.Printf("✓ Removed empty %s/\n", dir)
 		}
 	}
 
@@ -712,6 +871,8 @@ func cmdValidate() {
 		".claude/agents",
 		".claude/skills",
 		".claude/commands",
+		".codex/agents",
+		".agents/skills",
 	}
 
 	for _, dir := range requiredDirs {
@@ -794,7 +955,8 @@ func cmdStatus() {
 	}
 
 	fmt.Println("smaqit Project Status")
-	fmt.Println("=====================\n")
+	fmt.Println("=====================")
+	fmt.Println()
 
 	// Scan all specs
 	allSpecs, err := scanSpecs()
@@ -933,39 +1095,39 @@ func cmdStatus() {
 		hasAnyPhase1 := layerCounts["business"] > 0 || layerCounts["functional"] > 0 || layerCounts["stack"] > 0
 
 		if !hasAnyPhase1 {
-			fmt.Println("  • Type '/smaqit.business' to start with business specifications")
+			fmt.Println("  • Run the smaqit.business agent to start with business specifications")
 		} else {
 			// Suggest missing layers first
 			if layerCounts["business"] == 0 {
-				fmt.Println("  • Type '/smaqit.business' to add business specifications")
+				fmt.Println("  • Run the smaqit.business agent to add business specifications")
 			} else if layerCounts["functional"] == 0 {
-				fmt.Println("  • Type '/smaqit.functional' to add functional specifications")
+				fmt.Println("  • Run the smaqit.functional agent to add functional specifications")
 			} else if layerCounts["stack"] == 0 {
-				fmt.Println("  • Type '/smaqit.stack' to add technical stack specifications")
+				fmt.Println("  • Run the smaqit.stack agent to add technical stack specifications")
 			} else {
 				// All Phase 1 specs exist
 				fmt.Println("  • Run 'smaqit plan --phase=develop' to see work plan")
-				fmt.Println("  • Type '/smaqit.development' to implement from specifications")
+				fmt.Println("  • Run the smaqit.development agent to implement from specifications")
 			}
 		}
 	} else if !deployCompleted {
 		// Phase 2: Deploy
 		if layerCounts["infrastructure"] == 0 {
-			fmt.Println("  • Type '/smaqit.infrastructure' to define infrastructure specifications")
+			fmt.Println("  • Run the smaqit.infrastructure agent to define infrastructure specifications")
 		} else {
 			fmt.Println("  • Run 'smaqit plan --phase=deploy' to see work plan")
-			fmt.Println("  • Type '/smaqit.deployment' to deploy the implementation")
+			fmt.Println("  • Run the smaqit.deployment agent to deploy the implementation")
 		}
 	} else if !validateCompleted {
 		// Phase 3: Validate
 		if layerCounts["coverage"] == 0 {
-			fmt.Println("  • Type '/smaqit.coverage' to define test coverage specifications")
+			fmt.Println("  • Run the smaqit.coverage agent to define test coverage specifications")
 		} else {
 			fmt.Println("  • Run 'smaqit plan --phase=validate' to see work plan")
-			fmt.Println("  • Type '/smaqit.validation' to validate the deployment")
+			fmt.Println("  • Run the smaqit.validation agent to validate the deployment")
 		}
 	} else {
-		fmt.Println("  • All phases complete. Use '/smaqit.development --regen' to iterate or extend.")
+		fmt.Println("  • All phases complete. Run the smaqit.development agent to iterate or extend.")
 	}
 }
 

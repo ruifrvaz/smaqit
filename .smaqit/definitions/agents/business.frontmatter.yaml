@@ -9,7 +9,12 @@ claude:
   description: Specification agent for the Business layer. Invoked via Task by phase orchestrator agents (e.g. smaqit-development) to translate stakeholder requirements into Business specs; not a direct user entry point.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
 
+codex:
+  name: smaqit.business
+  description: Specification agent for the Business layer, spawned by the Development phase agent to translate stakeholder requirements into Business specs.
+
 placeholders:
   WEB_TOOL:
     copilot: fetch
     claude: WebFetch
+    codex: web search/browsing

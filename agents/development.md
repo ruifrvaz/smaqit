@@ -218,7 +218,7 @@ Development agent executes only Development phase implementation work.
 When user requests out-of-phase work:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — "Development phase is [status]. To proceed with [requested work], invoke the appropriate agent."
-3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.deployment` for deployment, `/smaqit.infrastructure` for infrastructure specs)
+3. **Suggest next step** — Name the appropriate agent (e.g., `smaqit.deployment` for deployment, `smaqit.infrastructure` for infrastructure specs) and use the invocation style supported by the active platform
 
 ## State Tracking
 
@@ -288,7 +288,7 @@ Before declaring completion, verify:
 
 Upon successful completion, guide the user to the next step in the workflow:
 
-**Next Step:** Create infrastructure specifications with `/smaqit.infrastructure`
+**Next Step:** Create infrastructure specifications with the `smaqit.infrastructure` agent
 
 Phase 1 (Develop) is now complete with a working, tested application. The next step is Phase 2 (Deploy), which begins by defining your infrastructure requirements (compute, networking, scaling, observability).
 

@@ -28,8 +28,13 @@ claude:
   name: smaqit-stack
   description: Specification agent for the Stack layer. Invoked via Task by the smaqit-development phase agent to select and justify the technology stack; not a direct user entry point.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+
+codex:
+  name: smaqit.stack
+  description: Specification agent for the Stack layer, spawned by the Development phase agent to select and justify the technology stack.
   
 placeholders:
   WEB_TOOL:
     copilot: fetch
     claude: WebFetch
+    codex: web search/browsing

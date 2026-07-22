@@ -39,7 +39,7 @@ secret/<project-slug>/tfstate   — access_key, secret_key
 secret/<project-slug>/github    — token (used as TF_VAR_github_token)
 ```
 
-`<project-slug>` is the lowercase hyphenated project name declared in `CLAUDE.md` (or `copilot-instructions.md`).
+`<project-slug>` is the lowercase hyphenated project name declared in `AGENTS.md` (or the legacy platform-specific `CLAUDE.md` / `copilot-instructions.md`).
 
 ---
 
@@ -152,4 +152,3 @@ then reminds you to sync the new value to GitHub Secrets via `smaqit.infrastruct
   `"$(cat ...)"` — that regresses the bug silently (re-fetching, patching, and writing back via
   command substitution reintroduces it even after a one-time manual fix). If you ever hand-load an
   SSH key manually (bypassing the script), use `@`-file syntax, not `$(cat ...)`, for `private_key`.
-

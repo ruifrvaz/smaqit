@@ -1,6 +1,6 @@
-# GitHub Copilot Agent Tools Reference
+# Agent Tools Reference
 
-This document lists all tools available to GitHub Copilot custom agents (`.agent.md` files) running in VS Code agent mode.
+This document describes the platform-specific tool metadata used by smaqit's GitHub Copilot, Claude Code, and Codex agents.
 
 **Source:** Verified against `github/awesome-copilot` repository examples and VS Code Copilot agent specification.
 
@@ -128,7 +128,7 @@ tools: ['search/codebase', 'search', 'web/fetch']
 
 ## Claude Code Tool Mapping
 
-Agent tool lists live in `.smaqit/definitions/agents/<name>.frontmatter.yaml` (the shared body is in `agents/<name>.md`) and are compiled to both formats by `scripts/generate-agents.py` (see `framework/TEMPLATES.md`). When editing an agent's Copilot tool list, keep the Claude Code side in sync using this mapping:
+Agent tool lists live in `.smaqit/definitions/agents/<name>.frontmatter.yaml` (the shared body is in `agents/<name>.md`) and are compiled by `scripts/generate-agents.py` (see `framework/TEMPLATES.md`). When editing an agent's Copilot tool list, keep the Claude Code side in sync using this mapping:
 
 | Copilot tool ID(s) | Claude Code tool |
 |---|---|
@@ -144,3 +144,9 @@ Agent tool lists live in `.smaqit/definitions/agents/<name>.frontmatter.yaml` (t
 | `vscode/memory`, `vscode/askQuestions`, `mermaidchart.vscode-mermaid-chart/*`, `edit/createJupyterNotebook`, `edit/editNotebook` | dropped — no Claude Code equivalent |
 
 There is no Claude Code equivalent of `user-invocable: false`. The same effect — an agent reachable only via delegation, never as a direct user command — is reproduced by simply not creating a `commands/<name>.md` for that agent, so no `.claude/commands/` entry exists for it (see the five specification agents: business, functional, stack, infrastructure, coverage).
+
+## Codex Agent Metadata
+
+Codex project custom agents are generated into `.codex/agents/*.toml`. Each file contains `name`, `description`, and `developer_instructions`; unlike the Copilot and Claude formats, it does not declare a static per-agent tool list. The agent uses the tools and sandbox permissions available in the active Codex session.
+
+All nine smaqit agents are installed as named Codex project agents. Phase agents refer to specification agents by name and ask Codex to spawn them. The same 24 shared skills are installed under `.agents/skills/`, where Codex can discover them through `/skills` or `$` mentions.

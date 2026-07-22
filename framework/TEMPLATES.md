@@ -178,12 +178,13 @@ Agent definitions contain these sections:
 
 ### Agent Definition Format
 
-Each agent has one canonical source split across two committed locations: `agents/<name>.md` (the shared body, with `{{PLACEHOLDER}}` tokens for the small number of phrases that differ by platform, e.g. how an agent describes delegating to a subagent) and `.smaqit/definitions/agents/<name>.frontmatter.yaml` (per-platform frontmatter metadata plus the resolved value of each placeholder). `scripts/generate-agents.py` compiles this into two shipped formats:
+Each agent has one canonical source split across two committed locations: `agents/<name>.md` (the shared body, with `{{PLACEHOLDER}}` tokens for the small number of phrases that differ by platform, e.g. how an agent describes delegating to a subagent) and `.smaqit/definitions/agents/<name>.frontmatter.yaml` (per-platform metadata plus the resolved value of each placeholder). `scripts/generate-agents.py` compiles this into three shipped formats:
 
 - **GitHub Copilot Custom Agent format** — YAML frontmatter (`name`, `description`, `tools`, `user-invocable`) + markdown body, installed to `.github/agents/*.agent.md`
 - **Claude Code subagent format** — YAML frontmatter (`name`, `description`, `tools`) + markdown body, installed to `.claude/agents/*.md`
+- **Codex project custom-agent format** — TOML fields (`name`, `description`, `developer_instructions`), installed to `.codex/agents/*.toml`
 
-Frontmatter captures agent metadata per platform. The markdown body — behavioral guidelines compiled from framework principles — is shared verbatim between both formats except for the placeholder-resolved phrases.
+Platform metadata captures the discovery fields required by each platform. The markdown body — behavioral guidelines compiled from framework principles — is shared between all three formats except for placeholder-resolved phrases; Codex embeds it in `developer_instructions`.
 
 ## Template Completeness
 

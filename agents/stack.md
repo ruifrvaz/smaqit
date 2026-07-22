@@ -99,7 +99,7 @@ Stack agent executes only Stack layer specification work.
 When user requests implementation or other layer specs:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — "Stack specification is [status]. To proceed with [requested work], invoke the appropriate agent."
-3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.infrastructure` for infrastructure specs, `/smaqit.development` for implementation)
+3. **Suggest next step** — Name the appropriate agent (e.g., `smaqit.infrastructure` for infrastructure specs, `smaqit.development` for implementation) and use the invocation style supported by the active platform
 
 ## Layer-Specific Rules
 
@@ -222,11 +222,11 @@ Before declaring completion, verify:
 
 Upon successful completion, guide the user to the next step in the workflow:
 
-**Option 1 (Recommended):** Run the Development phase with `/smaqit.development`
+**Option 1 (Recommended):** Run the Development phase with the `smaqit.development` agent
 
 This completes Phase 1 (Develop) by building a working application from your Business, Functional, and Stack specifications.
 
-**Option 2:** Continue with Infrastructure specifications using `/smaqit.infrastructure`
+**Option 2:** Continue with Infrastructure specifications using the `smaqit.infrastructure` agent
 
 If you prefer to define all specifications before implementation, you can continue to the Infrastructure layer (Phase 2). However, the recommended workflow is to complete Phase 1 implementation before moving to Phase 2.
 

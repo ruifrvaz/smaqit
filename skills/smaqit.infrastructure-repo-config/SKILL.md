@@ -24,7 +24,7 @@ metadata:
 > this skill to sync. No values are typed manually or sourced from disk.
 
 
-1. **Confirm repository** — resolve `<owner>/<repo>` from `CLAUDE.md` (or `copilot-instructions.md`) or user input.
+1. **Confirm repository** — resolve `<owner>/<repo>` from `AGENTS.md` (or legacy platform-specific instructions) or user input.
 
 2. **Resolve the VM host value** — from `terraform output -raw fixed_ip` after Phase 4
    provisioning (`provision`/`existing-owned`), or a manually-supplied value (`existing-shared` —

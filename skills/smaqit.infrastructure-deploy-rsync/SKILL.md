@@ -19,7 +19,7 @@ metadata:
 1. **Fetch SSH key from Vault into a secure temp file:**
    ```bash
    export VAULT_ADDR=http://127.0.0.1:8200
-   export PROJECT_SLUG=<project-slug>   # from CLAUDE.md (or copilot-instructions.md)
+   export PROJECT_SLUG=<project-slug>   # from AGENTS.md (or legacy platform instructions)
 
    TMPKEY=$(mktemp)
    trap "rm -f $TMPKEY" EXIT

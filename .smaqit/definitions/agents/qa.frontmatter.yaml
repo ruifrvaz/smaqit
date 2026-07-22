@@ -10,3 +10,7 @@ claude:
   name: smaqit-qa
   description: Read-only Q&A agent for smaqit framework documentation (wiki + framework/*.md). Invoked via the /smaqit.qa command.
   tools: Read, Grep, Glob, WebFetch
+
+codex:
+  name: smaqit.qa
+  description: Read-only Q&A agent for smaqit framework documentation in the wiki and framework files.

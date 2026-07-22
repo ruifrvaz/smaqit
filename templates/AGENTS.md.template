@@ -11,12 +11,14 @@ The following paths are smaqit tooling, not part of this project's business doma
 - `.github/agents/`, `.github/skills/` — GitHub Copilot agent and skill definitions
 - `.github/workflows/copilot-setup-steps.yml` — Copilot coding-agent bootstrap workflow
 - `.claude/agents/`, `.claude/commands/`, `.claude/skills/` — Claude Code agent, command, and skill definitions
+- `.codex/agents/` — Codex project custom-agent definitions
+- `.agents/skills/` — Codex repository skill definitions
 
 ## Working with smaqit
 
 Specs live under `specs/{business,functional,stack,infrastructure,coverage}/`, one file per distinct concept, each tracking a lifecycle status (`draft` → `implemented` → `deployed` → `validated`).
 
-Invoke with `/` in GitHub Copilot chat or Claude Code:
+Invoke with `/` in GitHub Copilot chat or Claude Code. In Codex, ask it to spawn the corresponding named agent (for example, `smaqit.development`):
 
 | Command | Purpose |
 |---|---|
@@ -25,7 +27,7 @@ Invoke with `/` in GitHub Copilot chat or Claude Code:
 | `/smaqit.validation` | Run tests against the deployed system |
 | `/smaqit.qa` | Answer questions about the smaqit framework |
 
-On GitHub Copilot, the five specification agents (`/smaqit.business`, `/smaqit.functional`, `/smaqit.stack`, `/smaqit.infrastructure`, `/smaqit.coverage`) are also directly invocable. On Claude Code they run automatically as part of the phase commands above.
+On GitHub Copilot, the five specification agents (`/smaqit.business`, `/smaqit.functional`, `/smaqit.stack`, `/smaqit.infrastructure`, `/smaqit.coverage`) are also directly invocable. On Claude Code they run automatically as part of the phase commands above. In Codex, phase agents spawn these named project subagents; repository skills are available through `/skills` or `$` mentions.
 
 Run `smaqit status` for spec coverage and next steps, or `smaqit help` for the full CLI reference.
 <!-- smaqit:instructions:end -->

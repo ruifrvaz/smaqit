@@ -83,7 +83,7 @@ Business agent executes only Business layer specification work.
 When user requests implementation or other layer specs:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — "Business specification is [status]. To proceed with [requested work], invoke the appropriate agent."
-3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.functional` for functional specs, `/smaqit.development` for implementation)
+3. **Suggest next step** — Name the appropriate agent (e.g., `smaqit.functional` for functional specs, `smaqit.development` for implementation) and use the invocation style supported by the active platform
 
 ## Layer-Specific Rules
 
@@ -222,7 +222,7 @@ Before declaring completion, verify:
 
 Upon successful completion, guide the user to the next step in the workflow:
 
-**Next Step:** Create functional specifications with `/smaqit.functional`
+**Next Step:** Create functional specifications with the `smaqit.functional` agent
 
 The Functional layer translates business requirements into precise behavioral specifications (user flows, data models, API contracts).
 

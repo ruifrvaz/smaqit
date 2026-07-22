@@ -18,7 +18,7 @@ prepare:
 	@cp -r ../templates/specs templates/
 	@cp ../.github/workflows/copilot-setup-steps.yml templates/workflows/
 	@cp ../templates/AGENTS.md.template ../templates/CLAUDE.md.template templates/
-	@echo "Compiling agents-copilot/, agents-claude/, commands-claude/, skills-copilot/, skills-claude/ from ../agents/, ../commands/, ../skills/, ../.smaqit/definitions/agents/..."
+	@echo "Compiling agents-copilot/, agents-claude/, agents-codex/, commands-claude/, skills-copilot/, skills-claude/, skills-codex/ from ../agents/, ../commands/, ../skills/, ../.smaqit/definitions/agents/..."
 	@python3 ../scripts/generate-agents.py
 
 # Default target: build for current platform
@@ -36,6 +36,8 @@ build-all: prepare
 	@mkdir -p $(DIST_DIR)
 	@echo "Building for linux/amd64..."
 	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME)_linux_amd64 .
+	@echo "Building for linux/arm64..."
+	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME)_linux_arm64 .
 	@echo "Building for darwin/amd64..."
 	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME)_darwin_amd64 .
 	@echo "Building for darwin/arm64..."
@@ -100,12 +102,12 @@ uninstall:
 				;; \
 		esac; \
 	fi; \
-	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "agents-copilot" ] || [ -d "agents-claude" ] || [ -d "commands-claude" ] || [ -d "prompts" ] || [ -d "skills-copilot" ] || [ -d "skills-claude" ] || [ -d "test" ] || [ -d "../.test-venv" ]; then \
+	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "agents-copilot" ] || [ -d "agents-claude" ] || [ -d "agents-codex" ] || [ -d "commands-claude" ] || [ -d "prompts" ] || [ -d "skills-copilot" ] || [ -d "skills-claude" ] || [ -d "skills-codex" ] || [ -d "test" ] || [ -d "../.test-venv" ]; then \
 		printf "\nAlso clean build artifacts (dist/, embedded files, test/, .test-venv)? [y/N]: "; \
 		read clean_response; \
 		case "$$clean_response" in \
 			[yY]|[yY][eE][sS]) \
-				rm -rf $(DIST_DIR) framework/ templates/ agents-copilot/ agents-claude/ commands-claude/ skills-copilot/ skills-claude/ test/ ../.test-venv; \
+				rm -rf $(DIST_DIR) framework/ templates/ agents-copilot/ agents-claude/ agents-codex/ commands-claude/ skills-copilot/ skills-claude/ skills-codex/ test/ ../.test-venv; \
 				echo "✓ Cleaned build artifacts"; \
 				;; \
 			*) \
@@ -129,14 +131,25 @@ test-e2e-clean:
 	@echo "Cleaning test environment..."
 	@cd .. && rm -rf .test-venv
 
+.PHONY: test
+test: prepare
+	@go test ./...
+	@go vet ./...
+
+.PHONY: smoke-test
+smoke-test: build
+	@../scripts/smoke-test-installer.sh "$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME)"
+
 # Help
 help:
 	@echo "smaqit installer build targets:"
 	@echo ""
 	@echo "  make build      - Build for current platform"
-	@echo "  make build-all  - Build for all platforms (Linux, macOS, Windows)"
+	@echo "  make build-all  - Build for Linux (amd64/arm64), macOS, and Windows"
 	@echo "  make install    - Build and install to ~/.local/bin (adds to PATH if needed)"
 	@echo "  make uninstall  - Remove binary (prompts for PATH and artifact cleanup)"
+	@echo "  make test       - Run Go tests and vet after generating platform artifacts"
+	@echo "  make smoke-test - Build and verify install/reinstall/validate/uninstall in a temporary project"
 	@echo "  make test-e2e   - Run end-to-end tests using Copilot SDK (auto-setup)"
 	@echo "  make test-e2e-clean - Remove test environment venv"
 	@echo "  make version    - Show version that will be built"

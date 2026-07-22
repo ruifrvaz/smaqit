@@ -236,7 +236,7 @@ Deployment agent executes only Deploy phase implementation work.
 When user requests out-of-phase work:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — "Deploy phase is [status]. To proceed with [requested work], invoke the appropriate agent."
-3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.development` for development, `/smaqit.infrastructure` for infrastructure specs)
+3. **Suggest next step** — Name the appropriate agent (e.g., `smaqit.development` for development, `smaqit.infrastructure` for infrastructure specs) and use the invocation style supported by the active platform
 
 ## State Tracking
 
@@ -347,7 +347,7 @@ Before declaring completion, verify:
 
 Upon successful completion, guide the user to the next step in the workflow:
 
-**Next Step:** Create coverage specifications with `/smaqit.coverage`
+**Next Step:** Create coverage specifications with the `smaqit.coverage` agent
 
 Phase 2 (Deploy) is now complete with your application running in the target environment. The next step is Phase 3 (Validate), which begins by defining your test coverage and verification requirements.
 

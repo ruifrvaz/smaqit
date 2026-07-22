@@ -4,6 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 088 | Add First-Class Codex Compatibility | In Progress | High |
 | 087 | Dynamic Stack Detection + On-the-Fly Deploy Skill Synthesis | In Progress | High |
 | 086 | Reconcile fashion-app-poc's Python/FastAPI + Next.js Deploy Skill Into Canonical smaqit | In Progress | High |
 | 085 | Deterministic CI/CD Workflow Templates + Guard-Script Vendoring | In Progress | High |

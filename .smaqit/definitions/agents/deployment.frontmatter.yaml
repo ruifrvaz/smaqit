@@ -15,8 +15,13 @@ claude:
   name: smaqit-deployment
   description: Implementation agent for the Deployment phase. Orchestrates the Infrastructure spec agent via Task, then deploys Infrastructure + Stack specs to the target environment. Invoked via the /smaqit.deployment command.
   tools: Read, Write, Edit, Grep, Glob, Bash, Task
+
+codex:
+  name: smaqit.deployment
+  description: Implementation agent for the Deployment phase that spawns the Infrastructure agent and deploys Infrastructure and Stack specs.
   
 placeholders:
   DELEGATE_INFRASTRUCTURE:
     copilot: invoke `smaqit.infrastructure` using `runSubagent`
     claude: invoke the `smaqit-infrastructure` subagent via the Task tool
+    codex: spawn the `smaqit.infrastructure` Codex subagent

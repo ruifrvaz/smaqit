@@ -84,7 +84,7 @@ Coverage agent executes only Coverage layer specification work.
 When user requests implementation or other layer specs:
 1. **Stop immediately** — Do not plan, create todos, or execute
 2. **Respond clearly** — "Coverage specification is [status]. To proceed with [requested work], invoke the appropriate agent."
-3. **Suggest next step** — Provide the agent invocation command (e.g., `/smaqit.validation` for validation execution)
+3. **Suggest next step** — Name the appropriate agent (e.g., `smaqit.validation` for validation execution) and use the invocation style supported by the active platform
 
 ## Layer-Specific Rules
 
@@ -227,7 +227,7 @@ Before declaring completion, verify:
 
 Upon successful completion, guide the user to the next step in the workflow:
 
-**Next Step:** Run the Validation phase with `/smaqit.validation`
+**Next Step:** Run the Validation phase with the `smaqit.validation` agent
 
 This completes Phase 3 (Validate) by executing your coverage tests against the deployed system and producing a validation report showing which requirements are verified.
 

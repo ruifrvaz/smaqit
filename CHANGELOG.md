@@ -28,6 +28,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [1.6.0] - 2026-07-22
+
+### Added
+- First-class OpenAI Codex compatibility in the smaqit installer:
+  - All 9 canonical agents compile to Codex project-agent TOML under `.codex/agents/` with non-empty `name`, `description`, and `developer_instructions`.
+  - All 24 canonical product skills install under `.agents/skills/`, with platform paths resolved during generation.
+  - `smaqit init`, reinstallation, update reinitialization, validation, status/help guidance, and uninstall now include Codex alongside GitHub Copilot and Claude Code.
+  - Codex uninstall removes exact smaqit-owned files while preserving unrelated agents, skills, nested custom content, and `.codex/config.toml`.
+  - Go unit tests, a temporary-project installer lifecycle smoke test, CI coverage, and Linux arm64 cross-compilation were added.
+- Repository-local Codex workflow support synced from `smaqit-extensions`: 28 project/session/task/release/testing utility skills plus `smaqit.release.local`, `smaqit.release.pr`, and `smaqit.user-testing` custom agents.
+
+### Changed
+- Shared agent, skill, framework, installed-project, and user documentation now use platform-neutral invocation guidance and recognize `AGENTS.md` when discovering project instructions.
+- Installed specification-template footers now identify smaqit v1.5.1 instead of the former beta version.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Three existing skill descriptions now use strict, parseable YAML frontmatter so all installed Codex skills pass metadata validation.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Added session history and compendium documentation for the v1.5.1 self-update reinitialization fix.
+
 ## [1.5.1] - 2026-07-21
 
 ### Fixed
@@ -508,7 +538,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/ruifrvaz/smaqit/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/ruifrvaz/smaqit/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/ruifrvaz/smaqit/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/ruifrvaz/smaqit/compare/v1.3.1...v1.4.0

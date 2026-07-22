@@ -1,42 +1,93 @@
 # Project Compendium
 
-Last updated: 2026-07-22 | Total entries: 11
-
 ## Self-Update
 
 **Why does `smaqit update` silently skip new skills/scripts after downloading a new release?**
 
-The self-update flow downloads the new binary, replaces the file on disk (`replaceBinary`), then calls the reinit logic in the **same still-running process**. Go's `//go:embed` bakes skill/agent/template content into the binary at compile time — replacing the file on disk does nothing to the already-loaded process image in memory. The reinit step silently runs with the **old** binary's stale embedded content. New content in the release just downloaded (e.g., a brand-new skill, or new scripts in an existing skill) doesn't exist in the old process's embed at all — it's never written, with zero errors raised. The fix (landed in v1.5.1): after a successful binary replacement, re-exec the freshly-downloaded binary on disk as a subprocess to perform the reinit, instead of calling `cmdInit()` in-process. The no-replacement paths (already up to date, or local newer than remote) are unaffected and can safely reinit in-process. See `installer/update.go`'s `reinitWithBinary()` and the history file for session 062.
+The self-update flow must re-exec the newly downloaded binary after replacing the file on disk. Go's `//go:embed` content is fixed in the running process, so an in-process reinitialization would still use the old agents, skills, and templates. The no-replacement paths (already up to date, or local newer than remote) can safely reinitialize in-process. See `installer/update.go`'s `reinitWithBinary()`.
 
 ---
 
 ## Hooks
 
-| Question | Answer | Last Updated | Sessions |
-|----------|--------|--------------|----------|
-| Do VS Code Copilot hooks fire for `runSubagent` tool calls? | No. `SubagentStart` and `SubagentStop` only fire for VS Code native agent delegation (e.g., `@agent` in chat input). They do NOT fire when a subagent is invoked via the `runSubagent` tool inside an agent. `PostToolUse` does fire for all tool calls including `run_in_terminal`, `read_file`, etc. | 2026-05-17 | 1 |
-| What hook format does VS Code Copilot require? | VS Code uses PascalCase event names (`SubagentStart`, `PostToolUse`), the `command` key (not `bash`), no `version` field, and a `hookSpecificOutput` wrapper object: `{"hookSpecificOutput": {"hookEventName": "SubagentStart", "additionalContext": "..."}}`. Inline commands with `echo` work reliably; external scripts also work once the hook pipeline is active. | 2026-05-17 | 1 |
+**Do VS Code Copilot hooks fire for `runSubagent` tool calls?**
+
+No. `SubagentStart` and `SubagentStop` only fire for VS Code native agent delegation, such as `@agent` in chat input. They do not fire when a subagent is invoked via the `runSubagent` tool inside an agent. `PostToolUse` does fire for tool calls including terminal and file operations.
+
+---
+
+**What hook format does VS Code Copilot require?**
+
+VS Code uses PascalCase event names such as `SubagentStart` and `PostToolUse`, the `command` key rather than `bash`, no `version` field, and a `hookSpecificOutput` wrapper object. Inline commands work reliably; external scripts also work once the hook pipeline is active.
+
+---
 
 ## Agent Orchestration
 
-| Question | Answer | Last Updated | Sessions |
-|----------|--------|--------------|----------|
-| What Microsoft AI agent orchestration pattern does smaqit's phase orchestration match? | Sequential Workflow (phase agent as orchestrator invoking spec agents in fixed order). The assisted mode (user reviews each spec) maps to Maker-Checker. Spec agent invocations are Nested Composition. Microsoft guidance: deterministic routing must be hardcoded — never delegated to agents at runtime. | 2026-05-17 | 1 |
+**What agent orchestration pattern does smaqit's phase orchestration match?**
+
+It is a sequential workflow: a phase agent orchestrates specification agents in a fixed order. Assisted mode, where the user reviews each specification, is a maker-checker workflow. Individual specification-agent invocations are nested composition. Deterministic routing is hardcoded rather than delegated to agents at runtime.
+
+---
 
 ## Claude Code Support
 
-| Question | Answer | Last Updated | Sessions |
-|----------|--------|--------------|----------|
-| What's the Claude Code equivalent of `copilot-setup-steps.yml`? | There isn't a direct one — no magic-filename auto-detection exists in Claude Code. Copilot's coding agent auto-detects that exact filename as a GitHub-native convention. Closest local equivalent: a `SessionStart` hook in `.claude/settings.json` (fires when a `claude` session starts/resumes, can run setup commands). Closest cloud/CI equivalent: `anthropics/claude-code-action`, but it requires manually adding setup steps to your own workflow YAML — no auto-detection. `CLAUDE.md` is NOT the equivalent — it's just project-context markdown loaded into the system prompt, not a bootstrap mechanism. smaqit ruled this out of scope since GitHub Actions deployments continue to use Copilot. | 2026-07-16 | 1 |
-| What is `installer/commands-claude/`? | The gitignored compiled-output directory holding Claude Code slash command files, generated from `commands/*.md` at repo root by `scripts/generate-agents.py`, installed to `.claude/commands/` in target projects. It exists because Claude Code needs a separate command file per slash command, unlike Copilot where an agent's own `name:` frontmatter field doubles as its `/name` invocation — so there is no `commands-copilot` equivalent. Only agents meant to be directly user-invocable get a command file (development/deployment/validation/qa); the five spec agents do not, reproducing Copilot's `user-invocable: false` on the Claude Code side. | 2026-07-16 | 1 |
-| Does `smaqit init` install `copilot-instructions.md`, `CLAUDE.md`, or `AGENTS.md`? | `AGENTS.md` + a thin `CLAUDE.md`. Confirmed via official docs: VS Code Copilot Chat (`chat.useAgentsMdFile` setting) and GitHub's Copilot coding agent (since 2025-08-28) both read `AGENTS.md` natively, alongside `.github/copilot-instructions.md`. Claude Code does **not** read `AGENTS.md` on its own — its docs state "Claude Code reads CLAUDE.md, not AGENTS.md" — so `CLAUDE.md` ships as a one-line `@AGENTS.md` import. No separate `.github/copilot-instructions.md` is needed since Copilot already reads `AGENTS.md` directly. Install behavior: create if absent, append smaqit's `<!-- smaqit:instructions:begin/end -->`-marked section if the file exists without it (idempotent, never overwrites user content) — see `installInstructionsFile()` in `installer/main.go`. | 2026-07-16 | 1 |
-| Why don't Claude Code slash commands show up when typing `/` in the VS Code extension chat? | Two distinct causes depending on context. **(1) In the smaqit source repo itself**: there is no `.claude/commands/` or `.claude/agents/` because those are gitignored compiled build artifacts (`installer/commands-claude/`, `installer/agents-claude/`) that only get scaffolded into a *target* project by `smaqit init` — this repo only ships its own dev-tooling `.claude/settings.json` + `.claude/hooks/`, not the product's own commands (that would be circular). Run `smaqit init` in a target project to populate `.claude/commands/` for real. **(2) In a project where `smaqit init` was already run** and commands still don't appear: the VS Code extension has a known, unresolved bug (GitHub issue #9518, closed "not planned") failing to detect `.claude/commands/` specifically on **Linux/WSL**. Official first step is Command Palette → `Developer: Reload Window`, or a full VS Code restart if that fails. If the extension panel still doesn't pick them up, fall back to running the CLI (`claude`) directly in an integrated terminal — several linked bug reports (#8569, #8590, #8860, #9926, #10357) indicate the CLI surface works when the extension panel doesn't. See also: What is `installer/commands-claude/`? | 2026-07-16 | 1 |
+**What's the Claude Code equivalent of `copilot-setup-steps.yml`?**
+
+There is no direct equivalent because Claude Code has no magic-filename bootstrap convention. The closest local mechanism is a `SessionStart` hook in `.claude/settings.json`; cloud workflows must add their setup steps explicitly. `CLAUDE.md` is project context, not a bootstrap mechanism.
+
+---
+
+**What is `installer/commands-claude/`?**
+
+It is the gitignored compiled-output directory holding Claude Code slash-command files. `scripts/generate-agents.py` generates it from root `commands/*.md`, and the installer copies it to `.claude/commands/` in target projects. Only development, deployment, validation, and QA receive direct commands; specification agents remain delegation-only.
+
+---
+
+**Does `smaqit init` install `copilot-instructions.md`, `CLAUDE.md`, or `AGENTS.md`?**
+
+It installs `AGENTS.md` plus a thin `CLAUDE.md` that imports it. Copilot and Codex read `AGENTS.md`; Claude Code reads `CLAUDE.md`. Existing files are never overwritten: the marked smaqit section is appended when absent, and repeated initialization is idempotent. See `installInstructionsFile()` in `installer/main.go`.
+
+---
+
+**Why don't Claude Code slash commands show up when typing `/` in the VS Code extension chat?**
+
+In the smaqit source repository, product commands exist only as generated installer staging and are not installed into the repository itself. In an initialized target project, reload the VS Code window first. If the Linux or WSL extension still misses `.claude/commands/`, use the Claude CLI in an integrated terminal; the CLI surface can discover commands even when the extension panel does not.
+
+---
 
 ## Infrastructure Skills
 
-| Question | Answer | Last Updated | Sessions |
-|----------|--------|--------------|----------|
-| How does `smaqit.new-greenfield-project` pick a deploy skill when a project's stack matches none of the existing `smaqit.infrastructure-deploy-rsync*` family? | Phase 4 Step 6 reads the declared stack from `specs/stack/platform-stack.md` (never re-derives it from the filesystem), compares it against currently-installed deploy skills generically (a lookup, not a hardcoded enumeration), and on no match invokes `smaqit.create-skill` to synthesize a new one — pointed explicitly at the existing deploy-rsync family as reference exemplars, inheriting four conventions verbatim (the `__APP_DIR__` token, shared `write-vhost.sh`, the deploy-stamp pattern, and guard-script reuse). A human checkpoint is required before the synthesized skill is invoked, unless the operator is in Autonomous mode with prior explicit sign-off. | 2026-07-21 | 1 |
-| Why must every `terraform plan`/`apply` against already-provisioned infrastructure go through `plan-guard.sh`, even a "just checking" diagnostic run? | Because a guard script wired only into generated CI workflow YAML provides zero protection against a direct, interactive invocation of the same tool from a shell — the risk of a destructive plan (delete/replace) is identical whether it's about to be applied or just being read. A real incident: an out-of-band SSH fix to a live VM (patching something also declared in Terraform's `user_data`) created drift the agent only discovered by manually reading a bare `terraform plan`'s output — the guard would have caught and blocked it automatically had it been invoked through the guard path instead. | 2026-07-21 | 1 |
-| What causes SSH keys stored in Vault to fail with "error in libcrypto"? | The private key's trailing newline was stripped during storage — `vault kv put private_key="$(cat file)"` uses shell command substitution, which always trims trailing newlines, but OpenSSH's key parser requires that final newline to be present. Not an auth or permissions issue despite how it looks. Fix: store the key with Vault's `@file` syntax (`private_key=@"$SSH_KEY_PATH"`) instead, which preserves the file's exact bytes. See `smaqit.infrastructure-vault-loader`'s Gotchas. | 2026-07-21 | 1 |
+**How does `smaqit.new-greenfield-project` pick a deploy skill when a project's stack matches none of the existing `smaqit.infrastructure-deploy-rsync*` family?**
 
+Phase 4 reads the declared stack from the stack specification, compares it generically against installed deploy skills, and synthesizes a new skill when no match exists. The synthesized skill uses the existing deploy-rsync family as exemplars and preserves shared conventions such as the `__APP_DIR__` token, `write-vhost.sh`, deploy stamps, and guard-script reuse. A human checkpoint is required before first invocation unless prior autonomous approval exists.
+
+---
+
+**Why must every `terraform plan` or `apply` against already-provisioned infrastructure go through `plan-guard.sh`, even for diagnosis?**
+
+The risk of a destructive delete or replace plan is the same whether the operator intends to apply it or only inspect it. Routing every invocation through `plan-guard.sh` ensures direct interactive commands receive the same protection as generated CI workflows.
+
+---
+
+**What causes SSH keys stored in Vault to fail with `error in libcrypto`?**
+
+Shell command substitution strips the private key's required trailing newline. Store the key with Vault's `@file` syntax instead of `private_key="$(cat file)"`; file syntax preserves the exact bytes. See the Gotchas in `smaqit.infrastructure-vault-loader`.
+
+---
+
+## Codex Support
+
+**How does smaqit provide first-class Codex compatibility?**
+
+`scripts/generate-agents.py` compiles the 9 canonical agent bodies and platform metadata into `installer/agents-codex/*.toml`, and copies all 24 canonical product skills into `installer/skills-codex/` with `.agents/skills` path substitution. `smaqit init` installs agents to `.codex/agents/` and skills to `.agents/skills/` without creating or modifying `.codex/config.toml`. Validation checks both directories, update reinitialization uses the fresh binary's embedded content, and uninstall removes exact embedded files while preserving unrelated or nested custom content.
+
+---
+
+## Release Workflow
+
+**How can a local smaqit release authenticate an encrypted SSH key from WSL2?**
+
+Load the key into a temporary `ssh-agent` and use `SSH_ASKPASS_REQUIRE=force` with a WSLg password dialog so the passphrase never passes through chat, command arguments, or logs. Confirm authentication with `ssh -T git@github.com`, push `main` and the annotated tag separately, verify both remote refs, then terminate the temporary agent. If the configured GitHub CLI token lacks repository write permission, SSH remains the preferred release transport.
+
+---

@@ -1,9 +1,10 @@
 # Add First-Class Codex Compatibility
 
-**Status:** In Progress
+**Status:** Completed
 **Created:** 2026-07-22
 **Mode:** Assisted
 **Started:** 2026-07-22
+**Completed:** 2026-07-22
 
 ## Description
 
@@ -53,37 +54,40 @@ The implementation must adapt the committed Codex architecture from `smaqit-exte
 
 ## Acceptance Criteria
 
-- [ ] Generator supports `copilot`, `claude`, and `codex` as explicit platforms.
-- [ ] Preparation produces exactly 9 valid Codex agent TOMLs containing non-empty `name`, `description`, and `developer_instructions`.
-- [ ] All 9 agent manifests define Codex metadata and resolve every platform-specific placeholder.
-- [ ] Shared agent instructions contain no Claude-only slash-command or Copilot-only delegation guidance in Codex output.
-- [ ] Preparation produces all 24 skills under `installer/skills-codex/`, with `[SMAQIT_SKILLS_DIR]` resolved to `.agents/skills`.
-- [ ] Installed Codex skills have parseable frontmatter and recognize `AGENTS.md` wherever project instructions are discovered.
-- [ ] `smaqit init` installs agents to `.codex/agents/` and skills to `.agents/skills/`.
-- [ ] Exact Codex destination conflicts are detected before both first installation and reinstallation.
-- [ ] `smaqit update` refreshes Codex artifacts through the existing fresh-binary reinitialization path.
-- [ ] `smaqit validate` checks the Codex installation directories.
-- [ ] `smaqit uninstall` removes only embedded smaqit Codex artifacts and preserves unrelated agents, skills, and `.codex/config.toml`.
-- [ ] The installer never generates or modifies `.codex/config.toml`.
-- [ ] CLI help, README, installed `AGENTS.md`, framework documentation, and testing guidance describe Codex accurately.
-- [ ] A temporary-project smoke test validates generated-tree parity, TOML and skill parsing, conflict handling, reinstallation, validation, and ownership-safe uninstall.
-- [ ] Go tests, `go vet`, installer build, cross-compilation, and smoke testing pass without regressing Copilot or Claude outputs.
+- [x] Generator supports `copilot`, `claude`, and `codex` as explicit platforms.
+- [x] Preparation produces exactly 9 valid Codex agent TOMLs containing non-empty `name`, `description`, and `developer_instructions`.
+- [x] All 9 agent manifests define Codex metadata and resolve every platform-specific placeholder.
+- [x] Shared agent instructions contain no Claude-only slash-command or Copilot-only delegation guidance in Codex output.
+- [x] Preparation produces all 24 skills under `installer/skills-codex/`, with `[SMAQIT_SKILLS_DIR]` resolved to `.agents/skills`.
+- [x] Installed Codex skills have parseable frontmatter and recognize `AGENTS.md` wherever project instructions are discovered.
+- [x] `smaqit init` installs agents to `.codex/agents/` and skills to `.agents/skills/`.
+- [x] Exact Codex destination conflicts are detected before both first installation and reinstallation.
+- [x] `smaqit update` refreshes Codex artifacts through the existing fresh-binary reinitialization path.
+- [x] `smaqit validate` checks the Codex installation directories.
+- [x] `smaqit uninstall` removes only embedded smaqit Codex artifacts and preserves unrelated agents, skills, and `.codex/config.toml`.
+- [x] The installer never generates or modifies `.codex/config.toml`.
+- [x] CLI help, README, installed `AGENTS.md`, framework documentation, and testing guidance describe Codex accurately.
+- [x] A temporary-project smoke test validates generated-tree parity, TOML and skill parsing, conflict handling, reinstallation, validation, and ownership-safe uninstall.
+- [x] Go tests, `go vet`, installer build, cross-compilation, and smoke testing pass without regressing Copilot or Claude outputs.
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Extended the canonical generator with a third data-driven platform that emits Codex TOML agents and repository skill staging from existing shared sources.
+- Integrated Codex into installer initialization, conflict detection, update reinitialization, validation, help, status, and ownership-safe uninstall behavior.
+- Added unit, lifecycle smoke, parsing, CI, and five-target cross-build verification before publishing v1.6.0.
 
 **Decisions made:**
-- TBD
+- Used native `.codex/agents/` and `.agents/skills/` discovery without generating or modifying `.codex/config.toml`.
+- Kept generated Codex staging ephemeral and left repository-root dogfooding artifacts under their existing separate ownership.
+- Removed exact embedded files during uninstall and pruned only empty directories so unrelated and nested custom content survives.
 
 **Blockers encountered:**
-- TBD
+- Upstream Codex discovery reports initially blocked task start; the operator approved proceeding with documented formats.
+- Local and automated validation passed, and the operator confirmed successful installation and operation in another project.
 
 **Follow-up identified:**
-- TBD
+- Monitor upstream Codex project-agent and IDE skill-discovery behavior for regressions; no task-specific implementation work remains.
 
 ## Files to Create / Modify
 

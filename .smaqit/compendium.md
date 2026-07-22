@@ -1,6 +1,14 @@
 # Project Compendium
 
-Last updated: 2026-07-21 | Total entries: 10
+Last updated: 2026-07-22 | Total entries: 11
+
+## Self-Update
+
+**Why does `smaqit update` silently skip new skills/scripts after downloading a new release?**
+
+The self-update flow downloads the new binary, replaces the file on disk (`replaceBinary`), then calls the reinit logic in the **same still-running process**. Go's `//go:embed` bakes skill/agent/template content into the binary at compile time — replacing the file on disk does nothing to the already-loaded process image in memory. The reinit step silently runs with the **old** binary's stale embedded content. New content in the release just downloaded (e.g., a brand-new skill, or new scripts in an existing skill) doesn't exist in the old process's embed at all — it's never written, with zero errors raised. The fix (landed in v1.5.1): after a successful binary replacement, re-exec the freshly-downloaded binary on disk as a subprocess to perform the reinit, instead of calling `cmdInit()` in-process. The no-replacement paths (already up to date, or local newer than remote) are unaffected and can safely reinit in-process. See `installer/update.go`'s `reinitWithBinary()` and the history file for session 062.
+
+---
 
 ## Hooks
 

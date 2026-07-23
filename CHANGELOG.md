@@ -28,6 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [1.9.0] - 2026-07-24
+
+### Added
+- `smaqit.feature-deploy` — standalone post-MVP deployment skill. Extracts greenfield's Phase 4/5 provisioning_mode branching (`provision`, `existing-owned`, `existing-shared`) into a self-contained 3-phase workflow: pre-phase feature identification (reads stack and infrastructure specs), Phase 1 infrastructure readiness (vault-loader, provision-cyso, vm-bootstrap), Phase 2 CI/CD-triggered deploy (push to main, monitor pipeline, deploy-verify, amendment gate), Phase 3 close-out with optional release tagging. Deploys exclusively through existing CI/CD pipelines — no dev-VM sweep, no deploy-rsync skills. Ships its own `scripts/check-amendments.sh` (self-contained, no cross-skill file references).
+
+### Changed
+- Bumped shipped skill count from 25 to 26 in installer test assertions (`installer/main_test.go`, `scripts/smoke-test-installer.sh`).
+
+### Fixed
+- Removed external project references from history files, task files, CHANGELOG, and shipped skill documentation.
+
 ## [1.8.0] - 2026-07-23
 
 ### Added

@@ -1,0 +1,51 @@
+---
+name: [AGENT_NAME]
+description: [AGENT_DESCRIPTION]
+tools: [TOOL_LIST]
+---
+
+# [AGENT_TITLE]
+
+## Role
+
+[ROLE_CONTENT]
+
+## Input
+
+[INPUT_CONTENT]
+
+## Output
+
+[OUTPUT_CONTENT]
+
+## Directives
+
+### MUST
+
+[BASE_MUST_DIRECTIVES]
+
+[EXTENSION_MUST_DIRECTIVES]
+
+### MUST NOT
+
+[BASE_MUST_NOT_DIRECTIVES]
+
+[EXTENSION_MUST_NOT_DIRECTIVES]
+
+### SHOULD
+
+[BASE_SHOULD_DIRECTIVES]
+
+[EXTENSION_SHOULD_DIRECTIVES]
+
+## Scope Boundaries
+
+[SCOPE_CONTENT]
+
+## Completion Criteria
+
+[COMPLETION_CRITERIA_CONTENT]
+
+## Failure Handling
+
+[FAILURE_HANDLING_CONTENT]

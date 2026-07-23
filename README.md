@@ -46,7 +46,7 @@ smaqit init
 
 See the full [Mario Hello quickstart](docs/wiki/workflows/quickstart.md) for a complete walkthrough.
 
-Once your MVP is deployed, use `smaqit.feature-new` for iterative post-MVP feature cycles — it applies the same task-per-phase discipline without requirements extraction, from-scratch specs, or a dev-VM sweep (see [phase differences from greenfield](skills/smaqit.feature-new/references/phase-differences-from-greenfield.md)).
+Once your MVP is deployed, use `smaqit.feature-new` for iterative post-MVP feature cycles — it applies the same task-per-phase discipline without requirements extraction, from-scratch specs, or a dev-VM sweep (see [phase differences from greenfield](skills/smaqit.feature-new/references/phase-differences-from-greenfield.md)). When a feature is ready to ship, use `smaqit.feature-deploy` for standalone CI/CD-driven deployment to production.
 
 ## Copilot Automation
 

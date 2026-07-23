@@ -115,8 +115,8 @@ for expected in expected_agents:
 expected_skills = {
     path.name for path in (repo / "installer" / "skills-codex").iterdir() if path.is_dir()
 }
-if len(expected_skills) != 25:
-    raise SystemExit(f"expected 25 generated Codex skills, found {len(expected_skills)}")
+if len(expected_skills) != 26:
+    raise SystemExit(f"expected 26 generated Codex skills, found {len(expected_skills)}")
 
 for skill_name in sorted(expected_skills):
     skill_file = root / ".agents" / "skills" / skill_name / "SKILL.md"

@@ -13,6 +13,7 @@
 
 | ID | Title |
 |----|-------|
+| 091 | `smaqit.feature-deploy` — Standalone Post-MVP Deployment Skill |
 | 090 | Machine Credential Namespace and App Bootstrap |
 | 085 | Deterministic CI/CD Workflow Templates + Guard-Script Vendoring |
 | 087 | Dynamic Stack Detection + On-the-Fly Deploy Skill Synthesis |

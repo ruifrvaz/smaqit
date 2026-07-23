@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-repo-config
 description: Use when configuring a GitHub repository with the secrets and variables required for CI/CD workflows. Covers Actions secrets (VM_SSH_KEY, Terraform backend credentials, cloud provider credentials, GH_TERRAFORM_TOKEN) and Actions variables (VM_HOST, DEMO_MODE). Uses the `gh` CLI. Prevents GITHUB_TOKEN reserved-name collisions and SSH key trailing-newline drift. Also use when setting up a new deployment repository, rotating CI/CD credentials, or verifying that all required repository secrets and variables are present.
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # Configure GitHub Repository Secrets and Variables
@@ -14,10 +14,15 @@ metadata:
 - Target repository exists on GitHub
 - Local Vault running and unsealed (`smaqit.infrastructure-vault-loader` complete)
 - `PROJECT_SLUG` and `VAULT_ADDR=http://127.0.0.1:8200` exported in current shell
-- **Restricted mode for `provisioning_mode: existing-shared`:** only `secret/<project-slug>/ssh`
-  and `secret/<project-slug>/github` are expected to be populated — `tfstate` and `cyso` are never
-  populated for this mode (see `smaqit.infrastructure-vault-loader`) and `scripts/sync-secrets.sh`
-  (Step 3) adapts accordingly rather than assuming all four paths exist.
+- **Scheme-aware:** `scripts/sync-secrets.sh` auto-detects the new `apps/`+`machines/` scheme
+  (via `secret/apps/<app-slug>/machine`) vs. the legacy flat `secret/<project-slug>/*` scheme.
+  `ssh`/`github` always read from the app root; `tfstate`/`cyso` always read from the machine
+  root — on the legacy scheme both roots are the same `secret/<project-slug>/*` path. This skill
+  never reads or writes `secret/machines/*` directly for anything beyond `tfstate`/`cyso`.
+- **Restricted mode for `provisioning_mode: existing-shared`:** only `ssh` and `github` are
+  expected to be populated — `tfstate` and `cyso` are never populated for this mode (see
+  `smaqit.infrastructure-vault-loader`) and `scripts/sync-secrets.sh` (Step 3) adapts accordingly
+  rather than assuming all four paths exist.
 
 > **Role of this skill:** Vault is the source of truth. GitHub Secrets are a derived copy. This skill
 > reads from Vault and pushes to GitHub. On credential rotation, update Vault first, then re-run
@@ -101,7 +106,7 @@ metadata:
 | Output artifact already exists | Confirm with user before overwriting |
 | `gh` not authenticated | Run `gh auth login` before proceeding |
 | Secret value not available | Request the value from the operator; do not proceed with missing secrets |
-| `secret/<project-slug>/tfstate` or `/cyso` absent | `scripts/sync-secrets.sh` skips that block cleanly and reports it — expected for `provisioning_mode: existing-shared`, not an error |
-| `scripts/sync-secrets.sh` exits 1 | `secret/<project-slug>/ssh` or `/github` is missing — these are required in every mode; populate them via `smaqit.infrastructure-vault-loader` before retrying |
+| Machine root's `tfstate` or `cyso` absent | `scripts/sync-secrets.sh` skips that block cleanly and reports it — expected for `provisioning_mode: existing-shared`, not an error |
+| `scripts/sync-secrets.sh` exits 1 | App root's `ssh` or `github` is missing — these are required in every mode; populate them via `smaqit.infrastructure-vault-loader` before retrying |
 | `GITHUB_TOKEN` collision in existing workflow YAML | Flag it explicitly and require renaming before the workflow is triggered |
 | `gh variable set` returns 403 | Verify the PAT used for `gh auth login` has `write:variables` scope |

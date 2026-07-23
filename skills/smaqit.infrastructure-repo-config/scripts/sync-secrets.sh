@@ -20,29 +20,49 @@ VM_HOST_VALUE="${2:?Usage: sync-secrets.sh <owner>/<repo> <vm-host-value>}"
 : "${PROJECT_SLUG:?PROJECT_SLUG must be exported}"
 : "${VAULT_ADDR:?VAULT_ADDR must be exported}"
 
-path_exists() {
-  vault kv get "secret/${PROJECT_SLUG}/$1" > /dev/null 2>&1
+# ── Scheme detection: new (apps/+machines/) vs legacy flat ─────────────────────
+#
+# ssh/github always come from the app root; tfstate/cyso come from the machine root. On the
+# legacy flat scheme, both roots collapse to the same secret/<project-slug>/* path, so the rest
+# of this script doesn't need to branch any further than resolving these two roots once.
+
+APP_ROOT="secret/${PROJECT_SLUG}"
+MACHINE_ROOT="secret/${PROJECT_SLUG}"
+if vault kv get "secret/apps/${PROJECT_SLUG}/machine" > /dev/null 2>&1; then
+  MACHINE_SLUG=$(vault kv get -field=machine-slug "secret/apps/${PROJECT_SLUG}/machine")
+  APP_ROOT="secret/apps/${PROJECT_SLUG}"
+  MACHINE_ROOT="secret/machines/${MACHINE_SLUG}"
+  echo "==> Scheme: new (${APP_ROOT}/*, ${MACHINE_ROOT}/*)"
+else
+  echo "==> Scheme: legacy (${APP_ROOT}/*)"
+fi
+
+app_path_exists() {
+  vault kv get "${APP_ROOT}/$1" > /dev/null 2>&1
+}
+machine_path_exists() {
+  vault kv get "${MACHINE_ROOT}/$1" > /dev/null 2>&1
 }
 
 SKIPPED=()
 
 echo "==> Syncing secrets/variables for ${PROJECT_SLUG} -> ${REPO}"
 
-# ── SSH deploy key (always required) ───────────────────────────────────────────
+# ── SSH deploy key (always required, app-scoped) ───────────────────────────────
 
-if ! path_exists ssh; then
-  echo "sync-secrets: ERROR — secret/${PROJECT_SLUG}/ssh is required and absent" >&2
+if ! app_path_exists ssh; then
+  echo "sync-secrets: ERROR — ${APP_ROOT}/ssh is required and absent" >&2
   exit 1
 fi
 
 # tr -d '\n' strips trailing newline — without it, Terraform marks the keypair for
 # replacement on every plan.
-vault kv get -field=private_key "secret/${PROJECT_SLUG}/ssh" \
+vault kv get -field=private_key "${APP_ROOT}/ssh" \
   | tr -d '\n' \
   | gh secret set VM_SSH_KEY -R "$REPO" --stdin
 echo "    VM_SSH_KEY — set"
 
-vault kv get -field=public_key "secret/${PROJECT_SLUG}/ssh" \
+vault kv get -field=public_key "${APP_ROOT}/ssh" \
   | gh secret set VM_SSH_PUBLIC_KEY -R "$REPO" --stdin
 echo "    VM_SSH_PUBLIC_KEY — set"
 
@@ -51,43 +71,43 @@ echo "    VM_SSH_PUBLIC_KEY — set"
 gh variable set VM_HOST --body "$VM_HOST_VALUE" -R "$REPO"
 echo "    VM_HOST (variable) — set"
 
-# ── Terraform backend credentials (skip cleanly if absent) ────────────────────
+# ── Terraform backend credentials (machine-scoped; skip cleanly if absent) ────
 
-if path_exists tfstate; then
-  vault kv get -field=access_key "secret/${PROJECT_SLUG}/tfstate" \
+if machine_path_exists tfstate; then
+  vault kv get -field=access_key "${MACHINE_ROOT}/tfstate" \
     | gh secret set TF_BACKEND_ACCESS_KEY -R "$REPO" --stdin
-  vault kv get -field=secret_key "secret/${PROJECT_SLUG}/tfstate" \
+  vault kv get -field=secret_key "${MACHINE_ROOT}/tfstate" \
     | gh secret set TF_BACKEND_SECRET_KEY -R "$REPO" --stdin
   echo "    TF_BACKEND_ACCESS_KEY, TF_BACKEND_SECRET_KEY — set"
 else
-  echo "    SKIP — secret/${PROJECT_SLUG}/tfstate absent (expected for provisioning_mode: existing-shared)"
+  echo "    SKIP — ${MACHINE_ROOT}/tfstate absent (expected for provisioning_mode: existing-shared)"
   SKIPPED+=("TF_BACKEND_ACCESS_KEY" "TF_BACKEND_SECRET_KEY")
 fi
 
-# ── Cloud provider credentials (skip cleanly if absent) ───────────────────────
+# ── Cloud provider credentials (machine-scoped; skip cleanly if absent) ───────
 
-if path_exists cyso; then
-  vault kv get -field=app_credential_id "secret/${PROJECT_SLUG}/cyso" \
+if machine_path_exists cyso; then
+  vault kv get -field=app_credential_id "${MACHINE_ROOT}/cyso" \
     | gh secret set OS_APPLICATION_CREDENTIAL_ID -R "$REPO" --stdin
-  vault kv get -field=app_credential_secret "secret/${PROJECT_SLUG}/cyso" \
+  vault kv get -field=app_credential_secret "${MACHINE_ROOT}/cyso" \
     | gh secret set OS_APPLICATION_CREDENTIAL_SECRET -R "$REPO" --stdin
   echo "    OS_APPLICATION_CREDENTIAL_ID, OS_APPLICATION_CREDENTIAL_SECRET — set"
 else
-  echo "    SKIP — secret/${PROJECT_SLUG}/cyso absent (expected for provisioning_mode: existing-shared)"
+  echo "    SKIP — ${MACHINE_ROOT}/cyso absent (expected for provisioning_mode: existing-shared)"
   SKIPPED+=("OS_APPLICATION_CREDENTIAL_ID" "OS_APPLICATION_CREDENTIAL_SECRET")
 fi
 
-# ── GitHub Terraform token (always required) ───────────────────────────────────
+# ── GitHub Terraform token (always required, app-scoped) ───────────────────────
 # CRITICAL: the workflow YAML env var for this secret MUST be TF_VAR_github_token,
 # NOT GITHUB_TOKEN — that name is reserved and the runner overwrites it before any
 # step executes.
 
-if ! path_exists github; then
-  echo "sync-secrets: ERROR — secret/${PROJECT_SLUG}/github is required and absent" >&2
+if ! app_path_exists github; then
+  echo "sync-secrets: ERROR — ${APP_ROOT}/github is required and absent" >&2
   exit 1
 fi
 
-vault kv get -field=token "secret/${PROJECT_SLUG}/github" \
+vault kv get -field=token "${APP_ROOT}/github" \
   | gh secret set GH_TERRAFORM_TOKEN -R "$REPO" --stdin
 echo "    GH_TERRAFORM_TOKEN — set"
 

@@ -4,11 +4,10 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 089 | `smaqit.feature-new` — Post-MVP Feature Workflow Skill | In Progress | High |
+| 090 | Machine Credential Namespace and App Bootstrap | In Progress | High |
 | 087 | Dynamic Stack Detection + On-the-Fly Deploy Skill Synthesis | In Progress | High |
 | 086 | Reconcile fashion-app-poc's Python/FastAPI + Next.js Deploy Skill Into Canonical smaqit | In Progress | High |
 | 085 | Deterministic CI/CD Workflow Templates + Guard-Script Vendoring | In Progress | High |
-| 084 | Deploy Target Resolution — Branch the Flow for Existing / Shared VMs | In Progress | High |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |
@@ -18,6 +17,8 @@
 
 | ID | Title |
 |----|-------|
+| 084 | Deploy Target Resolution — Branch the Flow for Existing / Shared VMs |
+| 089 | `smaqit.feature-new` — Post-MVP Feature Workflow Skill |
 | 088 | Add First-Class Codex Compatibility |
 | 082 | Orchestration-First Phase Agents |
 | 081 | Deprecate Prompts |

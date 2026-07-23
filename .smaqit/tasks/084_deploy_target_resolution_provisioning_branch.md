@@ -1,9 +1,10 @@
 # Deploy Target Resolution — Branch the Flow for Existing / Shared VMs
 
-**Status:** In Progress
+**Status:** Completed
 **Mode:** Assisted
 **Created:** 2026-07-20
 **Started:** 2026-07-20
+**Completed:** 2026-07-23
 
 ## Description
 

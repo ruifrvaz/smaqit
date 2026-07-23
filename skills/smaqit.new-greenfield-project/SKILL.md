@@ -10,7 +10,7 @@ description: >-
   from zero to prod", "run the full smaqit pipeline", "deploy a new project end-to-end", or when
   starting implementation on a freshly initialized repository.
 metadata:
-  version: "1.4.1"
+  version: "1.4.2"
 ---
 
 # Project: Zero to Production
@@ -33,7 +33,7 @@ Applicability below depends on `provisioning_mode` (resolved by `smaqit.input-de
 - [ ] `[provision/existing-owned]` Cloud account available (Cyso or equivalent)
 - [ ] `[provision/existing-owned]` Application credential created in cloud portal; loaded into local Vault at `secret/<project-slug>/cyso`
 - [ ] `[provision/existing-owned]` Object Storage state bucket created (with separate state keys for dev and prod); S3 keys loaded into Vault at `secret/<project-slug>/tfstate`
-- [ ] `[all modes]` SSH keypair generated (passphrase-free); both keys loaded into Vault at `secret/<project-slug>/ssh` — for `existing-shared`, either reused from the owning project's Vault namespace or freshly generated and manually appended to the shared VM's `authorized_keys` (see `smaqit.infrastructure-vault-loader`)
+- [ ] `[all modes]` This app has its own distinct SSH keypair at `secret/apps/<app-slug>/ssh`, bootstrapped against the target machine's `secret/machines/<machine-slug>/base-ssh` credential via `bootstrap-app-to-machine.sh` (see `smaqit.infrastructure-vault-loader`) — for `existing-shared`, the target machine must already be registered (its `base-ssh` already exists)
 - [ ] `[all modes]` Fine-grained PAT with `variables:write` loaded into Vault at `secret/<project-slug>/github`
 - [ ] `[existing-shared]` Target VM's fixed IP known; will be set via `gh variable set VM_HOST` rather than read from a Terraform output
 - [ ] `[all modes]` Local Vault initialised and running on 127.0.0.1:8200 (`smaqit.infrastructure-vault-loader` one-time setup complete)
@@ -101,7 +101,7 @@ Validates the full infrastructure and deployment approach on a dedicated dev VM 
 
 1. Invoke `smaqit.task-start` for the Phase 4 task.
 2. Invoke `smaqit.infrastructure-vault-loader`. Confirm Vault is running, unsealed, and all `secret/<project-slug>/*` paths are populated. Do not proceed until confirmed.
-   → **`existing-shared`:** only `ssh` and `github` paths are required; `cyso`/`tfstate` are never prompted for. Confirm the SSH path is populated via one of the two documented mechanisms (reused key from the owning project's Vault namespace, or a freshly generated key manually appended to the shared VM's `authorized_keys`).
+   → **`existing-shared`:** only `secret/apps/<app-slug>/github` is loaded here; `cyso`/`tfstate` are never prompted for — they live at `secret/machines/<machine-slug>/*`, owned by whichever project provisioned the machine. Then run `bootstrap-app-to-machine.sh <app-slug> <machine-slug>` against the target machine's already-registered `base-ssh` credential to populate `secret/apps/<app-slug>/ssh`.
 3. Invoke `/smaqit.deployment` agent with context: generate all IaC artifacts — Terraform files in `deployment/terraform/` and GitHub Actions workflow files in `.github/workflows/` using `smaqit.infrastructure-cicd-generate` patterns as reference; Terraform state key `dev/terraform.tfstate`; do not trigger deployment execution.
    → **`existing-shared`:** invoke `smaqit.infrastructure-cicd-generate` in `deploy-only` mode. No Terraform files are generated for this project; `provision.yml` is not generated and `deploy.yml` has a single `deploy` job.
 4. Invoke `smaqit.infrastructure-provision-cyso` with dev environment variables. Note the `fixed_ip` output.

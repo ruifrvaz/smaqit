@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-provision-cyso
 description: Use when provisioning cloud infrastructure for a project's target application on Cyso Cloud (OpenStack) using Terraform. Covers application credential sourcing, Object Storage backend initialization, SSH keypair variable configuration, `terraform init/plan/apply`, and fixed IP retrieval. Produces a running Cyso VM accessible via SSH, with Cinder data volume attached and security group configured on ports 22/80/443. Also use when re-running Terraform after infrastructure changes or when an operator invokes `/provision.cyso`.
 metadata:
-  version: "1.4.1"
+  version: "1.5.0"
 ---
 
 # Provision Target: Cyso Cloud
@@ -26,12 +26,13 @@ be hand-edited in a target project expecting the edit to persist.
 ## Pre-conditions (one-time manual steps — complete before first run)
 
 - Cyso Cloud account with access to region `ams2`
-- Application credential created in Cyso Cloud Portal → Access → Credentials; credential ID and secret loaded into Vault at `secret/<project-slug>/cyso`
-- Object Storage state bucket created in Cyso dashboard (private); S3 access key + secret key loaded into Vault at `secret/<project-slug>/tfstate`
-- SSH keypair generated (passphrase-free) and loaded into Vault at `secret/<project-slug>/ssh` (both private and public key fields)
+- Application credential created in Cyso Cloud Portal → Access → Credentials; credential ID and secret loaded into Vault at `secret/<project-slug>/cyso` **and** `secret/machines/<machine-slug>/cyso` (`<machine-slug>` defaults to `<project-slug>` when this project provisions its own new machine — see Step 2)
+- Object Storage state bucket created in Cyso dashboard (private); S3 access key + secret key loaded into Vault at `secret/<project-slug>/tfstate` **and** `secret/machines/<machine-slug>/tfstate`
 - Fine-grained GitHub PAT with `variables:write` loaded into Vault at `secret/<project-slug>/github`
 - Terraform 1.14+ installed locally
 - Local Vault running and unsealed (`smaqit.infrastructure-vault-loader` complete)
+- No manual SSH keypair step — Step 2 below generates `secret/machines/<machine-slug>/base-ssh`
+  automatically if this is a fresh machine; Terraform installs its public half at apply time (Step 7)
 
 <!-- amendment: 2026-05-25 — credential sourcing moved from OpenRC file + manual exports to local Vault (smaqit.infrastructure-vault-loader). SSH key no longer stored at a static local path. OpenRC file no longer required. -->
 
@@ -55,21 +56,41 @@ be hand-edited in a target project expecting the edit to persist.
    Invoke `smaqit.infrastructure-vault-loader` and confirm Vault is running, unsealed, and all
    `secret/<project-slug>/*` paths are populated. Do not proceed until this is confirmed.
 
-2. **Fetch credentials from Vault into shell environment:**
+2. **Resolve the machine slug, ensure its base credential exists, then fetch credentials from
+   Vault into the shell environment:**
    ```bash
    export VAULT_ADDR=http://127.0.0.1:8200
    export PROJECT_SLUG=<project-slug>   # from AGENTS.md (or legacy platform instructions)
+   export MACHINE_SLUG=<machine-slug>   # defaults to PROJECT_SLUG when this project provisions its own new machine
+
+   # Ensure the machine's base-ssh credential exists — generate it if this is a fresh machine.
+   # Terraform installs its public half via the keypair resource at apply time (Step 7); this
+   # keypair is bootstrap-only from here on — never used for routine day-to-day deploys, including
+   # by this provisioning project itself (Step 7.5 gives it its own distinct key).
+   if ! vault kv get "secret/machines/${MACHINE_SLUG}/base-ssh" > /dev/null 2>&1; then
+     TMPDIR_BASE=$(mktemp -d) && trap 'rm -rf "$TMPDIR_BASE"' EXIT
+     ssh-keygen -t ed25519 -f "${TMPDIR_BASE}/base_key" -N "" -q
+     vault kv put "secret/machines/${MACHINE_SLUG}/base-ssh" \
+       private_key=@"${TMPDIR_BASE}/base_key" \
+       public_key="$(cat "${TMPDIR_BASE}/base_key.pub" | tr -d '\n')" > /dev/null
+     rm -rf "$TMPDIR_BASE" && trap - EXIT
+   fi
 
    export TF_VAR_app_credential_id=$(vault kv get -field=app_credential_id secret/${PROJECT_SLUG}/cyso)
    export TF_VAR_app_credential_secret=$(vault kv get -field=app_credential_secret secret/${PROJECT_SLUG}/cyso)
    export TF_VAR_github_token=$(vault kv get -field=token secret/${PROJECT_SLUG}/github)
-   export TF_VAR_ssh_public_key=$(vault kv get -field=public_key secret/${PROJECT_SLUG}/ssh)
+   export TF_VAR_ssh_public_key=$(vault kv get -field=public_key secret/machines/${MACHINE_SLUG}/base-ssh)
    export AWS_ACCESS_KEY_ID=$(vault kv get -field=access_key secret/${PROJECT_SLUG}/tfstate)
    export AWS_SECRET_ACCESS_KEY=$(vault kv get -field=secret_key secret/${PROJECT_SLUG}/tfstate)
    ```
    Use `TF_VAR_github_token` — not `GITHUB_TOKEN` (reserved by Actions) and not `TF_VAR_GITHUB_TOKEN`
    (case-sensitive; Terraform maps `TF_VAR_github_token` → `var.github_token`). The public key is
    already newline-stripped at Vault load time — do not `tr -d '\n'` again.
+   Terraform state backend credentials (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`) and the Cyso
+   API credential (`TF_VAR_app_credential_*`) remain sourced from `secret/<project-slug>/*` here —
+   this session did not verify a live `terraform apply`, so migrating those two to the machine
+   namespace as well is left as a documented follow-up (see Findings) rather than an unverified
+   change to the provisioning credential path.
 
 3. **Confirm Ubuntu image ID and flavor** (catalog values change occasionally):
    ```bash
@@ -109,11 +130,26 @@ be hand-edited in a target project expecting the edit to persist.
    After apply, note the `fixed_ip` output — this is the public address. The floating IP is provisioned
    but does not route on Cyso's flat network; ignore it.
 
-8. **Verify SSH access** (should succeed within 60 seconds of apply):
+7.5. **Register the machine and bootstrap this project's own app-specific key.** This project does
+   not get a shortcut around getting its own distinct key, even though it provisioned the machine:
    ```bash
-   # Fetch SSH private key to a temporary file
+   vault kv put "secret/machines/${MACHINE_SLUG}/metadata" \
+     host="<fixed_ip>" \
+     provider="cyso" \
+     owner_project="${PROJECT_SLUG}" > /dev/null
+
+   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/bootstrap-app-to-machine.sh \
+     "${PROJECT_SLUG}" "${MACHINE_SLUG}"
+   ```
+   The bootstrap script generates a distinct keypair for `${PROJECT_SLUG}`, uses the machine's
+   `base-ssh` credential to authorize it, stores it at `secret/apps/${PROJECT_SLUG}/ssh`, and
+   verifies it authenticates — before this step, only `base-ssh` is live on the VM.
+
+8. **Verify SSH access** (should already be confirmed by the bootstrap script's own verification
+   in Step 7.5; re-check manually if needed):
+   ```bash
    TMPKEY=$(mktemp) && trap "rm -f $TMPKEY" EXIT
-   vault kv get -field=private_key secret/${PROJECT_SLUG}/ssh > "$TMPKEY"
+   vault kv get -field=private_key secret/apps/${PROJECT_SLUG}/ssh > "$TMPKEY"
    chmod 600 "$TMPKEY"
    ssh -i "$TMPKEY" ubuntu@<fixed_ip>
    ```
@@ -153,7 +189,7 @@ accessible with the project's deploy keypair, Terraform state in `<project-slug>
   non-first apply if the stored key string differs by a trailing newline. Strip the newline when
   loading into Vault:
   ```bash
-  vault kv put secret/<slug>/ssh public_key="$(cat ~/.ssh/<key>.pub | tr -d '\n')" ...
+  vault kv put secret/machines/<machine-slug>/base-ssh public_key="$(cat ~/.ssh/<key>.pub | tr -d '\n')" ...
   ```
   The Vault fetch (`vault kv get -field=public_key`) does not add a newline, so subsequent
   applies are stable. The variable name is `TF_VAR_ssh_public_key` (all lowercase) — matches

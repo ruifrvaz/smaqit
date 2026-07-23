@@ -80,7 +80,13 @@ Shell command substitution strips the private key's required trailing newline. S
 
 **How does smaqit provide first-class Codex compatibility?**
 
-`scripts/generate-agents.py` compiles the 9 canonical agent bodies and platform metadata into `installer/agents-codex/*.toml`, and copies all 24 canonical product skills into `installer/skills-codex/` with `.agents/skills` path substitution. `smaqit init` installs agents to `.codex/agents/` and skills to `.agents/skills/` without creating or modifying `.codex/config.toml`. Validation checks both directories, update reinitialization uses the fresh binary's embedded content, and uninstall removes exact embedded files while preserving unrelated or nested custom content.
+`scripts/generate-agents.py` compiles the 9 canonical agent bodies and platform metadata into `installer/agents-codex/*.toml`, and copies all 25 canonical product skills into `installer/skills-codex/` with `.agents/skills` path substitution. `smaqit init` installs agents to `.codex/agents/` and skills to `.agents/skills/` without creating or modifying `.codex/config.toml`. Validation checks both directories, update reinitialization uses the fresh binary's embedded content, and uninstall removes exact embedded files while preserving unrelated or nested custom content.
+
+---
+
+**What must be updated when adding a new canonical skill?**
+
+The total shipped skill count is asserted independently in two places, and both must be bumped together: `installer/main_test.go`'s `TestRemoveEmbeddedSkillDirsPreservesUnownedCodexContent` (a hardcoded `removed != N` check), and `scripts/smoke-test-installer.sh`'s Python verification block (a hardcoded `len(expected_skills) != N` check). Missing either one fails CI (`go test` or `make smoke-test` respectively) with a count mismatch, not a useful error about which skill changed.
 
 ---
 
@@ -88,6 +94,20 @@ Shell command substitution strips the private key's required trailing newline. S
 
 **How can a local smaqit release authenticate an encrypted SSH key from WSL2?**
 
-Load the key into a temporary `ssh-agent` and use `SSH_ASKPASS_REQUIRE=force` with a WSLg password dialog so the passphrase never passes through chat, command arguments, or logs. Confirm authentication with `ssh -T git@github.com`, push `main` and the annotated tag separately, verify both remote refs, then terminate the temporary agent. If the configured GitHub CLI token lacks repository write permission, SSH remains the preferred release transport.
+Load the key into a temporary `ssh-agent` and use `SSH_ASKPASS_REQUIRE=force` with a WSLg password dialog so the passphrase never passes through chat, command arguments, or logs. Confirm authentication with `ssh -T git@github.com`, push `main` and the annotated tag separately, verify both remote refs, then terminate the temporary agent. This requires a GUI askpass binary (`zenity`, `ssh-askpass-gnome`, or similar) already installed — none ships by default, and installing one via `sudo apt` is blocked by the Claude Code auto-mode permission classifier. The `gh` CLI's HTTPS token is not a usable fallback: it authenticates read operations but returns `403` (no write scope) on push. When no askpass tool is available, the default expectation is a local commit + annotated tag + verified build, with the actual push left to the user's own shell (same filesystem, working SSH credentials the sandboxed session lacks).
+
+---
+
+**Why does pushing to `main` not trigger a new release build?**
+
+`post-merge-release.yml` triggers only on a `v*` tag push or a merged pull request to `main` — a plain branch push never fires it, regardless of what changed. Push the annotated release tag separately (`git push origin vX.Y.Z`) to trigger it. A newly triggered run can take a couple of minutes to appear in `gh run list` or the Actions UI; check via `gh api repos/<owner>/<repo>/actions/runs` (unfiltered by status) rather than assuming a run that isn't immediately visible never started.
+
+---
+
+## Skill Development
+
+**Can a shipped skill reference files under `framework/`?**
+
+No. The installer's `go:embed` manifest in `installer/main.go` only ships `agents-*`, `commands-claude`, `skills-*`, and the `AGENTS.md`/`CLAUDE.md` templates — `framework/` is never installed into a consumer project. It exists only in this canonical repo as agent-facing documentation for developing smaqit itself. A skill that depends on framework-documented mechanics (e.g. the Incremental Spec Updates decision table, spec state transitions) must distill the relevant content into its own `references/` file rather than pointing at `framework/*.md`, the same way `smaqit.new-greenfield-project` stays fully self-contained with zero `framework/` references.
 
 ---

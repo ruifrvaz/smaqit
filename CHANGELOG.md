@@ -28,6 +28,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [1.8.0] - 2026-07-23
+
+### Added
+- New Vault credential namespace: `secret/apps/<app-slug>/*` (`ssh`, `github`, `machine`) and `secret/machines/<machine-slug>/*` (`base-ssh`, `cyso`, `tfstate`, `metadata`), giving a provisioned machine an identity of its own, separate from any one app deployed onto it. Every app now gets its own distinct SSH keypair — no exceptions, including the project that originally provisions the machine — bootstrapped against the machine's `base-ssh` credential rather than sharing or copying another app's key.
+- `smaqit.infrastructure-vault-loader` script `bootstrap-app-to-machine.sh <app-slug> <machine-slug>`: idempotently registers a machine (generating its `base-ssh` credential on first use) and bootstraps an app's own keypair onto it, authorizing the new key via the machine's base credential and verifying it authenticates before reporting success.
+
+### Changed
+- `smaqit.infrastructure-vault-loader`'s `load-credentials.sh` and `rotate-credential.sh` auto-detect the new `apps/`+`machines/` scheme vs. the legacy flat `secret/<project-slug>/*` scheme per invocation, so unmigrated projects (`hello-mario`, `iodis-crm-poc`, `assistente-escolas-poc`) keep working unchanged. `rotate-credential.sh` gains scheme-specific handling for `apps/<app-slug>/{ssh,github}` and `machines/<machine-slug>/{cyso,tfstate,base-ssh}`, including a bespoke generate/install-with-old-key/retire flow for rotating a machine's `base-ssh` without touching any already-bootstrapped app's access.
+- `smaqit.infrastructure-provision-cyso`: Step 2 now resolves a machine slug, generates and stores `secret/machines/<machine-slug>/base-ssh` on first use, and sources the Terraform SSH public key from it; a new Step 7.5 registers machine metadata and bootstraps the provisioning project's own app-specific key via `bootstrap-app-to-machine.sh` — the provisioning project gets no shortcut around having its own distinct key.
+- `smaqit.infrastructure-repo-config`'s `scripts/sync-secrets.sh` and preconditions are now scheme-aware: `ssh`/`github` always read from the app root, `tfstate`/`cyso` always read from the machine root (the same path as the app root on the legacy scheme).
+- `smaqit.new-greenfield-project` acceptance criteria and `existing-shared` deployment guidance updated to reference the app/machine bootstrap flow instead of the legacy shared-SSH-key mechanisms.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Installer's Codex skill-count assertions (`installer/main_test.go`, `scripts/smoke-test-installer.sh`) updated from a stale hardcoded 24 to 25, matching `smaqit.feature-new`'s addition as the 25th shipped skill. This mismatch was blocking CI on the v1.7.0 release commit.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
 ## [1.7.0] - 2026-07-23
 
 ### Added

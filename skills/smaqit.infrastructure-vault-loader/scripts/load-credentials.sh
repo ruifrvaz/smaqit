@@ -7,7 +7,11 @@
 #
 # Usage: bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
 #
-# PROVISIONING_MODE controls which paths are populated:
+# Scheme (new apps/+machines/ vs legacy flat) is auto-detected — see "New scheme vs legacy flat
+# scheme" below. For a new-scheme app's first load, pass MACHINE_SLUG explicitly:
+#   MACHINE_SLUG=<machine-slug> bash .../load-credentials.sh
+#
+# PROVISIONING_MODE controls which paths are populated — legacy flat scheme only:
 #   provision | existing-owned (default) — all four paths (cyso, ssh, tfstate, github)
 #   existing-shared — only ssh + github; cyso/tfstate are never prompted for since
 #     this project never provisions Terraform for a VM it doesn't own.
@@ -126,6 +130,49 @@ if [ -z "$PROJECT_SLUG" ]; then
 fi
 
 echo "==> Project slug: $PROJECT_SLUG"
+
+# ── New scheme (apps/+machines/) vs legacy flat scheme ─────────────────────────
+#
+# An app is on the new scheme if it has already bootstrapped (secret/apps/<slug>/machine exists)
+# or MACHINE_SLUG is passed explicitly (first-time load for an app that will bootstrap shortly via
+# bootstrap-app-to-machine.sh). New-scheme apps never get ssh/cyso/tfstate from this script — ssh is
+# exclusively bootstrap-app-to-machine.sh's job, and cyso/tfstate live at
+# secret/machines/<machine-slug>/* now, populated once at machine registration. Legacy flat-scheme
+# projects (no machine pointer, no MACHINE_SLUG) fall through to the unchanged behavior below.
+
+APP_SLUG="$PROJECT_SLUG"
+NEW_SCHEME=false
+if [ -n "${MACHINE_SLUG:-}" ]; then
+  NEW_SCHEME=true
+elif vault kv get "secret/apps/${APP_SLUG}/machine" > /dev/null 2>&1; then
+  NEW_SCHEME=true
+  MACHINE_SLUG=$(vault kv get -field=machine-slug "secret/apps/${APP_SLUG}/machine")
+fi
+
+if [ "$NEW_SCHEME" = "true" ]; then
+  echo "==> Scheme: new (secret/apps/${APP_SLUG}/*, secret/machines/${MACHINE_SLUG}/*)"
+  echo ""
+  echo "--- [1/1] GitHub fine-grained PAT (secret/apps/${APP_SLUG}/github) ---"
+  if vault kv get "secret/apps/${APP_SLUG}/github" > /dev/null 2>&1; then
+    echo "    SKIP — path already populated"
+  else
+    echo "  Required scopes: variables:write on the target repository"
+    read -s -p "  github_token: " GH_TOKEN && echo
+    vault kv put "secret/apps/${APP_SLUG}/github" token="$GH_TOKEN" > /dev/null
+    unset GH_TOKEN
+    echo "    DONE"
+  fi
+  echo ""
+  if vault kv get "secret/apps/${APP_SLUG}/ssh" > /dev/null 2>&1; then
+    echo "==> secret/apps/${APP_SLUG}/ssh already populated. Vault ready for local deployment."
+  else
+    echo "==> secret/apps/${APP_SLUG}/ssh not yet populated — run"
+    echo "    bootstrap-app-to-machine.sh ${APP_SLUG} ${MACHINE_SLUG:-<machine-slug>} to get it."
+  fi
+  exit 0
+fi
+
+echo "==> Scheme: legacy (secret/${PROJECT_SLUG}/*)"
 echo "==> Provisioning mode: $PROVISIONING_MODE"
 echo ""
 

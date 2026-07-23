@@ -1,9 +1,10 @@
 # `smaqit.feature-new` — Post-MVP Feature Workflow Skill
 
-**Status:** In Progress
+**Status:** Completed
 **Created:** 2026-07-23
 **Mode:** Assisted
 **Started:** 2026-07-23
+**Completed:** 2026-07-23
 
 ## Description
 
@@ -61,19 +62,25 @@ No third-party tools identified — this task authors orchestration prose over e
 
 ## Findings
 
-[Populated by task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Authored `SKILL.md` modeled on `smaqit.new-greenfield-project`'s structure, six phases, dropping Requirements Extraction, from-scratch spec generation, and the dev-VM sweep
+- Reused existing mechanisms rather than new logic: the Incremental Development model, the Incremental Spec Updates decision table, and task 084's `provisioning_mode` concept (with an overridden default)
+- Verified rather than assumed: confirmed `[SMAQIT_SKILLS_DIR]` cross-skill placeholder resolves correctly across all three compiled platform trees, and reproduced the originating false-negative live against `iodis-crm-poc`'s real specs (amendment gate went from `PASS` to `AMENDMENTS FOUND` after rewriting the amendment into canonical tag form)
 
 **Decisions made:**
-- TBD
+- New skill rather than a mode flag on `smaqit.new-greenfield-project` — the phase list itself differs in shape, not just parameters within an unchanged sequence
+- `provisioning_mode`'s existing-target-first default override lives in `smaqit.feature-new`'s own steps, not in `smaqit.input-deployment` itself
+- Deploy-now vs. defer is an explicit Phase 0 parameter; the amendment gate blocks Deployment-phase completion in both paths
+- Shipped skill content must be self-contained: no consumer-project names or internal task numbers, and no reliance on `framework/` (never installed into consumer projects) — mechanics distilled into `spec-lifecycle-reference.md` instead
 
 **Blockers encountered:**
-- TBD
+- Task's pre-drafted plan had two stale assumptions caught during discovery before implementation: a literal `../` path where the repo convention is the `[SMAQIT_SKILLS_DIR]` placeholder, and a nonexistent framework-doc skill index
+- Review feedback required rework: the references file initially leaked a consumer project's name and task numbers, and `SKILL.md` pointed at `framework/AGENTS.md` (never shipped) — fixed by inlining/distilling into a new self-contained reference file
 
 **Follow-up identified:**
-- TBD
+- A `v1.7.1` patch release is recommended on top of commit `123fa7a` (two independent CI skill-count regressions found and fixed post-release); not yet decided or pushed
+- Retrofitting `smaqit.new-greenfield-project` to invoke `smaqit.feature-new` for its own post-Phase-8 work is explicitly out of scope, flagged as a future task
+- An automated "is this project past MVP" detector was explicitly not attempted; the fallback is flagging to the user when no Infrastructure spec exists
 
 ## Files to Create / Modify
 

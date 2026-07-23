@@ -115,8 +115,8 @@ for expected in expected_agents:
 expected_skills = {
     path.name for path in (repo / "installer" / "skills-codex").iterdir() if path.is_dir()
 }
-if len(expected_skills) != 24:
-    raise SystemExit(f"expected 24 generated Codex skills, found {len(expected_skills)}")
+if len(expected_skills) != 25:
+    raise SystemExit(f"expected 25 generated Codex skills, found {len(expected_skills)}")
 
 for skill_name in sorted(expected_skills):
     skill_file = root / ".agents" / "skills" / skill_name / "SKILL.md"
@@ -128,7 +128,7 @@ for skill_name in sorted(expected_skills):
     if not isinstance(metadata, dict) or not metadata.get("name") or not metadata.get("description"):
         raise SystemExit(f"{skill_file}: missing name or description")
 
-print("[OK] 9 Codex agents and 24 Codex skills parsed successfully")
+print("[OK] 9 Codex agents and 25 Codex skills parsed successfully")
 PY
 
 if grep -R -E '\{\{(WEB_TOOL|DELEGATE_SPEC_AGENT|DELEGATE_INFRASTRUCTURE|DELEGATE_COVERAGE)\}\}|runSubagent|Task tool|/smaqit\.' "$smoke_root/.codex/agents"; then

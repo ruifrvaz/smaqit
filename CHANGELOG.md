@@ -28,6 +28,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [1.7.0] - 2026-07-23
+
+### Added
+- `smaqit.feature-new` skill: a task-per-phase workflow for post-MVP iterative feature cycles (Spec Revalidation, Development, Deployment, Validation, Close-out), closing the gap `smaqit.new-greenfield-project` explicitly leaves for post-MVP work. Applies the same task-per-phase and amendment-gate discipline as greenfield, without requirements extraction, from-scratch spec generation, or a dev-VM sweep. Deployment defaults to the project's existing target (only provisioning a new one when no deployed Infrastructure spec exists) and supports an explicit deploy-now/defer choice; the amendment gate (`check-amendments.sh`, referenced not duplicated) blocks Deployment-phase completion on unresolved amendments in both paths.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
 ## [1.6.0] - 2026-07-22
 
 ### Added
@@ -538,7 +561,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/ruifrvaz/smaqit/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/ruifrvaz/smaqit/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/ruifrvaz/smaqit/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/ruifrvaz/smaqit/compare/v1.4.0...v1.5.0

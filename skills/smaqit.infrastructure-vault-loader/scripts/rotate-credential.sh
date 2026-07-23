@@ -21,8 +21,8 @@
 #
 # Example:
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh cyso
-#   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/areaoffice-poc/ssh
-#   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh machines/magnificah-test/base-ssh
+#   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/ssh
+#   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh machines/<machine-slug>/base-ssh
 
 set -euo pipefail
 

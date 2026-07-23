@@ -1,9 +1,10 @@
 # Deterministic CI/CD Workflow Templates + Guard-Script Vendoring
 
-**Status:** In Progress
+**Status:** Completed
 **Mode:** Assisted
 **Created:** 2026-07-20
 **Started:** 2026-07-20
+**Completed:** 2026-07-23
 
 ## Description
 
@@ -171,17 +172,18 @@ these skills, not just the one being worked on when the bug is introduced.
 - [x] Every new script passes `bash -n` and `shellcheck` (both installed user-space this session —
       `pipx install yamllint`, `go install .../actionlint`, static `shellcheck` binary — since none
       were present); every new template validated with `actionlint`/`yamllint`
-- [ ] **Final review gate — exercised, awaiting explicit user approval.** A full workflow set was
+- [x] **Final review gate — exercised, explicit user approval given.** A full workflow set was
       generated for a synthetic project in both modes and re-linted as real substituted output
       (not just the raw templates); `write-vhost.sh` and `sync-secrets.sh` were dry-run against
       mocked `ssh`/`scp`/`vault`/`gh` across every branch (first-site, co-hosted-with-name,
       co-hosted-refuses-without-name, all-paths-present, tfstate/cyso-absent,
-      required-path-missing). **Not exercised: a real target project with live Vault/GitHub
-      repo/VM** — none is available in this sandbox; see Findings.
+      required-path-missing). The real-target-project leg (unavailable in-sandbox at the time) was
+      subsequently completed by the operator directly against a downstream project and confirmed
+      working — closing the one gap this criterion had left open.
 
 ## Findings
 
-**Implementation approach (interim — task not yet complete, Assisted mode):**
+**Implementation approach:**
 - Followed the 9 Implementation Steps in order. Templates were validated *as written* (with the
   `__APP_DIR__` token still in place) immediately after Step 1, before moving on — cheaper to
   catch a template bug early than after every downstream skill references it.
@@ -222,15 +224,19 @@ these skills, not just the one being worked on when the bug is introduced.
   fixed the mocks and reran.
 
 **Follow-up identified:**
-- **Not exercised in this session:** a real target project with live Vault, a real GitHub repo,
-  and a real VM. This sandbox has none available — same limitation Task 084 hit for its own
-  end-to-end acceptance criterion. Recommend running `cicd-generate` for real against
-  `fashion-app-poc` or another downstream project (or a fresh throwaway repo) before treating this
-  as the default path for production use.
 - The `~/.bashrc` `PATH` addition for the three linters is local-machine-only and not part of any
   repo file — a fresh environment (new devbox, CI runner) won't have these tools unless installed
   again. Not blocking for this task (which only needed them for the validation gate), but worth
   noting if `actionlint`/`yamllint`/`shellcheck` become a recurring need.
+
+**Final review gate closed, 2026-07-23 — operator-confirmed real-world validation:** the operator
+ran `cicd-generate`'s actual templating mechanism (not a hand-patched workaround) against
+a downstream project and confirmed it worked. This is distinct from, and supersedes, the 2026-07-21
+addendum below — that earlier attempt (via `<tested-deployment>`) explicitly left the gate unmet
+because the core templating mechanism itself was never invoked there. The downstream project run
+closes that specific gap: the templating/substitution/vendoring mechanism this task built has now
+been exercised against a real target project, with explicit operator sign-off, satisfying the
+Design Decisions' non-skippable final-review-gate requirement.
 
 **Addendum, 2026-07-21 — partial real-world evidence, gate still not satisfied:** a live deploy of
 `<tested-deployment>` to a new Cyso VM (`<tested-deployment-vm>`) happened in a sibling session (see

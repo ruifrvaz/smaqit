@@ -68,7 +68,7 @@
 - `scripts/smoke-test-installer.sh` — corrected second, independent hardcoded Codex skill count (24 → 25)
 
 ### Cross-project (with explicit operator approval)
-- `iodis-crm-poc/specs/stack/platform-stack.md` — rewrote existing prose amendment into the canonical `<!-- amendment: DATE — description -->` tag (2 lines added; unrelated in-flight changes in that repo untouched)
+- A downstream project's `specs/stack/platform-stack.md` — rewrote existing prose amendment into the canonical `<!-- amendment: DATE — description -->` tag (2 lines added; unrelated in-flight changes in that repo untouched)
 
 ## Next Steps
 

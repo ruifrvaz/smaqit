@@ -76,6 +76,12 @@ Shell command substitution strips the private key's required trailing newline. S
 
 ---
 
+**What Vault namespace convention does smaqit use for machine credentials vs. app credentials?**
+
+Credentials split across two namespaces by what they belong to. `secret/machines/<machine-slug>/*` holds everything scoped to a provisioned VM regardless of which app runs on it: `base-ssh` (the bootstrap-only credential Terraform installs at provision time — never used for routine deploys), `cyso` and `tfstate` (cloud-provisioning credentials, since provisioning is a property of the machine, not any one app), and `metadata` (non-secret host/provider/owner-project info). `secret/apps/<app-slug>/*` holds everything scoped to an individual app: `ssh` (a distinct keypair per app, no exceptions — even the project that originally provisioned the machine gets its own, bootstrapped rather than reused), `github`, and `machine` (a pointer recording which machine-slug this app is bootstrapped against, used by `rotate-credential.sh` to know where to re-authorize a rotated key). An app's `ssh` credential is always populated via `smaqit.infrastructure-vault-loader/scripts/bootstrap-app-to-machine.sh <app-slug> <machine-slug>` — idempotent, never by copying another app's key material or letting Terraform install it directly. Projects predating this convention still use the older flat `secret/<project-slug>/{cyso,ssh,tfstate,github}` scheme with no machine-level namespace at all; `load-credentials.sh` supports both, auto-detecting which applies per invocation, and migrating an existing flat-scheme project onto `apps/`+`machines/` is a manual, project-by-project decision rather than something any smaqit skill does automatically.
+
+---
+
 ## Codex Support
 
 **How does smaqit provide first-class Codex compatibility?**
@@ -92,9 +98,13 @@ The total shipped skill count is asserted independently in two places, and both 
 
 ## Release Workflow
 
-**How can a local smaqit release authenticate an encrypted SSH key from WSL2?**
+**How can a local smaqit release authenticate an encrypted SSH key from WSL2 or another interactive desktop Linux session?**
 
-Load the key into a temporary `ssh-agent` and use `SSH_ASKPASS_REQUIRE=force` with a WSLg password dialog so the passphrase never passes through chat, command arguments, or logs. Confirm authentication with `ssh -T git@github.com`, push `main` and the annotated tag separately, verify both remote refs, then terminate the temporary agent. This requires a GUI askpass binary (`zenity`, `ssh-askpass-gnome`, or similar) already installed — none ships by default, and installing one via `sudo apt` is blocked by the Claude Code auto-mode permission classifier. The `gh` CLI's HTTPS token is not a usable fallback: it authenticates read operations but returns `403` (no write scope) on push. When no askpass tool is available, the default expectation is a local commit + annotated tag + verified build, with the actual push left to the user's own shell (same filesystem, working SSH credentials the sandboxed session lacks).
+Preferred path: `smaqit.release-git-local`'s "Desktop Linux SSH Agent Recovery" procedure discovers an already-running desktop SSH agent socket (GNOME Keyring's `gcr-ssh-agent`, an alternate keyring path, GnuPG's agent socket, the current `$SSH_AUTH_SOCK`, or the systemd user session's) by testing each candidate with `ssh-add -l`, then scopes `SSH_AUTH_SOCK` to a single retry of the exact failed git command — no persistent config changes, no new agent started, no identity loaded or removed. This works whenever the user's desktop keyring is already unlocked (commonly true for the whole desktop session once logged in, e.g. GNOME's Login keyring auto-unlocking with the account password) — no popup or passphrase prompt is needed in that case, since the key material is already available.
+
+Fallback when no usable socket is found: load the key into a temporary `ssh-agent` and use `SSH_ASKPASS_REQUIRE=force` with a WSLg password dialog so the passphrase never passes through chat, command arguments, or logs. This requires a GUI askpass binary (`zenity`, `ssh-askpass-gnome`, or similar) already installed — none ships by default, and installing one via `sudo apt` is blocked by the Claude Code auto-mode permission classifier.
+
+In both cases: confirm authentication with `ssh -T git@github.com`, push `main` and the annotated tag separately, verify both remote refs. The `gh` CLI's HTTPS token is not a usable fallback for either path: it authenticates read operations but returns `403` (no write scope) on push. Note that the Claude Code auto-mode permission classifier may independently deny a push (particularly a tag push) or even a read-only `ls-remote`, with no further reasoning than a generic denial — this is unrelated to SSH/credential state and requires either a Bash permission rule or the user pushing that specific step from their own shell. If no agent socket is usable and no askpass tool is available, the default expectation is a local commit + annotated tag + verified build, with the actual push left to the user's own shell.
 
 ---
 

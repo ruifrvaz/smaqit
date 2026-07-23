@@ -27,7 +27,7 @@ sites sharing an IP behind nginx). Run naively, the flow:
    because this project was never meant to provision anything.
 
 This was confirmed by directly reading the deployment agent, `smaqit.new-greenfield-project`, and
-the five infrastructure skills above, in the context of a real deploy (`fashion-app-poc`, plus a
+the five infrastructure skills above, in the context of a real deploy (a downstream project, plus a
 second project — `<tested-deployment>` — that needs to land on the same VM). None of this is a bug in any
 one skill; it's a decision the flow currently never makes explicitly, because it's never had to.
 
@@ -116,7 +116,7 @@ source of truth.)
 7. **`smaqit.infrastructure-deploy-rsync`** and the nginx vhost step it (or the generated workflow)
    writes — document the Decision 5 branch explicitly: first site on a VM claims `default_server`;
    any subsequent co-hosted site's vhost must be name-based only. This is already the correct design
-   from the fashion-app-poc incident remediation; it just needs to be stated here too, since this is
+   from the downstream project incident remediation; it just needs to be stated here too, since this is
    the skill that actually writes the vhost file.
 
 8. **Update the flowchart artifact** (linked above) if the design changes materially during
@@ -162,7 +162,7 @@ source of truth.)
 - [x] The nginx `default_server`-vs-name-based-vhost rule is documented in whichever skill actually
       writes the vhost file, not only in a downstream project's own task notes
 - [ ] All acceptance criteria above are exercised, at minimum, by walking through the
-      `<tested-deployment>`-onto-`fashion-app-poc`'s-VM scenario end-to-end in a real session and confirming
+      `<tested-deployment>`-onto-the-downstream-project's-VM scenario end-to-end in a real session and confirming
       each step does what this task says it should — **not done in this session**: requires a live
       walkthrough in those projects' own working environments, not available here
 
@@ -198,7 +198,7 @@ source of truth.)
 
 **Follow-up identified:**
 - The specific named acceptance criterion — exercising this task end-to-end via the
-  `<tested-deployment>`-onto-`fashion-app-poc` scenario (co-hosted/`existing-shared` mode) — remains
+  `<tested-deployment>`-onto-the-downstream-project scenario (co-hosted/`existing-shared` mode) — remains
   formally unmet and is left unchecked below. A real live deploy did happen (Task 087's validation,
   2026-07-21), but it exercised a *different* scenario: `<tested-deployment>` provisioning its own
   new, dedicated VM (`provisioning_mode: provision`), not the co-hosted/`existing-shared` case this
@@ -228,7 +228,7 @@ source of truth.)
 
 ## Notes
 
-- Originates from hardening and deploying `fashion-app-poc`'s infrastructure, then assessing whether
+- Originates from hardening and deploying a downstream project's infrastructure, then assessing whether
   the same tooling would work for redeploying a second project (`<tested-deployment>`) onto the same VM.
   It would not, without this task. Optional background, if that repo happens to be available in the
   working environment: its own task history has the full incident and fix history that led here —

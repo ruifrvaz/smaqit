@@ -22,7 +22,7 @@
 - Plan approved by user; deferred implementation
 
 ### Workspace File
-- Created `smaqit.code-workspace` adding `../iodis-crm-poc` as a second folder root for multi-repo context
+- Created `smaqit.code-workspace` adding a downstream project as a second folder root for multi-repo context
 
 ### Stale Embedded Directories Diagnosis
 - User reported missing skills/scripts (python-nextjs skill, ownership-guard, plan-guard) in installed projects

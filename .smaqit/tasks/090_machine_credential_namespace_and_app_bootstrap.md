@@ -1,9 +1,10 @@
 # Machine Credential Namespace and App Bootstrap
 
-**Status:** In Progress
+**Status:** Completed
 **Mode:** Assisted
 **Created:** 2026-07-23
 **Started:** 2026-07-23
+**Completed:** 2026-07-23
 
 ## Description
 
@@ -34,8 +35,8 @@ Every project independently invents or sources its own disconnected keypair, wit
 ## Design Decisions
 
 - **New Vault namespace: `secret/machines/<machine-slug>/*`**, parallel to the existing flat
-  `secret/<project-slug>/*` scheme still used by projects that haven't migrated (`hello-mario`,
-  `iodis-crm-poc`, `assistente-escolas-poc` — migration explicitly out of scope, see Notes). Reserved:
+  `secret/<project-slug>/*` scheme still used by projects that haven't migrated (migration
+  explicitly out of scope, see Notes). Reserved:
   no app-slug may be `machines`. Holds everything that belongs to *whoever provisions the machine*,
   not to any one app running on it:
   - `secret/machines/<machine-slug>/base-ssh` — `private_key`, `public_key`: the credential Terraform
@@ -49,9 +50,9 @@ Every project independently invents or sources its own disconnected keypair, wit
     Terraform remote-state backend tracking this machine. Same reasoning as `cyso`.
   - `secret/machines/<machine-slug>/metadata` — non-secret: `host` (IP), `provider`, `owner_project`
     (which project's Terraform state actually provisions this machine).
-  - **Confirmed against real state, not designed in the abstract**: this exact shape already exists
-    at `secret/machines/magnificah-test/*` in the shared local Vault instance as of 2026-07-23 — the
-    design here documents and completes that prototype rather than inventing a new one.
+  - **Confirmed against real state, not designed in the abstract**: this exact shape was validated
+    against a live Vault instance as of 2026-07-23 — the design here documents and completes that
+    prototype rather than inventing a new one.
 - **Every app always gets its own distinct keypair — no exceptions, including the owning project.**
   The machine's base credential is a bootstrap-only mechanism, never a shared day-to-day credential.
   This costs one extra keypair + one extra bootstrap step even in the simple single-app-per-machine
@@ -65,8 +66,8 @@ Every project independently invents or sources its own disconnected keypair, wit
     `secret/apps/<app-slug>/github` (unchanged in meaning from today's `secret/<project-slug>/github`,
     just relocated), and `secret/apps/<app-slug>/machine` (new, small — records which `machine-slug`
     this app is bootstrapped against, so future sessions don't have to re-derive it).
-  - **Confirmed against real state**: `secret/apps/areaoffice-poc/ssh` already exists in the same
-    shared Vault instance, matching this shape.
+  - **Confirmed against real state**: the `secret/apps/<app-slug>/ssh` shape was validated against
+    a live Vault instance, matching this design.
   - Terminology: earlier drafts of this task used `project-slug` throughout. The real namespace uses
     `app-slug` for anything under `secret/apps/*` and `machine-slug` for anything under
     `secret/machines/*` — Implementation Steps and Acceptance Criteria below use `app-slug`
@@ -103,7 +104,7 @@ Every project independently invents or sources its own disconnected keypair, wit
   (`FULL_PATH=secret/${PROJECT_SLUG}/${CREDENTIAL_PATH}` for all four legacy types).
 - **Out of scope:** de-provisioning an app's access when it's decommissioned (removing its public key
   from `authorized_keys`), multi-machine apps, and migrating existing `secret/<project-slug>/*`-scoped
-  projects (`hello-mario`, `iodis-crm-poc`, `assistente-escolas-poc`) onto the new `apps/`/`machines/`
+  projects still on the legacy flat scheme onto the new `apps/`/`machines/`
   scheme. All three are real future needs, not solved here — flag as follow-up, don't guess at a
   design now.
 
@@ -113,7 +114,7 @@ Every project independently invents or sources its own disconnected keypair, wit
    (currently `secret/<project-slug>/<type>` for `cyso`/`ssh`/`tfstate`/`github`, SKILL.md:31–40) to
    describe the two-namespace scheme: `secret/machines/<machine-slug>/{base-ssh,cyso,tfstate,metadata}`
    and `secret/apps/<app-slug>/{ssh,github,machine}`. Note the old flat scheme remains in place,
-   unmigrated, for `hello-mario`/`iodis-crm-poc`/`assistente-escolas-poc`. Add the bootstrap procedure
+   unmigrated, for legacy flat-scheme projects. Add the bootstrap procedure
    as a new documented flow, distinct from the existing "every session" (`load-credentials.sh`) and
    "one-time setup" (`install-vault.sh`/`setup-vault.sh`) flows.
 2. **`smaqit.infrastructure-vault-loader/scripts/bootstrap-app-to-machine.sh <app-slug> <machine-slug>`**
@@ -173,7 +174,7 @@ None
 
 - [x] `secret/machines/<machine-slug>/{base-ssh,cyso,tfstate,metadata}` exist as a documented, reserved
       Vault namespace, distinct from `secret/apps/<app-slug>/*` — matching the real prototype already
-      present in the shared Vault instance (`secret/machines/magnificah-test/*`)
+      present in the shared Vault instance (`secret/machines/<machine-slug>/*`)
 - [x] `bootstrap-app-to-machine.sh` exists, is idempotent, and never exposes either the machine's base
       private key or the app's newly-generated private key outside of piped/file-based handling
 - [ ] A fresh VM provision registers itself as a machine and bootstraps the provisioning project's own
@@ -193,19 +194,49 @@ None
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Implemented all 8 Implementation Steps: rewrote `smaqit.infrastructure-vault-loader/SKILL.md` for
+  the two-namespace scheme, wrote `bootstrap-app-to-machine.sh` new, restructured
+  `rotate-credential.sh` (dual roots by credential type) and `load-credentials.sh` (new-scheme
+  detection via `MACHINE_SLUG`/existing `machine` pointer), updated `smaqit.infrastructure-provision-cyso`
+  (base-ssh generated pre-apply, machine registration + self-bootstrap post-apply),
+  `smaqit.new-greenfield-project` (`existing-shared` branch calls the bootstrap script), and
+  `smaqit.infrastructure-repo-config` + `sync-secrets.sh` (scheme-aware app/machine root resolution).
+- All touched/new scripts verified with `bash -n` and `shellcheck` (clean, no warnings).
+- Live-tested `bootstrap-app-to-machine.sh` against real Vault state (`secret/apps/<app-slug>`,
+  `secret/machines/<machine-slug>`) — confirmed the idempotent no-op path works correctly against a
+  genuinely live, already-authenticating SSH pairing.
 
 **Decisions made:**
-- TBD
+- `cyso`/`tfstate` moved fully to `secret/machines/<machine-slug>/*` (not left at the app/project
+  level as the task's original draft had it) — corrected against real, hand-built Vault state found
+  during planning, which already reflected this shape.
+- `provision-cyso`'s own `cyso`/`tfstate` env-var sourcing was deliberately left at the
+  project-slug root rather than moved to the machine root, since no live `terraform apply` was
+  available to verify that specific change safely this session — documented as a known limitation
+  in the skill file itself, not silently done.
+- Operator explicitly directed completion despite 3 unverified ACs, citing plans to validate the
+  full flow against a new project shortly — same precedent as Task 084's closure with a documented,
+  accepted gap.
 
 **Blockers encountered:**
-- TBD
+- No fresh VM available to exercise the `provision-cyso` machine-registration path or `base-ssh`
+  rotation end-to-end in this sandbox.
+- The concrete real-world scenario the task was framed around (a second project with a disconnected,
+  unauthorized keypair) turned out to already be resolved by hand before this session — operator
+  confirmed the test app's pairing with its machine was fixed manually, so the originally
+  intended live proof case no longer demonstrates the failure mode. Live proof deferred to the
+  operator's upcoming validation against a new project instead.
 
 **Follow-up identified:**
-- TBD
+- Live-verify against a new project (operator's stated next step): fresh machine registration via
+  `provision-cyso`, `base-ssh` rotation, and the mutating (non-idempotent) half of
+  `bootstrap-app-to-machine.sh`.
+- `secret/apps/<app-slug>/machine` pointer field is still missing from the real prototype data —
+  a one-line backfill, left undone since it's shared Vault state
+  outside this task's automation.
+- Migrating legacy flat-scheme projects onto the new namespace remains explicitly out of scope,
+  per Design Decisions.
 
 ## Files to Create / Modify
 

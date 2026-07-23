@@ -115,8 +115,8 @@ bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credent
 - Otherwise, it falls back to **legacy flat-scheme mode**, unchanged: all four paths under
   `secret/<project-slug>/{cyso,ssh,tfstate,github}` are checked/populated exactly as before,
   including the `PROVISIONING_MODE`-aware `existing-shared` behavior (cross-namespace SSH copy or
-  manual `authorized_keys` append). This is what keeps unmigrated projects (`hello-mario`,
-  `iodis-crm-poc`, `assistente-escolas-poc`) working without any change.
+  manual `authorized_keys` append). This is what keeps unmigrated projects on the legacy
+  flat scheme working without any change.
 
 ```
 # New-scheme app, already bootstrapped — just tops up github if missing:

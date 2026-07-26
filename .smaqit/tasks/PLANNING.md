@@ -4,6 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 092 | `smaqit.feature-deploy` — Stale "Push to Main Triggers Deploy" Assumption | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |

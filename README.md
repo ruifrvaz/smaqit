@@ -46,7 +46,7 @@ smaqit init
 
 See the full [Mario Hello quickstart](docs/wiki/workflows/quickstart.md) for a complete walkthrough.
 
-Once your MVP is deployed, use `smaqit.feature-new` for iterative post-MVP feature cycles — it applies the same task-per-phase discipline without requirements extraction, from-scratch specs, or a dev-VM sweep (see [phase differences from greenfield](skills/smaqit.feature-new/references/phase-differences-from-greenfield.md)). When a feature is ready to ship, use `smaqit.feature-deploy` for standalone CI/CD-driven deployment to production.
+Once your MVP is deployed, use `smaqit.feature-new` for iterative post-MVP feature cycles — it applies the same task-per-phase discipline without requirements extraction, from-scratch specs, or a dev-VM sweep. Deployment goes through the existing CI/CD pipeline via a pull request as the human approval gate.
 
 ## Copilot Automation
 
@@ -81,7 +81,7 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 | `smaqit.validation` | Run tests against deployed system | direct command | named subagent |
 | `smaqit.qa` | Answer questions about the smaqit framework | direct command | named subagent |
 
-On Claude Code, the five specification agents are Task-delegated subagents rather than standalone slash commands — the same `user-invocable: false` boundary they already have in GitHub Copilot. Codex discovers all nine project agents from `.codex/agents/*.toml` and the 24 repository skills from `.agents/skills/`; skills can be selected with `/skills` or mentioned with `$`.
+On Claude Code, the five specification agents are Task-delegated subagents rather than standalone slash commands — the same `user-invocable: false` boundary they already have in GitHub Copilot. Codex discovers all nine project agents from `.codex/agents/*.toml` and the 25 repository skills from `.agents/skills/`; skills can be selected with `/skills` or mentioned with `$`.
 
 ### Reinstallation and Updates
 

@@ -59,8 +59,8 @@ func TestRemoveEmbeddedSkillDirsPreservesUnownedCodexContent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("removing embedded Codex skills: %v", err)
 	}
-	if removed != 26 {
-		t.Fatalf("removed %d Codex skills, want 26", removed)
+	if removed != 25 {
+		t.Fatalf("removed %d Codex skills, want 25", removed)
 	}
 
 	got, err := os.ReadFile(customPath)

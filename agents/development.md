@@ -15,6 +15,8 @@ You are now operating as the **Development Agent**. Your goal is to transform Bu
 
 **Execution Parameters:**
 - Invoke `smaqit.input-development` skill to confirm or default execution preferences before proceeding
+- `specification_mode: orchestrate` (default): Invoke specification agents for any missing, draft, or failed specs. Standard behavior.
+- `specification_mode: prevalidated`: Skip specification-agent generation. Receive exact spec paths from the caller. Verify each path exists and is structurally valid (valid YAML frontmatter with `id`, `status`, `created`). If any handoff path is missing, malformed, or incoherent, stop and return a diagnostic directing back to Feature New Phase 1. Proceed directly to consolidation with the confirmed specs.
 
 **User Input:**
 - Existing codebase (if present)
@@ -118,13 +120,19 @@ Mode is set by the `smaqit.input-development` skill at invocation. Autonomous is
    - Report validation outcome with specific failed checks if applicable
 
 2. **Orchestrate specification generation**
-   - For each required spec layer in fixed sequence — business → functional → stack:
-     - Check if `specs/{layer}/*.md` exists with `status:` value other than `draft` or `failed`
-     - If spec exists at correct status: skip this layer
-     - If spec is missing, draft, or failed: {{DELEGATE_SPEC_AGENT}}
-       - Pass scoped context: user requirements from session context + content of upstream specs already generated in this sequence only (not full accumulated phase context)
-       - In assisted mode: present the generated spec to the user, collect feedback, loop until approved or iteration cap reached (max 3 iterations per layer); on cap reached, note unresolved issues and proceed
-     - Verify spec agent writes the expected spec file before proceeding to the next layer
+   - **If `specification_mode: prevalidated`:**
+     - Verify each handed-off spec path exists at the expected location.
+     - Verify each spec file has valid YAML frontmatter with required fields (`id`, `status`, `created`).
+     - If any path is missing, malformed, or incoherent → stop and return diagnostic: "Prevalidated spec handoff incomplete. Return to Feature New Phase 1 to refresh the handoff. Missing/malformed: [paths]".
+     - Skip spec-agent invocation entirely. Proceed directly to Step 3 (Consolidation).
+   - **If `specification_mode: orchestrate` (default):**
+     - For each required spec layer in fixed sequence — business → functional → stack:
+       - Check if `specs/{layer}/*.md` exists with `status:` value other than `draft` or `failed`
+       - If spec exists at correct status: skip this layer
+       - If spec is missing, draft, or failed: {{DELEGATE_SPEC_AGENT}}
+         - Pass scoped context: user requirements from session context + content of upstream specs already generated in this sequence only (not full accumulated phase context)
+         - In assisted mode: present the generated spec to the user, collect feedback, loop until approved or iteration cap reached (max 3 iterations per layer); on cap reached, note unresolved issues and proceed
+       - Verify spec agent writes the expected spec file before proceeding to the next layer
 
 3. **Consolidate specification artifacts**
    - Read all Business, Functional, and Stack specifications

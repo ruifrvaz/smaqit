@@ -7,26 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Nothing to add.
+### Removed
+- `smaqit.feature-deploy` — standalone post-MVP deployment skill retired. Post-MVP feature deployment is consolidated into `smaqit.feature-new` as the sole workflow entry point. Deployment is mandatory and uses a pull request as the human approval gate.
 
 ### Changed
-- Nothing to add.
-
-### Deprecated
-- Nothing to add.
-
-### Removed
-- Nothing to add.
+- `smaqit.feature-new` — consolidated as the single post-MVP feature/deployment workflow. Removed deploy-now/defer branching; deployment is mandatory via PR-gated CI/CD. Added durable Phase 1 spec handoff and `specification_mode: prevalidated` for Phases 2–4 so specification agents run once per feature. Added deterministic trigger decision table, vault-loader/repo-config preflight, and own amendment scanner.
+- Development, Deployment, and Validation agents — added `specification_mode: orchestrate|prevalidated` parameter (default `orchestrate` preserves existing behavior). Deployment agent additionally supports `deployment_path: standard|existing-cicd-pr`.
+- `smaqit.infrastructure-deploy-verify` — added optional `--expected-sha` parameter; defaults to `git rev-parse HEAD` (backward-compatible).
 
 ### Fixed
-- Nothing to add.
-
-### Security
-- Nothing to add.
-
-### Chore
-- Nothing to add.
+- Duplicate specification orchestration: `smaqit.feature-new` Phase 1 now records a durable exact-path handoff; Development, Deployment, and Validation agents consume it in `prevalidated` mode.
+- Unsafe direct-push assumption: trigger decision table inspects committed workflow files before PR creation and rejects ambiguous or duplicate trigger layouts.
 
 ## [1.9.0] - 2026-07-24
 

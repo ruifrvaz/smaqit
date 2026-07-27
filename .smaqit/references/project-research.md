@@ -4,22 +4,24 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit
-**Refreshed:** 2026-07-20
-**Active task:** 084 — Deploy Target Resolution — Branch the Flow for Existing / Shared VMs
+**Refreshed:** 2026-07-27
+**Active task:** None
 
 | Tool | Section | URL |
 |------|---------|-----|
 | Go | Documentation | https://go.dev/doc/ |
+| Go | Getting started | https://go.dev/doc/tutorial/getting-started |
 | gopkg.in/yaml.v3 | Package reference | https://pkg.go.dev/gopkg.in/yaml.v3 |
-
-## Task 084 — Deploy Target Resolution — Branch the Flow for Existing / Shared VMs
-
-| Tool | Section | URL |
-|------|---------|-----|
-| Terraform | Docs overview | https://developer.hashicorp.com/terraform/docs |
-| Terraform OpenStack provider | Provider docs (openstack_compute_instance_v2, etc.) | https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs |
-| HashiCorp Vault | Docs overview | https://developer.hashicorp.com/vault/docs |
-| OpenStack (Cyso Cloud base) | Compute (Nova) docs | https://docs.openstack.org/nova/latest/ |
-| GitHub CLI (`gh`) | Manual (`gh variable set`, `gh secret set`) | https://cli.github.com/manual/ |
-| GitHub Actions | Workflow syntax / docs | https://docs.github.com/en/actions |
-| nginx | Docs (server blocks / default_server) | https://nginx.org/en/docs/ |
+| Python | Documentation | https://docs.python.org/3/ |
+| Python | Installation and usage | https://docs.python.org/3/using/ |
+| GitHub Copilot SDK | Package reference | https://pypi.org/project/github-copilot-sdk/ |
+| Git | Documentation | https://git-scm.com/doc |
+| GitHub Actions | Documentation | https://docs.github.com/en/actions |
+| GitHub Actions | Workflow syntax | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub CLI | Manual | https://cli.github.com/manual/ |
+| Terraform | Documentation | https://developer.hashicorp.com/terraform/docs |
+| Terraform | CLI | https://developer.hashicorp.com/terraform/cli |
+| HashiCorp Vault | Documentation | https://developer.hashicorp.com/vault/docs |
+| HashiCorp Vault | CLI | https://developer.hashicorp.com/vault/docs/commands |
+| OpenStack | Documentation | https://docs.openstack.org/2026.1/ |
+| OpenStack | Compute documentation | https://docs.openstack.org/nova/latest/ |

@@ -8,6 +8,12 @@ The self-update flow must re-exec the newly downloaded binary after replacing th
 
 ---
 
+**How must a release retire a previously shipped skill from existing projects?**
+
+Deleting canonical source and regenerating installer staging removes a skill from new binaries, but it does not remove copies already installed in consumer projects: `cmdInit` overlays the new embedded tree without pruning paths absent from the new release. A skill retirement therefore needs a persistent installer tombstone listing the exact formerly-owned files. After the init conflict/approval gate, cleanup removes only those files from the Copilot, Claude, and Codex skill directories and prunes directories only when empty; uninstall applies the same legacy cleanup where normal embedded-file enumeration can no longer see the retired package. User-added files inside or beside the retired package must survive.
+
+---
+
 ## Hooks
 
 **Do VS Code Copilot hooks fire for `runSubagent` tool calls?**
@@ -27,6 +33,14 @@ VS Code uses PascalCase event names such as `SubagentStart` and `PostToolUse`, t
 **What agent orchestration pattern does smaqit's phase orchestration match?**
 
 It is a sequential workflow: a phase agent orchestrates specification agents in a fixed order. Assisted mode, where the user reviews each specification, is a maker-checker workflow. Individual specification-agent invocations are nested composition. Deterministic routing is hardcoded rather than delegated to agents at runtime.
+
+---
+
+**What is the ownership model for an end-to-end post-MVP feature workflow?**
+
+`smaqit.feature-new` is the single top-level workflow for specification revalidation, development, deployment, validation, and release. Phase 1 owns one incremental specification pass and records a durable exact-path handoff. Development, Deployment, and Validation consume that handoff in an explicit prevalidated-spec mode, skipping repeated specification generation while retaining consolidation and `smaqit plan` processing; direct phase-agent calls keep orchestration-first behavior.
+
+Deployment remains part of the feature cycle. A feature PR is the human gate: an unmerged PR is active work awaiting approval, not a separate deferred deployment state. The Deployment agent owns the contiguous existing-CI/CD operation—artifact preparation, PR creation, merge pause, exact workflow monitoring, deployed-revision verification, spec state, and report—while Feature New owns phase task state, preflight decisions, and evidence validation.
 
 ---
 

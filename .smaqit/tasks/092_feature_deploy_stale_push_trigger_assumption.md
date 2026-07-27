@@ -1,7 +1,10 @@
 # `smaqit.feature-deploy` — Stale "Push to Main Triggers Deploy" Assumption
 
-**Status:** Not Started
+**Status:** Abandoned
 **Created:** 2026-07-26
+
+**Abandoned:** 2026-07-27
+**Reason:** Superseded by Task 093, which removes the redundant `smaqit.feature-deploy` skill and consolidates its necessary safeguards into `smaqit.feature-new`.
 
 ## Description
 

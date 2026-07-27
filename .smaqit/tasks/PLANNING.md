@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 092 | `smaqit.feature-deploy` — Stale "Push to Main Triggers Deploy" Assumption | new | Medium |
+| 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
 | 071 | Create Q&A Agent and GitHub Skill for Wiki Documentation | new | Medium |
@@ -14,6 +14,7 @@
 
 | ID | Title |
 |----|-------|
+| 093 | Consolidate Post-MVP Feature Deployment in `smaqit.feature-new` |
 | 091 | `smaqit.feature-deploy` — Standalone Post-MVP Deployment Skill |
 | 090 | Machine Credential Namespace and App Bootstrap |
 | 085 | Deterministic CI/CD Workflow Templates + Guard-Script Vendoring |
@@ -111,6 +112,7 @@ Tasks that were started but abandoned due to being superseded, no longer relevan
 | 036 | Implement prompt addendum for reproducibility | Superseded by iterative development with stateful specs |
 | 057 | Add Checkbox Updates to Validation Agent | Superseded by Task 058 (distributed responsibility model) |
 | 031 | Review implementation artifacts | Task predates solution. Phase tracking solved via frontmatter state (Task 015). Artifacts already appropriately standardized where needed (reports in `.smaqit/reports/`, tests in `tests/`) and intentionally flexible per Anchoring Principle (README location, code structure follow stack conventions). No actionable work remains. |
+| 092 | `smaqit.feature-deploy` — Stale "Push to Main Triggers Deploy" Assumption | Superseded by Task 093, which retires `smaqit.feature-deploy` and consolidates post-MVP deployment into `smaqit.feature-new`. |
 
 ## Backlog
 

@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Nothing to add.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
+## [1.10.0] - 2026-07-27
+
 ### Removed
 - `smaqit.feature-deploy` — standalone post-MVP deployment skill retired. Post-MVP feature deployment is consolidated into `smaqit.feature-new` as the sole workflow entry point. Deployment is mandatory and uses a pull request as the human approval gate.
 

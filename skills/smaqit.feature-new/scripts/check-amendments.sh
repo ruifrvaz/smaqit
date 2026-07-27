@@ -4,6 +4,7 @@
 # Usage: bash check-amendments.sh <specs-dir>
 # Exit 0 = no amendments found (review step can be skipped)
 # Exit 1 = amendments found (review step must run)
+# Exit 2 = directory not found or operational error
 
 set -euo pipefail
 
@@ -28,7 +29,5 @@ while IFS= read -r file; do
   grep -n "amendment:" "$file" | sed 's/^/    /'
   echo ""
 done <<< "$MATCHES"
-
-exit 1
 
 exit 1

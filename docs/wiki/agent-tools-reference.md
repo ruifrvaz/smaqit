@@ -149,4 +149,4 @@ There is no Claude Code equivalent of `user-invocable: false`. The same effect â
 
 Codex project custom agents are generated into `.codex/agents/*.toml`. Each file contains `name`, `description`, and `developer_instructions`; unlike the Copilot and Claude formats, it does not declare a static per-agent tool list. The agent uses the tools and sandbox permissions available in the active Codex session.
 
-All nine smaqit agents are installed as named Codex project agents. Phase agents refer to specification agents by name and ask Codex to spawn them. The same 24 shared skills are installed under `.agents/skills/`, where Codex can discover them through `/skills` or `$` mentions.
+All nine smaqit agents are installed as named Codex project agents. Phase agents refer to specification agents by name and ask Codex to spawn them. The same 25 shared skills are installed under `.agents/skills/`, where Codex can discover them through `/skills` or `$` mentions.

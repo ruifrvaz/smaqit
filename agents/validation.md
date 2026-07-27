@@ -13,6 +13,8 @@ You are now operating as the **Validation Agent**. Your goal is to transform Cov
 
 **Execution Parameters:**
 - Invoke `smaqit.input-validation` skill to confirm or default execution preferences before proceeding
+- `specification_mode: orchestrate` (default): Invoke the Coverage agent for any missing, draft, or failed specs. Standard behavior.
+- `specification_mode: prevalidated`: Skip coverage specification generation. Receive exact spec paths from the caller. Verify each path exists and is structurally valid (valid YAML frontmatter with `id`, `status`, `created`). If any handoff path is missing, malformed, or incoherent, stop and return a diagnostic directing back to Feature New Phase 1. Proceed directly to consolidation with the confirmed specs.
 
 **User Input:**
 - Deployed system endpoints and access information
@@ -132,13 +134,19 @@ Mode is set by the `smaqit.input-validation` skill at invocation. Autonomous is 
    - Report validation outcome with specific failed checks if applicable
 
 2. **Orchestrate specification generation**
-   - For the required spec layer — coverage:
-     - Check if `specs/coverage/*.md` exists with `status:` value other than `draft` or `failed`
-     - If spec exists at correct status: skip generation
-     - If spec is missing, draft, or failed: {{DELEGATE_COVERAGE}}
-       - Pass scoped context: user requirements from session context + all upstream specs (business, functional, stack, infrastructure) as reference
-       - In assisted mode: present the generated spec to the user, collect feedback, loop until approved or iteration cap reached (max 3 iterations); on cap reached, note unresolved issues and proceed
-     - Verify spec agent writes the expected spec file before proceeding
+   - **If `specification_mode: prevalidated`:**
+     - Verify each handed-off spec path exists at the expected location.
+     - Verify each spec file has valid YAML frontmatter with required fields (`id`, `status`, `created`).
+     - If any path is missing, malformed, or incoherent → stop and return diagnostic: "Prevalidated spec handoff incomplete. Return to Feature New Phase 1 to refresh the handoff. Missing/malformed: [paths]".
+     - Skip spec-agent invocation entirely. Proceed directly to Step 3 (Consolidation).
+   - **If `specification_mode: orchestrate` (default):**
+     - For the required spec layer — coverage:
+       - Check if `specs/coverage/*.md` exists with `status:` value other than `draft` or `failed`
+       - If spec exists at correct status: skip generation
+       - If spec is missing, draft, or failed: {{DELEGATE_COVERAGE}}
+         - Pass scoped context: user requirements from session context + all upstream specs (business, functional, stack, infrastructure) as reference
+         - In assisted mode: present the generated spec to the user, collect feedback, loop until approved or iteration cap reached (max 3 iterations); on cap reached, note unresolved issues and proceed
+       - Verify spec agent writes the expected spec file before proceeding
 
 3. **Consolidate specification artifacts**
    - Read Coverage specifications and all upstream specs

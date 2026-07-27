@@ -1,6 +1,6 @@
 ---
 name: smaqit.infrastructure-deploy-verify
-description: Use after any deployment to confirm the application is healthy before closing the task or proceeding. Checks the health endpoint, verifies the deployed commit SHA against the current local commit, and validates the SPA root HTTP response. Produces a PASS/FAIL report per check with a final summary. Also use when a deployment task asks to confirm success or when re-verifying after a fix.
+description: Use after any deployment to confirm the application is healthy before closing the task or proceeding. Checks the health endpoint, verifies the deployed commit SHA against the current local commit (or an explicit `--expected-sha`), and validates the SPA root HTTP response. Produces a PASS/FAIL report per check with a final summary. Also use when a deployment task asks to confirm success or when re-verifying after a fix.
 metadata:
   version: "1.1.0"
 ---
@@ -14,11 +14,9 @@ metadata:
    - The infrastructure spec (e.g. `specs/infrastructure/deployment.md`) — `Fixed IP` or `Domain` value
    - Ask the user if not found in either location
 
-2. **Determine the expected commit SHA.** Run:
-   ```
-   git rev-parse HEAD
-   ```
-   Use the first 8 characters for comparison.
+2. **Determine the expected commit SHA.**
+   - If `--expected-sha <sha>` is provided by the caller: use it directly. Accept full (40-char) or short (8-char) SHA; normalize to first 8 characters for comparison.
+   - Otherwise (backward-compatible default): run `git rev-parse HEAD` and use the first 8 characters.
 
 3. **Health check.** Run:
    ```
@@ -61,6 +59,8 @@ Console report: PASS/FAIL for each check (health, SHA, deployedAt, SPA root) plu
 
 **Input:** After deploy workflow completes, orchestrator invokes verify with URL `http://<vm-fixed-ip>`.
 
+**Input (with explicit SHA):** After a CI/CD deploy where local HEAD may not match the deployed revision, the orchestrator passes `--expected-sha <deploy-run-headSha>`.
+
 **Output:**
 ```
 PASS: health 200
@@ -78,11 +78,12 @@ Deployment verified — SHA d040a5f, deployed at 2026-04-27T14:32:00Z.
 - The `sha` field is populated from `__APP_DIR__/backend/DEPLOY_SHA`, written by the CI deploy workflow. If the workflow writes the stamp to the host path but the container only mounts a subdirectory, the field returns `"unknown"` — this is a deployment bug, not a health endpoint bug.
 - `deployedAt` is the CI timestamp when the stamp was written, not the container start time. On first deploy the field may be absent if stamp steps were omitted from the workflow.
 - Re-deploying without a new commit (re-running the same workflow on the same SHA) will produce a SHA match — this is correct and expected.
+- **`--expected-sha` overrides local HEAD.** When the orchestrator knows the exact revision a CI run deployed (e.g. from `gh run view --json headSha`), passing `--expected-sha` prevents false negatives when the local checkout is on a different branch or behind the deployed revision. When absent, `git rev-parse HEAD` is the unchanged default — existing callers are unaffected.
 
 ## Completion
 
 - [ ] Target URL resolved
-- [ ] Expected SHA determined via `git rev-parse HEAD`
+- [ ] Expected SHA determined (via `--expected-sha` or `git rev-parse HEAD` fallback)
 - [ ] Health check: HTTP 200 received
 - [ ] SHA match confirmed (or absence/unknown state noted with reason)
 - [ ] `deployedAt` present and recent, or stale/absent flagged

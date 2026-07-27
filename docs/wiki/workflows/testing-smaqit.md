@@ -71,7 +71,7 @@ Before creating a release:
 - [ ] Run the installer lifecycle smoke test: `make smoke-test`
 - [ ] Test init/status/validate/help/uninstall on current platform
 - [ ] Verify version embedding: `dist/smaqit version` matches git tag
-- [ ] Check generated platform artifacts: 9 agents and 24 skills for Copilot, Claude Code, and Codex
+- [ ] Check generated platform artifacts: 9 agents and 25 skills for Copilot, Claude Code, and Codex
 - [ ] Validate selective Codex uninstall: smaqit-owned files are removed while custom `.codex/agents/`, `.agents/skills/`, and `.codex/config.toml` content survives
 
 ## Test Case Design

@@ -28,6 +28,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [1.12.0] - 2026-07-29
+
+### Added
+- `smaqit.feature-new` adopts the `smaqit-extensions` v1.10.0 parent-owned subtask lifecycle. Phase 0 now creates a dedicated feature-cycle parent task and starts it, producing exactly ONE shared branch and worktree for the entire feature cycle. Five phase tasks are created as children via `task.create --parent <id>` and join the parent's branch/worktree instead of spawning redundant per-phase branches. Phase 5 runs the release chain on the feature branch and creates a release PR (`"Prepare release vX.Y.Z"`) that is the sole vehicle for landing remaining changes on `main`; parent `task.complete` merge step is a deliberate no-op. Four new Gotchas document child task context requirements, the release PR gate, the two-PR flow (deploy in Phase 3, release in Phase 5), and auto-delete-head-branch handling.
+
+### Changed
+- `smaqit.feature-new` SKILL.md bumped to v2.0.0 to reflect the parent-owned lifecycle adoption. The old per-phase `task.start`/`task.complete` pattern (which silently created redundant branches and worktrees) is replaced.
+
+### Chore
+- Compendium: added Q&A entry documenting `load-credentials.sh`'s per-`provisioning_mode` SSH keypair behavior across all four modes.
+- `CONTRIBUTING.md`: added downstream project name redaction guidance.
+- Session history and task files updated (tasks 092, 094, 095; history 069, 070).
+
 ## [1.11.0] - 2026-07-29
 
 ### Added
@@ -627,7 +640,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.12.0...HEAD
+[1.12.0]: https://github.com/ruifrvaz/smaqit/compare/v1.11.0...v1.12.0
+[1.11.0]: https://github.com/ruifrvaz/smaqit/compare/v1.10.0...v1.11.0
+[1.10.0]: https://github.com/ruifrvaz/smaqit/compare/v1.9.0...v1.10.0
+[1.9.0]: https://github.com/ruifrvaz/smaqit/compare/v1.8.0...v1.9.0
+[1.8.0]: https://github.com/ruifrvaz/smaqit/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/ruifrvaz/smaqit/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/ruifrvaz/smaqit/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/ruifrvaz/smaqit/compare/v1.5.0...v1.5.1

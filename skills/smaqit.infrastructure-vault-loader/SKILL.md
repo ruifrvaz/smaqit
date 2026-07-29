@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-vault-loader
 description: Use before any local deployment or credential operation that requires secrets from a local HashiCorp Vault instance. Verifies Vault is running, unsealed, and authenticated on 127.0.0.1:8200. Also runs an interactive credential loader script that prompts for all project secrets and writes them to Vault. Use for first-time setup, adding a new project's credentials, or when a Vault path is missing. Also use when setting up Vault for the first time on a new machine, or when a caller cannot reach Vault and needs troubleshooting guidance.
 metadata:
-  version: "3.3.0"
+  version: "3.4.0"
 ---
 
 # Vault Loader
@@ -114,16 +114,22 @@ bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credent
   (`smaqit.infrastructure-provision-cyso`'s post-apply step), not per app per session.
 - Otherwise, it falls back to **legacy flat-scheme mode**, unchanged: all four paths under
   `secret/<project-slug>/{cyso,ssh,tfstate,github}` are checked/populated exactly as before,
-  including the `PROVISIONING_MODE`-aware `existing-shared` behavior (cross-namespace SSH copy or
-  manual `authorized_keys` append). This is what keeps unmigrated projects on the legacy
-  flat scheme working without any change.
+  including the `PROVISIONING_MODE`-aware `existing-shared`/`existing-unmanaged` behavior
+  (cyso/tfstate skipped for both; SSH offers a copy-or-generate choice for `existing-shared`,
+  since another project's Terraform already has access, or always generates-and-prints manual
+  `authorized_keys` install instructions for `existing-unmanaged`, since no Terraform run ever
+  installs the key). This is what keeps unmigrated projects on the legacy flat scheme working
+  without any change.
 
 ```
 # New-scheme app, already bootstrapped — just tops up github if missing:
 bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
 
-# Legacy flat-scheme project — unchanged:
+# Legacy flat-scheme project, co-hosted on another project's VM — unchanged:
 PROVISIONING_MODE=existing-shared bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
+
+# Legacy flat-scheme project, dedicated VM nobody's Terraform manages:
+PROVISIONING_MODE=existing-unmanaged bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
 ```
 
 ---
@@ -142,7 +148,12 @@ Idempotent: if `secret/apps/<app-slug>/ssh` is already populated *and* still aut
 
 1. If `secret/machines/<machine-slug>/base-ssh` doesn't exist yet, this is a fresh machine — the
    script generates and stores the base keypair (plus `cyso`/`tfstate`/`metadata`, when provided)
-   before continuing.
+   before continuing. This is the branch `provisioning_mode: existing-unmanaged` always exercises —
+   an out-of-band-provisioned VM has typically never been registered by any smaqit-managed project
+   before. When prompted for the owner project slug, use the *requesting* project's own slug: unlike
+   `existing-shared` (where `owner_project` names whichever project's Terraform state provisions the
+   machine), `existing-unmanaged` has no Terraform state anywhere in the picture, so there's no other
+   project to name — the machine is simply registered as belonging to the project bootstrapping it.
 2. Generates a new, distinct ed25519 keypair for `<app-slug>`.
 3. Fetches the machine's `base-ssh` private key to a temp file (never displayed, never logged),
    uses it to SSH in, appends the new app keypair's public half to `~/.ssh/authorized_keys`,

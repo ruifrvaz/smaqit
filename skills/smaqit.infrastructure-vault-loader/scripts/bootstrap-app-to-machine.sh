@@ -77,7 +77,7 @@ if ! vault kv get "${MACHINE_PATH}/base-ssh" > /dev/null 2>&1; then
   echo "==> ${MACHINE_PATH}/base-ssh not found — registering a new machine record."
   read -r -p "  Machine host (IP or hostname): " MACHINE_HOST_INPUT
   read -r -p "  Cloud provider (e.g. cyso): " MACHINE_PROVIDER_INPUT
-  read -r -p "  Owner project slug (whose Terraform state provisions this machine): " MACHINE_OWNER_INPUT
+  read -r -p "  Owner project slug (whose Terraform state provisions this machine, or the requesting project's own slug if no Terraform manages it — existing-unmanaged): " MACHINE_OWNER_INPUT
 
   TMPDIR_BASE=$(mktemp -d)
   trap 'rm -rf "$TMPDIR_BASE"' EXIT

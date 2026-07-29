@@ -75,7 +75,10 @@ metadata:
    `default_server` vs. name-based on its own by inspecting `/etc/nginx/sites-enabled/` on the
    target VM (this matters whenever the target is co-hosted, e.g.
    `provisioning_mode: existing-shared`, or any VM already serving another project), rather than
-   that decision being made in prose here:
+   that decision being made in prose here. This is driven entirely by what's actually running on the
+   VM, not by `provisioning_mode` itself — a dedicated, never-co-hosted target
+   (`provisioning_mode: existing-unmanaged`) is simply the first site by definition and gets
+   `default_server` the same way `provision`/`existing-owned` targets do:
    ```bash
    scripts/write-vhost.sh "$TMPKEY" <host> deployment/nginx/<project-slug>.conf <project-slug> [<server-name-if-co-hosted>]
    ```

@@ -80,7 +80,7 @@ if machine_path_exists tfstate; then
     | gh secret set TF_BACKEND_SECRET_KEY -R "$REPO" --stdin
   echo "    TF_BACKEND_ACCESS_KEY, TF_BACKEND_SECRET_KEY — set"
 else
-  echo "    SKIP — ${MACHINE_ROOT}/tfstate absent (expected for provisioning_mode: existing-shared)"
+  echo "    SKIP — ${MACHINE_ROOT}/tfstate absent (expected for provisioning_mode: existing-shared or existing-unmanaged)"
   SKIPPED+=("TF_BACKEND_ACCESS_KEY" "TF_BACKEND_SECRET_KEY")
 fi
 
@@ -93,7 +93,7 @@ if machine_path_exists cyso; then
     | gh secret set OS_APPLICATION_CREDENTIAL_SECRET -R "$REPO" --stdin
   echo "    OS_APPLICATION_CREDENTIAL_ID, OS_APPLICATION_CREDENTIAL_SECRET — set"
 else
-  echo "    SKIP — ${MACHINE_ROOT}/cyso absent (expected for provisioning_mode: existing-shared)"
+  echo "    SKIP — ${MACHINE_ROOT}/cyso absent (expected for provisioning_mode: existing-shared or existing-unmanaged)"
   SKIPPED+=("OS_APPLICATION_CREDENTIAL_ID" "OS_APPLICATION_CREDENTIAL_SECRET")
 fi
 
@@ -120,7 +120,7 @@ gh variable list -R "$REPO"
 
 if [ "${#SKIPPED[@]}" -gt 0 ]; then
   echo ""
-  echo "==> Skipped (expected for provisioning_mode: existing-shared): ${SKIPPED[*]}"
+  echo "==> Skipped (expected for provisioning_mode: existing-shared or existing-unmanaged): ${SKIPPED[*]}"
 fi
 
 echo ""

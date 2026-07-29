@@ -7,7 +7,8 @@
 # VM_HOST repository variable) but this project's own Terraform state has no
 # matching openstack_compute_instance_v2 resource, provisioning would silently
 # create a second VM nobody asked for. Stop instead and point at the
-# existing-shared path. VM_HOST is a GitHub Actions *variable* (see
+# existing-shared or existing-unmanaged path, whichever applies. VM_HOST is a
+# GitHub Actions *variable* (see
 # smaqit.infrastructure-repo-config) — unlike a secret, it can be read back
 # directly via `gh variable get`, so this script doesn't depend on the caller
 # having already exported it into the environment.
@@ -18,9 +19,11 @@
 #            project's Terraform state. Safe to proceed.
 #   Exit 1 — a target VM is declared but not owned by this project's state.
 #            Do NOT run `terraform apply`. Use provisioning_mode: existing-shared
-#            instead (see smaqit.new-greenfield-project Phase 4/5 and
+#            (another project's Terraform owns it) or existing-unmanaged (no
+#            Terraform owns it at all) instead, whichever applies (see
+#            smaqit.new-greenfield-project Phase 4/5 and
 #            smaqit.infrastructure-vault-loader / smaqit.infrastructure-repo-config
-#            for the restricted-path handling that mode needs).
+#            for the restricted-path handling both modes need).
 
 set -euo pipefail
 
@@ -66,10 +69,12 @@ if [ -z "$INSTANCE_ADDRS" ]; then
   echo "ownership-guard: BLOCKED — VM_HOST is set to $TARGET, but this project's Terraform" >&2
   echo "state has no openstack_compute_instance_v2 resource at all." >&2
   echo "" >&2
-  echo "This looks like a deploy onto a VM another project owns and manages via its own" >&2
-  echo "Terraform state (co-hosting), not a VM this project should provision." >&2
-  echo "Use provisioning_mode: existing-shared instead — see smaqit.new-greenfield-project" >&2
-  echo "Phase 4/5 for the branch, and skip this skill entirely for that path." >&2
+  echo "This looks like a deploy onto a VM this project's Terraform doesn't manage — either" >&2
+  echo "another project owns and manages it via its own Terraform state (co-hosting), or" >&2
+  echo "nobody's Terraform manages it at all (a dedicated VM provisioned out-of-band)." >&2
+  echo "Use provisioning_mode: existing-shared or existing-unmanaged instead, whichever" >&2
+  echo "applies — see smaqit.new-greenfield-project Phase 4/5 for the branch, and skip" >&2
+  echo "this skill entirely for either path." >&2
   exit 1
 fi
 
@@ -96,8 +101,10 @@ fi
 echo "ownership-guard: BLOCKED — VM_HOST is set to $TARGET, but no openstack_compute_instance_v2" >&2
 echo "resource in this project's Terraform state has a matching IP." >&2
 echo "" >&2
-echo "This looks like a deploy onto a VM another project owns and manages via its own" >&2
-echo "Terraform state (co-hosting), not a VM this project should provision." >&2
-echo "Use provisioning_mode: existing-shared instead — see smaqit.new-greenfield-project" >&2
-echo "Phase 4/5 for the branch, and skip this skill entirely for that path." >&2
+echo "This looks like a deploy onto a VM this project's Terraform doesn't manage — either" >&2
+echo "another project owns and manages it via its own Terraform state (co-hosting), or" >&2
+echo "nobody's Terraform manages it at all (a dedicated VM provisioned out-of-band)." >&2
+echo "Use provisioning_mode: existing-shared or existing-unmanaged instead, whichever" >&2
+echo "applies — see smaqit.new-greenfield-project Phase 4/5 for the branch, and skip" >&2
+echo "this skill entirely for either path." >&2
 exit 1

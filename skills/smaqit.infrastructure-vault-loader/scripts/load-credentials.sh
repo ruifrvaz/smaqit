@@ -14,9 +14,16 @@
 # PROVISIONING_MODE controls which paths are populated — legacy flat scheme only:
 #   provision | existing-owned (default) — all four paths (cyso, ssh, tfstate, github)
 #   existing-shared — only ssh + github; cyso/tfstate are never prompted for since
-#     this project never provisions Terraform for a VM it doesn't own.
+#     this project never provisions Terraform for a VM it doesn't own. SSH offers a
+#     choice: copy the owning project's keypair, or generate a new one and manually
+#     install it (this script has no access to a VM another project owns).
+#   existing-unmanaged — same restricted ssh + github paths as existing-shared, but
+#     there is no owning project to copy a keypair from (nobody's Terraform manages
+#     this VM at all) — SSH always generates a new keypair and prints manual
+#     authorized_keys install instructions, since no Terraform run will push it.
 #
 #   PROVISIONING_MODE=existing-shared bash .../load-credentials.sh
+#   PROVISIONING_MODE=existing-unmanaged bash .../load-credentials.sh
 
 set -euo pipefail
 
@@ -182,7 +189,12 @@ path_exists() {
   vault kv get "secret/${PROJECT_SLUG}/$1" > /dev/null 2>&1
 }
 
-if [ "$PROVISIONING_MODE" = "existing-shared" ]; then
+# existing-shared and existing-unmanaged both skip Terraform-derived credentials
+# (cyso/tfstate) — the reason differs (another project's Terraform vs. no Terraform
+# at all) but neither ever runs `terraform apply` for this project against this VM.
+RESTRICTED_MODE=false
+if [ "$PROVISIONING_MODE" = "existing-shared" ] || [ "$PROVISIONING_MODE" = "existing-unmanaged" ]; then
+  RESTRICTED_MODE=true
   REQUIRED_PATHS=(ssh github)
   TOTAL_STEPS=2
 else
@@ -192,9 +204,9 @@ fi
 
 # ── Step: Cyso app credentials ────────────────────────────────────────────────
 
-if [ "$PROVISIONING_MODE" = "existing-shared" ]; then
+if [ "$RESTRICTED_MODE" = "true" ]; then
   echo "--- Cyso Cloud app credentials (secret/${PROJECT_SLUG}/cyso) ---"
-  echo "    SKIP — existing-shared mode never provisions Terraform for this project"
+  echo "    SKIP — ${PROVISIONING_MODE} mode never provisions Terraform for this project"
 else
   echo "--- [1/${TOTAL_STEPS}] Cyso Cloud app credentials (secret/${PROJECT_SLUG}/cyso) ---"
   if path_exists "cyso"; then
@@ -213,11 +225,29 @@ fi
 # ── Step: SSH deploy keypair ──────────────────────────────────────────────────
 
 SSH_STEP_LABEL="[2/${TOTAL_STEPS}]"
-[ "$PROVISIONING_MODE" = "existing-shared" ] && SSH_STEP_LABEL="[1/${TOTAL_STEPS}]"
+[ "$RESTRICTED_MODE" = "true" ] && SSH_STEP_LABEL="[1/${TOTAL_STEPS}]"
 
 echo "--- ${SSH_STEP_LABEL} SSH deploy keypair (secret/${PROJECT_SLUG}/ssh) ---"
 if path_exists "ssh"; then
   echo "    SKIP — path already populated"
+elif [ "$PROVISIONING_MODE" = "existing-unmanaged" ]; then
+  # No owning project to copy a keypair from — nobody's Terraform manages this VM.
+  # Always generate fresh and tell the operator to install it manually, same as
+  # existing-shared's "generate" choice below, minus the "copy" option that only
+  # makes sense when another project's Terraform already has access.
+  TMPDIR_KEY=$(mktemp -d)
+  SSH_KEY_PATH="${TMPDIR_KEY}/deploy_key"
+  ssh-keygen -t ed25519 -f "$SSH_KEY_PATH" -N "" -q
+  vault kv put "secret/${PROJECT_SLUG}/ssh" \
+    private_key=@"${SSH_KEY_PATH}" \
+    public_key="$(cat "${SSH_KEY_PATH}.pub" | tr -d '\n')" > /dev/null
+  echo "    DONE — ed25519 keypair generated and stored"
+  echo "    ACTION REQUIRED: append the following public key to the target VM's"
+  echo "    ~/.ssh/authorized_keys yourself — this script has no access to that VM:"
+  echo ""
+  cat "${SSH_KEY_PATH}.pub"
+  echo ""
+  rm -rf "$TMPDIR_KEY"
 elif [ "$PROVISIONING_MODE" = "existing-shared" ]; then
   echo "  Targeting a VM this project doesn't own — choose how to get SSH access:"
   echo "    1) Copy the owning project's keypair into this project's Vault namespace"
@@ -276,9 +306,9 @@ fi
 
 # ── Step: Terraform state S3 credentials ──────────────────────────────────────
 
-if [ "$PROVISIONING_MODE" = "existing-shared" ]; then
+if [ "$RESTRICTED_MODE" = "true" ]; then
   echo "--- Terraform state S3 credentials (secret/${PROJECT_SLUG}/tfstate) ---"
-  echo "    SKIP — existing-shared mode has no Terraform state for this project"
+  echo "    SKIP — ${PROVISIONING_MODE} mode has no Terraform state for this project"
 else
   echo "--- [3/${TOTAL_STEPS}] Terraform state S3 credentials (secret/${PROJECT_SLUG}/tfstate) ---"
   if path_exists "tfstate"; then

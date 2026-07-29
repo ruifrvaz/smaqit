@@ -2,7 +2,7 @@
 name: smaqit.feature-new
 description: Use when adding a post-MVP feature to a project that has already completed a `smaqit.new-greenfield-project` run (or equivalent) and has a deployed target. Applies greenfield's task-per-phase discipline and amendment gate to iterative feature work — spec revalidation, development, deployment, validation, close-out — without requirements extraction, from-scratch specs, or a dev-VM sweep. Defaults deployment to the existing target instead of provisioning a new VM. Also use when the user says "add a feature to this project", "iterate on the deployed app", or asks for post-MVP work and the project already has an Infrastructure spec with `status: deployed`.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Post-MVP Feature Workflow
@@ -73,7 +73,7 @@ No dev-VM sweep. Deployment is mandatory — every feature cycle pushes to produ
 4. Read `specs/infrastructure/*.md` — determine deployment topology and target environment.
 5. Resolve `provisioning_mode`:
    - If Infrastructure spec shows `status: deployed`, default to `existing-owned`. This overrides `smaqit.input-deployment`'s generic `provision` default.
-   - Only fall through to `smaqit.input-deployment`'s standard elicitation if genuinely ambiguous (e.g. co-hosting on another project's VM → `existing-shared`).
+   - Only fall through to `smaqit.input-deployment`'s standard elicitation if genuinely ambiguous (e.g. co-hosting on another project's VM → `existing-shared`; a second, dedicated VM that's provisioned out-of-band and will never be Terraform-managed → `existing-unmanaged`).
    - If resolution falls through to `provision` — this contradicts the Pre-conditions check; stop and flag.
 6. Invoke `smaqit.input-deployment` with the resolved `provisioning_mode` to confirm execution parameters.
 7. Require `.github/workflows/deploy.yml`. If absent, stop and flag.
@@ -83,9 +83,11 @@ No dev-VM sweep. Deployment is mandatory — every feature cycle pushes to produ
    3. If a matching push trigger coexists with an unconditional or non-marker PR dispatcher → stop. Merging would cause duplicate deployments.
    4. If triggers, target workflow, dispatcher, or sentinel are missing, multiple, dynamic, or otherwise ambiguous → stop before opening the PR and report the unsupported layout.
 9. Invoke `smaqit.infrastructure-vault-loader`. Confirm Vault is running, unsealed, and credential paths are populated.
-   - **`existing-shared`:** only `secret/apps/<app-slug>/github` is loaded. Then run `bootstrap-app-to-machine.sh <app-slug> <machine-slug>`.
+   - **`existing-shared`:** only `secret/apps/<app-slug>/github` is loaded. Then run `bootstrap-app-to-machine.sh <app-slug> <machine-slug>` against the target machine's already-registered `base-ssh` credential.
+   - **`existing-unmanaged`:** same restricted load as `existing-shared` — only `github` is loaded. The difference: `bootstrap-app-to-machine.sh <app-slug> <machine-slug>` is typically registering the machine for the *first* time here (no prior `base-ssh`), so expect its fresh-registration branch (host/provider/owner_project prompts, new keypair, manual public-key install) rather than an already-trusted credential. Use this project's own slug for `owner_project`.
 10. Invoke `smaqit.infrastructure-repo-config` to sync secrets from Vault to GitHub.
    - **`existing-shared`:** restricted mode — skips `tfstate`/`cyso`, syncs only `ssh` + `github`-derived secrets. Additionally: `gh variable set VM_HOST --body <shared-vm-ip>`.
+   - **`existing-unmanaged`:** identical restricted mode and manual `VM_HOST` step as `existing-shared` — the only difference is *why* there's no Terraform output (nobody's, rather than another project's).
 
 **Invoke Deployment agent:**
 
@@ -130,7 +132,7 @@ No dev-VM sweep. Deployment is mandatory — every feature cycle pushes to produ
 
 ## Scope
 
-- Covers post-MVP iterative feature work on a project that already has a deployed target. Requires an existing Infrastructure spec with `status: deployed` (or resolves `provisioning_mode` to `existing-shared` for a co-hosted target another project manages).
+- Covers post-MVP iterative feature work on a project that already has a deployed target. Requires an existing Infrastructure spec with `status: deployed` (or resolves `provisioning_mode` to `existing-shared` for a co-hosted target another project manages, or `existing-unmanaged` for a dedicated target nobody's Terraform manages).
 - Does NOT cover greenfield project setup — no requirements extraction, no from-scratch 5-layer spec generation, no dev-VM sweep. Use `smaqit.new-greenfield-project` for that.
 - Does NOT retrofit `smaqit.new-greenfield-project` itself to invoke this skill for its own post-Phase-8 iterative work — that is a sensible future task once this skill is proven, not in scope here.
 - Does NOT build an automated "is this project past MVP" detector. The Pre-conditions check (Infrastructure spec with a deployed target) and the `provisioning_mode` resolution fallback (flag to the user if it resolves to `provision`) are the only maturity signals used.

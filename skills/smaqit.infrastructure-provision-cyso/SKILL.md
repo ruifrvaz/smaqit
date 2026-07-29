@@ -2,16 +2,18 @@
 name: smaqit.infrastructure-provision-cyso
 description: Use when provisioning cloud infrastructure for a project's target application on Cyso Cloud (OpenStack) using Terraform. Covers application credential sourcing, Object Storage backend initialization, SSH keypair variable configuration, `terraform init/plan/apply`, and fixed IP retrieval. Produces a running Cyso VM accessible via SSH, with Cinder data volume attached and security group configured on ports 22/80/443. Also use when re-running Terraform after infrastructure changes or when an operator invokes `/provision.cyso`.
 metadata:
-  version: "1.5.0"
+  version: "1.5.1"
 ---
 
 # Provision Target: Cyso Cloud
 
-**Only for `provisioning_mode: provision` or `existing-owned`.** If targeting a VM a *different*
-project owns and manages via its own Terraform state (co-hosting), do not invoke this skill at
-all — use `provisioning_mode: existing-shared` instead (see `smaqit.new-greenfield-project`
-Phase 4/5). Step 0 below is a defense-in-depth guard for a direct/manual invocation that bypasses
-that orchestration.
+**Only for `provisioning_mode: provision` or `existing-owned`.** If targeting a VM this project
+does not manage via its own Terraform state — either because a *different* project owns and
+manages it via its own Terraform state (co-hosting), or because *nobody's* Terraform manages it
+(a dedicated VM provisioned out-of-band and staying that way) — do not invoke this skill at all;
+use `provisioning_mode: existing-shared` or `existing-unmanaged` instead, respectively (see
+`smaqit.new-greenfield-project` Phase 4/5). Step 0 below is a defense-in-depth guard for a
+direct/manual invocation that bypasses that orchestration.
 
 ## Canonical vs. vendored guard scripts
 
@@ -45,8 +47,10 @@ be hand-edited in a target project expecting the edit to persist.
    If a target VM is already declared (the `VM_HOST` env var, or the `VM_HOST` repository
    variable read directly via `gh variable get`) but no `openstack_compute_instance_v2` resource
    in this project's Terraform state has a matching IP, the script exits non-zero and stops here
-   — this is the `existing-shared` case (a VM another project owns), and this skill must not be
-   invoked for it. `VM_HOST` is a GitHub Actions *variable*, not a secret (see
+   — this project's Terraform state simply doesn't own this VM, whether that's because *another*
+   project's Terraform does (`existing-shared`, co-hosting) or because *no one's* Terraform does
+   (`existing-unmanaged`, a dedicated but out-of-band-provisioned VM) — either way this skill must
+   not be invoked. `VM_HOST` is a GitHub Actions *variable*, not a secret (see
    `smaqit.infrastructure-repo-config`) — that's what lets this guard read it back directly
    instead of depending on the caller having already exported it. If no target is declared yet,
    or the declared target already matches a resource this project's state owns, the script exits
@@ -226,7 +230,7 @@ accessible with the project's deploy keypair, Terraform state in `<project-slug>
 
 ## Completion
 
-- [ ] `scripts/ownership-guard.sh` run and exited 0 — no undeclared target VM, or target already owned by this project's state
+- [ ] `scripts/ownership-guard.sh` run and exited 0 — no undeclared target VM, or target already owned by this project's state (not applicable at all if this skill is being skipped for `existing-shared`/`existing-unmanaged`)
 - [ ] OpenRC sourced; `openstack token issue` succeeded
 - [ ] Ubuntu image ID and flavor confirmed; `variables.tf` updated if needed
 - [ ] Backend variables set (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
@@ -241,7 +245,7 @@ accessible with the project's deploy keypair, Terraform state in `<project-slug>
 
 | Situation | Action |
 |-----------|--------|
-| `scripts/ownership-guard.sh` exits non-zero | Do NOT proceed. A target VM is declared but not owned by this project's Terraform state — use `provisioning_mode: existing-shared` instead, which skips this skill entirely |
+| `scripts/ownership-guard.sh` exits non-zero | Do NOT proceed. A target VM is declared but not owned by this project's Terraform state — use `provisioning_mode: existing-shared` (another project owns it) or `existing-unmanaged` (nobody's Terraform owns it) instead, whichever applies; both skip this skill entirely |
 | Required input not provided | Request the missing information before proceeding |
 | Gathered input is ambiguous | Flag the ambiguity and ask for clarification |
 | Subagent invocation fails | Report the failure with context; do not silently retry |

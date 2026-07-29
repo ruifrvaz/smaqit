@@ -5,8 +5,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# provisioning_mode: existing-shared — this project deploys onto a VM a different
-# project owns and provisions. No provision job, no Terraform step of any kind.
+# provisioning_mode: existing-shared or existing-unmanaged — either this project deploys
+# onto a VM a different project owns and provisions (existing-shared, co-hosted), or the
+# target VM is dedicated to this project but nobody's Terraform manages it
+# (existing-unmanaged, provisioned out-of-band). No provision job, no Terraform step of
+# any kind, either way.
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -76,8 +79,10 @@ jobs:
       - name: Restart containers
         run: ssh -i ~/.ssh/deploy_key "ubuntu@$VM_HOST" "cd __APP_DIR__ && docker compose up -d --force-recreate"
 
-      # reload-or-restart, not a bare reload — this VM is co-hosted, and this site is
-      # never the one that starts nginx for the first time (see write-vhost.sh /
-      # smaqit.infrastructure-deploy-rsync's default_server-vs-name-based vhost rule).
+      # reload-or-restart, not a bare reload — nginx may already be running from a
+      # prior site on this VM (existing-shared, co-hosted) or may need its first start
+      # here (existing-unmanaged, dedicated); reload-or-restart is correct either way
+      # (see write-vhost.sh / smaqit.infrastructure-deploy-rsync's
+      # default_server-vs-name-based vhost rule for which case applies).
       - name: Reload nginx
         run: ssh -i ~/.ssh/deploy_key "ubuntu@$VM_HOST" "sudo nginx -t && sudo systemctl reload-or-restart nginx"

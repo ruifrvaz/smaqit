@@ -10,8 +10,6 @@
 ## Actions Taken
 
 ### Project Cleanup
-- Removed all external project names (`magnificah`, `fashion-app-poc`, `iodis-crm-poc`, `areaoffice-poc`, `assistente-escolas-poc`, `hello-mario` as a Vault project slug) from 14 files across shipped artifacts, task files, and history files. `mario-hello` as smaqit's own test fixture was preserved.
-- Sanitized CHANGELOG.md, `vault-loader/SKILL.md`, `rotate-credential.sh`, and completed task files (084, 085, 086, 089, 090).
 
 ### Deployment Entry-Point Assessment
 - Identified a gap: no clear entry point for deploying post-MVP features. `smaqit.new-greenfield-project` is a full lifecycle, `smaqit.feature-new` runs all 5 phases, and `/smaqit.deployment` lacks the operational knowledge encoded in greenfield's Phase 4/5 provisioning_mode branching.

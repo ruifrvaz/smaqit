@@ -30,6 +30,7 @@ make build
 - Keep changes focused and consistent with existing structure
 - Prefer small PRs over large refactors
 - Avoid introducing new concepts/pages unless needed
+- **Never name downstream (consumer) projects** in task files, history files, CHANGELOG entries, or shipped skill documentation. Use generic phrasing such as "a downstream project" or "[a downstream project]" instead. This repository is the framework source — real project names are implementation details of the projects that consume it, not smaqit's own content. The one exception is `mario-hello`, smaqit's own test fixture, which is part of this project.
 
 ### Documentation vs Framework
 

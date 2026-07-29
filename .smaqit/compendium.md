@@ -96,6 +96,12 @@ Credentials split across two namespaces by what they belong to. `secret/machines
 
 ---
 
+**How does `load-credentials.sh` decide whether to prompt for installing an SSH public key manually, versus assuming it gets installed automatically?**
+
+The decision is per `provisioning_mode`, independent of which credential scheme (legacy flat vs. `apps/`+`machines/`) is in play. `provision`/`existing-owned` generate the deploy keypair silently and store it in Vault, because a Terraform `apply` is expected to push the public key onto the VM via cloud-init — no manual step is needed. `existing-shared` and `existing-unmanaged` both skip Terraform for this project entirely, so neither has any automated path to install the key onto the VM; both print explicit "append this public key to `~/.ssh/authorized_keys` yourself" instructions after generating it. The two differ only in *how* the key gets there: `existing-shared` additionally offers copying the already-trusted keypair from the project whose Terraform state owns the VM (a real option, since that project already has access); `existing-unmanaged` has no such option, since by definition no project's Terraform manages the VM — every credential load for that mode generates a fresh keypair and always needs the manual-install step. `existing-shared` and `existing-unmanaged` also both skip prompting for `cyso`/`tfstate` credentials in the legacy flat-scheme path, for the same underlying reason (no Terraform run for this project against this VM either way).
+
+---
+
 ## Codex Support
 
 **How does smaqit provide first-class Codex compatibility?**

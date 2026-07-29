@@ -28,6 +28,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [1.11.0] - 2026-07-29
+
+### Added
+- `existing-unmanaged` provisioning mode — a fourth `provisioning_mode` value for VMs dedicated to one project but never managed by any Terraform state. Supplements `provision`, `existing-owned`, and `existing-shared`. The new mode skips Terraform entirely (like `existing-shared`) but the VM is not co-hosted with another project. Machine registration routes through `bootstrap-app-to-machine.sh`'s fresh-machine-registration branch rather than assuming pre-existing `base-ssh`.
+
+### Changed
+- `smaqit.new-greenfield-project`, `smaqit.feature-new`, `smaqit.input-deployment` — document `→ existing-unmanaged:` callouts at every `provisioning_mode` branch point, matching the existing `existing-shared` convention. "Three modes" language updated to "four modes" everywhere.
+- `smaqit.infrastructure-provision-cyso` (`ownership-guard.sh`) and `smaqit.infrastructure-repo-config` (`sync-secrets.sh`) — message text widened to reference `existing-unmanaged` alongside `existing-shared` so guard and skip messages don't assume Terraform ownership.
+- `smaqit.infrastructure-cicd-generate` — `deploy-only` generation mode now documented as serving both `existing-shared` and `existing-unmanaged`; deploy-only template comments no longer assert co-hosting specifically.
+- `smaqit.infrastructure-vault-loader` (`load-credentials.sh`) — `existing-unmanaged` now has its own SSH keypair branch with explicit manual-install instructions, distinct from both `existing-shared`'s "copy the owning project's keypair" path and `provision`'s silent Terraform-assumed keygen.
+
+### Fixed
+- `load-credentials.sh` missing `existing-unmanaged` awareness — before this fix, the new mode silently fell through to the `provision`/`existing-owned` branch, wrongly prompting for Terraform-only credentials (`cyso`/`tfstate`) and generating an SSH keypair without instructing the operator to install it manually on the VM.
+
 ## [1.10.0] - 2026-07-27
 
 ### Removed

@@ -14,6 +14,7 @@
 
 | ID | Title |
 |----|-------|
+| 096 | Add `existing-unmanaged` Provisioning Mode — Dedicated VM, Never Terraform-Managed |
 | 093 | Consolidate Post-MVP Feature Deployment in `smaqit.feature-new` |
 | 091 | `smaqit.feature-deploy` — Standalone Post-MVP Deployment Skill |
 | 090 | Machine Credential Namespace and App Bootstrap |

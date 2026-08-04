@@ -36,6 +36,7 @@ or .smaqit/definitions/agents/:
   python3 scripts/generate-agents.py
 """
 import json
+import copy
 import re
 import shutil
 import sys
@@ -121,13 +122,76 @@ def render_codex_agent(metadata: dict, body: str, source_name: str) -> str:
             "rendered as a TOML literal string"
         )
 
-    return (
+    content = (
         f"name = {json.dumps(metadata['name'], ensure_ascii=False)}\n"
         f"description = {json.dumps(metadata['description'], ensure_ascii=False)}\n"
         "developer_instructions = '''\n\n"
         f"{body.rstrip()}\n"
         "'''\n"
     )
+    tools = metadata.get("tools", {})
+    if tools:
+        content += "\n[tools]\n"
+        for key, value in tools.items():
+            content += f"{key} = {json.dumps(value)}\n"
+    for server_name, server in metadata.get("mcp_servers", {}).items():
+        content += f'\n[mcp_servers.{json.dumps(server_name)}]\n'
+        for key, value in server.items():
+            content += f"{key} = {json.dumps(value)}\n"
+    return content
+
+
+def design_metadata(metadata: dict, platform: str, role: str | None) -> dict:
+    """Add role-appropriate visual design capabilities to an agent."""
+    metadata = copy.deepcopy(metadata)
+    if role not in (None, "author"):
+        raise ValueError(f"unsupported design role: {role}")
+    if role is None:
+        return metadata
+    if platform == "copilot":
+        tools = metadata.setdefault("tools", [])
+        for tool in ("read/viewImage",):
+            if tool not in tools:
+                tools.append(tool)
+        for tool in ("smaqit-plantuml/check_syntax", "smaqit-plantuml/render_diagram"):
+            if tool not in tools:
+                tools.append(tool)
+        metadata["mcp-servers"] = {
+            "smaqit-plantuml": {
+                "type": "local",
+                "command": "smaqit",
+                "args": ["mcp", "plantuml"],
+                "tools": ["check_syntax", "render_diagram"],
+            }
+        }
+    elif platform == "claude":
+        tools = metadata.setdefault("tools", [])
+        if isinstance(tools, str):
+            tools = [item.strip() for item in tools.split(",")]
+            metadata["tools"] = tools
+        for tool in (
+            "mcp__smaqit-plantuml__check_syntax",
+            "mcp__smaqit-plantuml__render_diagram",
+        ):
+            if tool not in tools:
+                tools.append(tool)
+        metadata["mcpServers"] = {
+            "smaqit-plantuml": {
+                "type": "stdio",
+                "command": "smaqit",
+                "args": ["mcp", "plantuml"],
+            }
+        }
+    elif platform == "codex":
+        metadata["tools"] = {"view_image": True}
+        metadata["mcp_servers"] = {
+            "smaqit-plantuml": {
+                "command": "smaqit",
+                "args": ["mcp", "plantuml"],
+                "required": True,
+            }
+        }
+    return metadata
 
 
 def generate_agent(name: str) -> None:
@@ -145,7 +209,7 @@ def generate_agent(name: str) -> None:
     for platform in PLATFORMS:
         out_dir = AGENTS_OUT_DIR_BY_PLATFORM[platform]
         out_suffix = AGENT_OUT_SUFFIX_BY_PLATFORM[platform]
-        frontmatter = manifest[platform]
+        frontmatter = design_metadata(manifest[platform], platform, manifest.get("design-role"))
         missing_values = [key for key, values in placeholders.items() if platform not in values]
         if missing_values:
             raise ValueError(

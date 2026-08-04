@@ -135,18 +135,19 @@ Agent tool lists live in `.smaqit/definitions/agents/<name>.frontmatter.yaml` (t
 | `edit/editFiles`, `edit/createFile`, `edit/createDirectory`, `edit/rename` | `Write`, `Edit` |
 | `execute/runInTerminal`, `execute/getTerminalOutput`, `execute/sendToTerminal`, `execute/awaitTerminal`, `runCommands`, `execute/runTests`, `execute/testFailure` | `Bash` |
 | `read/readFile`, `read/problems`, `read/terminalLastCommand`, `read/terminalSelection`, `read/viewImage` | `Read` |
+| `smaqit-plantuml/check_syntax`, `smaqit-plantuml/render_diagram` | `mcp__smaqit-plantuml__check_syntax`, `mcp__smaqit-plantuml__render_diagram` |
 | `search`, `search/codebase`, `search/usages`, `search/textSearch`, `search/fileSearch`, `search/listDirectory` | `Grep`, `Glob` |
 | `web`, `web/fetch` | `WebFetch` |
 | `agent`, `agent/runSubagent` | `Task` |
 | `todo` | `TodoWrite` |
 | `changes`, `activePullRequest`, `githubRepo`, `search/changes` | `Bash` (shell out to `git`/`gh` — no native equivalent) |
 | `search/searchSubagent` | `Task` |
-| `vscode/memory`, `vscode/askQuestions`, `mermaidchart.vscode-mermaid-chart/*`, `edit/createJupyterNotebook`, `edit/editNotebook` | dropped — no Claude Code equivalent |
+| `vscode/memory`, `vscode/askQuestions`, `edit/createJupyterNotebook`, `edit/editNotebook` | dropped — no Claude Code equivalent |
 
 There is no Claude Code equivalent of `user-invocable: false`. The same effect — an agent reachable only via delegation, never as a direct user command — is reproduced by simply not creating a `commands/<name>.md` for that agent, so no `.claude/commands/` entry exists for it (see the five specification agents: business, functional, stack, infrastructure, coverage).
 
 ## Codex Agent Metadata
 
-Codex project custom agents are generated into `.codex/agents/*.toml`. Each file contains `name`, `description`, and `developer_instructions`; unlike the Copilot and Claude formats, it does not declare a static per-agent tool list. The agent uses the tools and sandbox permissions available in the active Codex session.
+Codex project custom agents are generated into `.codex/agents/*.toml`. Each file contains `name`, `description`, and `developer_instructions`. The five design-authoring specification agents also enable `tools.view_image` and declare the required project-local `smaqit-plantuml` MCP server. Implementation agents receive neither capability and consume validated PlantUML source after the automatic plan gate. Other capabilities continue to use the tools and sandbox permissions available in the active Codex session.
 
-All nine smaqit agents are installed as named Codex project agents. Phase agents refer to specification agents by name and ask Codex to spawn them. The same 25 shared skills are installed under `.agents/skills/`, where Codex can discover them through `/skills` or `$` mentions.
+All nine smaqit agents are installed as named Codex project agents. Phase agents refer to specification agents by name and ask Codex to spawn them. The same 26 shared skills are installed under `.agents/skills/`, where Codex can discover them through `/skills` or `$` mentions.

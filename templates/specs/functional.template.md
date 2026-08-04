@@ -6,6 +6,10 @@ created: [TIMESTAMP]
 
 # [CONCEPT_NAME]
 
+## Design References
+
+- [DSG-FUN-[CONCEPT]-SYSTEM-SEQUENCE](../../docs/designs/functional/dsg-fun-[concept]-system-sequence.md) · [Image](../../docs/designs/functional/dsg-fun-[concept]-system-sequence.png)
+
 ## References
 
 <!-- References establish traceability and coherence, not requirement derivation -->

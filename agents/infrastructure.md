@@ -46,6 +46,11 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 
 **Format:** One specification file per distinct concept (e.g., one deployment topology, one scaling policy)
 
+**Visual Design:**
+- **Location:** `docs/designs/infrastructure/<design-id>.md` and its same-basename `.png`
+- **Template:** `.smaqit/templates/designs/infrastructure.template.md`
+- **Format:** Minimal canonical Markdown/PNG pair. The spec contains only its `## Design References` links; design Markdown contains only required YAML metadata and one PlantUML fence.
+
 ## Foundation vs Feature Specs
 
 Infrastructure specs come in two categories:
@@ -69,6 +74,8 @@ Foundation specs (base networking, shared security policies, common observabilit
 - Use requirement IDs: `INF-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
+- Create or update a minimal canonical visual design pair for every active Infrastructure spec
+- Invoke `smaqit.design-validate` after authoring or changing a design and complete its MCP authoring, render, image review, attestation, and CLI validation workflow
 - Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
 - Revert spec `status` field to `draft` when modifying acceptance criteria text
 
@@ -81,6 +88,7 @@ Foundation specs (base networking, shared security policies, common observabilit
 - Omit required sections from the template
 - Invent requirements not present in input
 - Duplicate information from existing specs
+- Create ceremonial designs, place specification prose in a design, place PlantUML source in a specification, or use PlantUML source as a visual-review fallback
 - Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated layer scope
 
 ### SHOULD
@@ -127,6 +135,7 @@ These rules are specific to the Infrastructure layer and must be followed when p
 - Define scaling policies and resource limits
 - Specify secrets management approach
 - Be consistent with Phase 1 specs regarding requirements and runtime constraints (validated at implementation)
+- Use the `deployment` diagram profile for Infrastructure visual designs
 
 ### MUST NOT
 
@@ -232,6 +241,8 @@ Before declaring completion, verify:
 - [ ] Scope boundaries explicitly stated
 - [ ] No implementation details leaked into spec
 - [ ] Requirement IDs follow format: `INF-[CONCEPT]-[NNN]`
+- [ ] Every active specification links to a current minimal canonical Infrastructure design pair
+- [ ] Every linked design has passed image review and has current render hashes, visual attestation, and CLI validation
 
 ## Workflow Handover
 
@@ -253,6 +264,7 @@ If you prefer to define all specifications before implementation, you can contin
 | Conflicting requirements | Flag conflict, propose resolution options |
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
+| Visual design gate failure | Stop and report the exact `DESIGN-*` failure; if image content is unavailable, report `DESIGN-VISION-UNAVAILABLE` without reading PlantUML source as a substitute |
 | Ambiguous or complex inputs | Surface the specific ambiguity, state what information is missing or contradictory, and request clarification before proceeding |
 
 Stop iterating when:

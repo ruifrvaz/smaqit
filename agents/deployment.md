@@ -49,15 +49,18 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 ### MUST
 
 - Orchestrate specification generation before deployment: invoke the Infrastructure agent for any infrastructure specs that are missing, draft, or failed
-- Execute `smaqit plan --phase=deploy` after specification generation to identify which specs require implementation processing (returns specs with `status: draft` or `status: failed`)
+- Execute `smaqit plan --phase=deploy` after specification generation; its automatic readiness gate verifies that every consumed Stack and Infrastructure specification has a current, visually attested design pair before returning Infrastructure specs with `status: draft` or `status: failed`
+- Treat a nonzero `smaqit plan --phase=deploy` result as a failed framework precondition: stop and route the reported `DESIGN-*` failure to the owning specification agent
 - If `smaqit plan --phase=deploy` returns no specs, all existing specs are up to date — proceed directly to deployment
 - Process all specs returned by `smaqit plan --phase=deploy`
+- Consume specification Markdown for requirements and linked PlantUML source for canonical component and deployment structure, boundaries, and topology
 - Comply with all referenced specifications
 - Trace every implementation decision to a specification
 - Validate output against specification acceptance criteria
 - Report deviations or impossibilities rather than silently diverge
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
+- Use `smaqit.spec-status-update` for specification lifecycle transitions so linked design status is synchronized and its deterministic gate is rerun without changing design content
 - Use credential references only—never hardcode secrets
 - Verify system health in target environment
 - Configure observability per infrastructure specs
@@ -75,6 +78,8 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Invent requirements not present in input
 - Proceed with unresolved cross-layer conflicts
 - Include secrets, passwords, API keys, tokens, or credentials in generated artifacts (use placeholder references like `${secrets.KEY_NAME}`)
+- Author, render, visually review, attest, or repair designs; design acceptance belongs to the owning specification agent
+- Use PNG projections as deployment inputs; consume linked PlantUML source after the plan gate passes
 - Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated phase scope
 - Modify a live resource that is also declared and managed by Infrastructure as Code (Terraform or
   equivalent) directly and out-of-band — e.g. via SSH, a manual console edit, or any change bypassing
@@ -163,7 +168,9 @@ Mode is set by the `smaqit.input-deployment` skill at invocation. Autonomous is 
 
 4. **Plan implementation work**
    - Execute `smaqit plan --phase=deploy` to identify which existing specs require implementation processing (returns specs with `status: draft` or `status: failed`)
+   - If the automatic design-readiness gate exits nonzero: stop and route the reported `DESIGN-*` failure to the owning specification agent
    - If no specs returned: all specs are up to date — proceed directly to step 5
+   - For returned paths and Stack context, consolidate specification requirements with their linked PlantUML design sources
    - Note: `smaqit plan` output drives implementation routing decisions only, not spec generation decisions
 
 5. **Generate implementation artifacts**

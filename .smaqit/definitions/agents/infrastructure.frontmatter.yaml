@@ -1,3 +1,4 @@
+design-role: author
 copilot:
   name: smaqit.infrastructure
   description: Specification agent for the Infrastructure layer.

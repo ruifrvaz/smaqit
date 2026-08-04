@@ -6,6 +6,10 @@ created: [TIMESTAMP]
 
 # [CONCEPT_NAME]
 
+## Design References
+
+- [DSG-COV-[CONCEPT]-REQUIREMENT-TRACE](../../docs/designs/coverage/dsg-cov-[concept]-requirement-trace.md) · [Image](../../docs/designs/coverage/dsg-cov-[concept]-requirement-trace.png)
+
 ## References
 
 <!-- References establish traceability and coherence, not requirement derivation -->

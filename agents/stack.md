@@ -34,6 +34,11 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 
 **Format:** One specification file per distinct concept (e.g., one technology stack, one build configuration)
 
+**Visual Design:**
+- **Location:** `docs/designs/stack/<design-id>.md` and its same-basename `.png`
+- **Template:** `.smaqit/templates/designs/stack.template.md`
+- **Format:** Minimal canonical Markdown/PNG pair. The spec contains only its `## Design References` links; design Markdown contains only required YAML metadata and one PlantUML fence.
+
 ## Foundation vs Feature Specs
 
 Stack specs come in two categories:
@@ -57,6 +62,8 @@ Foundation specs (base language environments, shared build tools, common depende
 - Use requirement IDs: `STK-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
+- Create or update a minimal canonical visual design pair for every active Stack spec
+- Invoke `smaqit.design-validate` after authoring or changing a design and complete its MCP authoring, render, image review, attestation, and CLI validation workflow
 - Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
 - Revert spec `status` field to `draft` when modifying acceptance criteria text
 
@@ -68,7 +75,9 @@ Foundation specs (base language environments, shared build tools, common depende
 - Add sections not defined in the template
 - Omit required sections from the template
 - Invent requirements not present in input
-- Duplicate information from existing specs in the same layer- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated layer scope
+- Duplicate information from existing specs in the same layer
+- Create ceremonial designs, place specification prose in a design, place PlantUML source in a specification, or use PlantUML source as a visual-review fallback
+- Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated layer scope
 ### SHOULD
 
 - Specify technology choice with rationale, not implementation patterns
@@ -112,6 +121,7 @@ These rules are specific to the Stack layer and must be followed when producing 
 - Specify libraries and their purposes
 - Include build tools and development environment setup
 - Be consistent with Functional specs (validated at implementation)
+- Use the `component` diagram profile for Stack visual designs
 
 ### MUST NOT
 
@@ -217,6 +227,8 @@ Before declaring completion, verify:
 - [ ] Requirement IDs follow format: `STK-[CONCEPT]-[NNN]`
 - [ ] All technology choices justified against functional requirements
 - [ ] Language and framework versions specified
+- [ ] Every active specification links to a current minimal canonical Stack design pair
+- [ ] Every linked design has passed image review and has current render hashes, visual attestation, and CLI validation
 
 ## Workflow Handover
 
@@ -238,6 +250,7 @@ If you prefer to define all specifications before implementation, you can contin
 | Conflicting requirements | Flag conflict, propose resolution options |
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
+| Visual design gate failure | Stop and report the exact `DESIGN-*` failure; if image content is unavailable, report `DESIGN-VISION-UNAVAILABLE` without reading PlantUML source as a substitute |
 | Ambiguous or complex inputs | Surface the specific ambiguity, state what information is missing or contradictory, and request clarification before proceeding |
 
 Stop iterating when:

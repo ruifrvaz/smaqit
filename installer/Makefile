@@ -16,8 +16,13 @@ prepare:
 	@cp -r ../framework .
 	@mkdir -p templates/workflows
 	@cp -r ../templates/specs templates/
+	@cp -r ../templates/designs templates/
 	@cp ../.github/workflows/copilot-setup-steps.yml templates/workflows/
 	@cp ../templates/AGENTS.md.template ../templates/CLAUDE.md.template templates/
+	@echo "Preparing pinned PlantUML design runtime..."
+	@node ../scripts/prepare-design-tools.mjs
+	@mkdir -p tools
+	@tar -czf tools/plantuml-tools.tgz -C tools/plantuml-runtime .
 	@echo "Compiling agents-copilot/, agents-claude/, agents-codex/, commands-claude/, skills-copilot/, skills-claude/, skills-codex/ from ../agents/, ../commands/, ../skills/, ../.smaqit/definitions/agents/..."
 	@python3 ../scripts/generate-agents.py
 
@@ -102,12 +107,12 @@ uninstall:
 				;; \
 		esac; \
 	fi; \
-	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "agents-copilot" ] || [ -d "agents-claude" ] || [ -d "agents-codex" ] || [ -d "commands-claude" ] || [ -d "prompts" ] || [ -d "skills-copilot" ] || [ -d "skills-claude" ] || [ -d "skills-codex" ] || [ -d "test" ] || [ -d "../.test-venv" ]; then \
+	if [ -d "$(DIST_DIR)" ] || [ -d "framework" ] || [ -d "templates" ] || [ -d "tools" ] || [ -d "agents-copilot" ] || [ -d "agents-claude" ] || [ -d "agents-codex" ] || [ -d "commands-claude" ] || [ -d "prompts" ] || [ -d "skills-copilot" ] || [ -d "skills-claude" ] || [ -d "skills-codex" ] || [ -d "test" ] || [ -d "../.test-venv" ]; then \
 		printf "\nAlso clean build artifacts (dist/, embedded files, test/, .test-venv)? [y/N]: "; \
 		read clean_response; \
 		case "$$clean_response" in \
 			[yY]|[yY][eE][sS]) \
-				rm -rf $(DIST_DIR) framework/ templates/ agents-copilot/ agents-claude/ agents-codex/ commands-claude/ skills-copilot/ skills-claude/ skills-codex/ test/ ../.test-venv; \
+				rm -rf $(DIST_DIR) framework/ templates/ tools/ agents-copilot/ agents-claude/ agents-codex/ commands-claude/ skills-copilot/ skills-claude/ skills-codex/ test/ ../.test-venv; \
 				echo "✓ Cleaned build artifacts"; \
 				;; \
 			*) \

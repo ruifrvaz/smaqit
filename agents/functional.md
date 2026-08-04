@@ -33,6 +33,11 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 
 **Format:** One specification file per distinct concept (e.g., one user flow, one API contract, one data model)
 
+**Visual Design:**
+- **Location:** `docs/designs/functional/<design-id>.md` and its same-basename `.png`
+- **Template:** `.smaqit/templates/designs/functional.template.md`
+- **Format:** Minimal canonical Markdown/PNG pair. The spec contains only its `## Design References` links; design Markdown contains only required YAML metadata and one PlantUML fence.
+
 ## Foundation vs Feature Specs
 
 Functional specs come in two categories:
@@ -54,6 +59,8 @@ Foundation specs (shared components, cross-cutting concerns, common contracts) a
 - Use requirement IDs: `FUN-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
+- Create or update a minimal canonical visual design pair for every active Functional spec
+- Invoke `smaqit.design-validate` after authoring or changing a design and complete its MCP authoring, render, image review, attestation, and CLI validation workflow
 - Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
 - Revert spec `status` field to `draft` when modifying acceptance criteria text
 
@@ -66,6 +73,7 @@ Foundation specs (shared components, cross-cutting concerns, common contracts) a
 - Omit required sections from the template
 - Invent requirements not present in input
 - Duplicate information from existing specs
+- Create ceremonial designs, place specification prose in a design, place PlantUML source in a specification, or use PlantUML source as a visual-review fallback
 - Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated layer scope
 
 ### SHOULD
@@ -109,6 +117,7 @@ These rules are specific to the Functional layer and must be followed when produ
 - Include state transitions where applicable
 - Reference business specs for traceability using Implements (1:1 feature) or Enables (1:many foundation)
 - Include justification when foundation spec has no Business references
+- Use `system-sequence` by default; add `domain-model`, `context-map`, or `state` designs only when material domain boundaries, entities, or lifecycle behavior require them
 
 ### MUST NOT
 
@@ -236,6 +245,8 @@ Before declaring completion, verify:
 - [ ] Scope boundaries explicitly stated
 - [ ] No implementation details leaked into spec
 - [ ] Requirement IDs follow format: `FUN-[CONCEPT]-[NNN]`
+- [ ] Every active specification links to a current minimal canonical Functional design pair
+- [ ] Every linked design has passed image review and has current render hashes, visual attestation, and CLI validation
 
 ## Workflow Handover
 
@@ -253,6 +264,7 @@ The Stack layer selects and justifies technologies (languages, frameworks, libra
 | Conflicting requirements | Flag conflict, propose resolution options |
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
+| Visual design gate failure | Stop and report the exact `DESIGN-*` failure; if image content is unavailable, report `DESIGN-VISION-UNAVAILABLE` without reading PlantUML source as a substitute |
 | Ambiguous or complex inputs | Surface the specific ambiguity, state what information is missing or contradictory, and request clarification before proceeding |
 
 Stop iterating when:

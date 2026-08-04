@@ -15,6 +15,7 @@
 
 | ID | Title |
 |----|-------|
+| 098 | First-Class PlantUML Visual Design Artifacts |
 | 096 | Add `existing-unmanaged` Provisioning Mode — Dedicated VM, Never Terraform-Managed |
 | 093 | Consolidate Post-MVP Feature Deployment in `smaqit.feature-new` |
 | 091 | `smaqit.feature-deploy` — Standalone Post-MVP Deployment Skill |

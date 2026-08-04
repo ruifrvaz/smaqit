@@ -1,3 +1,4 @@
+design-role: author
 copilot:
   name: smaqit.stack
   description: Specification agent for the Stack layer.

@@ -13,6 +13,12 @@ import (
 //go:embed templates/specs/*.md
 var templateFiles embed.FS
 
+//go:embed templates/designs/*.md
+var designTemplateFiles embed.FS
+
+//go:embed tools/plantuml-tools.tgz
+var designToolArchive embed.FS
+
 //go:embed templates/workflows/*.yml
 var workflowFiles embed.FS
 
@@ -65,6 +71,10 @@ func main() {
 		cmdStatus()
 	case "validate":
 		cmdValidate()
+	case "design":
+		cmdDesign(os.Args[2:])
+	case "mcp":
+		cmdMCP(os.Args[2:])
 	case "help", "--help", "-h":
 		cmdHelp()
 	case "uninstall":
@@ -90,6 +100,8 @@ Commands:
   plan       Show specs to process (for agents)
   status     Show project state and spec coverage
   validate   Verify project structure integrity
+  design     Render, attest, and validate canonical PlantUML designs
+  mcp        Run a bundled MCP server (normally invoked by an agent host)
   help       Show detailed command help
   uninstall  Remove smaqit from project
   update     Update smaqit to the latest release
@@ -118,6 +130,12 @@ func cmdHelp() {
 	fmt.Println("  smaqit validate   Verify project structure integrity")
 	fmt.Println("                    Checks directory structure, framework files, and")
 	fmt.Println("                    validates spec template compliance")
+	fmt.Println()
+	fmt.Println("  smaqit design render <design.md>  Syntax-check and render its PNG")
+	fmt.Println("  smaqit design attest <design.md>  Record a completed visual review")
+	fmt.Println("  smaqit design validate [path]     Run all mandatory design gates")
+	fmt.Println()
+	fmt.Println("  smaqit mcp plantuml               Run the bundled PlantUML MCP server")
 	fmt.Println()
 	fmt.Println("  smaqit help       Show this help message")
 	fmt.Println()
@@ -230,6 +248,10 @@ func cmdPlan() {
 
 	// Get specs for the specified phase
 	phaseSpecs := getPhaseSpecs(allSpecs, phase)
+	if err := validatePhaseDesignReadiness(getPhaseDesignGateSpecs(allSpecs, phase)); err != nil {
+		fmt.Fprintf(os.Stderr, "Phase design readiness failed: %v\n", err)
+		os.Exit(1)
+	}
 	toProcess := filterSpecsByStatus(phaseSpecs, phase, regen)
 	completed := []Spec{}
 
@@ -267,6 +289,9 @@ func cmdPlan() {
 					fmt.Printf(" (%s)", spec.Frontmatter.ID)
 				}
 				fmt.Println()
+				if !spec.DesignReady {
+					fmt.Printf("    design gate: %s\n", spec.DesignError)
+				}
 			}
 			fmt.Println()
 		}
@@ -332,6 +357,7 @@ func detectConflicts() []string {
 		skipIfExists bool // Workflow files are never overwritten
 	}{
 		{templateFiles, "templates/specs", ".smaqit/templates/specs", false},
+		{designTemplateFiles, "templates/designs", ".smaqit/templates/designs", false},
 		{agentFiles, "agents-copilot", ".github/agents", false},
 		{skillFilesCopilot, "skills-copilot", ".github/skills", false},
 		{workflowFiles, "templates/workflows", ".github/workflows", true},
@@ -380,6 +406,17 @@ func detectConflicts() []string {
 }
 
 func cmdInit(targetDir string) {
+	// The toolchain is mandatory. Fail before creating the target so an
+	// unsupported host never receives a partial smaqit installation.
+	if err := preflightDesignTools(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if err := preflightVSCodeMCPConfig(targetDir); err != nil {
+		fmt.Fprintf(os.Stderr, "DESIGN-TOOLCHAIN-UNAVAILABLE: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Create target directory if it doesn't exist
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		fmt.Printf("Error creating directory %s: %v\n", targetDir, err)
@@ -432,12 +469,19 @@ func cmdInit(targetDir string) {
 	// Create directory structure
 	dirs := []string{
 		".smaqit/templates/specs",
+		".smaqit/templates/designs",
 		".smaqit/reports",
 		"specs/business",
 		"specs/functional",
 		"specs/stack",
 		"specs/infrastructure",
 		"specs/coverage",
+		"docs/designs/business",
+		"docs/designs/functional",
+		"docs/designs/stack",
+		"docs/designs/infrastructure",
+		"docs/designs/coverage",
+		".vscode",
 		".github/agents",
 		".github/skills",
 		".github/workflows",
@@ -458,6 +502,18 @@ func cmdInit(targetDir string) {
 	// Copy spec templates
 	if err := copyEmbeddedDir(templateFiles, "templates/specs", ".smaqit/templates/specs"); err != nil {
 		fmt.Printf("Error copying spec templates: %v\n", err)
+		os.Exit(1)
+	}
+	if err := copyEmbeddedDir(designTemplateFiles, "templates/designs", ".smaqit/templates/designs"); err != nil {
+		fmt.Printf("Error copying design templates: %v\n", err)
+		os.Exit(1)
+	}
+	if _, err := materializeDesignTools("."); err != nil {
+		fmt.Printf("Error installing mandatory PlantUML runtime: %v\n", err)
+		os.Exit(1)
+	}
+	if err := installVSCodeMCPConfig("."); err != nil {
+		fmt.Printf("Error installing mandatory PlantUML MCP configuration: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -524,6 +580,8 @@ func cmdInit(targetDir string) {
 
 	fmt.Println("✓ Created .smaqit/ directory structure")
 	fmt.Println("✓ Copied templates")
+	fmt.Println("✓ Installed bundled PlantUML MCP and PNG rendering runtime")
+	fmt.Println("✓ Configured project-local PlantUML MCP discovery")
 	fmt.Println("✓ Copied agent definitions (GitHub Copilot + Claude Code + Codex)")
 	fmt.Println("✓ Copied skill files (GitHub Copilot + Claude Code + Codex)")
 	fmt.Println("✓ Copied workflow files")
@@ -771,6 +829,13 @@ func cmdUninstall() {
 	// Remove directories
 	errors := 0
 
+	if err := removeVSCodeMCPConfig("."); err != nil {
+		fmt.Printf("Error removing smaqit PlantUML MCP configuration: %v\n", err)
+		errors++
+	} else {
+		fmt.Println("✓ Removed smaqit PlantUML MCP configuration")
+	}
+
 	if err := os.RemoveAll(".smaqit"); err != nil {
 		fmt.Printf("Error removing .smaqit/: %v\n", err)
 		errors++
@@ -788,6 +853,7 @@ func cmdUninstall() {
 	} else {
 		fmt.Println("✓ Kept specs/ (user specifications)")
 	}
+	fmt.Println("✓ Kept docs/designs/ (user design artifacts)")
 
 	for _, dir := range []string{
 		filepath.Join(".github", "agents"),
@@ -861,11 +927,17 @@ func cmdValidate() {
 	// Check directory structure
 	requiredDirs := []string{
 		".smaqit/templates/specs",
+		".smaqit/templates/designs",
 		"specs/business",
 		"specs/functional",
 		"specs/stack",
 		"specs/infrastructure",
 		"specs/coverage",
+		"docs/designs/business",
+		"docs/designs/functional",
+		"docs/designs/stack",
+		"docs/designs/infrastructure",
+		"docs/designs/coverage",
 		".github/agents",
 		".github/skills",
 		".claude/agents",
@@ -884,6 +956,18 @@ func cmdValidate() {
 
 	if errors == 0 {
 		fmt.Println("✓ Directory structure is complete")
+	}
+	if err := preflightDesignTools(); err != nil {
+		fmt.Printf("✗ %v\n", err)
+		errors++
+	} else if err := validateMaterializedDesignTools(designRuntimePath(".")); err != nil {
+		fmt.Printf("✗ DESIGN-TOOLCHAIN-UNAVAILABLE: %v\n", err)
+		errors++
+	} else if err := validateVSCodeMCPConfig("."); err != nil {
+		fmt.Printf("✗ DESIGN-TOOLCHAIN-UNAVAILABLE: %v\n", err)
+		errors++
+	} else {
+		fmt.Println("✓ Mandatory PlantUML runtime and MCP configuration are valid")
 	}
 
 	// Validate spec files (basic checks)
@@ -936,6 +1020,11 @@ func cmdValidate() {
 		}
 	}
 
+	if err := validateDesigns(""); err != nil {
+		fmt.Printf("✗ %v\n", err)
+		errors++
+	}
+
 	fmt.Println()
 	if errors == 0 {
 		fmt.Println("✓ Validation passed - project structure is valid")
@@ -967,6 +1056,7 @@ func cmdStatus() {
 
 	// Count specs by layer and status
 	layerCounts := make(map[string]int)
+	activeLayerCounts := make(map[string]int)
 	layerStatusCounts := make(map[string]map[string]int)
 
 	for layer, specs := range allSpecs {
@@ -975,12 +1065,23 @@ func cmdStatus() {
 
 		for _, spec := range specs {
 			layerStatusCounts[layer][spec.Frontmatter.Status]++
+			if spec.Frontmatter.Status != "deprecated" {
+				activeLayerCounts[layer]++
+			}
 		}
 	}
 
 	totalSpecs := 0
+	designBlocked := 0
 	for _, count := range layerCounts {
 		totalSpecs += count
+	}
+	for _, specs := range allSpecs {
+		for _, spec := range specs {
+			if spec.Frontmatter.Status != "deprecated" && !spec.DesignReady {
+				designBlocked++
+			}
+		}
 	}
 
 	// Determine phase completion status
@@ -992,16 +1093,16 @@ func cmdStatus() {
 	developSpecs := getPhaseSpecs(allSpecs, "develop")
 	developImplemented := 0
 	for _, spec := range developSpecs {
-		if spec.Frontmatter.Status == "implemented" ||
+		if spec.DesignReady && (spec.Frontmatter.Status == "implemented" ||
 			spec.Frontmatter.Status == "deployed" ||
-			spec.Frontmatter.Status == "validated" {
+			spec.Frontmatter.Status == "validated") {
 			developImplemented++
 		}
 	}
 	// Require all three layers present
-	hasAllDevelopLayers := layerCounts["business"] > 0 &&
-		layerCounts["functional"] > 0 &&
-		layerCounts["stack"] > 0
+	hasAllDevelopLayers := activeLayerCounts["business"] > 0 &&
+		activeLayerCounts["functional"] > 0 &&
+		activeLayerCounts["stack"] > 0
 	developCompleted := hasAllDevelopLayers &&
 		len(developSpecs) > 0 &&
 		developImplemented == len(developSpecs)
@@ -1010,12 +1111,12 @@ func cmdStatus() {
 	deploySpecs := getPhaseSpecs(allSpecs, "deploy")
 	deployDeployed := 0
 	for _, spec := range deploySpecs {
-		if spec.Frontmatter.Status == "deployed" ||
-			spec.Frontmatter.Status == "validated" {
+		if spec.DesignReady && (spec.Frontmatter.Status == "deployed" ||
+			spec.Frontmatter.Status == "validated") {
 			deployDeployed++
 		}
 	}
-	deployCompleted := layerCounts["infrastructure"] > 0 &&
+	deployCompleted := activeLayerCounts["infrastructure"] > 0 &&
 		len(deploySpecs) > 0 &&
 		deployDeployed == len(deploySpecs)
 
@@ -1023,11 +1124,11 @@ func cmdStatus() {
 	validateSpecs := getPhaseSpecs(allSpecs, "validate")
 	validateValidated := 0
 	for _, spec := range validateSpecs {
-		if spec.Frontmatter.Status == "validated" {
+		if spec.DesignReady && spec.Frontmatter.Status == "validated" {
 			validateValidated++
 		}
 	}
-	validateCompleted := layerCounts["coverage"] > 0 &&
+	validateCompleted := activeLayerCounts["coverage"] > 0 &&
 		len(validateSpecs) > 0 &&
 		validateValidated == len(validateSpecs)
 
@@ -1086,23 +1187,31 @@ func cmdStatus() {
 
 	// Display total
 	fmt.Printf("\nTotal: %d specification(s)\n", totalSpecs)
+	if designBlocked > 0 {
+		fmt.Printf("Design gates: %d active specification(s) missing a current validated design; run 'smaqit validate' for migration diagnostics\n", designBlocked)
+	} else if totalSpecs > 0 {
+		fmt.Println("Design gates: ✓ all active specifications have current validated designs")
+	}
 
 	// Next steps based on actual spec content and status
 	fmt.Println("\nNext steps:")
+	if designBlocked > 0 {
+		fmt.Println("  • Migrate or repair the linked design pairs, visually review their PNGs, then run 'smaqit design validate'")
+	}
 
 	// Phase 1: Develop
 	if !developCompleted {
-		hasAnyPhase1 := layerCounts["business"] > 0 || layerCounts["functional"] > 0 || layerCounts["stack"] > 0
+		hasAnyPhase1 := activeLayerCounts["business"] > 0 || activeLayerCounts["functional"] > 0 || activeLayerCounts["stack"] > 0
 
 		if !hasAnyPhase1 {
 			fmt.Println("  • Run the smaqit.business agent to start with business specifications")
 		} else {
 			// Suggest missing layers first
-			if layerCounts["business"] == 0 {
+			if activeLayerCounts["business"] == 0 {
 				fmt.Println("  • Run the smaqit.business agent to add business specifications")
-			} else if layerCounts["functional"] == 0 {
+			} else if activeLayerCounts["functional"] == 0 {
 				fmt.Println("  • Run the smaqit.functional agent to add functional specifications")
-			} else if layerCounts["stack"] == 0 {
+			} else if activeLayerCounts["stack"] == 0 {
 				fmt.Println("  • Run the smaqit.stack agent to add technical stack specifications")
 			} else {
 				// All Phase 1 specs exist
@@ -1112,7 +1221,7 @@ func cmdStatus() {
 		}
 	} else if !deployCompleted {
 		// Phase 2: Deploy
-		if layerCounts["infrastructure"] == 0 {
+		if activeLayerCounts["infrastructure"] == 0 {
 			fmt.Println("  • Run the smaqit.infrastructure agent to define infrastructure specifications")
 		} else {
 			fmt.Println("  • Run 'smaqit plan --phase=deploy' to see work plan")
@@ -1120,7 +1229,7 @@ func cmdStatus() {
 		}
 	} else if !validateCompleted {
 		// Phase 3: Validate
-		if layerCounts["coverage"] == 0 {
+		if activeLayerCounts["coverage"] == 0 {
 			fmt.Println("  • Run the smaqit.coverage agent to define test coverage specifications")
 		} else {
 			fmt.Println("  • Run 'smaqit plan --phase=validate' to see work plan")

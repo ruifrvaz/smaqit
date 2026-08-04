@@ -28,6 +28,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [2.0.0] - 2026-08-04
+
+### Added
+- Parent-owned task lifecycle support: a declared child task joins its active parent's branch and worktree, inherits its execution mode, and cannot create or clean up its own Git lifecycle. A deterministic resolver validates ownership before task start or completion.
+- First-class PlantUML visual design artifacts across the Business, Functional, Stack, Infrastructure, and Coverage layers. The shipped CLI now provides pinned offline rendering, MCP integration, PNG attestation, structural and lifecycle validation, design-debt reporting, and phase-readiness gates.
+
+### Changed
+- Active specifications now require current, visually attested PlantUML/PNG design pairs before affected development, deployment, or validation phases can proceed. Specification agents own visual review; implementation agents consume the validated specification and PlantUML source after the automatic gate.
+- Node.js 22 or newer is now a required external runtime for the embedded PlantUML design toolchain; initialization and design execution fail fast when it is unavailable.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
 ## [1.12.0] - 2026-07-29
 
 ### Added
@@ -640,7 +665,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v1.12.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/ruifrvaz/smaqit/compare/v1.12.0...v2.0.0
 [1.12.0]: https://github.com/ruifrvaz/smaqit/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/ruifrvaz/smaqit/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/ruifrvaz/smaqit/compare/v1.9.0...v1.10.0

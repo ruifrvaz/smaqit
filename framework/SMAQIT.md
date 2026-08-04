@@ -1,6 +1,6 @@
 # smaqit Framework
 
-Spec-driven agent orchestration where specifications are split into layers and phases. Users provide requirements through session context (user input in chat), AI specification agents read from session context to write specifications, then implementation agents generate outputs from those specifications.
+Spec-and-design-driven agent orchestration where specifications and their visual design sidecars are split into layers and phases. Users provide requirements through session context, specification agents write requirements and canonical PlantUML designs, and implementation agents consume specifications plus validated PlantUML source to generate outputs.
 
 ## Core Principles
 
@@ -20,6 +20,14 @@ Implementation agents coordinate workflow activities within their phase via orch
 
 Specifications are not documentation—they are the source of truth. Implementation agents consume specs as contracts, not guidelines. This inverts the common pattern where code comes first and docs follow.
 
+### Designs Before Implementation
+
+**Every active specification has a current, validated visual design before implementation.**
+
+Specifications are canonical for requirements, constraints, acceptance criteria, and explanatory prose. PlantUML design sources are canonical for relationships, boundaries, order, state, component realization, deployment topology, and requirement-trace structure. Their PNG projections are the mandatory representation specification agents inspect during authoring-time visual validation. Specifications and designs reference one another; neither duplicates the other's authority.
+
+Designs are sidecars within the existing five layers, not a separate layer. Missing, stale, invalid, or visually unreadable designs stop the owning phase.
+
 ### Traceability Across Layers
 
 **Every output traces to its input source, creating an unbroken chain from user requirements through specifications to implementation.**
@@ -38,6 +46,8 @@ When a layer's agent is invoked, requirements come from the current session cont
 
 When information is needed in multiple contexts, reference the source rather than duplicate. Foundation specs contain shared requirements that multiple feature specs depend on. This prevents conflicting sources of truth, reduces maintenance burden, and ensures consistency across specifications.
 
+Authority is divided by information type: specifications own declarative requirements, PlantUML sources own design structure, and generated PNGs project that structure for visual consumption. A conflict between these authorities is an execution error, not permission to choose one silently.
+
 ### Complete Specification Coverage
 
 **Every requirement receives verification through traceable test coverage.**
@@ -49,6 +59,8 @@ Complete coverage emerges from explicit traceability. When requirements flow thr
 **Agents validate their own output before declaring completion.**
 
 Agents are not fire-and-forget. Each agent has completion criteria and verifies them before finishing. This shifts quality assurance left—into the agent itself, not a separate review step.
+
+Design acceptance always has three producer-owned gates: deterministic structural validation, PlantUML syntax/render validation, and specification-agent visual interpretation of the PNG. All three MUST pass before handoff. Visual interpretation MUST NOT fall back to reading PlantUML source. Phase agents rely on the hash-bound attestation enforced by `smaqit plan --phase` and read PlantUML source directly for implementation semantics.
 
 ### Bounded Agents
 
@@ -94,6 +106,8 @@ Specs are not static documents—they evolve through phases with tracked states:
 - **Deployed**: Running in target environment
 - **Validated**: All acceptance criteria verified
 - **Failed**: Processing failed at some phase
+
+Linked designs carry the same lifecycle. A semantic spec edit invalidates its linked designs; a semantic design edit invalidates every linked active spec. Source or image hash drift makes the design stale regardless of recorded status.
 
 ### Explicit Over Implicit
 

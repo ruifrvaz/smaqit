@@ -42,6 +42,20 @@ Agents receive requirements from session context:
 - Agents MUST NOT declare completion if any required criterion is unmet
 - Agents SHOULD iterate on output until validation passes
 
+### Mandatory Visual Design Gate
+
+Specification agents produce canonical PlantUML/PNG pairs for their layer. Before completion, specification agents MUST:
+
+1. invoke the PlantUML MCP syntax tool;
+2. render or refresh the PNG through the smaqit design command;
+3. open the PNG through the host image-reading capability;
+4. apply the standard visual rubric;
+5. stop on any deterministic, render, or visual failure.
+
+A specification agent that cannot obtain visual image content MUST stop with `DESIGN-VISION-UNAVAILABLE`. It MUST NOT inspect PlantUML source as a substitute for authoring-time visual review.
+
+Implementation agents do not repeat this visual gate. `smaqit plan --phase=[PHASE]` automatically verifies that every in-scope specification has a current, visually attested design pair before returning implementation work. After that gate passes, implementation agents consume specification Markdown for requirements and PlantUML source for canonical design structure. They MUST NOT author, render, visually review, attest, or repair designs.
+
 ### Scope Boundaries
 
 Each agent has a single responsibility defined by its layer or phase.
@@ -335,6 +349,7 @@ Completion status includes detailed report of activity outcomes and validation r
 
 **Implementation agents MUST:**
 - Determine which specs to process using `smaqit plan --phase=[PHASE]` (outputs spec file paths, one per line)
+- Stop and return a `DESIGN-*` failure to the owning specification agent when the automatic plan readiness gate exits nonzero
 - Process only specs with `status: draft` or `status: failed` by default
 - Support regeneration mode via `--regen` flag to process all specs regardless of status
 - Report completion when no specs require processing and suggest `--regen` flag if appropriate

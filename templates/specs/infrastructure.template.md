@@ -6,6 +6,10 @@ created: [TIMESTAMP]
 
 # [CONCEPT_NAME]
 
+## Design References
+
+- [DSG-INF-[CONCEPT]-DEPLOYMENT](../../docs/designs/infrastructure/dsg-inf-[concept]-deployment.md) · [Image](../../docs/designs/infrastructure/dsg-inf-[concept]-deployment.png)
+
 ## References
 
 <!-- References establish traceability and coherence, not requirement derivation -->

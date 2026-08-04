@@ -1,14 +1,15 @@
 # Templates
 
-Templates define the structure that agents MUST follow when producing output. This document establishes the rules for both specification templates and agent templates.
+Templates define the structure that agents MUST follow when producing output. This document establishes the rules for specification, design, and agent templates.
 
 ## Template Types
 
-smaqit uses two types of templates:
+smaqit uses three types of templates:
 
 | Type | Location | Purpose | Produces |
 |------|----------|---------|----------|
 | **Specification templates** | `templates/specs/` | Structure for spec documents | `specs/**/*.md` |
+| **Design templates** | `templates/designs/` | Structure for canonical PlantUML designs | `docs/designs/**/*.md` |
 | **Agent templates** | `templates/agents/` | Structure for agent definitions | `agents/*.agent.md` |
 
 ## Placeholder Convention
@@ -85,6 +86,7 @@ Every specification template MUST include:
 |---------|---------|
 | Frontmatter | YAML metadata with state tracking |
 | Title | Concept name |
+| Design References | Canonical design source and PNG links |
 | References | Upstream spec links (except Business) |
 | Scope | What's included and excluded |
 | [Layer-specific content] | Varies by layer |
@@ -130,6 +132,22 @@ When producing specs from templates:
 - All placeholders MUST be replaced with actual content
 - If a section is not applicable, state "Not applicable: [reason]"
 - Empty sections are not permitted
+
+## Design Templates
+
+Design templates live in `templates/designs/`, one per canonical layer. They define a default high-signal view while allowing additional controlled views where the layer profile permits them.
+
+Every generated design MUST:
+
+- preserve the template's required frontmatter fields;
+- contain exactly one fenced `plantuml` block after frontmatter;
+- contain no Markdown title, prose, table, HTML, image link, or second code block;
+- use a controlled layer-specific `diagram_type`;
+- link only same-layer specifications in metadata;
+- be rendered to a same-basename PNG before completion;
+- pass structural, PlantUML, and visual gates.
+
+Agents MUST NOT treat a design template as permission to repeat requirements, acceptance criteria, rationale, or specification text inside diagram labels. Labels identify model elements and relationships only.
 
 ## Agent Templates
 

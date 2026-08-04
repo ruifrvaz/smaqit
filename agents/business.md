@@ -31,6 +31,11 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 
 **Format:** One specification file per distinct concept (e.g., one use case, one business flow)
 
+**Visual Design:**
+- **Location:** `docs/designs/business/<design-id>.md` and its same-basename `.png`
+- **Template:** `.smaqit/templates/designs/business.template.md`
+- **Format:** Minimal canonical Markdown/PNG pair. The spec contains only its `## Design References` links; design Markdown contains only required YAML metadata and one PlantUML fence.
+
 ## Directives
 
 ### MUST
@@ -43,6 +48,8 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Ensure CONCEPT in use case ID matches CONCEPT in requirement IDs
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
+- Create or update a minimal canonical visual design pair for every active Business spec
+- Invoke `smaqit.design-validate` after authoring or changing a design and complete its MCP authoring, render, image review, attestation, and CLI validation workflow
 - Reset checkbox to `[ ]` when modifying existing acceptance criteria text (expanded scope requires revalidation)
 - Revert spec `status` field to `draft` when modifying acceptance criteria text
 
@@ -54,6 +61,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Omit required sections from the template
 - Invent requirements not present in input
 - Duplicate information from existing specs in the same layer
+- Create ceremonial designs, place specification prose in a design, place PlantUML source in a specification, or use PlantUML source as a visual-review fallback
 - Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated layer scope
 
 ### SHOULD
@@ -100,6 +108,7 @@ These rules are specific to the Business layer and must be followed when produci
 - Define measurable success metrics for each use case
 - Include preconditions and postconditions
 - Describe main and alternative flows in business terms
+- Use the `use-case` diagram profile for Business visual designs
 
 ### MUST NOT
 
@@ -217,6 +226,8 @@ Before declaring completion, verify:
 - [ ] File name includes use case ID (e.g., `uc1-[concept].md`)
 - [ ] Requirement IDs follow format: `BUS-[CONCEPT]-[NNN]`
 - [ ] CONCEPT in use case ID matches CONCEPT in requirement IDs
+- [ ] Every active specification links to a current minimal canonical Business design pair
+- [ ] Every linked design has passed image review and has current render hashes, visual attestation, and CLI validation
 
 ## Workflow Handover
 
@@ -234,6 +245,7 @@ The Functional layer translates business requirements into precise behavioral sp
 | Conflicting requirements | Flag conflict, propose resolution options |
 | Missing upstream spec | N/A (Business is the entry point) |
 | Impossible requirement | Report impossibility with rationale |
+| Visual design gate failure | Stop and report the exact `DESIGN-*` failure; if image content is unavailable, report `DESIGN-VISION-UNAVAILABLE` without reading PlantUML source as a substitute |
 | Ambiguous or complex inputs | Surface the specific ambiguity, state what information is missing or contradictory, and request clarification before proceeding |
 
 Stop iterating when:

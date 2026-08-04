@@ -262,6 +262,20 @@ The Coverage layer ensures all requirements are testable and traceable. It reads
 - Modify or reinterpret upstream acceptance criteria
 - Define unit tests (those are implementation details)
 
+## Minimal Design Profiles
+
+Designs use PlantUML and remain inside their owning specification layer. Every active spec is covered by at least one same-layer design; related specs SHOULD share a design when that remains readable and high-signal.
+
+| Layer | Required default view | Conditional high-signal views |
+|-------|-----------------------|-------------------------------|
+| Business | `use-case` | None; split by actor goal when readability requires it |
+| Functional | `system-sequence` | `domain-model`, `context-map`, `state` when domain boundaries, entities, or lifecycle behavior exist |
+| Stack | `component` | Technology realization detail when one component view cannot express a material constraint |
+| Infrastructure | `deployment` | Network/topology detail when deployment boundaries require it |
+| Coverage | `requirement-trace` | None; it visualizes existing mappings only |
+
+DDD views use controlled stereotypes such as `BoundedContext`, `Aggregate`, `Entity`, `ValueObject`, `DomainService`, and `Repository`. External profiles, remote includes, and `!include` directives are forbidden so renders remain offline and reproducible.
+
 ## Dependency Graph
 
 ```

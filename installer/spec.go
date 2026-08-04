@@ -13,12 +13,12 @@ import (
 
 // SpecFrontmatter represents the YAML frontmatter in specification files
 type SpecFrontmatter struct {
-	ID            string    `yaml:"id"`
-	Status        string    `yaml:"status"`
-	Created       time.Time `yaml:"created"`
-	Implemented   time.Time `yaml:"implemented,omitempty"`
-	Deployed      time.Time `yaml:"deployed,omitempty"`
-	Validated     time.Time `yaml:"validated,omitempty"`
+	ID          string    `yaml:"id"`
+	Status      string    `yaml:"status"`
+	Created     time.Time `yaml:"created"`
+	Implemented time.Time `yaml:"implemented,omitempty"`
+	Deployed    time.Time `yaml:"deployed,omitempty"`
+	Validated   time.Time `yaml:"validated,omitempty"`
 }
 
 // Spec represents a specification file with its metadata
@@ -26,6 +26,8 @@ type Spec struct {
 	Path        string
 	Layer       string
 	Frontmatter SpecFrontmatter
+	DesignReady bool
+	DesignError string
 }
 
 // scanSpecs scans all spec directories and parses frontmatter from markdown files
@@ -67,10 +69,13 @@ func scanSpecs() (map[string][]Spec, error) {
 				}
 			}
 
+			designReady, designErr := specDesignReady(specPath, layer)
 			layerSpecs = append(layerSpecs, Spec{
 				Path:        specPath,
 				Layer:       layer,
 				Frontmatter: *frontmatter,
+				DesignReady: designReady,
+				DesignError: designErr,
 			})
 		}
 
@@ -152,6 +157,9 @@ func filterSpecsByStatus(specs []Spec, phase string, regen bool) []Spec {
 	var toProcess []Spec
 
 	for _, spec := range specs {
+		if spec.Frontmatter.Status == "deprecated" {
+			continue
+		}
 		switch phase {
 		case "develop":
 			// Process draft and failed, skip implemented/deployed/validated
@@ -174,19 +182,67 @@ func filterSpecsByStatus(specs []Spec, phase string, regen bool) []Spec {
 	return toProcess
 }
 
+// validatePhaseDesignReadiness enforces the specification agents' design
+// acceptance contract before a phase exposes any implementation work.
+func validatePhaseDesignReadiness(specs []Spec) error {
+	for _, spec := range specs {
+		if !spec.DesignReady {
+			return fmt.Errorf("%s: %s", spec.Path, spec.DesignError)
+		}
+	}
+	return nil
+}
+
 // getPhaseSpecs returns all specs for a given phase's layers
 func getPhaseSpecs(allSpecs map[string][]Spec, phase string) []Spec {
 	var specs []Spec
+	appendActive := func(candidates []Spec) {
+		for _, spec := range candidates {
+			if spec.Frontmatter.Status != "deprecated" {
+				specs = append(specs, spec)
+			}
+		}
+	}
 
 	switch phase {
 	case "develop":
-		specs = append(specs, allSpecs["business"]...)
-		specs = append(specs, allSpecs["functional"]...)
-		specs = append(specs, allSpecs["stack"]...)
+		appendActive(allSpecs["business"])
+		appendActive(allSpecs["functional"])
+		appendActive(allSpecs["stack"])
 	case "deploy":
-		specs = allSpecs["infrastructure"]
+		appendActive(allSpecs["infrastructure"])
 	case "validate":
-		specs = allSpecs["coverage"]
+		appendActive(allSpecs["coverage"])
+	}
+
+	return specs
+}
+
+// getPhaseDesignGateSpecs returns every specification whose design source is
+// consumed by a phase, without changing the target-layer paths emitted by plan.
+func getPhaseDesignGateSpecs(allSpecs map[string][]Spec, phase string) []Spec {
+	var specs []Spec
+	appendActive := func(layer string) {
+		for _, spec := range allSpecs[layer] {
+			if spec.Frontmatter.Status != "deprecated" {
+				specs = append(specs, spec)
+			}
+		}
+	}
+
+	switch phase {
+	case "develop":
+		for _, layer := range []string{"business", "functional", "stack"} {
+			appendActive(layer)
+		}
+	case "deploy":
+		for _, layer := range []string{"stack", "infrastructure"} {
+			appendActive(layer)
+		}
+	case "validate":
+		for _, layer := range []string{"business", "functional", "stack", "infrastructure", "coverage"} {
+			appendActive(layer)
+		}
 	}
 
 	return specs

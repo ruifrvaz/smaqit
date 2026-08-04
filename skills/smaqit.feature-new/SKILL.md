@@ -1,6 +1,6 @@
 ---
 name: smaqit.feature-new
-description: Use when adding a post-MVP feature to a project that has already completed a `smaqit.new-greenfield-project` run (or equivalent) and has a deployed target. Applies greenfield's task-per-phase discipline and amendment gate to iterative feature work — spec revalidation, development, deployment, validation, close-out — without requirements extraction, from-scratch specs, or a dev-VM sweep. Defaults deployment to the existing target instead of provisioning a new VM. Also use when the user says "add a feature to this project", "iterate on the deployed app", or asks for post-MVP work and the project already has an Infrastructure spec with `status: deployed`.
+description: "Use when adding a post-MVP feature to a project that has already completed a `smaqit.new-greenfield-project` run (or equivalent) and has a deployed target. Applies greenfield's task-per-phase discipline and amendment gate to iterative feature work — spec revalidation, development, deployment, validation, close-out — without requirements extraction, from-scratch specs, or a dev-VM sweep. Defaults deployment to the existing target instead of provisioning a new VM. Also use when the user says 'add a feature to this project', 'iterate on the deployed app', or asks for post-MVP work and the project already has an Infrastructure spec with `status: deployed`."
 metadata:
   version: "2.0.0"
 ---
@@ -70,13 +70,13 @@ Phase 1 is the sole owner of incremental specification generation/revalidation f
    - No new branch or worktree is created. The child inherits the parent's mode.
    - Message to user: `"Task $P1 joined parent Task $PARENT at <worktree-path>."`
 2. Invoke `/smaqit.business` → `/smaqit.functional` → `/smaqit.stack` → `/smaqit.infrastructure` → `/smaqit.coverage` as needed. At each, apply the Incremental Spec Updates decision table in [references/spec-lifecycle-reference.md](references/spec-lifecycle-reference.md).
-3. Run `smaqit plan --phase=develop` (no `--regen`) to confirm scope — see the Incremental Plan Resolution table in the same reference for exact behavior.
+3. Invoke `smaqit.design-validate` for every touched/confirmed pair, then run `smaqit design validate` and `smaqit plan --phase=develop` (no `--regen`) to confirm design readiness and scope — see the Incremental Plan Resolution table in the same reference for exact behavior.
 4. For any spec needing only a status bump with no content change (e.g. re-confirming `implemented` still holds after this feature's tests pass), use `smaqit.spec-status-update` rather than re-invoking a full spec agent.
-5. **Gate:** All touched specs have `status: draft` (new/updated) or their existing status confirmed still accurate. User reviews and approves the touched spec set.
+5. **Gate:** All touched specs have `status: draft` (new/updated) or their existing status confirmed still accurate; every active touched spec has a current visually reviewed same-layer design pair. User reviews and approves the touched spec/design set.
 6. **Record durable spec handoff** in the Phase 1 task under `Decisions made`. List exact touched/confirmed spec paths grouped by consumer:
-   - **Develop** — Business, Functional, and Stack spec paths
-   - **Deploy** — Infrastructure spec paths + Stack spec paths (for runtime context)
-   - **Validate** — Coverage spec paths + all upstream specs referenced by Coverage
+   - **Develop** — Business, Functional, and Stack spec paths plus their exact PlantUML design Markdown paths
+   - **Deploy** — Infrastructure spec paths + Stack spec paths (for runtime context) plus their exact PlantUML design Markdown paths
+   - **Validate** — Coverage spec paths + all upstream specs referenced by Coverage plus their exact PlantUML design Markdown paths
    This handoff is the single source of truth for Phases 2–4; they re-read it from the Phase 1 task file so context compaction or a clean resumed session cannot lose which specs were confirmed.
 7. **Complete the Phase 1 child:**
    ```
@@ -95,7 +95,7 @@ Phase 1 is the sole owner of incremental specification generation/revalidation f
 2. Re-read the Phase 1 task file. Extract the **Develop** handoff paths (Business, Functional, Stack specs).
 3. Invoke `/smaqit.development` with `specification_mode: prevalidated` and the Develop handoff paths. The Development agent skips specification generation, reads the confirmed specs, consolidates, plans, and implements.
    - Explicitly instruct the agent to use the canonical `<!-- amendment: DATE — description -->` tag for any spec divergence (package mismatch, config change, structural adaptation) — not a prose blockquote.
-4. **Gate:** Build passes. All this feature's acceptance criteria met. Development agent sets touched specs to `status: implemented`.
+4. **Gate:** Build passes. All this feature's acceptance criteria met. Development agent sets touched specs and linked designs to `status: implemented` under the least-advanced linked-spec rule, then reruns `smaqit design validate`.
 5. **Complete the Phase 2 child:**
    ```
    smaqit.task-complete $P2
@@ -273,7 +273,7 @@ Phase 5 is the last child task. It runs the release chain on the feature branch,
 ## Completion
 
 - [ ] Phase 0: parent task created and started (branch + worktree active), 5 phase children created via `--parent`, execution mode confirmed
-- [ ] Phase 1: touched specs revalidated per the Incremental Spec Updates decision table, scope confirmed via `smaqit plan --phase=develop`, durable handoff recorded, child completed
+- [ ] Phase 1: touched specs and design pairs revalidated and visually reviewed by their specification agents, exact PlantUML Markdown paths recorded, scope confirmed via `smaqit plan --phase=develop`, durable handoff recorded, child completed
 - [ ] Phase 2: implementation complete, specs set to `implemented`, any divergence recorded via canonical `amendment:` tag, child completed
 - [ ] Phase 3: `provisioning_mode` resolved with the existing-target-first override; deploy PR merged, CI/CD deploy verified; amendment gate clear; child completed
 - [ ] Phase 4: validation complete, any post-deployment amendments written to feature branch, child completed

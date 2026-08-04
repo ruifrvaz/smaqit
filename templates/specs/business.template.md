@@ -6,6 +6,10 @@ created: [TIMESTAMP]
 
 # UC[N]-[CONCEPT]: [USE_CASE_NAME]
 
+## Design References
+
+- [DSG-BUS-[CONCEPT]-USE-CASE](../../docs/designs/business/dsg-bus-[concept]-use-case.md) · [Image](../../docs/designs/business/dsg-bus-[concept]-use-case.png)
+
 <!-- Use Case Identifier Format: UC[N]-[CONCEPT]
      - UC: Use Case prefix
      - [N]: Sequential number (UC1, UC2, UC3, ...)

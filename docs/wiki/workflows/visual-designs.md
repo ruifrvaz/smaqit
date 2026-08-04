@@ -1,0 +1,38 @@
+# Canonical Visual Designs
+
+Smaqit treats a small set of high-signal visual designs as mandatory specification sidecars. Designs do not form a sixth layer and do not duplicate specification prose.
+
+## Contract
+
+Each active spec links at least one same-layer pair:
+
+```text
+docs/designs/<layer>/<design-id>.md
+docs/designs/<layer>/<design-id>.png
+```
+
+The Markdown file is canonical for model structure and contains only required YAML frontmatter plus exactly one `plantuml` fence. The PNG is the generated projection used for specification-agent visual validation and human review. Specifications contain only links in `## Design References`; design metadata contains normalized spec paths and requirement IDs.
+
+Default profiles are `use-case` (Business), `system-sequence` (Functional), `component` (Stack), `deployment` (Infrastructure), and `requirement-trace` (Coverage). Additional Functional domain/context/state views are justified only when they materially clarify the model. Avoid ceremonial diagrams.
+
+## Authoring Gate
+
+1. Start from `.smaqit/templates/designs/<layer>.template.md` and link the pair from its specs.
+2. Use the `smaqit-plantuml` MCP tools to check syntax and iterate.
+3. Run `smaqit design render docs/designs/<layer>/<id>.md` to produce the current PNG and record hashes.
+4. The owning specification agent opens the PNG with its image-reading tool and checks legibility, clipping, direction/order, boundaries, disconnected elements, coherence, and excessive complexity.
+5. Correct and rerender until the image passes, then run `smaqit design attest <file>` and `smaqit design validate <file>`.
+
+Image capability is mandatory for specification agents. If it is unavailable, stop with `DESIGN-VISION-UNAVAILABLE`; PlantUML source reading is not an authoring-time visual-review fallback.
+
+At implementation handoff, `smaqit plan --phase=<phase>` exits nonzero unless every in-scope design pair retains a current visual attestation. Implementation agents do not reopen PNGs: they read specification Markdown for requirements and PlantUML Markdown for canonical design structure.
+
+## Strict Migration
+
+After updating and re-running `smaqit init`, an existing project with active specs and incomplete design pairs fails `smaqit validate`, `smaqit plan`, and affected phase completion checks. Migrate each active spec by authoring the smallest useful same-layer pair, adding bidirectional references, rendering, visually reviewing, attesting, and validating it. Smaqit does not create placeholders or waive the gate.
+
+## Installation and Ownership
+
+The released Go binary embeds exact npm-lock-resolved dependencies for `@plantuml/mcp-js`, `@resvg/resvg-wasm`, and Noto Sans. Initialization first verifies the archive and Node.js 22+, then materializes the versioned runtime under `.smaqit/tools/plantuml/`. It configures the owned `smaqit-plantuml` server in `.vscode/mcp.json`, while Claude and Codex agents carry project-local MCP declarations.
+
+Reinstallation repairs smaqit-owned runtime/configuration and preserves unrelated MCP entries. Uninstall removes owned tooling and configuration but preserves `docs/designs/`.

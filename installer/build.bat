@@ -107,9 +107,15 @@ if not exist framework mkdir framework
 xcopy /E /I /Y ..\framework framework >nul
 if not exist templates\workflows mkdir templates\workflows
 xcopy /E /I /Y ..\templates\specs templates\specs >nul
+xcopy /E /I /Y ..\templates\designs templates\designs >nul
 copy /Y ..\.github\workflows\copilot-setup-steps.yml templates\workflows\ >nul
 copy /Y ..\templates\AGENTS.md.template templates\ >nul
 copy /Y ..\templates\CLAUDE.md.template templates\ >nul
+node ..\scripts\prepare-design-tools.mjs
+if errorlevel 1 exit /b 1
+if not exist tools mkdir tools
+tar -czf tools\plantuml-tools.tgz -C tools\plantuml-runtime .
+if errorlevel 1 exit /b 1
 python ..\scripts\generate-agents.py
 if errorlevel 1 exit /b 1
 set SMAQIT_PREPARED=1
@@ -122,6 +128,7 @@ goto end
 :clean
 echo Cleaning build artifacts...
 if exist %DIST_DIR% rmdir /s /q %DIST_DIR%
+if exist tools rmdir /s /q tools
 echo Done.
 goto end
 

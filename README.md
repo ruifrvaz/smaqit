@@ -6,7 +6,8 @@ Built for teams that value auditability, clear boundaries, and reproducible work
 
 ## Features
 
-- **Lightweight** — Single binary, no dependencies. `smaqit init` scaffolds everything.
+- **One installer** — The released binary embeds smaqit's pinned PlantUML MCP, JavaScript/WASM renderer, font, templates, and agent integrations. Node.js 22+ is the only host prerequisite.
+- **Visual design gates** — Minimal UML-style PlantUML/PNG design pairs are linked to every active specification, visually reviewed by specification agents, and automatically gated before implementation agents consume their PlantUML source.
 - **Traceable requirements** — Requirements captured in session context with full traceability from input to spec to implementation.
 - **Stateful specs** — Specifications track lifecycle: draft → implemented → deployed → validated.
 - **Bounded agents** — Each agent owns one layer or phase. No scope creep.
@@ -25,6 +26,8 @@ Currently supported:
 | Other AI assistants | Planned |
 
 ## Getting Started
+
+**Prerequisite:** Node.js 22 or newer. Consumer installation and execution never run npm/npx or resolve packages over the network.
 
 **Install:**
 
@@ -62,6 +65,9 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 | `smaqit status` | Show project state and spec coverage |
 | `smaqit plan` | Show specs to process (for agents) |
 | `smaqit validate` | Verify project structure integrity |
+| `smaqit design render <file>` | Syntax-check PlantUML and render its canonical PNG |
+| `smaqit design attest <file>` | Record the active agent's visual review against current hashes |
+| `smaqit design validate [file]` | Run structural, PlantUML, and visual-attestation gates |
 | `smaqit help` | Show detailed command help |
 | `smaqit uninstall` | Remove smaqit from project |
 | `smaqit update` | Update smaqit to the latest release |
@@ -81,7 +87,7 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 | `smaqit.validation` | Run tests against deployed system | direct command | named subagent |
 | `smaqit.qa` | Answer questions about the smaqit framework | direct command | named subagent |
 
-On Claude Code, the five specification agents are Task-delegated subagents rather than standalone slash commands — the same `user-invocable: false` boundary they already have in GitHub Copilot. Codex discovers all nine project agents from `.codex/agents/*.toml` and the 25 repository skills from `.agents/skills/`; skills can be selected with `/skills` or mentioned with `$`.
+On Claude Code, the five specification agents are Task-delegated subagents rather than standalone slash commands — the same `user-invocable: false` boundary they already have in GitHub Copilot. Codex discovers all nine project agents from `.codex/agents/*.toml` and the 26 repository skills from `.agents/skills/`; skills can be selected with `/skills` or mentioned with `$`.
 
 ### Reinstallation and Updates
 

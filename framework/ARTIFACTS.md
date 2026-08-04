@@ -2,8 +2,9 @@
 
 Artifacts are the outputs produced by agents. This document establishes the rules all artifacts MUST follow.
 
-There are two types of artifacts:
+There are three types of artifacts:
 - **Specification artifacts** — Declarative documents stating what must be true
+- **Design artifacts** — Canonical PlantUML structure plus a generated PNG visual projection
 - **Implementation artifacts** — Imperative outputs stating how to make it true
 
 ---
@@ -359,6 +360,61 @@ Validate: 12 validated, 5 draft
 ```
 
 Implementation agents update individual spec frontmatter. The CLI reads all specs and calculates aggregate counts.
+
+---
+
+## Design Artifacts
+
+Designs are canonical, layer-scoped sidecars for specifications. They contain no requirements or explanatory prose. They express only relationships, boundaries, interaction order, states, component realization, deployment topology, or requirement-trace structure.
+
+### File Pair
+
+Every design is a same-basename pair:
+
+```text
+docs/designs/<layer>/<design-id>.md
+docs/designs/<layer>/<design-id>.png
+```
+
+The Markdown file contains YAML frontmatter followed by exactly one fenced `plantuml` block. It MUST NOT contain a title, prose, table, reference section, second block, HTML, or embedded image. The PNG is generated from that PlantUML block and is the mandatory representation for specification-agent visual validation; implementation agents consume the PlantUML source after readiness passes.
+
+### Design Identifier
+
+Design IDs use `DSG-[LAYER_PREFIX]-[CONCEPT]-[VIEW]`, where the layer prefix is one of `BUS`, `FUN`, `STK`, `INF`, or `COV`. IDs are globally unique, stable, and never reused after deprecation. Filenames are the lowercase design ID.
+
+### Frontmatter
+
+Required metadata:
+
+- `id`, `status`, and `created` follow specification frontmatter conventions.
+- `layer` is one of the five canonical layers.
+- `diagram_type` is allowed by that layer's controlled design profile.
+- `notation` MUST equal `plantuml`.
+- `specifications` lists one or more normalized relative paths to active same-layer specs.
+- `requirements` lists requirement IDs that exist in those specifications.
+- `source_sha256` hashes the PlantUML source normalized to LF with exactly one final newline.
+- `image_sha256` hashes the raw PNG bytes.
+- `visual_validation` records `status`, `validated_at`, and the exact source/image hashes reviewed by the authoring agent.
+
+### Reference Rules
+
+Every active spec MUST contain `## Design References` with links to the canonical Markdown and PNG. One high-signal design may serve several related specs. The design's `specifications` metadata and every spec link MUST agree bidirectionally. Specs contain links only; designs contain metadata paths only.
+
+All reference paths MUST stay within the project, resolve without symlink/path traversal escape, and match the declared layer. Coverage designs visualize existing traceability but MUST NOT create requirements or duplicate the Coverage Map.
+
+### Validation Gates
+
+1. **Structural:** schema, ID, layer/profile, one-block/no-prose content, safe paths, bidirectional references, requirement existence, PNG signature/dimensions, hashes, lifecycle, and minimum coverage.
+2. **PlantUML:** syntax check, SVG render, and SVG-to-PNG conversion through the shipped pinned toolchain.
+3. **Visual:** the owning specification agent opens the PNG and verifies legibility, clipping, direction/order, boundaries, disconnected elements, coherence, and excessive complexity.
+
+Failure codes are stable: `DESIGN-TOOLCHAIN-UNAVAILABLE`, `DESIGN-ARTIFACT-MISSING`, `DESIGN-ARTIFACT-STALE`, `DESIGN-SYNTAX-INVALID`, `DESIGN-VISION-UNAVAILABLE`, and `DESIGN-VISUAL-INVALID`. There is no source-reading fallback for the authoring-time visual gate. At the downstream boundary, `smaqit plan --phase` verifies the current hash-bound attestation before implementation agents consume PlantUML source.
+
+### Design Lifecycle
+
+A semantic PlantUML edit resets the design and every linked active spec to `draft`. A semantic spec edit resets its linked designs to `draft`. A shared design cannot advance beyond its least-advanced linked spec. Hash disagreement makes a pair stale and phase-ineligible regardless of frontmatter status. Deprecated specs and designs are excluded from mandatory coverage but their IDs remain reserved.
+
+Existing projects with active specifications and no compliant design pairs fail validation with migration diagnostics. Smaqit does not generate placeholders or waive gates.
 
 ---
 

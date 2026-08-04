@@ -5,6 +5,7 @@ Build a "Hello, Mario!" console app from requirements to working code using smaq
 ## Prerequisites
 
 - smaqit installed (`curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit/main/install.sh | bash`)
+- Node.js 22 or newer on `PATH` (all JavaScript/WASM packages are already embedded in smaqit)
 - GitHub Copilot in VS Code, Claude Code, or OpenAI Codex
 - A new or existing project directory
 
@@ -22,6 +23,7 @@ This creates:
 - `.claude/agents/`, `.claude/commands/`, `.claude/skills/` — Claude Code integration
 - `.codex/agents/`, `.agents/skills/` — Codex project agents and repository skills
 - `specs/` — Where generated specifications go
+- `docs/designs/{business,functional,stack,infrastructure,coverage}/` — Canonical PlantUML Markdown/PNG design pairs
 
 ## Step 2: Run the Development Phase
 
@@ -48,7 +50,7 @@ The app should:
 ```
 
 The agent will:
-1. Generate Business, Functional, and Stack specifications in `specs/`
+1. Generate Business, Functional, and Stack specifications in `specs/` with linked, visually reviewed design pairs in `docs/designs/`
 2. Build the application code
 3. Run tests to verify it works
 

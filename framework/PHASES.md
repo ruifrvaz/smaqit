@@ -6,19 +6,23 @@ Phases are the sequential stages of software development in smaqit. Each phase i
 
 smaqit operates in three sequential phases:
 
-| Phase | Name | Specification Artifacts | Implementation Artifacts |
-|-------|------|------------------------|-------------------------|
-| Phase 1 | Develop | Business, Functional, Stack | Code, README, Development report in `.smaqit/reports/` |
-| Phase 2 | Deploy | Infrastructure | Running system, Deployment report in `.smaqit/reports/` |
-| Phase 3 | Validate | Coverage | Validation report in `.smaqit/reports/` |
+| Phase | Name | Specification Artifacts | Design Artifacts | Implementation Artifacts |
+|-------|------|------------------------|------------------|-------------------------|
+| Phase 1 | Develop | Business, Functional, Stack | Use-case, system-sequence/domain, component PNGs | Code, README, Development report in `.smaqit/reports/` |
+| Phase 2 | Deploy | Infrastructure | Deployment/topology PNGs | Running system, Deployment report in `.smaqit/reports/` |
+| Phase 3 | Validate | Coverage | Requirement-trace PNGs | Validation report in `.smaqit/reports/` |
 
 Each phase:
-1. **Specifies** — One or more specification agents produce layer specs
-2. **Consolidates** — Implementation agent verifies cross-layer coherence
-3. **Implements** — Implementation agent produces and executes artifacts
-4. **Verifies** — Implementation agent confirms success before phase completion
+1. **Specifies** — One or more specification agents produce layer specs and canonical designs
+2. **Renders** — PlantUML syntax and PNG generation pass deterministically
+3. **Inspects** — The owning specification agent reads each PNG, passes the visual rubric, and records hash-bound attestation
+4. **Gates and consolidates** — `smaqit plan --phase` enforces design readiness, then the implementation agent reads specifications and PlantUML source to verify cross-layer coherence
+5. **Implements** — Implementation agent produces and executes artifacts
+6. **Verifies** — Implementation agent confirms success before phase completion
 
 Phases are strictly sequential. Deploy cannot begin until Develop completes. Validate cannot begin until Deploy completes. This constraint is subject to revision based on real-world usage (see [SMAQIT](SMAQIT.md)).
+
+A phase is incomplete when any required design is missing, stale, syntactically invalid, visually invalid, visually unreviewed for its current hashes, or behind its linked specifications. PlantUML source is not a fallback for the specification agent's visual gate; it is the canonical design-consumption format after that gate passes.
 
 ### Implementation Phase Principles
 
@@ -53,6 +57,7 @@ Implementation agents perform pre-orchestration validation to verify readiness (
 - Input sufficiency check for session context
 - Context sufficiency check — session context contains actionable requirements for spec generation
 - Execution environment readiness
+- Automatic `smaqit plan --phase=develop` design-readiness gate after specification generation
 
 Validation failures halt workflow with guidance describing missing requirements or configuration issues.
 
@@ -95,6 +100,7 @@ Implementation agents perform pre-orchestration validation to verify readiness (
 - Input sufficiency check for infrastructure requirements
 - Context sufficiency check — session context contains actionable deployment requirements
 - Execution environment and credentials readiness
+- Automatic `smaqit plan --phase=deploy` design-readiness gate after specification generation
 
 Validation failures halt workflow with guidance describing missing requirements or configuration issues.
 
@@ -174,6 +180,7 @@ Implementation agents perform pre-orchestration validation to verify readiness (
 - Input sufficiency check for test requirements
 - Context sufficiency check — session context contains actionable test requirements
 - Deployed system accessibility and test execution environment readiness
+- Automatic `smaqit plan --phase=validate` design-readiness gate after specification generation
 
 Validation failures halt workflow with guidance describing missing requirements or configuration issues.
 
@@ -338,6 +345,8 @@ Implementation agents run `smaqit plan --phase=[PHASE]` to get paths to specs ne
 |------|---------|-----------|
 | Incremental | `smaqit plan --phase=develop` | Only specs with `status: draft` or `status: failed` |
 | Regeneration | `smaqit plan --phase=develop --regen` | All specs regardless of status |
+
+For every phase, the command exits nonzero without emitting implementation paths when an in-scope specification lacks a current, visually attested design pair.
 
 **Adding Features:**
 

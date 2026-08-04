@@ -74,15 +74,16 @@ Run each spec agent sequentially. Each agent reads the previous layer's output a
 4. Invoke `/smaqit.stack` agent.
 5. Invoke `/smaqit.infrastructure` agent.
 6. Invoke `/smaqit.coverage` agent.
-7. **Gate:** All specs have `status: draft` and acceptance criteria written. User reviews and approves the full spec set.
-8. Invoke `smaqit.task-complete` for the Phase 2 task.
+7. Invoke `smaqit.design-validate` for every generated pair. Confirm `smaqit design validate` passes and the active agent has opened each PNG; PlantUML-source reading is not a visual-review fallback.
+8. **Gate:** All specs have `status: draft`, acceptance criteria written, and current visually approved same-layer design pairs. User reviews and approves the full spec/design set.
+9. Invoke `smaqit.task-complete` for the Phase 2 task.
 
 ### Phase 3 — Development
 
 1. Invoke `smaqit.task-start` for the Phase 3 task.
 2. Invoke `/smaqit.development` agent to implement all specs with `status: draft`.
 3. If any spec requires amendment to proceed: amend the spec in-place with an `amendment:` annotation and continue. Structural divergences that change architecture must be paused for operator approval before continuing.
-4. **Gate:** Build passes (backend and frontend). All MVP acceptance criteria met. Development agent sets specs to `status: implemented`.
+4. **Gate:** Build passes (backend and frontend). All MVP acceptance criteria met. Development agent sets specs and their linked designs to `status: implemented`, respecting the least-advanced linked-spec rule, and reruns `smaqit design validate`.
 5. Invoke `smaqit.task-complete` for the Phase 3 task, ensuring any amendments are captured under `Decisions made`.
 
 ### Provisioning Mode (applies to Phases 4 and 5)
@@ -238,7 +239,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 
 - [ ] Phase 0: all phase tasks created, execution mode confirmed
 - [ ] Phase 1: requirements extracted, ambiguities resolved
-- [ ] Phase 2: all specs drafted and approved
+- [ ] Phase 2: all specs and minimal same-layer PlantUML/PNG design pairs drafted, visually reviewed, validated, and approved
 - [ ] Phase 3: implementation complete, specs set to `implemented`
 - [ ] Phase 4: dev VM provisioned, deployed, and verified; IaC artifacts committed
 - [ ] Phase 5: CI/CD pipeline succeeded, production verified

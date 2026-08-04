@@ -30,5 +30,7 @@ installer/skills-copilot/
 installer/skills-claude/
 installer/skills-codex/
 installer/prompts/
+installer/tools/
+tools/plantuml/node_modules/
 
 docs/temp

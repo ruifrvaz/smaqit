@@ -16,6 +16,11 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Set up mandatory Node.js runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Check for existing smaqit installation
         id: check
         run: |
@@ -28,7 +33,6 @@ jobs:
           fi
 
       - name: Download smaqit installer
-        if: steps.check.outputs.installed == 'false'
         run: |
           echo "Downloading latest smaqit installer..."
           LATEST_RELEASE=$(curl -s https://api.github.com/repos/ruifrvaz/smaqit/releases | grep "tag_name" | head -1 | cut -d '"' -f 4)
@@ -54,6 +58,7 @@ jobs:
           
           curl -L -o smaqit "$DOWNLOAD_URL"
           chmod +x smaqit
+          sudo install -m 0755 smaqit /usr/local/bin/smaqit
           
           echo "✓ Downloaded smaqit installer"
 
@@ -61,7 +66,7 @@ jobs:
         if: steps.check.outputs.installed == 'false'
         run: |
           echo "Installing smaqit..."
-          ./smaqit init
+          smaqit init
           
           if [ $? -eq 0 ]; then
             echo "✓ smaqit installation completed"
@@ -88,7 +93,7 @@ jobs:
           fi
           
           # Check smaqit status
-          ./smaqit status || true
+          smaqit status || true
           
           echo "✓ Installation validated successfully"
 

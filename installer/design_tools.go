@@ -155,17 +155,13 @@ func extractDesignToolArchive(archive []byte, destination string) error {
 		if err != nil {
 			return err
 		}
-		clean := filepath.Clean(filepath.FromSlash(header.Name))
-		if clean == "." {
+		entryPath := filepath.FromSlash(header.Name)
+		if filepath.Clean(entryPath) == "." {
 			continue
 		}
-		if filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
-			return fmt.Errorf("unsafe archive path %q", header.Name)
-		}
-		target := filepath.Join(destination, clean)
-		rel, err := filepath.Rel(destination, target)
-		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			return fmt.Errorf("archive path escapes destination: %q", header.Name)
+		target, err := archiveEntryTarget(destination, entryPath)
+		if err != nil {
+			return fmt.Errorf("unsafe archive path %q: %w", header.Name, err)
 		}
 
 		switch header.Typeflag {
@@ -193,6 +189,30 @@ func extractDesignToolArchive(archive []byte, destination string) error {
 			return fmt.Errorf("unsupported archive entry %q (type %d)", header.Name, header.Typeflag)
 		}
 	}
+}
+
+// archiveEntryTarget returns a path that is lexically contained by destination.
+// filepath.IsLocal guarantees that joining an absolute destination with entryPath
+// cannot escape it; the prefix check makes that containment explicit for callers
+// and static analysis.
+func archiveEntryTarget(destination, entryPath string) (string, error) {
+	destinationRoot, err := filepath.Abs(destination)
+	if err != nil {
+		return "", fmt.Errorf("resolve archive destination: %w", err)
+	}
+	if !filepath.IsLocal(entryPath) {
+		return "", errors.New("entry is not a local relative path")
+	}
+
+	target, err := filepath.Abs(filepath.Join(destinationRoot, entryPath))
+	if err != nil {
+		return "", fmt.Errorf("resolve archive entry: %w", err)
+	}
+	destinationPrefix := destinationRoot + string(filepath.Separator)
+	if target != destinationRoot && !strings.HasPrefix(target, destinationPrefix) {
+		return "", errors.New("entry escapes destination")
+	}
+	return target, nil
 }
 
 func validateMaterializedDesignTools(runtimeDir string) error {

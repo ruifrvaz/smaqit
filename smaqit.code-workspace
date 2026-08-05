@@ -7,10 +7,6 @@
     {
       "name": "release/v2.0.0",
       "path": "../smaqit-wt-release-v2.0.0"
-    },
-    {
-      "name": "task/099-opaque-plantuml-png-rendering",
-      "path": "../smaqit-wt-task-099-opaque-plantuml-png-rendering"
     }
   ],
   "settings": {

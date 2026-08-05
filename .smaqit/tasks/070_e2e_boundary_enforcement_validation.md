@@ -1,10 +1,13 @@
 # Task 070: E2E Boundary Enforcement Validation
 
-**Status:** New  
+**Status:** Abandoned
 **Priority:** High  
 **Created:** 2026-01-21  
 **Updated:** 2026-02-08  
 **Context:** Verify Task 068 (System Actor removal) boundary enforcement AND Task 078 (Assessment skill integration) work in practice
+
+**Abandoned:** 2026-08-06
+**Reason:** Written against a version of smaqit that no longer exists. Its test procedure invokes agents via `.github/prompts/smaqit.business.prompt.md` and `/smaqit.business` as a direct slash command — both gone since Task 081 deprecated prompts and Task 082/073 moved to orchestration-first, Task-delegated subagents. It targets `docs/tasks/PLANNING.md`, which has been `.smaqit/tasks/PLANNING.md` for most of this project's life. It validates an "assessment skill" at `.github/skills/assessment/` with a fixed 6-component structured output auto-invoked by every agent; what actually shipped from Task 078 and exists today is `smaqit.session-assess`, a differently-scoped, differently-triggered skill. The task file itself is also corrupted (garbled, interleaved text in its Section 5–7 checklist). Separately, the capability it wanted to check — System Actor and technical-verb leakage into Business specs — has zero hits for "System Actor" across `agents/`, `skills/`, `framework/` today, and has had extensive indirect validation via dozens of real Business specs generated through `smaqit.new-greenfield-project`/`smaqit.feature-new` across multiple downstream projects since, with no boundary-violation issue ever surfacing. A current-day boundary-enforcement check, if wanted, would need to be written fresh against today's agent/skill architecture rather than reviving this file.
 
 ## Purpose
 

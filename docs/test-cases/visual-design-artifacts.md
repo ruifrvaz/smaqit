@@ -18,7 +18,7 @@
 ## Valid Flow
 
 - [ ] Create one same-layer spec/design pair with bidirectional links and real requirement IDs.
-- [ ] `smaqit design render <design.md>` checks syntax and creates a valid PNG at deterministic dimensions.
+- [ ] `smaqit design render <design.md>` checks syntax and creates a valid PNG at deterministic dimensions with an opaque cream `#FFF9F0` canvas (every pixel alpha is 255).
 - [ ] Re-rendering unchanged source creates identical PNG bytes.
 - [ ] Validation fails until an agent opens the PNG and `smaqit design attest <design.md>` records the current hashes.
 - [ ] `smaqit design validate <design.md>` and `smaqit validate` pass after attestation.

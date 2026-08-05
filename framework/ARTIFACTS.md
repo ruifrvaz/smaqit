@@ -376,7 +376,7 @@ docs/designs/<layer>/<design-id>.md
 docs/designs/<layer>/<design-id>.png
 ```
 
-The Markdown file contains YAML frontmatter followed by exactly one fenced `plantuml` block. It MUST NOT contain a title, prose, table, reference section, second block, HTML, or embedded image. The PNG is generated from that PlantUML block and is the mandatory representation for specification-agent visual validation; implementation agents consume the PlantUML source after readiness passes.
+The Markdown file contains YAML frontmatter followed by exactly one fenced `plantuml` block. It MUST NOT contain a title, prose, table, reference section, second block, HTML, or embedded image. The PNG is generated from that PlantUML block with a deterministic opaque cream `#FFF9F0` canvas and is the mandatory representation for specification-agent visual validation; implementation agents consume the PlantUML source after readiness passes.
 
 ### Design Identifier
 
@@ -404,7 +404,7 @@ All reference paths MUST stay within the project, resolve without symlink/path t
 
 ### Validation Gates
 
-1. **Structural:** schema, ID, layer/profile, one-block/no-prose content, safe paths, bidirectional references, requirement existence, PNG signature/dimensions, hashes, lifecycle, and minimum coverage.
+1. **Structural:** schema, ID, layer/profile, one-block/no-prose content, safe paths, bidirectional references, requirement existence, PNG signature/dimensions, opaque canvas, hashes, lifecycle, and minimum coverage.
 2. **PlantUML:** syntax check, SVG render, and SVG-to-PNG conversion through the shipped pinned toolchain.
 3. **Visual:** the owning specification agent opens the PNG and verifies legibility, clipping, direction/order, boundaries, disconnected elements, coherence, and excessive complexity.
 

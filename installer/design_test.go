@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"image/png"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -65,6 +66,7 @@ created: 2026-08-03
 	if err != nil {
 		t.Fatal(err)
 	}
+	assertOpaqueCreamPNG(t, firstPNG)
 	if err := renderDesign(designPath); err != nil {
 		t.Fatal(err)
 	}
@@ -298,6 +300,26 @@ func writeTestFile(t *testing.T, path, content string) {
 	}
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func assertOpaqueCreamPNG(t *testing.T, content []byte) {
+	t.Helper()
+	decoded, err := png.Decode(bytes.NewReader(content))
+	if err != nil {
+		t.Fatalf("decode rendered PNG: %v", err)
+	}
+	red, green, blue, alpha := decoded.At(decoded.Bounds().Min.X, decoded.Bounds().Min.Y).RGBA()
+	if red != 0xffff || green != 0xf9f9 || blue != 0xf0f0 || alpha != 0xffff {
+		t.Fatalf("rendered PNG canvas = (%#x, %#x, %#x, %#x), want opaque #FFF9F0", red, green, blue, alpha)
+	}
+	for y := decoded.Bounds().Min.Y; y < decoded.Bounds().Max.Y; y++ {
+		for x := decoded.Bounds().Min.X; x < decoded.Bounds().Max.X; x++ {
+			_, _, _, alpha := decoded.At(x, y).RGBA()
+			if alpha != 0xffff {
+				t.Fatalf("rendered PNG has non-opaque pixel at (%d, %d): alpha=%#x", x, y, alpha)
+			}
+		}
 	}
 }
 

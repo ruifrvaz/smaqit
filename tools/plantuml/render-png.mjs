@@ -26,6 +26,7 @@ await initWasm(wasm);
 const svg = await readFile(svgPath);
 const renderer = new Resvg(svg, {
   fitTo: { mode: "width", value: width },
+  background: "#FFF9F0",
   font: {
     fontBuffers: [font],
     defaultFontFamily: "Noto Sans",

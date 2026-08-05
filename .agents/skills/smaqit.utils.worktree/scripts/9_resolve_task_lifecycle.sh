@@ -122,7 +122,10 @@ task_parent() {
   line="$(sed -n 's/^\*\*Parent:\*\*[[:space:]]*//p' "$1" | head -1 | sed 's/[[:space:]]*$//')"
   [ -z "$line" ] && return 0
   value="${line%%[[:space:]]*}"
-  if ! [[ "$value" =~ ^[0-9]{3}$ ]]; then
+  # Legacy parent tasks may use the historical BNNN identifier; current tasks
+  # use NNN. Preserve both forms so completed legacy children do not block an
+  # unrelated owner task's completion scan.
+  if ! [[ "$value" =~ ^([0-9]{3}|B[0-9]{3})$ ]]; then
     echo "Invalid Parent metadata in $1: $line" >&2
     return 1
   fi
@@ -143,6 +146,21 @@ find_active_task() {
     if [ -n "$file" ] && [ "$(task_status "$file")" = "In Progress" ]; then
       printf '%s\t%s\t%s\n' "${worktree_paths[$index]}" "${worktree_branches[$index]}" "$file"
       return 0
+    fi
+  done
+  return 1
+}
+
+find_completable_owner_task() {
+  local id="$1" index file status
+  for index in "${!worktree_paths[@]}"; do
+    file="$(task_file_in "${worktree_paths[$index]}" "$id")"
+    if [ -n "$file" ]; then
+      status="$(task_status "$file")"
+      if [ "$status" = "In Progress" ] || [ "$status" = "Completed" ]; then
+        printf '%s\t%s\t%s\n' "${worktree_paths[$index]}" "${worktree_branches[$index]}" "$file"
+        return 0
+      fi
     fi
   done
   return 1
@@ -203,9 +221,11 @@ fi
 declared_parent="$(task_parent "$candidate_file")" || exit 1
 if [ -z "$declared_parent" ]; then
   if [ "$purpose" = "complete" ]; then
-    owner_info="$(find_active_task "$task_id" || true)"
+    # Completion may be retried after task bookkeeping has already marked the
+    # owner Completed but an earlier merge or cleanup step did not finish.
+    owner_info="$(find_completable_owner_task "$task_id" || true)"
     if [ -z "$owner_info" ]; then
-      echo "Task $task_id must be In Progress in a registered worktree before completion." >&2
+      echo "Task $task_id must be In Progress or Completed in a registered worktree before completion." >&2
       exit 1
     fi
     IFS=$'\t' read -r owner_root owner_branch owner_file <<< "$owner_info"

@@ -171,6 +171,38 @@ func TestCorruptRuntimeAndArchiveAreRejected(t *testing.T) {
 	}
 }
 
+func TestExtractDesignToolArchiveRejectsEscapingPaths(t *testing.T) {
+	for _, archivePath := range []string{
+		"../escape",
+		"nested/../../escape",
+		"./../escape",
+		"/absolute/escape",
+		"//network-share/escape",
+	} {
+		t.Run(archivePath, func(t *testing.T) {
+			destination := t.TempDir()
+			err := extractDesignToolArchive(singleFileArchive(t, archivePath), destination)
+			if err == nil || !strings.Contains(err.Error(), "unsafe archive path") {
+				t.Fatalf("expected unsafe archive path rejection, got %v", err)
+			}
+		})
+	}
+}
+
+func TestExtractDesignToolArchiveKeepsLocalPathContained(t *testing.T) {
+	destination := t.TempDir()
+	if err := extractDesignToolArchive(singleFileArchive(t, "nested/runtime.txt"), destination); err != nil {
+		t.Fatalf("extract local entry: %v", err)
+	}
+	content, err := os.ReadFile(filepath.Join(destination, "nested", "runtime.txt"))
+	if err != nil {
+		t.Fatalf("read extracted local entry: %v", err)
+	}
+	if string(content) != "x" {
+		t.Fatalf("unexpected extracted content %q", content)
+	}
+}
+
 func TestRenderRejectsInvalidPlantUMLSyntax(t *testing.T) {
 	major, err := installedNodeMajor()
 	if err != nil || major < minimumNodeMajor {
@@ -267,4 +299,24 @@ func writeTestFile(t *testing.T, path, content string) {
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func singleFileArchive(t *testing.T, path string) []byte {
+	t.Helper()
+	var archive bytes.Buffer
+	gz := gzip.NewWriter(&archive)
+	tw := tar.NewWriter(gz)
+	if err := tw.WriteHeader(&tar.Header{Name: path, Mode: 0o644, Size: 1}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tw.Write([]byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return archive.Bytes()
 }

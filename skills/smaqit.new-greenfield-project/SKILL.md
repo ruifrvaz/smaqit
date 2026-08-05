@@ -213,7 +213,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 - Covers the single-app, two-environment path: dev VM (Phase 4 local sweep) + production VM (Phase 5 CI/CD).
 - Covers four `provisioning_mode` values (`provision`, `existing-owned`, `existing-shared`, `existing-unmanaged`) — see "Provisioning Mode" above Phase 4. Does NOT cover two independent Terraform states both managing resources on the same VM; if a project genuinely needs its own state on a VM another project also has opinions about, that is out of scope here and needs its own design.
 - Does NOT handle database schema migrations. The current project uses SQLite with append-only schema changes.
-- Does NOT cover post-MVP feature cycles. Use individual smaqit agents for iterative feature work after this skill completes.
+- Does NOT cover post-MVP feature cycles. Use `smaqit.feature-new` for iterative feature work after this skill completes.
 - Phase 6 (domain/TLS) is conditional on domain purchase — a human action outside the system.
 
 ## Gotchas

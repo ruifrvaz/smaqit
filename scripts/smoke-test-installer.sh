@@ -104,7 +104,7 @@ assert_owned_tree_matches "$repo_root/installer/skills-claude" "$smoke_root/.cla
 assert_owned_tree_matches "$repo_root/installer/agents-codex" "$smoke_root/.codex/agents" "Codex agents"
 assert_owned_tree_matches "$repo_root/installer/skills-codex" "$smoke_root/.agents/skills" "Codex skills"
 test -f "$smoke_root/.smaqit/templates/designs/business.template.md"
-test -f "$smoke_root/.smaqit/tools/plantuml/plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0/node_modules/@plantuml/mcp-js/server.js"
+test -f "$smoke_root/.smaqit/tools/plantuml/plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1/node_modules/@plantuml/mcp-js/server.js"
 for layer in business functional stack infrastructure coverage; do
   test -d "$smoke_root/docs/designs/$layer"
 done
@@ -284,7 +284,7 @@ rm -- "$design_spec" "$design_source" "$design_image"
 owned_agent="$(find "$repo_root/installer/agents-codex" -maxdepth 1 -type f | sort | head -1)"
 owned_agent_name="$(basename "$owned_agent")"
 printf '%s\n' 'cancel-sentinel' > "$smoke_root/.codex/agents/$owned_agent_name"
-runtime_lock="$smoke_root/.smaqit/tools/plantuml/plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0/package-lock.json"
+runtime_lock="$smoke_root/.smaqit/tools/plantuml/plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1/package-lock.json"
 printf '%s\n' 'corrupt-runtime-sentinel' > "$runtime_lock"
 printf 'n\n' | "$binary" init "$smoke_root"
 grep -Fq 'cancel-sentinel' "$smoke_root/.codex/agents/$owned_agent_name"

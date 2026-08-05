@@ -4,7 +4,7 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit
-**Refreshed:** 2026-07-27
+**Refreshed:** 2026-08-06
 **Active task:** None
 
 | Tool | Section | URL |
@@ -12,6 +12,12 @@ version: "1.0.0"
 | Go | Documentation | https://go.dev/doc/ |
 | Go | Getting started | https://go.dev/doc/tutorial/getting-started |
 | gopkg.in/yaml.v3 | Package reference | https://pkg.go.dev/gopkg.in/yaml.v3 |
+| Model Context Protocol Go SDK | Package reference | https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk |
+| Model Context Protocol | Specification | https://modelcontextprotocol.io/ |
+| tailscale/hujson | Package reference | https://pkg.go.dev/github.com/tailscale/hujson |
+| @plantuml/mcp-js | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@plantuml/mcp-js |
+| @resvg/resvg-wasm | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@resvg/resvg-wasm |
+| @fontsource/noto-sans | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@fontsource/noto-sans |
 | Python | Documentation | https://docs.python.org/3/ |
 | Python | Installation and usage | https://docs.python.org/3/using/ |
 | GitHub Copilot SDK | Package reference | https://pypi.org/project/github-copilot-sdk/ |

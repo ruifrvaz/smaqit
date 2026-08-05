@@ -141,3 +141,19 @@ In both cases: confirm authentication with `ssh -T git@github.com`, push `main` 
 No. The installer's `go:embed` manifest in `installer/main.go` only ships `agents-*`, `commands-claude`, `skills-*`, and the `AGENTS.md`/`CLAUDE.md` templates — `framework/` is never installed into a consumer project. It exists only in this canonical repo as agent-facing documentation for developing smaqit itself. A skill that depends on framework-documented mechanics (e.g. the Incremental Spec Updates decision table, spec state transitions) must distill the relevant content into its own `references/` file rather than pointing at `framework/*.md`, the same way `smaqit.new-greenfield-project` stays fully self-contained with zero `framework/` references.
 
 ---
+
+## Task Management
+
+**Where does the task-lifecycle tooling (`task-start`, `task-create`, `task-complete`, `task-list`, `utils.worktree`) live, and does `smaqit init` install it?**
+
+It is owned entirely by the sibling `smaqit-extensions` repository, not by `smaqit`'s own `skills/` directory or its 26 shipped product skills. `smaqit init` does not install it — a consumer project only gets task-lifecycle skills (branch/worktree creation, parent-child task ownership, assisted/autonomous mode) if `smaqit-extensions` is installed separately. Shipped smaqit skills that reference the lifecycle (`smaqit.new-greenfield-project`, `smaqit.feature-new`) call `smaqit.task-start`/`smaqit.task-create`/`smaqit.task-complete` by name without re-implementing any of their branch, worktree, or merge mechanics — those skills assume the lifecycle tooling is present, they do not provide a fallback if it isn't. In this repo, the copies under `.github/skills/`, `.claude/skills/`, and `.agents/skills/` for task-lifecycle skill names are committed dogfooding install output from `smaqit-extensions`, not canonical smaqit source.
+
+`smaqit-extensions` also ships a parent-owned subtask lifecycle (`Parent: NNN` task metadata): a child task joins its parent's existing branch/worktree and inherits its mode instead of creating its own; only the parent merges and cleans up, and only once every declared child is `Completed`. `smaqit.feature-new` adopts this contract for its own five-phase structure (one shared feature-cycle parent, five phase children) rather than spawning a separate branch per phase.
+
+---
+
+**How do you determine whether an old task file in `.smaqit/tasks/` is still relevant before starting or completing it?**
+
+Task files are written speculatively and can go stale as the framework evolves out from under them — re-reading the task text alone is not sufficient. Check three things against the *current* codebase rather than trusting the file: (1) do the file paths, commands, or skill names it references still exist (e.g. a task written when prompts were still `.github/prompts/*.prompt.md`, or when `PLANNING.md` lived under `docs/tasks/` instead of `.smaqit/tasks/`, is describing a mechanism that may no longer exist); (2) has a later task already superseded or completed the same underlying work, sometimes without ever being run through the task's own file (check `git log` on the files the task claims to touch, not just `PLANNING.md`'s status column); (3) has the concern the task wants to validate already been implicitly exercised by extensive real usage since it was filed, with no issue ever surfacing. A task can fail all three checks and still describe a real, unaddressed gap — in that case the fix is usually much smaller than the original task once rescoped to current architecture, and may not warrant a tracked task on its own.
+
+---

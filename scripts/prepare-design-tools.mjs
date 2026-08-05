@@ -47,7 +47,7 @@ async function collectHashes(directory, prefix = "") {
 }
 const manifest = {
   schema: 1,
-  bundle_version: "plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0",
+  bundle_version: "plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1",
   node_minimum_major: 22,
   plantuml_mcp: "0.2.0",
   resvg_wasm: "2.6.2",

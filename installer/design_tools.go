@@ -23,7 +23,7 @@ import (
 
 const (
 	designMCPServerName = "smaqit-plantuml"
-	designBundleVersion = "plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0"
+	designBundleVersion = "plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1"
 	minimumNodeMajor    = 22
 )
 

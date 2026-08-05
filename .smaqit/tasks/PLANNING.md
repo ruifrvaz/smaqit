@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 099 | Opaque PlantUML PNG Rendering | Not Started | High |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
@@ -15,6 +14,7 @@
 
 | ID | Title |
 |----|-------|
+| 099 | Opaque PlantUML PNG Rendering |
 | 095 | `smaqit.feature-new` — Per-Phase `task.start`/`task.complete` Spawns Redundant Branches/Worktrees Instead of One Shared Feature Branch |
 | 098 | First-Class PlantUML Visual Design Artifacts |
 | 096 | Add `existing-unmanaged` Provisioning Mode — Dedicated VM, Never Terraform-Managed |

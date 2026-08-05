@@ -122,7 +122,10 @@ task_parent() {
   line="$(sed -n 's/^\*\*Parent:\*\*[[:space:]]*//p' "$1" | head -1 | sed 's/[[:space:]]*$//')"
   [ -z "$line" ] && return 0
   value="${line%%[[:space:]]*}"
-  if ! [[ "$value" =~ ^[0-9]{3}$ ]]; then
+  # Legacy parent tasks may use the historical BNNN identifier; current tasks
+  # use NNN. Preserve both forms so completed legacy children do not block an
+  # unrelated owner task's completion scan.
+  if ! [[ "$value" =~ ^([0-9]{3}|B[0-9]{3})$ ]]; then
     echo "Invalid Parent metadata in $1: $line" >&2
     return 1
   fi

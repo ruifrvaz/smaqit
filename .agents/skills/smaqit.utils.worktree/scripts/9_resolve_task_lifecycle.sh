@@ -151,6 +151,21 @@ find_active_task() {
   return 1
 }
 
+find_completable_owner_task() {
+  local id="$1" index file status
+  for index in "${!worktree_paths[@]}"; do
+    file="$(task_file_in "${worktree_paths[$index]}" "$id")"
+    if [ -n "$file" ]; then
+      status="$(task_status "$file")"
+      if [ "$status" = "In Progress" ] || [ "$status" = "Completed" ]; then
+        printf '%s\t%s\t%s\n' "${worktree_paths[$index]}" "${worktree_branches[$index]}" "$file"
+        return 0
+      fi
+    fi
+  done
+  return 1
+}
+
 emit() {
   jq -n \
     --arg kind "$1" \
@@ -206,9 +221,11 @@ fi
 declared_parent="$(task_parent "$candidate_file")" || exit 1
 if [ -z "$declared_parent" ]; then
   if [ "$purpose" = "complete" ]; then
-    owner_info="$(find_active_task "$task_id" || true)"
+    # Completion may be retried after task bookkeeping has already marked the
+    # owner Completed but an earlier merge or cleanup step did not finish.
+    owner_info="$(find_completable_owner_task "$task_id" || true)"
     if [ -z "$owner_info" ]; then
-      echo "Task $task_id must be In Progress in a registered worktree before completion." >&2
+      echo "Task $task_id must be In Progress or Completed in a registered worktree before completion." >&2
       exit 1
     fi
     IFS=$'\t' read -r owner_root owner_branch owner_file <<< "$owner_info"

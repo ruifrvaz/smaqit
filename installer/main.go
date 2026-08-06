@@ -446,7 +446,7 @@ func cmdInit(targetDir string) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if err := preflightVSCodeMCPConfig(targetDir); err != nil {
+	if err := preflightDesignMCPConfigs(targetDir); err != nil {
 		fmt.Fprintf(os.Stderr, "DESIGN-TOOLCHAIN-UNAVAILABLE: %v\n", err)
 		os.Exit(1)
 	}
@@ -550,7 +550,7 @@ func cmdInit(targetDir string) {
 		fmt.Printf("Error updating .gitignore for managed PlantUML runtime: %v\n", err)
 		os.Exit(1)
 	}
-	if err := installVSCodeMCPConfig("."); err != nil {
+	if err := installDesignMCPConfigs("."); err != nil {
 		fmt.Printf("Error installing mandatory PlantUML MCP configuration: %v\n", err)
 		os.Exit(1)
 	}
@@ -591,8 +591,9 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
-	// Copy Codex project custom agents and repository skills. Codex discovers these
-	// locations natively; no .codex/config.toml is generated or modified.
+	// Copy Codex project custom agents and repository skills. The managed
+	// .codex/config.toml registration installed above makes the mandatory
+	// PlantUML MCP server available to trusted Codex project sessions.
 	if err := copyEmbeddedDir(codexAgentFiles, "agents-codex", ".codex/agents"); err != nil {
 		fmt.Printf("Error copying Codex agent files: %v\n", err)
 		os.Exit(1)
@@ -628,7 +629,7 @@ func cmdInit(targetDir string) {
 	fmt.Println("✓ Created .smaqit/ directory structure")
 	fmt.Println("✓ Copied templates")
 	fmt.Println("✓ Installed bundled PlantUML MCP and PNG rendering runtime")
-	fmt.Println("✓ Configured project-local PlantUML MCP discovery")
+	fmt.Println("✓ Configured project-local PlantUML MCP discovery for VS Code, Claude Code, and Codex")
 	fmt.Println("✓ Verified PlantUML MCP configuration and local stdio transport")
 	fmt.Println("✓ Copied agent definitions (GitHub Copilot + Claude Code + Codex)")
 	fmt.Println("✓ Copied skill files (GitHub Copilot + Claude Code + Codex)")
@@ -853,6 +854,7 @@ func cmdUninstall() {
 	fmt.Println("  • .claude/skills/")
 	fmt.Println("  • .claude/commands/")
 	fmt.Println("  • smaqit-owned files in .codex/agents/ and .agents/skills/")
+	fmt.Println("  • smaqit-owned PlantUML MCP registrations")
 	fmt.Print("\nContinue? [y/N]: ")
 
 	var response string
@@ -877,11 +879,18 @@ func cmdUninstall() {
 	// Remove directories
 	errors := 0
 
-	if err := removeVSCodeMCPConfig("."); err != nil {
-		fmt.Printf("Error removing smaqit PlantUML MCP configuration: %v\n", err)
-		errors++
-	} else {
-		fmt.Println("✓ Removed smaqit PlantUML MCP configuration")
+	for _, remove := range []func(string) error{
+		removeVSCodeMCPConfig,
+		removeClaudeMCPConfig,
+		removeCodexMCPConfig,
+	} {
+		if err := remove("."); err != nil {
+			fmt.Printf("Error removing smaqit PlantUML MCP configuration: %v\n", err)
+			errors++
+		}
+	}
+	if errors == 0 {
+		fmt.Println("✓ Removed smaqit-owned PlantUML MCP registrations")
 	}
 
 	if err := os.RemoveAll(".smaqit"); err != nil {
@@ -1008,7 +1017,7 @@ func cmdValidate() {
 	if _, err := ensureDesignTools("."); err != nil {
 		fmt.Printf("✗ %v\n", err)
 		errors++
-	} else if err := validateVSCodeMCPConfig("."); err != nil {
+	} else if err := validateDesignMCPConfigs("."); err != nil {
 		fmt.Printf("✗ DESIGN-TOOLCHAIN-UNAVAILABLE: %v\n", err)
 		errors++
 	} else {

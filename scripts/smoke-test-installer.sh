@@ -72,15 +72,16 @@ if [[ -e "$node_failure_target" ]]; then
 fi
 rm -- "$smoke_root/node-failure.txt"
 
-# Seed unrelated Codex content before first init. These shared namespaces must survive
-# install, reinstallation, and uninstall byte-for-byte.
+# Seed unrelated client configuration before first init. These shared namespaces must
+# survive install, reinstallation, and uninstall byte-for-byte.
 mkdir -p "$smoke_root/.codex/agents" "$smoke_root/.agents/skills/custom-skill" "$smoke_root/.agents/skills/smaqit.input-business" "$smoke_root/.vscode" "$smoke_root/docs/designs/business"
-printf '%s\n' 'custom_config = true' > "$smoke_root/.codex/config.toml"
+printf '%s\n' 'custom_config = true' '' '[mcp_servers.custom-server]' 'command = "custom"' > "$smoke_root/.codex/config.toml"
 printf '%s\n' 'name = "custom-agent"' > "$smoke_root/.codex/agents/custom-agent.toml"
 printf '%s\n' '---' 'name: custom-skill' 'description: Unrelated sentinel skill.' '---' > "$smoke_root/.agents/skills/custom-skill/SKILL.md"
 printf '%s\n' 'custom neighbor inside a smaqit-named skill directory' > "$smoke_root/.agents/skills/smaqit.input-business/custom-note.txt"
 printf '%s\n' 'user-owned-rule/' > "$smoke_root/.gitignore"
 printf '%s\n' '{' '  // unrelated MCP configuration must survive' '  "servers": {"custom-server": {"command": "custom"}}' '}' > "$smoke_root/.vscode/mcp.json"
+printf '%s\n' '{' '  "mcpServers": {"custom-server": {"command": "custom"}}' '}' > "$smoke_root/.mcp.json"
 printf '%s\n' 'user-owned-design-sentinel' > "$smoke_root/docs/designs/business/sentinel.txt"
 
 # An exact owned destination must prompt even before .smaqit/ exists. Cancellation
@@ -125,6 +126,10 @@ for layer in business functional stack infrastructure coverage; do
 done
 grep -Fq 'custom-server' "$smoke_root/.vscode/mcp.json"
 grep -Fq 'smaqit-plantuml' "$smoke_root/.vscode/mcp.json"
+grep -Fq 'custom-server' "$smoke_root/.mcp.json"
+grep -Fq 'smaqit-plantuml' "$smoke_root/.mcp.json"
+grep -Fq 'custom_config = true' "$smoke_root/.codex/config.toml"
+grep -Fq '[mcp_servers.smaqit-plantuml]' "$smoke_root/.codex/config.toml"
 
 python3 - "$smoke_root" "$repo_root" <<'PY'
 import pathlib
@@ -250,6 +255,9 @@ grep -Fq 'name: custom-skill' "$smoke_root/.agents/skills/custom-skill/SKILL.md"
 grep -Fq 'custom neighbor' "$smoke_root/.agents/skills/smaqit.input-business/custom-note.txt"
 grep -Fq 'custom-server' "$smoke_root/.vscode/mcp.json"
 grep -Fq 'smaqit-plantuml' "$smoke_root/.vscode/mcp.json"
+grep -Fq 'custom-server' "$smoke_root/.mcp.json"
+grep -Fq 'smaqit-plantuml' "$smoke_root/.mcp.json"
+grep -Fq '[mcp_servers.smaqit-plantuml]' "$smoke_root/.codex/config.toml"
 
 (
   cd "$smoke_root"
@@ -373,6 +381,16 @@ grep -Fq 'custom neighbor' "$smoke_root/.agents/skills/smaqit.input-business/cus
 grep -Fq 'custom-server' "$smoke_root/.vscode/mcp.json"
 if grep -Fq 'smaqit-plantuml' "$smoke_root/.vscode/mcp.json"; then
   echo "[ERROR] Owned MCP configuration survived uninstall" >&2
+  exit 1
+fi
+grep -Fq 'custom-server' "$smoke_root/.mcp.json"
+if grep -Fq 'smaqit-plantuml' "$smoke_root/.mcp.json"; then
+  echo "[ERROR] Owned Claude MCP configuration survived uninstall" >&2
+  exit 1
+fi
+grep -Fq '[mcp_servers.custom-server]' "$smoke_root/.codex/config.toml"
+if grep -Fq '[mcp_servers.smaqit-plantuml]' "$smoke_root/.codex/config.toml"; then
+  echo "[ERROR] Owned Codex MCP configuration survived uninstall" >&2
   exit 1
 fi
 grep -Fq 'user-owned-design-sentinel' "$smoke_root/docs/designs/business/sentinel.txt"

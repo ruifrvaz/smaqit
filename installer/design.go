@@ -111,7 +111,7 @@ func verifyPlantUMLMCP(root string) error {
 	if _, err := ensureDesignTools(root); err != nil {
 		return err
 	}
-	if err := validateVSCodeMCPConfig(root); err != nil {
+	if err := validateDesignMCPConfigs(root); err != nil {
 		return fmt.Errorf("DESIGN-TOOLCHAIN-UNAVAILABLE: %w", err)
 	}
 	binary, err := os.Executable()

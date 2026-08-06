@@ -73,7 +73,7 @@ Before creating a release:
 - [ ] Test Node 22+ fail-fast initialization, embedded runtime integrity, offline PlantUML rendering, PNG/hash staleness, visual attestation, and strict existing-spec migration failures
 - [ ] Verify version embedding: `dist/smaqit version` matches git tag
 - [ ] Check generated platform artifacts: 9 agents and 26 skills for Copilot, Claude Code, and Codex
-- [ ] Validate selective Codex uninstall: smaqit-owned files are removed while custom `.codex/agents/`, `.agents/skills/`, and `.codex/config.toml` content survives
+- [ ] Validate selective MCP uninstall: smaqit-owned registrations are removed while custom `.vscode/mcp.json`, `.mcp.json`, `.codex/agents/`, `.agents/skills/`, and `.codex/config.toml` content survives
 
 ## Test Case Design
 

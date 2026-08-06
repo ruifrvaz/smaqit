@@ -12,7 +12,7 @@
 
 - [ ] `smaqit init` creates all five `docs/designs/<layer>/` directories and installs all five design templates.
 - [ ] The versioned runtime contains the locked PlantUML MCP, resvg WASM, Noto Sans, manifest, full file hashes, notices, and licenses.
-- [ ] `.vscode/mcp.json`, Claude agents, and Codex agents expose the owned MCP; unrelated configuration remains byte-identical.
+- [ ] `.vscode/mcp.json`, root `.mcp.json`, and `.codex/config.toml` register the owned MCP; agent declarations constrain authoring access; unrelated client configuration remains byte-identical.
 - [ ] Removing Node from `PATH` makes initialization fail with `DESIGN-TOOLCHAIN-UNAVAILABLE` before creating the target.
 
 ## Valid Flow
@@ -43,4 +43,4 @@
 - [ ] An active existing spec without a pair fails validation and remains in path-only `smaqit plan` output.
 - [ ] `smaqit status` reports the number of design-blocked active specs.
 - [ ] Status-only transitions synchronize designs to the least-advanced linked spec; deprecated artifacts are excluded from mandatory coverage.
-- [ ] Reinstallation repairs corrupt owned tooling; uninstall removes owned runtime/config and preserves `docs/designs` plus unrelated MCP entries.
+- [ ] Reinstallation repairs corrupt owned tooling; uninstall removes owned runtime/config and preserves `docs/designs` plus unrelated VS Code, Claude Code, and Codex configuration.

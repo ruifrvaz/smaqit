@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/modelcontextprotocol/go-sdk v1.6.1
+	github.com/pelletier/go-toml/v2 v2.3.0
 	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a
 	gopkg.in/yaml.v3 v3.0.1
 )

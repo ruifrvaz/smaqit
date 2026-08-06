@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pelletier/go-toml/v2"
 	"github.com/tailscale/hujson"
 )
 
@@ -520,6 +521,359 @@ func validateVSCodeMCPConfig(projectRoot string) error {
 	servers, ok := document["servers"].(map[string]any)
 	if !ok || !sameJSON(servers[designMCPServerName], vscodeMCPDefinition()) {
 		return fmt.Errorf("mandatory MCP server %q is missing or incompatible", designMCPServerName)
+	}
+	return nil
+}
+
+func claudeMCPDefinition() map[string]any {
+	return map[string]any{
+		"type":    "stdio",
+		"command": "smaqit",
+		"args":    []any{"mcp", "plantuml"},
+	}
+}
+
+func claudeMCPConfigPath(projectRoot string) string {
+	return filepath.Join(projectRoot, ".mcp.json")
+}
+
+func installClaudeMCPConfig(projectRoot string) error {
+	path := claudeMCPConfigPath(projectRoot)
+	definition := claudeMCPDefinition()
+	input, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		content := map[string]any{"mcpServers": map[string]any{designMCPServerName: definition}}
+		b, marshalErr := json.MarshalIndent(content, "", "  ")
+		if marshalErr != nil {
+			return marshalErr
+		}
+		return os.WriteFile(path, append(b, '\n'), 0o644)
+	}
+	if err != nil {
+		return err
+	}
+	standard, err := hujson.Standardize(input)
+	if err != nil {
+		return fmt.Errorf("cannot parse %s: %w", path, err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(standard, &document); err != nil {
+		return err
+	}
+	servers, exists := document["mcpServers"].(map[string]any)
+	if !exists && document["mcpServers"] != nil {
+		return errors.New(".mcp.json field 'mcpServers' must be an object")
+	}
+	if servers != nil {
+		if existing, exists := servers[designMCPServerName]; exists {
+			if sameJSON(existing, definition) {
+				return nil
+			}
+			return fmt.Errorf("MCP server name %q is already owned by another configuration", designMCPServerName)
+		}
+	}
+
+	value, err := hujson.Parse(input)
+	if err != nil {
+		return err
+	}
+	var patch []byte
+	if servers == nil {
+		patch, _ = json.Marshal([]map[string]any{{"op": "add", "path": "/mcpServers", "value": map[string]any{designMCPServerName: definition}}})
+	} else {
+		patch, _ = json.Marshal([]map[string]any{{"op": "add", "path": "/mcpServers/" + designMCPServerName, "value": definition}})
+	}
+	if err := value.Patch(patch); err != nil {
+		return err
+	}
+	value.Format()
+	return os.WriteFile(path, value.Pack(), 0o644)
+}
+
+func preflightClaudeMCPConfig(projectRoot string) error {
+	path := claudeMCPConfigPath(projectRoot)
+	input, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	standard, err := hujson.Standardize(input)
+	if err != nil {
+		return fmt.Errorf("cannot parse %s: %w", path, err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(standard, &document); err != nil {
+		return err
+	}
+	servers, exists := document["mcpServers"].(map[string]any)
+	if !exists && document["mcpServers"] != nil {
+		return errors.New(".mcp.json field 'mcpServers' must be an object")
+	}
+	if existing, exists := servers[designMCPServerName]; exists && !sameJSON(existing, claudeMCPDefinition()) {
+		return fmt.Errorf("MCP server name %q is already owned by another configuration", designMCPServerName)
+	}
+	return nil
+}
+
+func removeClaudeMCPConfig(projectRoot string) error {
+	path := claudeMCPConfigPath(projectRoot)
+	input, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	standard, err := hujson.Standardize(input)
+	if err != nil {
+		return err
+	}
+	var document map[string]any
+	if err := json.Unmarshal(standard, &document); err != nil {
+		return err
+	}
+	servers, _ := document["mcpServers"].(map[string]any)
+	existing, exists := servers[designMCPServerName]
+	if !exists || !sameJSON(existing, claudeMCPDefinition()) {
+		return nil
+	}
+	if len(servers) == 1 && len(document) == 1 {
+		return os.Remove(path)
+	}
+	value, err := hujson.Parse(input)
+	if err != nil {
+		return err
+	}
+	patch, _ := json.Marshal([]map[string]any{{"op": "remove", "path": "/mcpServers/" + designMCPServerName}})
+	if err := value.Patch(patch); err != nil {
+		return err
+	}
+	value.Format()
+	return os.WriteFile(path, value.Pack(), 0o644)
+}
+
+func validateClaudeMCPConfig(projectRoot string) error {
+	path := claudeMCPConfigPath(projectRoot)
+	input, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	standard, err := hujson.Standardize(input)
+	if err != nil {
+		return err
+	}
+	var document map[string]any
+	if err := json.Unmarshal(standard, &document); err != nil {
+		return err
+	}
+	servers, ok := document["mcpServers"].(map[string]any)
+	if !ok || !sameJSON(servers[designMCPServerName], claudeMCPDefinition()) {
+		return fmt.Errorf("mandatory MCP server %q is missing or incompatible", designMCPServerName)
+	}
+	return nil
+}
+
+func codexMCPDefinition() map[string]any {
+	return map[string]any{
+		"command":  "smaqit",
+		"args":     []any{"mcp", "plantuml"},
+		"required": true,
+	}
+}
+
+func codexMCPConfigPath(projectRoot string) string {
+	return filepath.Join(projectRoot, ".codex", "config.toml")
+}
+
+const (
+	codexMCPBeginMarker = "# smaqit:plantuml-mcp:begin"
+	codexMCPEndMarker   = "# smaqit:plantuml-mcp:end"
+)
+
+func codexMCPConfigBlock() []byte {
+	return []byte(codexMCPBeginMarker + "\n" +
+		"[mcp_servers.smaqit-plantuml]\n" +
+		"command = \"smaqit\"\n" +
+		"args = [\"mcp\", \"plantuml\"]\n" +
+		"required = true\n" +
+		codexMCPEndMarker + "\n")
+}
+
+func parseCodexMCPConfig(input []byte) (map[string]any, error) {
+	var document map[string]any
+	if err := toml.Unmarshal(input, &document); err != nil {
+		return nil, err
+	}
+	return document, nil
+}
+
+func codexMCPServer(document map[string]any) (any, bool, error) {
+	serversValue, exists := document["mcp_servers"]
+	if !exists {
+		return nil, false, nil
+	}
+	servers, ok := serversValue.(map[string]any)
+	if !ok {
+		return nil, false, errors.New(".codex/config.toml field 'mcp_servers' must be an object")
+	}
+	server, exists := servers[designMCPServerName]
+	return server, exists, nil
+}
+
+func preflightCodexMCPConfig(projectRoot string) error {
+	path := codexMCPConfigPath(projectRoot)
+	input, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	document, err := parseCodexMCPConfig(input)
+	if err != nil {
+		return fmt.Errorf("cannot parse %s: %w", path, err)
+	}
+	existing, exists, err := codexMCPServer(document)
+	if err != nil {
+		return err
+	}
+	if exists && !sameJSON(existing, codexMCPDefinition()) {
+		return fmt.Errorf("MCP server name %q is already owned by another configuration", designMCPServerName)
+	}
+	return nil
+}
+
+func installCodexMCPConfig(projectRoot string) error {
+	path := codexMCPConfigPath(projectRoot)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	input, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return os.WriteFile(path, codexMCPConfigBlock(), 0o644)
+	}
+	if err != nil {
+		return err
+	}
+	document, err := parseCodexMCPConfig(input)
+	if err != nil {
+		return fmt.Errorf("cannot parse %s: %w", path, err)
+	}
+	existing, exists, err := codexMCPServer(document)
+	if err != nil {
+		return err
+	}
+	if exists {
+		if sameJSON(existing, codexMCPDefinition()) {
+			return nil
+		}
+		return fmt.Errorf("MCP server name %q is already owned by another configuration", designMCPServerName)
+	}
+	updated := append([]byte(nil), input...)
+	if len(updated) > 0 && !bytes.HasSuffix(updated, []byte("\n")) {
+		updated = append(updated, '\n')
+	}
+	if len(updated) > 0 {
+		updated = append(updated, '\n')
+	}
+	updated = append(updated, codexMCPConfigBlock()...)
+	return os.WriteFile(path, updated, 0o644)
+}
+
+func removeCodexMCPConfig(projectRoot string) error {
+	path := codexMCPConfigPath(projectRoot)
+	input, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	document, err := parseCodexMCPConfig(input)
+	if err != nil {
+		return err
+	}
+	existing, exists, err := codexMCPServer(document)
+	if err != nil || !exists || !sameJSON(existing, codexMCPDefinition()) {
+		return err
+	}
+	servers := document["mcp_servers"].(map[string]any)
+	if len(servers) == 1 && len(document) == 1 {
+		return os.Remove(path)
+	}
+	begin := bytes.Index(input, []byte(codexMCPBeginMarker))
+	end := bytes.Index(input, []byte(codexMCPEndMarker))
+	if begin < 0 || end < begin {
+		// A pre-existing equivalent declaration is not marked as smaqit-owned,
+		// so preserving it is safer than deleting a user's configuration.
+		return nil
+	}
+	end += len(codexMCPEndMarker)
+	if end < len(input) && input[end] == '\n' {
+		end++
+	}
+	updated := append([]byte(nil), input[:begin]...)
+	updated = append(updated, input[end:]...)
+	return os.WriteFile(path, updated, 0o644)
+}
+
+func validateCodexMCPConfig(projectRoot string) error {
+	path := codexMCPConfigPath(projectRoot)
+	input, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	document, err := parseCodexMCPConfig(input)
+	if err != nil {
+		return err
+	}
+	server, exists, err := codexMCPServer(document)
+	if err != nil {
+		return err
+	}
+	if !exists || !sameJSON(server, codexMCPDefinition()) {
+		return fmt.Errorf("mandatory MCP server %q is missing or incompatible", designMCPServerName)
+	}
+	return nil
+}
+
+func preflightDesignMCPConfigs(projectRoot string) error {
+	for _, preflight := range []func(string) error{
+		preflightVSCodeMCPConfig,
+		preflightClaudeMCPConfig,
+		preflightCodexMCPConfig,
+	} {
+		if err := preflight(projectRoot); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func installDesignMCPConfigs(projectRoot string) error {
+	for _, install := range []func(string) error{
+		installVSCodeMCPConfig,
+		installClaudeMCPConfig,
+		installCodexMCPConfig,
+	} {
+		if err := install(projectRoot); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateDesignMCPConfigs(projectRoot string) error {
+	for _, validate := range []func(string) error{
+		validateVSCodeMCPConfig,
+		validateClaudeMCPConfig,
+		validateCodexMCPConfig,
+	} {
+		if err := validate(projectRoot); err != nil {
+			return err
+		}
 	}
 	return nil
 }

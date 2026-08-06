@@ -60,6 +60,130 @@ func TestManagedToolsGitignoreDoesNotIgnoreDesignArtifacts(t *testing.T) {
 	}
 }
 
+func TestManagedMCPConfigurationsPreserveUnrelatedContent(t *testing.T) {
+	root := t.TempDir()
+	writeConfig := func(path, content string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeConfig(filepath.Join(root, ".vscode", "mcp.json"), "{\n  // keep this JSONC comment\n  \"servers\": {\"custom\": {\"command\": \"custom\"}}\n}\n")
+	writeConfig(filepath.Join(root, ".mcp.json"), "{\n  \"mcpServers\": {\"custom\": {\"command\": \"custom\"}}\n}\n")
+	writeConfig(filepath.Join(root, ".codex", "config.toml"), "custom_config = true\n\n[mcp_servers.custom]\ncommand = \"custom\"\n")
+
+	if err := preflightDesignMCPConfigs(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := installDesignMCPConfigs(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateDesignMCPConfigs(root); err != nil {
+		t.Fatal(err)
+	}
+	paths := []string{
+		filepath.Join(root, ".vscode", "mcp.json"),
+		filepath.Join(root, ".mcp.json"),
+		filepath.Join(root, ".codex", "config.toml"),
+	}
+	first := make([][]byte, len(paths))
+	for i, path := range paths {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		first[i] = content
+		if !strings.Contains(string(content), "custom") || !strings.Contains(string(content), designMCPServerName) {
+			t.Fatalf("%s did not retain custom configuration and add the managed server: %s", path, content)
+		}
+	}
+	if err := installDesignMCPConfigs(root); err != nil {
+		t.Fatal(err)
+	}
+	for i, path := range paths {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(content) != string(first[i]) {
+			t.Fatalf("reinstallation changed %s:\n%s", path, content)
+		}
+	}
+
+	for _, remove := range []func(string) error{removeVSCodeMCPConfig, removeClaudeMCPConfig, removeCodexMCPConfig} {
+		if err := remove(root); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, path := range paths {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(content), "custom") || strings.Contains(string(content), designMCPServerName) {
+			t.Fatalf("%s did not preserve only unrelated configuration: %s", path, content)
+		}
+	}
+}
+
+func TestPreflightDesignMCPConfigurationsRejectsConflicts(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		body string
+	}{
+		{"VS Code", ".vscode/mcp.json", `{"servers":{"smaqit-plantuml":{"command":"other"}}}`},
+		{"Claude Code", ".mcp.json", `{"mcpServers":{"smaqit-plantuml":{"command":"other"}}}`},
+		{"Codex", ".codex/config.toml", "[mcp_servers.smaqit-plantuml]\ncommand = \"other\"\n"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			root := t.TempDir()
+			path := filepath.Join(root, test.path)
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, []byte(test.body), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			err := preflightDesignMCPConfigs(root)
+			if err == nil || !strings.Contains(err.Error(), "already owned") {
+				t.Fatalf("expected configuration conflict, got %v", err)
+			}
+		})
+	}
+}
+
+func TestPreflightDesignMCPConfigurationsRejectsMalformedConfig(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		body string
+	}{
+		{"VS Code", ".vscode/mcp.json", `{"servers":`},
+		{"Claude Code", ".mcp.json", `{"mcpServers":`},
+		{"Codex", ".codex/config.toml", "[mcp_servers\n"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			root := t.TempDir()
+			path := filepath.Join(root, test.path)
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, []byte(test.body), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := preflightDesignMCPConfigs(root); err == nil {
+				t.Fatal("expected malformed configuration to fail preflight")
+			}
+		})
+	}
+}
+
 func TestRemoveEmbeddedFilesPreservesUnownedCodexAgents(t *testing.T) {
 	dstDir := filepath.Join(t.TempDir(), ".codex", "agents")
 	if err := copyEmbeddedDir(codexAgentFiles, "agents-codex", dstDir); err != nil {

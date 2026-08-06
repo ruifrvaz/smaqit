@@ -4,6 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 104 | Strict Black-Box Validation for `system-sequence` Designs | Not Started | High |
 | 102 | Post-Implementation Realization Diagrams for the Development Phase | Not Started | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |

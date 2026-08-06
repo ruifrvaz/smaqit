@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/103-register-plantuml-mcp-across-clients",
-      "path": "../smaqit-wt-task-103-register-plantuml-mcp-across-clients"
     }
   ],
   "settings": {

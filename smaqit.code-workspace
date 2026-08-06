@@ -5,8 +5,8 @@
       "path": "."
     },
     {
-      "name": "release/v2.0.2",
-      "path": "../smaqit-wt-release-v2.0.2"
+      "name": "task/103-register-plantuml-mcp-across-clients",
+      "path": "../smaqit-wt-task-103-register-plantuml-mcp-across-clients"
     }
   ],
   "settings": {

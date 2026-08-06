@@ -58,6 +58,8 @@ assert_owned_tree_matches() {
 echo "[INFO] Installer: $binary"
 echo "[INFO] Temporary project: $smoke_root"
 
+git init -q "$smoke_root"
+
 node_failure_target="$smoke_root/node-prerequisite-failure"
 if PATH=/smaqit-node-intentionally-unavailable "$binary" init "$node_failure_target" > "$smoke_root/node-failure.txt" 2>&1; then
   echo "[ERROR] Initialization succeeded without the mandatory Node prerequisite" >&2
@@ -77,6 +79,7 @@ printf '%s\n' 'custom_config = true' > "$smoke_root/.codex/config.toml"
 printf '%s\n' 'name = "custom-agent"' > "$smoke_root/.codex/agents/custom-agent.toml"
 printf '%s\n' '---' 'name: custom-skill' 'description: Unrelated sentinel skill.' '---' > "$smoke_root/.agents/skills/custom-skill/SKILL.md"
 printf '%s\n' 'custom neighbor inside a smaqit-named skill directory' > "$smoke_root/.agents/skills/smaqit.input-business/custom-note.txt"
+printf '%s\n' 'user-owned-rule/' > "$smoke_root/.gitignore"
 printf '%s\n' '{' '  // unrelated MCP configuration must survive' '  "servers": {"custom-server": {"command": "custom"}}' '}' > "$smoke_root/.vscode/mcp.json"
 printf '%s\n' 'user-owned-design-sentinel' > "$smoke_root/docs/designs/business/sentinel.txt"
 
@@ -105,6 +108,16 @@ assert_owned_tree_matches "$repo_root/installer/agents-codex" "$smoke_root/.code
 assert_owned_tree_matches "$repo_root/installer/skills-codex" "$smoke_root/.agents/skills" "Codex skills"
 test -f "$smoke_root/.smaqit/templates/designs/business.template.md"
 test -f "$smoke_root/.smaqit/tools/plantuml/plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1/node_modules/@plantuml/mcp-js/server.js"
+grep -Fxq 'user-owned-rule/' "$smoke_root/.gitignore"
+test "$(grep -Fxc '.smaqit/tools/' "$smoke_root/.gitignore")" -eq 1
+git -C "$smoke_root" check-ignore -q .smaqit/tools/plantuml/plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1/node_modules/@plantuml/mcp-js/server.js
+if git -C "$smoke_root" check-ignore -q docs/designs/business/sentinel.txt; then
+  echo "[ERROR] Canonical design artifacts must not be ignored" >&2
+  exit 1
+fi
+tracked_runtime="$smoke_root/.smaqit/tools/plantuml/plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1/node_modules/@plantuml/mcp-js/server.js"
+git -C "$smoke_root" add -f "$tracked_runtime"
+git -C "$smoke_root" ls-files --error-unmatch "$tracked_runtime" >/dev/null
 for layer in business functional stack infrastructure coverage; do
   test -d "$smoke_root/docs/designs/$layer"
 done
@@ -291,6 +304,9 @@ grep -Fq 'cancel-sentinel' "$smoke_root/.codex/agents/$owned_agent_name"
 grep -Fq 'corrupt-runtime-sentinel' "$runtime_lock"
 printf 'y\n' | "$binary" init "$smoke_root"
 assert_file_equal "$owned_agent" "$smoke_root/.codex/agents/$owned_agent_name" "confirmed reinstall"
+grep -Fxq 'user-owned-rule/' "$smoke_root/.gitignore"
+test "$(grep -Fxc '.smaqit/tools/' "$smoke_root/.gitignore")" -eq 1
+git -C "$smoke_root" ls-files --error-unmatch "$tracked_runtime" >/dev/null
 (
   cd "$smoke_root"
   "$binary" validate

@@ -33,6 +33,6 @@ After updating and re-running `smaqit init`, an existing project with active spe
 
 ## Installation and Ownership
 
-The released Go binary embeds exact npm-lock-resolved dependencies for `@plantuml/mcp-js`, `@resvg/resvg-wasm`, and Noto Sans. Initialization first verifies the archive and Node.js 22+, then materializes the versioned runtime under `.smaqit/tools/plantuml/`. It configures the owned `smaqit-plantuml` server in `.vscode/mcp.json`, while Claude and Codex agents carry project-local MCP declarations.
+The released Go binary embeds exact npm-lock-resolved dependencies for `@plantuml/mcp-js`, `@resvg/resvg-wasm`, and Noto Sans. Initialization first verifies the archive and Node.js 22+, then materializes the versioned runtime under `.smaqit/tools/plantuml/`. It adds the narrow `.smaqit/tools/` rule to the project root `.gitignore`, preserving user rules so the generated runtime is not committed; canonical `docs/designs/` Markdown and PNG artifacts remain versioned. It configures the owned `smaqit-plantuml` server in `.vscode/mcp.json`, while Claude and Codex agents carry project-local MCP declarations.
 
 Reinstallation repairs smaqit-owned runtime/configuration and preserves unrelated MCP entries. Uninstall removes owned tooling and configuration but preserves `docs/designs/`.

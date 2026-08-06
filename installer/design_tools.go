@@ -25,6 +25,8 @@ const (
 	designMCPServerName = "smaqit-plantuml"
 	designBundleVersion = "plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1"
 	minimumNodeMajor    = 22
+	designToolLockWait  = 60 * time.Second
+	designToolLockStale = 5 * time.Minute
 )
 
 type designToolManifest struct {
@@ -96,16 +98,21 @@ func materializeDesignTools(projectRoot string) (string, error) {
 		return "", err
 	}
 	toolsRoot := filepath.Join(projectRoot, ".smaqit", "tools", "plantuml")
+	if err := os.MkdirAll(toolsRoot, 0o755); err != nil {
+		return "", err
+	}
+	release, err := acquireDesignToolLock(toolsRoot)
+	if err != nil {
+		return "", err
+	}
+	defer release()
+
 	destination := filepath.Join(toolsRoot, designBundleVersion)
 	if validateMaterializedDesignTools(destination) == nil {
 		return destination, nil
 	}
-
-	if err := os.MkdirAll(toolsRoot, 0o755); err != nil {
-		return "", err
-	}
-	temporary := filepath.Join(toolsRoot, fmt.Sprintf(".%s.tmp-%d", designBundleVersion, time.Now().UnixNano()))
-	if err := os.MkdirAll(temporary, 0o755); err != nil {
+	temporary, err := os.MkdirTemp(toolsRoot, "."+designBundleVersion+".tmp-")
+	if err != nil {
 		return "", err
 	}
 	cleanupTemporary := true
@@ -121,8 +128,13 @@ func materializeDesignTools(projectRoot string) (string, error) {
 		return "", err
 	}
 
-	backup := destination + ".previous"
-	_ = os.RemoveAll(backup)
+	backup, err := os.MkdirTemp(toolsRoot, "."+designBundleVersion+".previous-")
+	if err != nil {
+		return "", err
+	}
+	if err := os.Remove(backup); err != nil {
+		return "", err
+	}
 	if _, err := os.Stat(destination); err == nil {
 		if err := os.Rename(destination, backup); err != nil {
 			return "", err
@@ -137,6 +149,47 @@ func materializeDesignTools(projectRoot string) (string, error) {
 	cleanupTemporary = false
 	_ = os.RemoveAll(backup)
 	return destination, nil
+}
+
+// ensureDesignTools is the single mutating entry point for project-local
+// design commands. A Git worktree deliberately does not inherit ignored
+// runtime files, so rendering and MCP serving must bootstrap their own bundle.
+func ensureDesignTools(projectRoot string) (string, error) {
+	if err := preflightDesignTools(); err != nil {
+		return "", err
+	}
+	runtimeDir, err := materializeDesignTools(projectRoot)
+	if err != nil {
+		return "", fmt.Errorf("DESIGN-TOOLCHAIN-UNAVAILABLE: %w", err)
+	}
+	if err := validateMaterializedDesignTools(runtimeDir); err != nil {
+		return "", fmt.Errorf("DESIGN-TOOLCHAIN-UNAVAILABLE: %w", err)
+	}
+	return runtimeDir, nil
+}
+
+func acquireDesignToolLock(toolsRoot string) (func(), error) {
+	lockPath := filepath.Join(toolsRoot, "."+designBundleVersion+".lock")
+	deadline := time.Now().Add(designToolLockWait)
+	for {
+		err := os.Mkdir(lockPath, 0o755)
+		if err == nil {
+			return func() { _ = os.RemoveAll(lockPath) }, nil
+		}
+		if !os.IsExist(err) {
+			return nil, err
+		}
+		if info, statErr := os.Stat(lockPath); statErr == nil && time.Since(info.ModTime()) > designToolLockStale {
+			if err := os.RemoveAll(lockPath); err != nil && !os.IsNotExist(err) {
+				return nil, err
+			}
+			continue
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timed out waiting for PlantUML runtime installation lock")
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 }
 
 func extractDesignToolArchive(archive []byte, destination string) error {
@@ -310,12 +363,9 @@ func findProjectRoot(start string) (string, error) {
 }
 
 func runPlantUMLMCP(projectRoot string) error {
-	runtimeDir := filepath.Join(projectRoot, ".smaqit", "tools", "plantuml", designBundleVersion)
-	if err := preflightDesignTools(); err != nil {
+	runtimeDir, err := ensureDesignTools(projectRoot)
+	if err != nil {
 		return err
-	}
-	if err := validateMaterializedDesignTools(runtimeDir); err != nil {
-		return fmt.Errorf("DESIGN-TOOLCHAIN-UNAVAILABLE: %w", err)
 	}
 	cmd := exec.Command("node", filepath.Join(runtimeDir, "node_modules", "@plantuml", "mcp-js", "server.js"))
 	cmd.Dir = projectRoot

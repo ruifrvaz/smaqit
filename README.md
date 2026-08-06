@@ -68,6 +68,7 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 | `smaqit design render <file>` | Syntax-check PlantUML and render its canonical PNG |
 | `smaqit design attest <file>` | Record the active agent's visual review against current hashes |
 | `smaqit design validate [file]` | Run structural, PlantUML, and visual-attestation gates |
+| `smaqit mcp verify` | Verify PlantUML MCP configuration and local stdio transport |
 | `smaqit help` | Show detailed command help |
 | `smaqit uninstall` | Remove smaqit from project |
 | `smaqit update` | Update smaqit to the latest release |

@@ -1,7 +1,9 @@
 # Reliable Design Toolchain
 
-**Status:** Not Started
+**Status:** In Progress
 **Created:** 2026-08-06
+**Mode:** Assisted
+**Started:** 2026-08-06
 
 ## Description
 
@@ -31,7 +33,25 @@ The task preserves smaqit's strict authoring model: PlantUML MCP tooling is mand
 
 ## Known Issues Triage
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+**Triaged:** 2026-08-06
+**Tools searched:** PlantUML MCP, Visual Studio Code, Claude Code, Codex, Model Context Protocol Go SDK
+**Result:** Blocking
+
+### Blocking Issues
+- [#30922 MCP Tools Not Exposed to Agent in Codex Desktop, Only Resources Are Available](https://github.com/openai/codex/issues/30922) — `openai/codex` — opened 2026-07-02 — bug, mcp, tool-calls, app
+
+Proceeding by explicit user approval on 2026-08-06. The implementation must retain an in-code reference to this client-owned limitation and fail authoring clearly when declared MCP tools remain unavailable.
+
+### Advisory Issues
+- [#324993 MCP tools and vscode.lm.registerTool tools silently dropped in Agent mode on Remote SSH host](https://github.com/microsoft/vscode/issues/324993) — `microsoft/vscode` — opened 2026-07-08 — the Remote SSH scope does not match the pilot, but it confirms client-side MCP tool exposure remains host-owned.
+- [#3426 Claude Code fails to expose MCP tools to AI sessions when running a local Playwright MCP server](https://github.com/anthropics/claude-code/issues/3426) — `anthropics/claude-code` — opened 2025-07-13 — a different server, but the same local-MCP exposure category.
+
+### Historical (Closed)
+- [#13898 Custom Subagents Cannot Access Project-Scoped MCP Servers (Hallucinate Instead)](https://github.com/anthropics/claude-code/issues/13898) — `anthropics/claude-code` — closed 2026-05-23
+- [#395 Claude Desktop Not Able To Detect The Tool](https://github.com/modelcontextprotocol/go-sdk/issues/395) — `modelcontextprotocol/go-sdk` — closed 2025-09-05
+
+### Unresolvable Tools
+- None
 
 ## Acceptance Criteria
 

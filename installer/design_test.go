@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -37,9 +38,6 @@ func TestRenderAttestValidateDesign(t *testing.T) {
 		t.Skipf("Node %d+ is the mandatory consumer prerequisite: %v", minimumNodeMajor, err)
 	}
 	root := designTestProject(t)
-	if _, err := materializeDesignTools(root); err != nil {
-		t.Fatal(err)
-	}
 	designPath := filepath.Join(root, "docs", "designs", "business", "dsg-bus-login-use-case.md")
 	specPath := filepath.Join(root, "specs", "business", "login.md")
 	writeTestFile(t, designPath, validDesignSource(`""`, `""`))
@@ -149,8 +147,11 @@ func TestCorruptRuntimeAndArchiveAreRejected(t *testing.T) {
 	if err := validateMaterializedDesignTools(runtimeDir); err == nil || !strings.Contains(err.Error(), "hash mismatch") {
 		t.Fatalf("expected corrupt runtime rejection, got %v", err)
 	}
-	if err := runPlantUMLMCP(root); err == nil || !strings.Contains(err.Error(), "DESIGN-TOOLCHAIN-UNAVAILABLE") {
-		t.Fatalf("expected mandatory toolchain failure code, got %v", err)
+	if _, err := ensureDesignTools(root); err != nil {
+		t.Fatalf("expected corrupt runtime repair, got %v", err)
+	}
+	if err := validateMaterializedDesignTools(runtimeDir); err != nil {
+		t.Fatalf("repaired runtime is invalid: %v", err)
 	}
 
 	var archive bytes.Buffer
@@ -170,6 +171,79 @@ func TestCorruptRuntimeAndArchiveAreRejected(t *testing.T) {
 	}
 	if err := extractDesignToolArchive(archive.Bytes(), t.TempDir()); err == nil || !strings.Contains(err.Error(), "unsafe archive path") {
 		t.Fatalf("expected archive traversal rejection, got %v", err)
+	}
+}
+
+func TestMaterializeDesignToolsIsConcurrentSafe(t *testing.T) {
+	root := designTestProject(t)
+	const callers = 4
+	errs := make(chan error, callers)
+	var group sync.WaitGroup
+	for range callers {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			_, err := materializeDesignTools(root)
+			errs <- err
+		}()
+	}
+	group.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := validateMaterializedDesignTools(designRuntimePath(root)); err != nil {
+		t.Fatalf("concurrent materialization did not leave a valid bundle: %v", err)
+	}
+}
+
+func TestValidateDesignsReportsIndependentFailures(t *testing.T) {
+	major, err := installedNodeMajor()
+	if err != nil || major < minimumNodeMajor {
+		t.Skipf("Node %d+ is the mandatory consumer prerequisite: %v", minimumNodeMajor, err)
+	}
+	root := designTestProject(t)
+	t.Chdir(root)
+	validDesign := filepath.Join(root, "docs", "designs", "business", "dsg-bus-login-use-case.md")
+	brokenDesign := filepath.Join(root, "docs", "designs", "business", "broken.md")
+	linkedSpec := filepath.Join(root, "specs", "business", "login.md")
+	orphanSpec := filepath.Join(root, "specs", "business", "orphan.md")
+	writeTestFile(t, validDesign, validDesignSource(`""`, `""`))
+	writeTestFile(t, brokenDesign, "not a design\n")
+	writeTestFile(t, linkedSpec, `---
+id: BUS-LOGIN
+status: draft
+created: 2026-08-03
+---
+
+## Design References
+
+- [Design](../../docs/designs/business/dsg-bus-login-use-case.md) · [Image](../../docs/designs/business/dsg-bus-login-use-case.png)
+
+## Acceptance Criteria
+
+- **BUS-LOGIN-001**: Login works.
+`)
+	writeTestFile(t, orphanSpec, `---
+id: BUS-ORPHAN
+status: draft
+created: 2026-08-03
+---
+
+## Acceptance Criteria
+
+- **BUS-ORPHAN-001**: Orphan is reported.
+`)
+	err = validateDesigns("")
+	if err == nil {
+		t.Fatal("expected aggregate validation failure")
+	}
+	for _, want := range []string{"broken.md:", "dsg-bus-login-use-case.md:", "active specification orphan.md:"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("aggregate diagnostics missing %q: %v", want, err)
+		}
 	}
 }
 

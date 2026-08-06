@@ -85,18 +85,66 @@ type plantUMLResult struct {
 }
 
 func cmdMCP(args []string) {
-	if len(args) != 1 || args[0] != "plantuml" {
-		fmt.Fprintln(os.Stderr, "Usage: smaqit mcp plantuml")
+	root, err := findProjectRoot(".")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	root, err := findProjectRoot(".")
-	if err == nil {
+	switch {
+	case len(args) == 1 && args[0] == "plantuml":
 		err = runPlantUMLMCP(root)
+	case len(args) == 1 && args[0] == "verify":
+		err = verifyPlantUMLMCP(root)
+	default:
+		err = errors.New("Usage: smaqit mcp <plantuml|verify>")
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+// verifyPlantUMLMCP probes the same stdio wrapper declared in client config.
+// It cannot prove a running host exposed the tools to an agent: Codex issue
+// https://github.com/openai/codex/issues/30922 tracks that client-owned gap.
+func verifyPlantUMLMCP(root string) error {
+	if _, err := ensureDesignTools(root); err != nil {
+		return err
+	}
+	if err := validateVSCodeMCPConfig(root); err != nil {
+		return fmt.Errorf("DESIGN-TOOLCHAIN-UNAVAILABLE: %w", err)
+	}
+	binary, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("DESIGN-TOOLCHAIN-UNAVAILABLE: resolve smaqit executable: %w", err)
+	}
+	command := exec.Command(binary, "mcp", "plantuml")
+	command.Dir = root
+	client := mcp.NewClient(&mcp.Implementation{Name: "smaqit-mcp-verify", Version: Version}, nil)
+	session, err := client.Connect(context.Background(), &mcp.CommandTransport{Command: command}, nil)
+	if err != nil {
+		return fmt.Errorf("DESIGN-TOOLCHAIN-UNAVAILABLE: PlantUML MCP wrapper did not initialize: %w", err)
+	}
+	defer session.Close()
+	tools, err := session.ListTools(context.Background(), nil)
+	if err != nil {
+		return fmt.Errorf("DESIGN-TOOLCHAIN-UNAVAILABLE: PlantUML MCP wrapper did not list tools: %w", err)
+	}
+	available := map[string]bool{}
+	for _, tool := range tools.Tools {
+		available[tool.Name] = true
+	}
+	for _, required := range []string{"check_syntax", "render_diagram"} {
+		if !available[required] {
+			return fmt.Errorf("DESIGN-TOOLCHAIN-UNAVAILABLE: PlantUML MCP wrapper is missing required tool %q", required)
+		}
+	}
+	if _, err := callPlantUML(session, "check_syntax", "@startuml\nAlice -> Bob: verify\n@enduml\n"); err != nil {
+		return err
+	}
+	fmt.Println("✓ PlantUML MCP configuration and stdio transport are ready")
+	fmt.Println("! Confirm the active client has loaded, trusted, and exposed the two MCP tools before authoring")
+	return nil
 }
 
 func cmdDesign(args []string) {
@@ -520,36 +568,41 @@ func validateDesigns(path string) error {
 		}
 		defer syntaxSession.Close()
 	}
+	var diagnostics []string
 	for _, p := range paths {
 		d, err := parseDesign(p)
 		if err != nil {
-			return err
+			diagnostics = append(diagnostics, fmt.Sprintf("%s: %v", filepath.Base(p), err))
+			continue
 		}
 		if ids[d.Front.ID] {
-			return fmt.Errorf("DESIGN-VISUAL-INVALID: duplicate design id %s", d.Front.ID)
+			diagnostics = append(diagnostics, fmt.Sprintf("%s: DESIGN-VISUAL-INVALID: duplicate design id %s", filepath.Base(p), d.Front.ID))
+		} else {
+			ids[d.Front.ID] = true
 		}
-		ids[d.Front.ID] = true
 		if d.Front.Status == "deprecated" {
 			continue
 		}
 		if _, err := callPlantUML(syntaxSession, "check_syntax", d.Source); err != nil {
-			return err
+			diagnostics = append(diagnostics, fmt.Sprintf("%s: %v", filepath.Base(p), err))
 		}
 		if err := validateDesignArtifact(d); err != nil {
-			return err
+			diagnostics = append(diagnostics, fmt.Sprintf("%s: %v", filepath.Base(p), err))
 		}
 	}
 	if path == "" {
-		if err := validateAllActiveSpecsHaveDesign(root); err != nil {
-			return err
-		}
+		diagnostics = append(diagnostics, collectActiveSpecDesignDiagnostics(root)...)
+	}
+	if len(diagnostics) > 0 {
+		return fmt.Errorf("DESIGN-VALIDATION-FAILED: %d issue(s):\n%s", len(diagnostics), strings.Join(diagnostics, "\n"))
 	}
 	fmt.Printf("✓ Validated %d canonical design(s)\n", len(paths))
 	return nil
 }
 
-func validateAllActiveSpecsHaveDesign(root string) error {
-	for layer := range designProfiles {
+func collectActiveSpecDesignDiagnostics(root string) []string {
+	var diagnostics []string
+	for _, layer := range []string{"business", "functional", "stack", "infrastructure", "coverage"} {
 		entries, err := os.ReadDir(filepath.Join(root, "specs", layer))
 		if err != nil {
 			continue
@@ -560,25 +613,26 @@ func validateAllActiveSpecsHaveDesign(root string) error {
 			}
 			path := filepath.Join(root, "specs", layer, entry.Name())
 			front, err := parseSpecFrontmatter(path)
-			if err != nil || front.Status == "deprecated" {
+			if err != nil {
+				diagnostics = append(diagnostics, fmt.Sprintf("%s: DESIGN-VISUAL-INVALID: invalid linked specification metadata: %v", filepath.Base(path), err))
+				continue
+			}
+			if front.Status == "deprecated" {
 				continue
 			}
 			ready, reason := specDesignReady(path, layer)
 			if !ready {
-				return fmt.Errorf("active specification %s: %s", filepath.Base(path), reason)
+				diagnostics = append(diagnostics, fmt.Sprintf("active specification %s: %s", filepath.Base(path), reason))
 			}
 		}
 	}
-	return nil
+	return diagnostics
 }
 
 func openPlantUMLSession(root string) (*mcp.ClientSession, error) {
-	if err := preflightDesignTools(); err != nil {
+	runtimeDir, err := ensureDesignTools(root)
+	if err != nil {
 		return nil, err
-	}
-	runtimeDir := designRuntimePath(root)
-	if err := validateMaterializedDesignTools(runtimeDir); err != nil {
-		return nil, fmt.Errorf("DESIGN-TOOLCHAIN-UNAVAILABLE: %w", err)
 	}
 	command := exec.Command(nodeCommandName(), filepath.Join(runtimeDir, "node_modules", "@plantuml", "mcp-js", "server.js"))
 	command.Dir = root

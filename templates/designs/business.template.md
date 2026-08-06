@@ -1,6 +1,6 @@
 ---
 id: DSG-BUS-[CONCEPT]-USE-CASE
-status: draft
+status: draft # Must equal the least-advanced active linked specification; use smaqit.spec-status-update for status-only changes.
 created: [TIMESTAMP]
 layer: business
 diagram_type: use-case

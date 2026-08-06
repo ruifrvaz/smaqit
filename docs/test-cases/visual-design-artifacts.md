@@ -29,6 +29,7 @@
 - [ ] Unsafe include/import or invalid PlantUML → `DESIGN-SYNTAX-INVALID`.
 - [ ] Missing source, image, spec, or pair link → `DESIGN-ARTIFACT-MISSING`.
 - [ ] Source/image hash or linked lifecycle mismatch → `DESIGN-ARTIFACT-STALE`.
+- [ ] Explicit design validation reports every independent design and active-spec failure in deterministic order; a missing shared runtime remains fail-fast.
 - [ ] Missing/corrupt embedded or materialized runtime → `DESIGN-TOOLCHAIN-UNAVAILABLE`.
 - [ ] Owning specification agent cannot open image content → `DESIGN-VISION-UNAVAILABLE`, with no source-reading fallback for its visual gate.
 - [ ] Broken requirement or bidirectional reference, invalid PNG, or failed visual rubric → `DESIGN-VISUAL-INVALID`.

@@ -1,6 +1,6 @@
 ---
 id: DSG-COV-[CONCEPT]-REQUIREMENT-TRACE
-status: draft
+status: draft # Must equal the least-advanced active linked specification; use smaqit.spec-status-update for status-only changes.
 created: [TIMESTAMP]
 layer: coverage
 diagram_type: requirement-trace

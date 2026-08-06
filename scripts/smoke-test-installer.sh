@@ -204,7 +204,8 @@ for platform, directory, suffix in (
             elif server is not None or {"read/viewImage", "smaqit-plantuml/check_syntax", "smaqit-plantuml/render_diagram"} & set(tools):
                 raise SystemExit(f"{path}: implementation agent must not receive image/MCP design access")
         else:
-            server = metadata.get("mcpServers", {}).get("smaqit-plantuml")
+            servers = metadata.get("mcpServers", [])
+            server = next((entry.get("smaqit-plantuml") for entry in servers if isinstance(entry, dict) and "smaqit-plantuml" in entry), None)
             authoring_tools = {"mcp__smaqit-plantuml__check_syntax", "mcp__smaqit-plantuml__render_diagram"}
             if short_name in design_authors:
                 if not server or server.get("command") != "smaqit" or server.get("args") != ["mcp", "plantuml"] or not authoring_tools.issubset(set(tools)):
@@ -284,6 +285,7 @@ printf '%s\n' '---' 'id: DSG-BUS-SMOKE-USE-CASE' 'status: draft' 'created: 2026-
   test -s "$design_image"
   "$binary" design attest docs/designs/business/dsg-bus-smoke-use-case.md
   "$binary" design validate docs/designs/business/dsg-bus-smoke-use-case.md
+  "$binary" mcp verify
   plan_output="$("$binary" plan --phase=develop)"
   if [[ "$plan_output" != 'specs/business/smoke-design.md' ]]; then
     echo "[ERROR] Ready plan output changed its path-only contract: $plan_output" >&2
@@ -291,6 +293,34 @@ printf '%s\n' '---' 'id: DSG-BUS-SMOKE-USE-CASE' 'status: draft' 'created: 2026-
   fi
 )
 rm -- "$design_spec" "$design_source" "$design_image"
+
+# A linked Git worktree receives tracked smaqit configuration but not the ignored
+# runtime. Every local design command must bootstrap its own verified bundle.
+worktree_source="$smoke_root/worktree-source"
+worktree_child="$smoke_root/worktree-child"
+git init -q "$worktree_source"
+git -C "$worktree_source" config user.email "smoke@example.test"
+git -C "$worktree_source" config user.name "Smoke Test"
+"$binary" init "$worktree_source" >/dev/null
+for dir in specs/business specs/functional specs/stack specs/infrastructure specs/coverage docs/designs/business docs/designs/functional docs/designs/stack docs/designs/infrastructure docs/designs/coverage; do
+  touch "$worktree_source/$dir/.gitkeep"
+done
+git -C "$worktree_source" add -A
+git -C "$worktree_source" commit -qm "Initialize smaqit"
+git -C "$worktree_source" worktree add -q -b toolchain-child "$worktree_child"
+if [[ -e "$worktree_child/.smaqit/tools" ]]; then
+  echo "[ERROR] Ignored runtime unexpectedly appeared in a fresh Git worktree" >&2
+  exit 1
+fi
+(
+  cd "$worktree_child"
+  "$binary" validate
+  "$binary" mcp verify
+)
+test -f "$worktree_child/.smaqit/tools/plantuml/plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1/node_modules/@plantuml/mcp-js/server.js"
+git -C "$worktree_child" check-ignore -q .smaqit/tools/plantuml/plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1/node_modules/@plantuml/mcp-js/server.js
+git -C "$worktree_source" worktree remove --force "$worktree_child"
+git -C "$worktree_source" branch -D toolchain-child >/dev/null
 
 # Reinstallation must detect exact owned conflicts. Cancellation preserves the modified
 # file; confirmation restores the generated artifact.

@@ -17,13 +17,15 @@ Default profiles are `use-case` (Business), `system-sequence` (Functional), `com
 
 ## Authoring Gate
 
-1. Start from `.smaqit/templates/designs/<layer>.template.md` and link the pair from its specs.
+1. Start from `.smaqit/templates/designs/<layer>.template.md` and link the pair from its specs. Its active `status` must equal the least-advanced linked specification; use `smaqit.spec-status-update` for status-only changes or validation returns `DESIGN-ARTIFACT-STALE`.
 2. Use the `smaqit-plantuml` MCP tools to check syntax and iterate.
 3. Run `smaqit design render docs/designs/<layer>/<id>.md` to produce the current PNG and record hashes.
 4. The owning specification agent opens the PNG with its image-reading tool and checks legibility, clipping, direction/order, boundaries, disconnected elements, coherence, and excessive complexity.
 5. Correct and rerender until the image passes, then run `smaqit design attest <file>` and `smaqit design validate <file>`.
 
 Image capability is mandatory for specification agents. If it is unavailable, stop with `DESIGN-VISION-UNAVAILABLE`; PlantUML source reading is not an authoring-time visual-review fallback.
+
+After installation, run `smaqit mcp verify` to prove the generated configuration and local stdio transport. This does not prove an interactive client has exposed the tools: open the project in VS Code and use **MCP: List Servers** to trust/start `smaqit-plantuml`; in Claude Code and Codex, start a fresh session and confirm the specification agent receives its two declared tools. If they are absent, stop authoring with `DESIGN-TOOLCHAIN-UNAVAILABLE`; do not substitute direct CLI calls.
 
 At implementation handoff, `smaqit plan --phase=<phase>` exits nonzero unless every in-scope design pair retains a current visual attestation. Implementation agents do not reopen PNGs: they read specification Markdown for requirements and PlantUML Markdown for canonical design structure.
 

@@ -1,6 +1,6 @@
 ---
 id: DSG-STK-[CONCEPT]-COMPONENT
-status: draft
+status: draft # Must equal the least-advanced active linked specification; use smaqit.spec-status-update for status-only changes.
 created: [TIMESTAMP]
 layer: stack
 diagram_type: component

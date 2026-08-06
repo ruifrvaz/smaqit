@@ -175,13 +175,15 @@ def design_metadata(metadata: dict, platform: str, role: str | None) -> dict:
         ):
             if tool not in tools:
                 tools.append(tool)
-        metadata["mcpServers"] = {
-            "smaqit-plantuml": {
-                "type": "stdio",
-                "command": "smaqit",
-                "args": ["mcp", "plantuml"],
+        metadata["mcpServers"] = [
+            {
+                "smaqit-plantuml": {
+                    "type": "stdio",
+                    "command": "smaqit",
+                    "args": ["mcp", "plantuml"],
+                }
             }
-        }
+        ]
     elif platform == "codex":
         metadata["tools"] = {"view_image": True}
         metadata["mcp_servers"] = {

@@ -137,6 +137,7 @@ func cmdHelp() {
 	fmt.Println("  smaqit design validate [path]     Run all mandatory design gates")
 	fmt.Println()
 	fmt.Println("  smaqit mcp plantuml               Run the bundled PlantUML MCP server")
+	fmt.Println("  smaqit mcp verify                 Verify the PlantUML MCP wrapper and tools")
 	fmt.Println()
 	fmt.Println("  smaqit help       Show this help message")
 	fmt.Println()
@@ -994,11 +995,8 @@ func cmdValidate() {
 	if errors == 0 {
 		fmt.Println("✓ Directory structure is complete")
 	}
-	if err := preflightDesignTools(); err != nil {
+	if _, err := ensureDesignTools("."); err != nil {
 		fmt.Printf("✗ %v\n", err)
-		errors++
-	} else if err := validateMaterializedDesignTools(designRuntimePath(".")); err != nil {
-		fmt.Printf("✗ DESIGN-TOOLCHAIN-UNAVAILABLE: %v\n", err)
 		errors++
 	} else if err := validateVSCodeMCPConfig("."); err != nil {
 		fmt.Printf("✗ DESIGN-TOOLCHAIN-UNAVAILABLE: %v\n", err)

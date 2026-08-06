@@ -12,9 +12,9 @@ The current runtime is materialized only in the checkout where `init` or `update
 
 ## Architecture
 
-**Why can `smaqit-plantuml` be absent from ToolSearch even when `.vscode/mcp.json` contains it?**
+**Why can `smaqit-plantuml` be absent from ToolSearch even when its project MCP registrations exist?**
 
-The installer can write a valid workspace MCP configuration, but configuration is not host activation. The client must load the workspace, trust and start the local server, then refresh its tools; an already-running agent session may not acquire tools from configuration written after it started. Until smaqit adds an activation/readiness check, inspect the host's MCP server list and restart or refresh the server/session rather than treating the file's presence as proof that authoring tools are reachable.
+`smaqit init` and `smaqit update` register the stdio server in `.vscode/mcp.json` (VS Code), root `.mcp.json` (Claude Code), and trusted `.codex/config.toml` (Codex). Registration is not host activation: load the project, trust and start the server, then refresh the agent session. A valid Codex registration can still be ignored by known host defects, so missing tools remain `DESIGN-TOOLCHAIN-UNAVAILABLE`; inspect the host MCP-server list and restart or refresh rather than treating configuration presence as proof that tools are reachable.
 
 ---
 
@@ -134,7 +134,7 @@ The decision is per `provisioning_mode`, independent of which credential scheme 
 
 **How does smaqit provide first-class Codex compatibility?**
 
-`scripts/generate-agents.py` compiles the 9 canonical agent bodies and platform metadata into `installer/agents-codex/*.toml`, and copies all 25 canonical product skills into `installer/skills-codex/` with `.agents/skills` path substitution. `smaqit init` installs agents to `.codex/agents/` and skills to `.agents/skills/` without creating or modifying `.codex/config.toml`. Validation checks both directories, update reinitialization uses the fresh binary's embedded content, and uninstall removes exact embedded files while preserving unrelated or nested custom content.
+`scripts/generate-agents.py` compiles the 9 canonical agent bodies and platform metadata into `installer/agents-codex/*.toml`, and copies all 26 canonical product skills into `installer/skills-codex/` with `.agents/skills` path substitution. `smaqit init` installs agents to `.codex/agents/`, skills to `.agents/skills/`, and the exact `smaqit-plantuml` server table to trusted `.codex/config.toml`. Validation checks all three, update reinitialization uses the fresh binary's embedded content, and uninstall removes only exact smaqit-owned entries while preserving unrelated or nested custom content.
 
 ---
 

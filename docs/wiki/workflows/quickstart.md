@@ -21,11 +21,12 @@ This creates:
 - `.github/agents/` — Agent definitions
 - `.github/skills/` — Reusable agent skills
 - `.claude/agents/`, `.claude/commands/`, `.claude/skills/` — Claude Code integration
-- `.codex/agents/`, `.agents/skills/` — Codex project agents and repository skills
+- `.mcp.json` — Claude Code project MCP registration
+- `.codex/agents/`, `.codex/config.toml`, `.agents/skills/` — Codex project agents, MCP registration, and repository skills
 - `specs/` — Where generated specifications go
 - `docs/designs/{business,functional,stack,infrastructure,coverage}/` — Canonical PlantUML Markdown/PNG design pairs
 
-Initialization and project update automatically run `smaqit mcp verify`, which proves the generated configuration and local transport. Before authoring designs, let the client load and trust the project-local `smaqit-plantuml` server; a fresh agent session must still expose the two MCP tools or the specification agent stops with `DESIGN-TOOLCHAIN-UNAVAILABLE`. Re-run `smaqit mcp verify` manually to diagnose the local transport.
+Initialization and project update automatically run `smaqit mcp verify`, which proves the VS Code, Claude Code, and Codex registrations plus local transport. Restart the active client after installation: trust `smaqit-plantuml` in VS Code and Claude Code, and trust the project before Codex loads `.codex/config.toml`. A fresh authoring-agent session must still expose the two MCP tools or the specification agent stops with `DESIGN-TOOLCHAIN-UNAVAILABLE`. Re-run `smaqit mcp verify` manually to diagnose only the deterministic local layer.
 
 ## Step 2: Run the Development Phase
 

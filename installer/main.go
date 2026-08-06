@@ -616,10 +616,20 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
+	// This is an idempotent local gate. cmdInit also backs project updates, so
+	// every initialization or update proves the generated MCP configuration and
+	// its public stdio wrapper before reporting success. Client-side tool
+	// discovery remains a separate authoring-session precondition.
+	if err := verifyPlantUMLMCP("."); err != nil {
+		fmt.Printf("Error verifying mandatory PlantUML MCP transport: %v\n", err)
+		os.Exit(1)
+	}
+
 	fmt.Println("✓ Created .smaqit/ directory structure")
 	fmt.Println("✓ Copied templates")
 	fmt.Println("✓ Installed bundled PlantUML MCP and PNG rendering runtime")
 	fmt.Println("✓ Configured project-local PlantUML MCP discovery")
+	fmt.Println("✓ Verified PlantUML MCP configuration and local stdio transport")
 	fmt.Println("✓ Copied agent definitions (GitHub Copilot + Claude Code + Codex)")
 	fmt.Println("✓ Copied skill files (GitHub Copilot + Claude Code + Codex)")
 	fmt.Println("✓ Copied workflow files")
@@ -627,7 +637,7 @@ func cmdInit(targetDir string) {
 	fmt.Printf("✓ AGENTS.md %s, CLAUDE.md %s\n", agentsStatus, claudeStatus)
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
-	fmt.Println("  1. Open GitHub Copilot chat, Claude Code, or Codex in this project")
+	fmt.Println("  1. Open or restart GitHub Copilot chat, Claude Code, or Codex in this project, then confirm smaqit-plantuml exposes its two tools to specification agents")
 	fmt.Println("  2. Invoke or ask to spawn smaqit.development for the Development phase")
 	fmt.Println("  3. Or type '/smaqit.business' to begin with business specifications only (GitHub Copilot only — see 'smaqit help')")
 }

@@ -14,7 +14,6 @@ Build a "Hello, Mario!" console app from requirements to working code using smaq
 ```bash
 mkdir mario-hello && cd mario-hello
 smaqit init
-smaqit mcp verify
 ```
 
 This creates:
@@ -26,7 +25,7 @@ This creates:
 - `specs/` — Where generated specifications go
 - `docs/designs/{business,functional,stack,infrastructure,coverage}/` — Canonical PlantUML Markdown/PNG design pairs
 
-Before authoring designs, let the client load and trust the project-local `smaqit-plantuml` server. `smaqit mcp verify` proves its local transport; a fresh agent session must still expose the two MCP tools or the specification agent stops with `DESIGN-TOOLCHAIN-UNAVAILABLE`.
+Initialization and project update automatically run `smaqit mcp verify`, which proves the generated configuration and local transport. Before authoring designs, let the client load and trust the project-local `smaqit-plantuml` server; a fresh agent session must still expose the two MCP tools or the specification agent stops with `DESIGN-TOOLCHAIN-UNAVAILABLE`. Re-run `smaqit mcp verify` manually to diagnose the local transport.
 
 ## Step 2: Run the Development Phase
 

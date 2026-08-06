@@ -96,7 +96,9 @@ if [[ -e "$smoke_root/.smaqit" ]]; then
   echo "[ERROR] Cancelled first installation created .smaqit/" >&2
   exit 1
 fi
-printf 'y\n' | "$binary" init "$smoke_root"
+first_init_output="$(printf 'y\n' | "$binary" init "$smoke_root")"
+grep -Fq '✓ PlantUML MCP configuration and stdio transport are ready' <<< "$first_init_output"
+grep -Fq '✓ Verified PlantUML MCP configuration and local stdio transport' <<< "$first_init_output"
 assert_file_equal "$first_owned_agent" "$smoke_root/.codex/agents/$first_owned_name" "confirmed first-install conflict"
 
 assert_owned_tree_matches "$repo_root/installer/agents-copilot" "$smoke_root/.github/agents" "Copilot agents"

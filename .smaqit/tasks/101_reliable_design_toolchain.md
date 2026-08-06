@@ -16,6 +16,7 @@ The task preserves smaqit's strict authoring model: PlantUML MCP tooling is mand
 - **On-demand embedded runtime:** All project-local PlantUML consumers prepare the embedded, pinned runtime when it is absent. Manual copying between worktrees is not supported.
 - **Cross-process-safe materialization:** Runtime extraction uses a per-bundle lock, atomic publication, revalidation after lock acquisition, and safe rollback so concurrent agents cannot publish or delete partial state.
 - **Transport versus host activation:** `smaqit mcp verify` proves generated configuration and the actual `smaqit mcp plantuml` stdio transport. It cannot attest to VS Code/Claude/Codex session trust or tool discovery; specification agents MUST verify their declared tools and stop with an activation diagnostic if absent.
+- **Automatic local gate:** `smaqit init` and project update run `smaqit mcp verify` idempotently. The command remains available to diagnose the local transport; a restarted client session still owns tool discovery.
 - **All supported clients:** Keep VS Code/Copilot, Claude Code, and Codex in scope. Correct Claude's generated `mcpServers` declaration to its documented list form; do not introduce compatibility fallbacks.
 - **Two validation modes:** Explicit `smaqit design validate` and `smaqit validate` collect deterministic independent artifact errors. `smaqit plan` phase readiness remains fail-fast because it is an execution gate.
 - **Lifecycle coupling is user-facing:** Active design status equals the least-advanced active linked specification status. Agents make status-only changes through `smaqit.spec-status-update`.
@@ -58,7 +59,7 @@ Proceeding by explicit user approval on 2026-08-06. The implementation must reta
 - [ ] A Git worktree with no `.smaqit/tools/` can run `smaqit design render`, `smaqit design validate`, `smaqit validate`, and `smaqit mcp plantuml` without manual runtime copying when Node 22+ is available.
 - [ ] Missing Node, a corrupt archive, or failed extraction leaves no usable partial runtime, lock, temporary directory, or backup artifact and reports `DESIGN-TOOLCHAIN-UNAVAILABLE`.
 - [ ] Concurrent runtime preparation for one project leaves exactly one valid versioned bundle and all callers either succeed or receive a recoverable, actionable error.
-- [ ] `smaqit mcp verify` validates configuration and the public wrapper's MCP handshake, required tool list, and syntax call using the installed binary.
+- [ ] `smaqit init` and project update run `smaqit mcp verify` and fail if it cannot validate configuration and the public wrapper's MCP handshake, required tool list, and syntax call using the installed binary. The command remains available for manual diagnosis.
 - [ ] Claude design-author metadata uses documented list-form `mcpServers`; Copilot and Codex author-only declarations remain valid and implementation agents continue to receive neither MCP authoring tools nor image-review responsibility.
 - [ ] Consumer guidance distinguishes local transport verification from client-owned activation and requires authoring agents to stop if their MCP tools are unavailable.
 - [ ] Every source design template and authoring workflow states lifecycle-rank synchronization and the stale-artifact consequence.

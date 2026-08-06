@@ -25,7 +25,7 @@ Default profiles are `use-case` (Business), `system-sequence` (Functional), `com
 
 Image capability is mandatory for specification agents. If it is unavailable, stop with `DESIGN-VISION-UNAVAILABLE`; PlantUML source reading is not an authoring-time visual-review fallback.
 
-After installation, run `smaqit mcp verify` to prove the generated configuration and local stdio transport. This does not prove an interactive client has exposed the tools: open the project in VS Code and use **MCP: List Servers** to trust/start `smaqit-plantuml`; in Claude Code and Codex, start a fresh session and confirm the specification agent receives its two declared tools. If they are absent, stop authoring with `DESIGN-TOOLCHAIN-UNAVAILABLE`; do not substitute direct CLI calls.
+Initialization and project update automatically run `smaqit mcp verify` to prove the generated configuration and local stdio transport. Re-run it manually to diagnose that local layer. It does not prove an interactive client has exposed the tools: open the project in VS Code and use **MCP: List Servers** to trust/start `smaqit-plantuml`; in Claude Code and Codex, start a fresh session and confirm the specification agent receives its two declared tools. If they are absent, stop authoring with `DESIGN-TOOLCHAIN-UNAVAILABLE`; do not substitute direct CLI calls.
 
 At implementation handoff, `smaqit plan --phase=<phase>` exits nonzero unless every in-scope design pair retains a current visual attestation. Implementation agents do not reopen PNGs: they read specification Markdown for requirements and PlantUML Markdown for canonical design structure.
 

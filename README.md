@@ -6,7 +6,7 @@ Built for teams that value auditability, clear boundaries, and reproducible work
 
 ## Features
 
-- **One installer** — The released binary embeds smaqit's pinned PlantUML MCP, JavaScript/WASM renderer, font, templates, and agent integrations. Node.js 22+ is the only host prerequisite.
+- **One installer** — The released binary embeds smaqit's pinned PlantUML MCP, JavaScript/WASM renderer, font, templates, and agent integrations. Node.js 22+ is the only host prerequisite; the materialized local runtime under `.smaqit/tools/` is automatically Git-ignored.
 - **Visual design gates** — Minimal UML-style PlantUML/PNG design pairs are linked to every active specification, visually reviewed by specification agents, and automatically gated before implementation agents consume their PlantUML source.
 - **Traceable requirements** — Requirements captured in session context with full traceability from input to spec to implementation.
 - **Stateful specs** — Specifications track lifecycle: draft → implemented → deployed → validated.
@@ -98,6 +98,7 @@ Running `smaqit init` on an existing installation will:
 - **Preserve shared Codex configuration** — Unrelated `.codex/agents/`, `.agents/skills/`, and `.codex/config.toml` content is not changed
 - **Prompt for confirmation** — If smaqit files would be overwritten, you'll be asked to confirm
 - **Skip if no conflicts** — If only custom files exist, installation proceeds automatically
+- **Ignore managed runtime** — The installer adds the narrow `.smaqit/tools/` rule to your root `.gitignore`, preserving existing rules; canonical `docs/designs/` artifacts remain tracked
 
 This makes it safe to:
 - Upgrade to a new version of smaqit

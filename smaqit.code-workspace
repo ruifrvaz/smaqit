@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "release/v2.0.2",
+      "path": "../smaqit-wt-release-v2.0.2"
     }
   ],
   "settings": {

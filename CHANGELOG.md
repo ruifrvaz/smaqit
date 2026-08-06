@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [2.2.0] - 2026-08-07
+
+### Added
+- MCP registration for all three authoring clients — `smaqit init` and `smaqit update` now create valid `smaqit-plantuml` registrations in `.vscode/mcp.json` (VS Code), root `.mcp.json` (Claude Code), and `.codex/config.toml` (Codex) with the intended stdio command and arguments.
+
+### Changed
+- Preflight validation now rejects malformed or conflicting same-name servers in any client file before a partial installation is created.
+- `smaqit validate`, `smaqit mcp verify`, and `smaqit uninstall` now cover all three client configurations. Uninstall removes only exact smaqit registrations and preserves unrelated JSON, JSONC, and TOML content, deleting a file only when it becomes wholly smaqit-owned and empty.
+- User guidance now documents client-specific configuration paths, restart/trust requirements, and the distinction between MCP registration and host tool discovery.
+
 ## [2.1.0] - 2026-08-06
 
 ### Added
@@ -726,7 +736,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/ruifrvaz/smaqit/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/ruifrvaz/smaqit/compare/v2.0.2...v2.1.0
 [2.0.2]: https://github.com/ruifrvaz/smaqit/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/ruifrvaz/smaqit/compare/v2.0.0...v2.0.1

@@ -28,6 +28,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [2.1.0] - 2026-08-06
+
+### Added
+- On-demand embedded PlantUML runtime materialization — a secondary Git worktree or fresh clone can now run `smaqit design render`, `smaqit design validate`, `smaqit validate`, and `smaqit mcp plantuml` without manual runtime copying when Node.js 22+ is available. Extraction uses per-bundle locking, atomic publication, revalidation after lock acquisition, and safe rollback.
+- `smaqit mcp verify` command — inspects owned MCP configuration, launches the public stdio transport, completes MCP initialization, verifies expected PlantUML tools, and runs a fixed syntax probe. `smaqit init` and project update run this idempotently; the command remains available for manual diagnosis.
+- Aggregate design validation — explicit `smaqit design validate` and `smaqit validate` now collect all independent invalid designs and unpaired active specs in deterministic layer/path order instead of stopping at the first failure. Phase-readiness gates (`smaqit plan`) retain fail-fast behavior.
+
+### Changed
+- Specification agents now MUST verify their declared MCP tools and stop with an activation diagnostic if absent. Consumer documentation distinguishes local transport verification (`smaqit mcp verify`) from client-owned tool discovery (VS Code, Claude Code, Codex session trust and refresh).
+
+### Fixed
+- Claude Code design-author metadata now uses the documented list-form `mcpServers` declaration instead of the previous invalid format.
+- Every source design template now documents lifecycle-rank synchronization and the `DESIGN-ARTIFACT-STALE` consequence when a design's status falls behind its linked specification.
+
 ## [2.0.2] - 2026-08-06
 
 ### Added
@@ -712,7 +726,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v2.0.2...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/ruifrvaz/smaqit/compare/v2.0.2...v2.1.0
 [2.0.2]: https://github.com/ruifrvaz/smaqit/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/ruifrvaz/smaqit/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/ruifrvaz/smaqit/compare/v1.12.0...v2.0.0

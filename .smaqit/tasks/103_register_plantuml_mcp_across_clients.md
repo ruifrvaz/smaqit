@@ -1,7 +1,9 @@
 # Register PlantUML MCP Across Clients
 
-**Status:** Not Started
+**Status:** In Progress
 **Created:** 2026-08-06
+**Mode:** Assisted
+**Started:** 2026-08-06
 
 ## Description
 
@@ -27,7 +29,25 @@ The result must retain smaqit's strict design-authoring model. Initialization an
 
 ## Known Issues Triage
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+**Triaged:** 2026-08-06
+**Tools searched:** Claude Code, Codex
+**Result:** Blocking
+
+### Blocking Issues
+- [#13025 Codex Desktop ignores project `.codex/config.toml` MCP server](https://github.com/openai/codex/issues/13025) — `openai/codex` — opened 2026-02-27 — bug, mcp, app, plugins
+- [#21789 MCP servers from config.toml do not work anymore](https://github.com/openai/codex/issues/21789) — `openai/codex` — opened 2026-05-08 — bug, mcp, app, regression, config
+
+### Advisory Issues
+- [#75567 MCP approval for a project-scoped HTTP server never persists](https://github.com/anthropics/claude-code/issues/75567) — `anthropics/claude-code` — opened 2026-07-08 — bug, has repro, platform:macos, area:mcp
+- [#36465 Codex Desktop overwrites user config.toml and removes registered MCP servers](https://github.com/openai/codex/issues/36465) — `openai/codex` — opened 2026-08-01 — bug, windows-os, mcp, app, config
+
+### Historical (Closed)
+- [#13056 Per-project MCP server configuration in `.codex/config.toml` or mcp.json](https://github.com/openai/codex/issues/13056) — `openai/codex` — closed 2026-07-25
+
+### Unresolvable Tools
+- None
+
+Proceeding by explicit user approval on 2026-08-06. The implementation must create and validate the documented Codex project registration, retain the client-owned discovery stop condition, and keep the upstream limitations visible in user guidance.
 
 ## Acceptance Criteria
 

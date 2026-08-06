@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"embed"
 	"fmt"
 	"io/fs"
@@ -405,6 +406,38 @@ func detectConflicts() []string {
 	return conflicts
 }
 
+const managedToolsGitignoreRule = ".smaqit/tools/"
+
+// ensureManagedToolsGitignore prevents the bundled, project-local PlantUML
+// runtime from becoming consumer source control content. It appends only the
+// exact managed rule, preserving all existing user-owned .gitignore content.
+func ensureManagedToolsGitignore(projectRoot string) error {
+	path := filepath.Join(projectRoot, ".gitignore")
+	content, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if err == nil {
+		for _, line := range strings.Split(string(content), "\n") {
+			if strings.TrimSpace(line) == managedToolsGitignoreRule {
+				return nil
+			}
+		}
+	}
+
+	newline := "\n"
+	if bytes.Contains(content, []byte("\r\n")) {
+		newline = "\r\n"
+	}
+	updated := append([]byte(nil), content...)
+	if len(updated) > 0 && !bytes.HasSuffix(updated, []byte("\n")) {
+		updated = append(updated, newline...)
+	}
+	updated = append(updated, managedToolsGitignoreRule...)
+	updated = append(updated, newline...)
+	return os.WriteFile(path, updated, 0o644)
+}
+
 func cmdInit(targetDir string) {
 	// The toolchain is mandatory. Fail before creating the target so an
 	// unsupported host never receives a partial smaqit installation.
@@ -510,6 +543,10 @@ func cmdInit(targetDir string) {
 	}
 	if _, err := materializeDesignTools("."); err != nil {
 		fmt.Printf("Error installing mandatory PlantUML runtime: %v\n", err)
+		os.Exit(1)
+	}
+	if err := ensureManagedToolsGitignore("."); err != nil {
+		fmt.Printf("Error updating .gitignore for managed PlantUML runtime: %v\n", err)
 		os.Exit(1)
 	}
 	if err := installVSCodeMCPConfig("."); err != nil {

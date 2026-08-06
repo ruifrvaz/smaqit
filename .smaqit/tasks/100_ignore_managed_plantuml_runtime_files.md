@@ -1,7 +1,10 @@
 # Ignore Managed PlantUML Runtime Files
 
-**Status:** Not Started
+**Status:** Completed
+**Mode:** Assisted
 **Created:** 2026-08-06
+**Started:** 2026-08-06
+**Completed:** 2026-08-06
 
 ## Description
 
@@ -25,32 +28,47 @@ The forward fix must add and preserve a narrow Git ignore rule for the managed t
 
 ## Known Issues Triage
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+**Triaged:** 2026-08-06
+**Tools searched:** PlantUML
+**Result:** Clear
+
+### Blocking Issues
+- None.
+
+### Advisory Issues
+- None.
+
+### Historical (Closed)
+- None relevant to managed Git-ignore behavior.
+
+### Unresolvable Tools
+- None.
 
 ## Acceptance Criteria
 
-- [ ] A fresh `smaqit init` results in `.smaqit/tools/` being ignored by Git.
-- [ ] `smaqit update` adds the managed ignore rule to an existing project without overwriting unrelated `.gitignore` content.
-- [ ] Repeated initialization or update does not duplicate the ignore rule.
-- [ ] The ignore rule does not exclude `docs/designs/**/*.md` or `docs/designs/**/*.png`.
-- [ ] Installer unit and smoke tests cover the managed runtime ignore behavior.
-- [ ] Existing projects with already-tracked runtime files are not modified or untracked automatically.
+- [x] A fresh `smaqit init` results in `.smaqit/tools/` being ignored by Git.
+- [x] `smaqit update` adds the managed ignore rule to an existing project without overwriting unrelated `.gitignore` content.
+- [x] Repeated initialization or update does not duplicate the ignore rule.
+- [x] The ignore rule does not exclude `docs/designs/**/*.md` or `docs/designs/**/*.png`.
+- [x] Installer unit and smoke tests cover the managed runtime ignore behavior.
+- [x] Existing projects with already-tracked runtime files are not modified or untracked automatically.
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Added an idempotent installer helper that appends only `.smaqit/tools/` after successful runtime materialization.
+- Covered helper behavior in Go tests and consumer Git behavior in the installer smoke test.
 
 **Decisions made:**
-- TBD
+- Preserve existing ignore-file content and its LF or CRLF convention.
+- Leave already-tracked runtime files unchanged; the rule affects only future untracked files.
 
 **Blockers encountered:**
-- TBD
+- The initial task registration had to be committed before creating an isolated worktree so the branch inherited its task file.
+- No upstream PlantUML issue affected this installer-owned change.
 
 **Follow-up identified:**
-- TBD
+- Include the forward fix in the next patch release.
 
 ## Files to Create / Modify
 

@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 103 | Register PlantUML MCP Across Clients | In Progress | High |
 | 102 | Post-Implementation Realization Diagrams for the Development Phase | Not Started | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
@@ -15,6 +14,7 @@
 
 | ID | Title |
 |----|-------|
+| 103 | Register PlantUML MCP Across Clients |
 | 101 | Reliable Design Toolchain |
 | 100 | Ignore Managed PlantUML Runtime Files |
 | 099 | Opaque PlantUML PNG Rendering |

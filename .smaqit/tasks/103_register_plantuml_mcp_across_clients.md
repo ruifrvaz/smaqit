@@ -1,9 +1,10 @@
 # Register PlantUML MCP Across Clients
 
-**Status:** In Progress
+**Status:** Completed
 **Created:** 2026-08-06
 **Mode:** Assisted
 **Started:** 2026-08-06
+**Completed:** 2026-08-06
 
 ## Description
 
@@ -51,30 +52,30 @@ Proceeding by explicit user approval on 2026-08-06. The implementation must crea
 
 ## Acceptance Criteria
 
-- [ ] Fresh `smaqit init` and project `smaqit update` create valid registrations for `smaqit-plantuml` in `.vscode/mcp.json`, root `.mcp.json`, and `.codex/config.toml` with the intended stdio command and arguments.
-- [ ] Preflight rejects malformed configuration or a conflicting same-name server in any client file before a partial installation is created or changed.
-- [ ] Reinitialization preserves unrelated VS Code JSONC, Claude JSON, and Codex TOML content while keeping the owned registration exactly current.
-- [ ] `smaqit validate` and `smaqit mcp verify` fail with `DESIGN-TOOLCHAIN-UNAVAILABLE` if any mandatory registration is absent or incompatible, then `mcp verify` completes the existing wrapper handshake, tool-list, and syntax probe.
-- [ ] `smaqit uninstall` removes only exact smaqit MCP registrations and preserves unrelated client configuration, deleting a file only when it becomes wholly smaqit-owned and empty.
-- [ ] Claude and Codex design-author agents retain their expected MCP tool declarations, implementation agents retain no design-authoring MCP access, and documentation states that these declarations do not themselves register a host server.
-- [ ] Client documentation tells users to restart/trust Claude Code and Codex after installation and to stop authoring if their tools are still absent; it retains the documented external Codex discovery limitation without adding a fallback.
-- [ ] Installer unit tests, smoke tests, race coverage where supported, and release cross-builds pass after regenerated embedded assets are prepared.
+- [x] Fresh `smaqit init` and project `smaqit update` create valid registrations for `smaqit-plantuml` in `.vscode/mcp.json`, root `.mcp.json`, and `.codex/config.toml` with the intended stdio command and arguments.
+- [x] Preflight rejects malformed configuration or a conflicting same-name server in any client file before a partial installation is created or changed.
+- [x] Reinitialization preserves unrelated VS Code JSONC, Claude JSON, and Codex TOML content while keeping the owned registration exactly current.
+- [x] `smaqit validate` and `smaqit mcp verify` fail with `DESIGN-TOOLCHAIN-UNAVAILABLE` if any mandatory registration is absent or incompatible, then `mcp verify` completes the existing wrapper handshake, tool-list, and syntax probe.
+- [x] `smaqit uninstall` removes only exact smaqit MCP registrations and preserves unrelated client configuration, deleting a file only when it becomes wholly smaqit-owned and empty.
+- [x] Claude and Codex design-author agents retain their expected MCP tool declarations, implementation agents retain no design-authoring MCP access, and documentation states that these declarations do not themselves register a host server.
+- [x] Client documentation tells users to restart/trust Claude Code and Codex after installation and to stop authoring if their tools are still absent; it retains the documented external Codex discovery limitation without adding a fallback.
+- [x] Installer unit tests, smoke tests, race coverage where supported, and release cross-builds pass after regenerated embedded assets are prepared.
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Added shared lifecycle helpers for VS Code, Claude Code, and Codex MCP registrations.
+- Used JSONC-aware edits for JSON files and marker-owned append/remove edits after TOML semantic inspection.
 
 **Decisions made:**
-- TBD
+- Registration and host discovery remain separate gates; no CLI fallback is introduced for absent authoring tools.
+- Codex registration is required and uses a trusted project-local MCP table.
 
 **Blockers encountered:**
-- TBD
+- Upstream Codex clients can ignore valid project registrations; explicit approval retained the strict stop condition.
 
 **Follow-up identified:**
-- TBD
+- Recheck live Codex project-MCP discovery when the upstream client defects are resolved.
 
 ## Files to Create / Modify
 

@@ -2,6 +2,34 @@
 
 ## Self-Update
 
+**Why does smaqit install thousands of files under `.smaqit/tools/`, and should they be committed?**
+
+They are smaqit-managed PlantUML MCP/rendering dependencies, vendored per project so visual-design rendering is reproducible and does not require the consumer to install npm packages separately. They are generated installation content, not project source: `smaqit init` and `smaqit update` ensure the root `.gitignore` contains the single narrow rule `.smaqit/tools/`, while preserving user rules and tracked files. Keep canonical PlantUML sources and rendered PNG artifacts under `docs/designs/` in version control; the ignore rule must not cover that directory.
+
+The current runtime is materialized only in the checkout where `init` or `update` ran. A new Git worktree therefore lacks the ignored runtime and current design/MCP commands fail until it is bootstrapped; this is a tracked upstream reliability gap, not a reason to commit or manually copy the runtime.
+
+---
+
+## Architecture
+
+**Why can `smaqit-plantuml` be absent from ToolSearch even when `.vscode/mcp.json` contains it?**
+
+The installer can write a valid workspace MCP configuration, but configuration is not host activation. The client must load the workspace, trust and start the local server, then refresh its tools; an already-running agent session may not acquire tools from configuration written after it started. Until smaqit adds an activation/readiness check, inspect the host's MCP server list and restart or refresh the server/session rather than treating the file's presence as proof that authoring tools are reachable.
+
+---
+
+**Why must a design's `status` match its linked specification status?**
+
+A design is a lifecycle-coupled sidecar, not an independent deliverable. For active links, `smaqit design validate` requires its rank to equal the least-advanced linked specification rank; otherwise it reports `DESIGN-ARTIFACT-STALE`. Update status through the synchronized specification-status workflow so the specification and its canonical design remain at the same lifecycle point.
+
+---
+
+**Why does `smaqit design validate` show only one failure?**
+
+The current validator is fail-fast: it stops at the first invalid design, stale reference, or active specification without a valid pair. That protects prerequisite ordering but makes large migrations slow to iterate. Aggregate independent artifact failures into one deterministic report, while retaining fail-fast behavior only when a missing prerequisite such as the PlantUML runtime prevents all further checks.
+
+---
+
 **Why does `smaqit update` silently skip new skills/scripts after downloading a new release?**
 
 The self-update flow must re-exec the newly downloaded binary after replacing the file on disk. Go's `//go:embed` content is fixed in the running process, so an in-process reinitialization would still use the old agents, skills, and templates. The no-replacement paths (already up to date, or local newer than remote) can safely reinitialize in-process. See `installer/update.go`'s `reinitWithBinary()`.
@@ -117,6 +145,12 @@ The total shipped skill count is asserted independently in two places, and both 
 ---
 
 ## Release Workflow
+
+**Why can a release worktree remain after its release PR has merged and published?**
+
+Publishing a release does not automatically remove the local `release/vX.Y.Z` worktree or branch: Git keeps it registered until an explicit cleanup removes the worktree, deletes the merged local branch, and refreshes the project workspace. Confirm the PR, tag, and release workflow first; then clean up the local release workspace. This separates publication verification from a recoverable local cleanup step.
+
+---
 
 **How can a local smaqit release authenticate an encrypted SSH key from WSL2 or another interactive desktop Linux session?**
 

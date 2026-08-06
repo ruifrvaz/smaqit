@@ -28,6 +28,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [2.0.2] - 2026-08-06
+
+### Added
+- Nothing to add.
+
+### Changed
+- README and visual-design documentation now distinguish generated Git-ignored runtime tooling from versioned canonical design artifacts.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Initialization and update now add the narrow `.smaqit/tools/` rule to the consumer root `.gitignore`, preserving existing rules and preventing the managed PlantUML runtime from appearing as thousands of untracked files.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
 ## [2.0.1] - 2026-08-06
 
 ### Added
@@ -689,7 +712,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v2.0.2...HEAD
+[2.0.2]: https://github.com/ruifrvaz/smaqit/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/ruifrvaz/smaqit/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/ruifrvaz/smaqit/compare/v1.12.0...v2.0.0
 [1.12.0]: https://github.com/ruifrvaz/smaqit/compare/v1.11.0...v1.12.0

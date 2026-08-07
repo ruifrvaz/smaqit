@@ -122,10 +122,7 @@ task_parent() {
   line="$(sed -n 's/^\*\*Parent:\*\*[[:space:]]*//p' "$1" | head -1 | sed 's/[[:space:]]*$//')"
   [ -z "$line" ] && return 0
   value="${line%%[[:space:]]*}"
-  # Legacy parent tasks may use the historical BNNN identifier; current tasks
-  # use NNN. Preserve both forms so completed legacy children do not block an
-  # unrelated owner task's completion scan.
-  if ! [[ "$value" =~ ^([0-9]{3}|B[0-9]{3})$ ]]; then
+  if ! [[ "$value" =~ ^[0-9]{3}$ ]]; then
     echo "Invalid Parent metadata in $1: $line" >&2
     return 1
   fi
@@ -140,27 +137,15 @@ task_branch_name() {
 }
 
 find_active_task() {
-  local id="$1" index file
-  for index in "${!worktree_paths[@]}"; do
-    file="$(task_file_in "${worktree_paths[$index]}" "$id")"
-    if [ -n "$file" ] && [ "$(task_status "$file")" = "In Progress" ]; then
-      printf '%s\t%s\t%s\n' "${worktree_paths[$index]}" "${worktree_branches[$index]}" "$file"
+  local id="$1" file expected_branch index
+  file="$(task_file_in "$primary_root" "$id")"
+  [ -n "$file" ] || return 1
+  [ "$(task_status "$file")" = "In Progress" ] || return 1
+  expected_branch="$(task_branch_name "$file" "$id")"
+  for index in "${!worktree_branches[@]}"; do
+    if [ "${worktree_branches[$index]}" = "$expected_branch" ]; then
+      printf '%s\t%s\t%s\n' "${worktree_paths[$index]}" "$expected_branch" "$file"
       return 0
-    fi
-  done
-  return 1
-}
-
-find_completable_owner_task() {
-  local id="$1" index file status
-  for index in "${!worktree_paths[@]}"; do
-    file="$(task_file_in "${worktree_paths[$index]}" "$id")"
-    if [ -n "$file" ]; then
-      status="$(task_status "$file")"
-      if [ "$status" = "In Progress" ] || [ "$status" = "Completed" ]; then
-        printf '%s\t%s\t%s\n' "${worktree_paths[$index]}" "${worktree_branches[$index]}" "$file"
-        return 0
-      fi
     fi
   done
   return 1
@@ -208,12 +193,6 @@ fi
 
 candidate_file="$(task_file_in "$primary_root" "$task_id")"
 if [ -z "$candidate_file" ]; then
-  for root in "${worktree_paths[@]}"; do
-    candidate_file="$(task_file_in "$root" "$task_id")"
-    [ -n "$candidate_file" ] && break
-  done
-fi
-if [ -z "$candidate_file" ]; then
   echo "Task file not found for $task_id." >&2
   exit 1
 fi
@@ -221,20 +200,26 @@ fi
 declared_parent="$(task_parent "$candidate_file")" || exit 1
 if [ -z "$declared_parent" ]; then
   if [ "$purpose" = "complete" ]; then
-    # Completion may be retried after task bookkeeping has already marked the
-    # owner Completed but an earlier merge or cleanup step did not finish.
-    owner_info="$(find_completable_owner_task "$task_id" || true)"
+    owner_info="$(find_active_task "$task_id" || true)"
     if [ -z "$owner_info" ]; then
-      echo "Task $task_id must be In Progress or Completed in a registered worktree before completion." >&2
+      echo "Task $task_id must be In Progress in a registered worktree before completion." >&2
       exit 1
     fi
     IFS=$'\t' read -r owner_root owner_branch owner_file <<< "$owner_info"
     incomplete_children=()
-    for child_file in "$owner_root"/.smaqit/tasks/*.md; do
+    for child_file in "$primary_root"/.smaqit/tasks/*.md; do
       [ -f "$child_file" ] || continue
-      child_parent="$(task_parent "$child_file")" || exit 1
+      child_id="$(basename "$child_file" | cut -d_ -f1)"
+      if ! [[ "$child_id" =~ ^[0-9]{3}$ ]]; then
+        echo "Warning: skipping malformed task filename: $child_file" >&2
+        continue
+      fi
+      if ! child_parent="$(task_parent "$child_file")"; then
+        echo "Warning: skipping $child_file — invalid Parent metadata" >&2
+        continue
+      fi
       if [ "$child_parent" = "$task_id" ] && [ "$(task_status "$child_file")" != "Completed" ]; then
-        incomplete_children+=("$(basename "$child_file" | cut -d_ -f1)")
+        incomplete_children+=("$child_id")
       fi
     done
     if [ "${#incomplete_children[@]}" -gt 0 ]; then
@@ -255,14 +240,9 @@ fi
 
 parent_info="$(resolve_parent "$declared_parent")"
 IFS=$'\t' read -r owner_root owner_branch owner_file <<< "$parent_info"
-child_file="$owner_root/.smaqit/tasks/$(basename "$candidate_file")"
-if [ ! -f "$child_file" ]; then
-  echo "Child task $task_id is not present in active parent worktree $owner_root. Create it there before starting." >&2
-  exit 1
-fi
 effective_mode="$(task_mode "$owner_file")"
 if [ -n "$requested_mode" ] && [ "$(canonical_mode "$requested_mode")" != "$effective_mode" ]; then
   echo "Child task $task_id must inherit parent task $declared_parent mode $effective_mode; requested mode conflicts." >&2
   exit 1
 fi
-emit "child" "$task_id" "$declared_parent" "$owner_branch" "$owner_root" "$effective_mode" "$child_file"
+emit "child" "$task_id" "$declared_parent" "$owner_branch" "$owner_root" "$effective_mode" "$candidate_file"

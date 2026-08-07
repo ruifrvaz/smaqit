@@ -3,6 +3,14 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/102-design-sequence-diagrams-for-the-development-phase",
+      "path": "../smaqit-wt-task-102-design-sequence-diagrams-for-the-development-phase"
+    },
+    {
+      "name": "task/104-strict-black-box-validation-for-system-sequence-designs",
+      "path": "../smaqit-wt-task-104-strict-black-box-validation-for-system-sequence-designs"
     }
   ],
   "settings": {

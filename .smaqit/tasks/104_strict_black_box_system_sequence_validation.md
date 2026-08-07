@@ -1,7 +1,9 @@
 # Strict Black-Box Validation for `system-sequence` Designs
 
-**Status:** Not Started
+**Status:** In Progress
 **Created:** 2026-08-07
+**Started:** 2026-08-07
+**Mode:** Assisted
 
 ## Description
 

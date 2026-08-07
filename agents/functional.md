@@ -118,6 +118,7 @@ These rules are specific to the Functional layer and must be followed when produ
 - Reference business specs for traceability using Implements (1:1 feature) or Enables (1:many foundation)
 - Include justification when foundation spec has no Business references
 - Use `system-sequence` by default; add `domain-model`, `context-map`, or `state` designs only when material domain boundaries, entities, or lifecycle behavior require them
+- Keep every `system-sequence` design a strict black box: exactly one actor and exactly one system participant, always identified as `System` (e.g. `participant "<domain name>" as System`), enforced at validation. When a spec involves more than one actor or more than one user-story/flow, author one `system-sequence` design per actor/flow rather than merging them into a single diagram
 
 ### MUST NOT
 

@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 102 | Design Sequence Diagrams for the Development Phase | In Progress | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |
@@ -14,6 +13,7 @@
 
 | ID | Title |
 |----|-------|
+| 102 | Design Sequence Diagrams for the Development Phase |
 | 104 | Strict Black-Box Validation for `system-sequence` Designs |
 | 103 | Register PlantUML MCP Across Clients |
 | 101 | Reliable Design Toolchain |

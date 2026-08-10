@@ -1,9 +1,10 @@
 # Design Sequence Diagrams for the Development Phase
 
-**Status:** In Progress
+**Status:** Completed
 **Mode:** Assisted
 **Created:** 2026-08-06
 **Started:** 2026-08-07
+**Completed:** 2026-08-10
 
 ## Description
 
@@ -20,11 +21,11 @@ Found via a downstream project's own task (2026-08-06): a pilot of the new Plant
 - **Bounded Agents stays untouched.** `agents/development.md`'s MUST NOT ("Author, render, visually review, attest, or repair designs...") gets reworded to scope explicitly to the Design Artifacts category — it keeps meaning exactly what it already says for the five spec layers; Development is authorized only for the new `design-sequence` layer, which was never a Design Artifact.
 - **Technical parity, real not superficial.** Same YAML+PlantUML pair structure, same hash/attestation fields, same `smaqit design render/attest/validate` CLI verbs — extending `designProfiles`, `designLayerPrefix` (prefix `DSD`), and `designIDPattern` exactly as every existing layer already does. `smaqit design validate`'s directory walk is already generic, so structural validation applies unmodified.
 - **Cardinality:** one design-sequence diagram per implemented Functional spec, pairing 1:1 with that spec's `system-sequence` SSD via a new `realizes:` frontmatter field.
-- **Grounding mechanism:** self-citation + deterministic CLI check. Each PlantUML message carries a `' impl: <path>:<line>` line comment (not a `note` block, to stay independent of task 104's note-stripping logic). A new `validateDesignSequenceGrounding` check resolves each citation safely against the project root (reusing `validateDesignReferences`'s existing traversal-safe path resolution) and fails if the file or line doesn't exist. Existence-only — not semantic verification that the cited code does what the diagram claims, mirroring task 104's own accepted "lint-style heuristic, not semantic verifier" limitation.
-- **Completeness mechanism:** a new `validateDesignSequenceCompleteness` check extracts the paired SSD's promised operation labels and this diagram's own labels — reusing/extending task 104's arrow-parsing helpers (`validateSystemSequenceProfile` and its regexes) — and fails, naming the gap, if any SSD-promised operation has no match here.
+- **Grounding mechanism:** self-citation + deterministic CLI check. Each PlantUML message carries a `' impl: <path>:<line>` line comment, extracted by its own direct regex over the raw source rather than through `stripNonStructuralPlantUML` (below) — that shared filter discards `'`-prefixed lines as comments, which is exactly what a citation line is, so grounding extraction deliberately reads the raw source instead. A new `validateDesignSequenceGrounding` check resolves each citation safely against the project root (reusing `validateDesignReferences`'s existing traversal-safe path resolution) and fails if the file or line doesn't exist. Existence-only — not semantic verification that the cited code does what the diagram claims, mirroring task 104's own accepted "lint-style heuristic, not semantic verifier" limitation.
+- **Completeness mechanism:** a new `validateDesignSequenceCompleteness` check extracts the paired SSD's promised operation labels and this diagram's own labels via `extractOperationLabels`, and fails, naming the gap, if any SSD-promised operation has no match here. **Correction after task 104 shipped:** the original plan assumed reuse of task 104's arrow-parsing helpers, but task 104's actual implementation deliberately does *no* arrow/message parsing at all — its commit message states this explicitly, "to avoid the bug surface a fuller arrow-token heuristic would carry." There was nothing to reuse for label extraction itself; `extractOperationLabels`/`plantUMLArrow` remain task 102's own, necessarily independent code. What *did* consolidate once task 104 merged: its inline note/title/legend-stripping state machine (originally private to `validateSystemSequenceProfile`) was extracted into a shared `stripNonStructuralPlantUML` helper, now used by both `validateSystemSequenceProfile` (task 104) and `extractOperationLabels` (task 102) — real DRY, not just documentation cleanup, verified behavior-preserving by task 104's own 11 pre-existing test cases still passing unchanged after the extraction.
 - **Attestation is earned, not just ordered.** Both checks run inside `attestDesign`, gated on `f.Layer == "design-sequence"`, *before* stamping `Status: "passed"` — attestation fails outright (reusing `DESIGN-VISUAL-INVALID`) if either check fails, rather than relying on Development calling checks in the right order.
 - **Complement, not substitute, for code review.** Especially for security-sensitive or edge-case-heavy code, a diagram is a lossy abstraction. Documentation and agent instructions must say this explicitly rather than imply the diagram replaces review.
-- **Sequencing:** builds on task 101 (Reliable Design Toolchain, already completed) for the rendering pipeline, and soft-depends on task 104 (in progress in a parallel worktree) for shared arrow/operation-label parsing helpers reused by the completeness check.
+- **Sequencing:** builds on task 101 (Reliable Design Toolchain, completed) for the rendering pipeline. Task 104 (Strict Black-Box Validation, completed and merged as of this task's implementation) landed after task 102's initial implementation; its branch was merged into task 102's, the one resulting conflict (both branches added a new conditional check to `validateDesignMetadata` in the same spot) was resolved by keeping both checks sequentially, and the `stripNonStructuralPlantUML` consolidation above was done as a follow-up refactor, confirmed behavior-preserving by the full test suite (task 104's 11 tests + task 102's 4, all passing).
 
 ## Implementation Steps
 
@@ -68,32 +69,37 @@ Found via a downstream project's own task (2026-08-06): a pilot of the new Plant
 
 ## Acceptance Criteria
 
-- [ ] `framework/ARTIFACTS.md` documents the new "Design Sequence Diagrams" category: ownership (Development, Phase 1), storage (`docs/designs/design-sequence/`), content boundary, and its own lifecycle (no reset-to-draft clause)
-- [ ] `smaqit.development` generates one Design Sequence Diagram per implemented Functional spec, grounded in `file:line` citations to the code it just wrote
-- [ ] `smaqit design attest` refuses to stamp a passing attestation when a cited `file:line` reference doesn't resolve to a real location in the codebase
-- [ ] `smaqit design attest` refuses to stamp a passing attestation when the diagram omits an operation its paired `system-sequence` SSD promises, naming the missing operation
-- [ ] A complete design-sequence diagram (all citations resolve, all SSD operations represented) attests and validates cleanly end-to-end via `smaqit design render` → `attest` → `validate`
-- [ ] `framework/PHASES.md`'s Phase 1 table, completion criteria, and Develop→Deploy prerequisites include the design-sequence diagram as a required output
-- [ ] `agents/development.md` directives, Phase-Specific Rules, and Completion Criteria require generating and validating design-sequence diagrams; its design-authoring MUST NOT line is reworded to scope explicitly to Design Artifacts
-- [ ] `smaqit init` scaffolds `docs/designs/design-sequence/`
-- [ ] Documentation and agent instructions frame the design-sequence diagram as a complement to code review, never a substitute
-- [ ] Full installer test suite passes with no unrelated regressions
+- [x] `framework/ARTIFACTS.md` documents the new "Design Sequence Diagrams" category: ownership (Development, Phase 1), storage (`docs/designs/design-sequence/`), content boundary, and its own lifecycle (no reset-to-draft clause)
+- [x] `smaqit.development` generates one Design Sequence Diagram per implemented Functional spec, grounded in `file:line` citations to the code it just wrote
+- [x] `smaqit design attest` refuses to stamp a passing attestation when a cited `file:line` reference doesn't resolve to a real location in the codebase
+- [x] `smaqit design attest` refuses to stamp a passing attestation when the diagram omits an operation its paired `system-sequence` SSD promises, naming the missing operation
+- [x] A complete design-sequence diagram (all citations resolve, all SSD operations represented) attests and validates cleanly end-to-end via `smaqit design render` → `attest` → `validate`
+- [x] `framework/PHASES.md`'s Phase 1 table, completion criteria, and Develop→Deploy prerequisites include the design-sequence diagram as a required output
+- [x] `agents/development.md` directives, Phase-Specific Rules, and Completion Criteria require generating and validating design-sequence diagrams; its design-authoring MUST NOT line is reworded to scope explicitly to Design Artifacts
+- [x] `smaqit init` scaffolds `docs/designs/design-sequence/`
+- [x] Documentation and agent instructions frame the design-sequence diagram as a complement to code review, never a substitute
+- [x] Full installer test suite passes with no unrelated regressions
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- New sibling artifact category "Design Sequence Diagrams" in `docs/designs/design-sequence/` (prefix `DSD`), extending `designProfiles`/`designLayerPrefix`/`designIDPattern` the same way every existing layer already works, so `smaqit design render/attest/validate` apply unmodified.
+- Two new heuristic checks — `validateDesignSequenceGrounding` (every `' impl: <path>:<line>` citation must resolve to a real, in-range location) and `validateDesignSequenceCompleteness` (every operation the paired `system-sequence` design promises must have a matching label) — wired into `attestDesign` so attestation is earned, not just procedurally ordered.
+- `validateDesignReferences` extended with a `specLayer`/`trackRank` branch so design-sequence designs resolve their `specifications` link against `functional` (not a nonexistent `specs/design-sequence/`) and are exempt from the Design Artifact lifecycle-rank coupling.
+- `agents/development.md`'s design-authorship MUST NOT reworded to scope explicitly to Design Artifacts rather than exempted, keeping Bounded Agents intact for the five spec layers.
+- 4 new tests covering grounding rejection/acceptance, completeness rejection/acceptance, attestation refusal on each failure mode, and a full Node/MCP-backed render→attest→validate round trip.
 
 **Decisions made:**
-- TBD
+- Storage as a `docs/designs/`-sibling tree, not nested in `docs/designs/functional/` — resolves three concrete conflicts (Bounded Agents ownership, Design Artifact reset-to-draft lifecycle rule, `system-sequence`-locked template shape) by construction rather than by exception. See task file Design Decisions for full reasoning.
+- Grounding citations use PlantUML line comments (`' impl: path:line`), read directly by their own regex rather than through the shared `stripNonStructuralPlantUML` filter (which discards `'`-prefixed lines as comments) — deliberate, since citations need exactly the lines that filter removes.
+- After task 104 merged: consolidated its inline note/title/legend-stripping logic into a shared `stripNonStructuralPlantUML` helper, now used by both `validateSystemSequenceProfile` (task 104) and `extractOperationLabels` (task 102) — confirmed behavior-preserving via task 104's own 11 pre-existing tests still passing unchanged.
+- Corrected an inaccurate assumption from initial planning: task 104's shipped implementation does no arrow/message parsing at all (explicit scope decision in its own commit message), so there were no arrow-parsing helpers to reuse for the completeness check — `extractOperationLabels` remains task 102's own, necessarily independent code.
 
 **Blockers encountered:**
-- TBD
+- None. One git merge conflict (both task 102 and task 104 added a new conditional check to `validateDesignMetadata` in the same location) — resolved by keeping both checks sequentially, verified by the full test suite.
 
 **Follow-up identified:**
-- TBD
+- None required for this task. Optional future consideration: if a sixth diagram_type is ever added to the `design-sequence` profile, the current single-purpose `designProfiles["design-sequence"]` map entry would need to grow — not needed today (cardinality is deliberately one profile per this category).
 
 ## Files to Create / Modify
 

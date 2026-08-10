@@ -312,7 +312,7 @@ git init -q "$worktree_source"
 git -C "$worktree_source" config user.email "smoke@example.test"
 git -C "$worktree_source" config user.name "Smoke Test"
 "$binary" init "$worktree_source" >/dev/null
-for dir in specs/business specs/functional specs/stack specs/infrastructure specs/coverage docs/designs/business docs/designs/functional docs/designs/stack docs/designs/infrastructure docs/designs/coverage; do
+for dir in specs/business specs/functional specs/stack specs/infrastructure specs/coverage docs/designs/business docs/designs/functional docs/designs/stack docs/designs/infrastructure docs/designs/coverage docs/designs/design-sequence; do
   touch "$worktree_source/$dir/.gitkeep"
 done
 git -C "$worktree_source" add -A

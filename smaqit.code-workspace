@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/102-design-sequence-diagrams-for-the-development-phase",
-      "path": "../smaqit-wt-task-102-design-sequence-diagrams-for-the-development-phase"
     }
   ],
   "settings": {

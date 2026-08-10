@@ -32,6 +32,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Build artifacts
 - README with build, test, and run instructions
 - Development report in `.smaqit/reports/development-phase-report-YYYY-MM-DD.md` (build/test/run results)
+- Design Sequence Diagrams: one PlantUML/PNG pair per implemented Functional spec in `docs/designs/design-sequence/` — a Development-owned artifact category distinct from Design Artifacts, not a specification sidecar (see `ARTIFACTS.md`)
 
 **Format:**
 - Code MUST follow stack-specified languages and frameworks
@@ -39,6 +40,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - README MUST include commands for build, test, and run
 - Development report MUST be written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md` and document build/test/run outcomes
 - Development report MUST document the output of `smaqit plan --phase=develop` command execution
+- Each Design Sequence Diagram MUST cite the real code it represents with `' impl: <path>:<line>` PlantUML comments and MUST pass `smaqit design attest` (which enforces grounding and operation completeness against the paired `system-sequence` design) before phase completion
 
 ## Directives
 
@@ -57,6 +59,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Request clarification when input is ambiguous
 - Validate output against completion criteria before finishing
 - Use `smaqit.spec-status-update` for specification lifecycle transitions so linked design status is synchronized and its deterministic gate is rerun without changing design content
+- Generate one Design Sequence Diagram per implemented Functional spec after tests pass and before phase completion, citing real `file:line` locations in the code just written, and drive each through `smaqit design render` → `smaqit design attest` → `smaqit design validate`; treat an attestation failure the same as any other unmet completion criterion — revise the diagram (or the citations) and retry, do not skip it
 
 ### MUST NOT
 
@@ -66,7 +69,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Invent requirements not present in input
 - Proceed with unresolved cross-layer conflicts
 - Include secrets, passwords, API keys, tokens, or credentials in generated artifacts (use placeholder references like `${secrets.KEY_NAME}`)
-- Author, render, visually review, attest, or repair designs; design acceptance belongs to the owning specification agent
+- Author, render, visually review, attest, or repair Design Artifacts (`docs/designs/{business,functional,stack,infrastructure,coverage}/`); that design acceptance belongs to the owning specification agent. Design Sequence Diagrams (`docs/designs/design-sequence/`) are a separate, Development-owned category and are exempt from this line — see the MUST directive above
 - Use PNG projections as implementation inputs; consume linked PlantUML source after the plan gate passes
 - Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated phase scope
 
@@ -265,6 +268,7 @@ Development agent reads and references upstream specs (Business, Functional, Sta
 5. **Run** — Execute application in isolated environment
 6. **Test** — Run unit tests and verify all pass
 7. **Verify** — Confirm behavior matches spec acceptance criteria
+8. **Generate Design Sequence Diagrams** — For each implemented Functional spec, author one Design Sequence Diagram citing real `file:line` locations in the code just written, then render, attest, and validate it via `smaqit design render` / `smaqit design attest` / `smaqit design validate`
 
 **Isolated environment:**
 - Local developer machine or agent runner (e.g., GitHub Actions runner)
@@ -275,6 +279,7 @@ Development agent reads and references upstream specs (Business, Functional, Sta
 - Major components SHOULD reference spec requirement IDs in comments
 - Implementation decisions MUST be traceable to specifications
 - Development report (in `.smaqit/reports/`) MUST map outcomes to spec acceptance criteria
+- Design Sequence Diagrams complement code review; they document collaboration structure, not certify correctness. A passing attestation MUST NOT be treated as a substitute for reviewing security-sensitive or edge-case-heavy code — grounding and completeness checks are heuristic, not semantic verification
 
 **Retry behavior:**
 - Iterate on code/test failures up to 3 attempts (default)
@@ -294,6 +299,7 @@ Before declaring completion, verify:
 - [ ] Unit tests pass
 - [ ] Application runs successfully in isolated environment
 - [ ] Behavior matches spec acceptance criteria
+- [ ] One Design Sequence Diagram per implemented Functional spec is generated, grounded in `file:line` citations, and passes `smaqit design attest`
 - [ ] README includes build, test, and run instructions
 - [ ] Development report written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md`
 - [ ] All referenced spec frontmatter updated: `status: implemented`, `implemented: YYYY-MM-DDTHH:MM:SSZ`

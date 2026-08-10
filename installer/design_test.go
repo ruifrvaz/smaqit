@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"image"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -570,13 +571,285 @@ func designTestProject(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	for _, dir := range []string{
-		".smaqit", "docs/designs/business", "specs/business",
+		".smaqit", "docs/designs/business", "docs/designs/functional", "docs/designs/design-sequence",
+		"specs/business", "specs/functional",
 	} {
 		if err := os.MkdirAll(filepath.Join(root, dir), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
 	return root
+}
+
+// validSystemSequenceSource builds a minimal DSG-FUN-ORDER-SYSTEM-SEQUENCE
+// fixture with one labeled actor->system arrow per operation.
+func validSystemSequenceSource(sourceHash, imageHash string, operations []string) string {
+	lines := []string{`actor Customer`, `participant "Order System" as System`}
+	for _, op := range operations {
+		lines = append(lines, fmt.Sprintf("Customer -> System: %s", op))
+	}
+	return fmt.Sprintf(`---
+id: DSG-FUN-ORDER-SYSTEM-SEQUENCE
+status: implemented
+created: 2026-08-07
+layer: functional
+diagram_type: system-sequence
+notation: plantuml
+specifications:
+  - ../../../specs/functional/order.md
+requirements:
+  - FUN-ORDER-001
+source_sha256: %s
+image_sha256: %s
+visual_validation:
+  status: pending
+  validated_at: null
+  source_sha256: null
+  image_sha256: null
+---
+
+`+"```plantuml"+`
+@startuml
+%s
+@enduml
+`+"```"+`
+`, sourceHash, imageHash, strings.Join(lines, "\n"))
+}
+
+// validDesignSequenceSource builds a DSG-DSD-ORDER-DESIGN-SEQUENCE fixture
+// realizing the system-sequence fixture above, one internal-collaborator
+// arrow per operation, each optionally followed by a `' impl:` citation
+// (citations[i] == "" omits the citation for that operation).
+func validDesignSequenceSource(sourceHash, imageHash, realizes string, operations, citations []string) string {
+	lines := []string{`participant "OrderHandler" as Handler`, `participant "OrderService" as Service`}
+	for i, op := range operations {
+		lines = append(lines, fmt.Sprintf("Handler -> Service: %s", op))
+		if i < len(citations) && citations[i] != "" {
+			lines = append(lines, "' impl: "+citations[i])
+		}
+	}
+	return fmt.Sprintf(`---
+id: DSG-DSD-ORDER-DESIGN-SEQUENCE
+status: implemented
+created: 2026-08-07
+layer: design-sequence
+diagram_type: design-sequence
+notation: plantuml
+realizes: %s
+specifications:
+  - ../../../specs/functional/order.md
+requirements:
+  - FUN-ORDER-001
+source_sha256: %s
+image_sha256: %s
+visual_validation:
+  status: pending
+  validated_at: null
+  source_sha256: null
+  image_sha256: null
+---
+
+`+"```plantuml"+`
+@startuml
+%s
+@enduml
+`+"```"+`
+`, realizes, sourceHash, imageHash, strings.Join(lines, "\n"))
+}
+
+// minimalValidPNG returns PNG bytes satisfying validateDesignArtifact's
+// signature/dimension checks (width 640-4096, height 1-16384) without going
+// through the PlantUML render pipeline, so attestation-gating tests don't
+// need Node/MCP.
+func minimalValidPNG(t *testing.T) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, image.NewRGBA(image.Rect(0, 0, 640, 1))); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
+}
+
+// writeAttestableDesign writes a design-sequence markdown fixture whose
+// source/image hashes already match a freshly written PNG, so attestDesign
+// can be exercised directly without renderDesign/Node.
+func writeAttestableDesign(t *testing.T, root, designPath, realizes string, operations, citations []string) {
+	t.Helper()
+	imageBytes := minimalValidPNG(t)
+	imageHash := hashBytes(imageBytes)
+	if err := os.WriteFile(strings.TrimSuffix(designPath, ".md")+".png", imageBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	source := validDesignSequenceSource("PLACEHOLDER", imageHash, realizes, operations, citations)
+	writeTestFile(t, designPath, source)
+	d, err := parseDesign(designPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	final := validDesignSequenceSource(d.SourceHash, imageHash, realizes, operations, citations)
+	writeTestFile(t, designPath, final)
+}
+
+func TestValidateDesignSequenceGroundingRejectsUngroundedCitations(t *testing.T) {
+	root := designTestProject(t)
+	srcPath := filepath.Join(root, "src", "order_service.go")
+	writeTestFile(t, srcPath, "package order\n\nfunc CreateOrder() {}\nfunc CancelOrder() {}\n")
+	designPath := filepath.Join(root, "docs", "designs", "design-sequence", "dsg-dsd-order-design-sequence.md")
+
+	writeTestFile(t, designPath, validDesignSequenceSource(`""`, `""`, "DSG-FUN-ORDER-SYSTEM-SEQUENCE",
+		[]string{"CreateOrder"}, nil))
+	d, err := parseDesign(designPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateDesignSequenceGrounding(d); err == nil || !strings.Contains(err.Error(), "no `' impl:") {
+		t.Fatalf("expected missing-citation rejection, got %v", err)
+	}
+
+	writeTestFile(t, designPath, validDesignSequenceSource(`""`, `""`, "DSG-FUN-ORDER-SYSTEM-SEQUENCE",
+		[]string{"CreateOrder"}, []string{"src/missing.go:1"}))
+	d, err = parseDesign(designPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateDesignSequenceGrounding(d); err == nil || !strings.Contains(err.Error(), "does not exist") {
+		t.Fatalf("expected missing-file rejection, got %v", err)
+	}
+
+	writeTestFile(t, designPath, validDesignSequenceSource(`""`, `""`, "DSG-FUN-ORDER-SYSTEM-SEQUENCE",
+		[]string{"CreateOrder"}, []string{"src/order_service.go:999"}))
+	d, err = parseDesign(designPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateDesignSequenceGrounding(d); err == nil || !strings.Contains(err.Error(), "exceeds file length") {
+		t.Fatalf("expected out-of-range line rejection, got %v", err)
+	}
+
+	writeTestFile(t, designPath, validDesignSequenceSource(`""`, `""`, "DSG-FUN-ORDER-SYSTEM-SEQUENCE",
+		[]string{"CreateOrder"}, []string{"src/order_service.go:3"}))
+	d, err = parseDesign(designPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateDesignSequenceGrounding(d); err != nil {
+		t.Fatalf("expected valid citation to pass grounding, got %v", err)
+	}
+}
+
+func TestValidateDesignSequenceCompletenessRejectsMissingOperations(t *testing.T) {
+	root := designTestProject(t)
+	ssdPath := filepath.Join(root, "docs", "designs", "functional", "dsg-fun-order-system-sequence.md")
+	writeTestFile(t, ssdPath, validSystemSequenceSource(`""`, `""`, []string{"CreateOrder", "CancelOrder"}))
+	designPath := filepath.Join(root, "docs", "designs", "design-sequence", "dsg-dsd-order-design-sequence.md")
+
+	writeTestFile(t, designPath, validDesignSequenceSource(`""`, `""`, "DSG-FUN-ORDER-SYSTEM-SEQUENCE",
+		[]string{"CreateOrder"}, nil))
+	d, err := parseDesign(designPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = validateDesignSequenceCompleteness(d)
+	if err == nil || !strings.Contains(err.Error(), "CancelOrder") {
+		t.Fatalf("expected missing-operation rejection naming CancelOrder, got %v", err)
+	}
+
+	writeTestFile(t, designPath, validDesignSequenceSource(`""`, `""`, "DSG-FUN-ORDER-SYSTEM-SEQUENCE",
+		[]string{"CreateOrder", "CancelOrder"}, nil))
+	d, err = parseDesign(designPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateDesignSequenceCompleteness(d); err != nil {
+		t.Fatalf("expected full operation coverage to pass, got %v", err)
+	}
+}
+
+func TestAttestDesignSequenceEnforcesGroundingAndCompleteness(t *testing.T) {
+	root := designTestProject(t)
+	srcPath := filepath.Join(root, "src", "order_service.go")
+	writeTestFile(t, srcPath, "package order\n\nfunc CreateOrder() {}\nfunc CancelOrder() {}\n")
+	ssdPath := filepath.Join(root, "docs", "designs", "functional", "dsg-fun-order-system-sequence.md")
+	writeTestFile(t, ssdPath, validSystemSequenceSource(`""`, `""`, []string{"CreateOrder", "CancelOrder"}))
+	designPath := filepath.Join(root, "docs", "designs", "design-sequence", "dsg-dsd-order-design-sequence.md")
+
+	// Ungrounded: covers both operations but cites nothing.
+	writeAttestableDesign(t, root, designPath, "DSG-FUN-ORDER-SYSTEM-SEQUENCE",
+		[]string{"CreateOrder", "CancelOrder"}, nil)
+	if err := attestDesign(designPath); err == nil || !strings.Contains(err.Error(), "no `' impl:") {
+		t.Fatalf("expected attest to refuse an ungrounded diagram, got %v", err)
+	}
+
+	// Grounded but incomplete: only cites/covers CreateOrder.
+	writeAttestableDesign(t, root, designPath, "DSG-FUN-ORDER-SYSTEM-SEQUENCE",
+		[]string{"CreateOrder"}, []string{"src/order_service.go:3"})
+	if err := attestDesign(designPath); err == nil || !strings.Contains(err.Error(), "CancelOrder") {
+		t.Fatalf("expected attest to refuse an incomplete diagram, got %v", err)
+	}
+
+	// Grounded and complete: attestation must succeed.
+	writeAttestableDesign(t, root, designPath, "DSG-FUN-ORDER-SYSTEM-SEQUENCE",
+		[]string{"CreateOrder", "CancelOrder"}, []string{"src/order_service.go:3", "src/order_service.go:4"})
+	if err := attestDesign(designPath); err != nil {
+		t.Fatalf("expected grounded, complete diagram to attest cleanly, got %v", err)
+	}
+	attested, err := parseDesign(designPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attested.Front.VisualValidation.Status != "passed" {
+		t.Fatalf("expected passed attestation, got %q", attested.Front.VisualValidation.Status)
+	}
+}
+
+func TestRenderAttestValidateDesignSequenceEndToEnd(t *testing.T) {
+	major, err := installedNodeMajor()
+	if err != nil || major < minimumNodeMajor {
+		t.Skipf("Node %d+ is the mandatory consumer prerequisite: %v", minimumNodeMajor, err)
+	}
+	root := designTestProject(t)
+	srcPath := filepath.Join(root, "src", "order_service.go")
+	writeTestFile(t, srcPath, "package order\n\nfunc CreateOrder() {}\n")
+	specPath := filepath.Join(root, "specs", "functional", "order.md")
+	ssdPath := filepath.Join(root, "docs", "designs", "functional", "dsg-fun-order-system-sequence.md")
+	dsdPath := filepath.Join(root, "docs", "designs", "design-sequence", "dsg-dsd-order-design-sequence.md")
+
+	writeTestFile(t, specPath, `---
+id: FUN-ORDER
+status: implemented
+created: 2026-08-07
+---
+
+# FUN-ORDER: Order Processing
+
+## Design References
+
+- [DSG-FUN-ORDER-SYSTEM-SEQUENCE](../../docs/designs/functional/dsg-fun-order-system-sequence.md) · [Image](../../docs/designs/functional/dsg-fun-order-system-sequence.png)
+- [DSG-DSD-ORDER-DESIGN-SEQUENCE](../../docs/designs/design-sequence/dsg-dsd-order-design-sequence.md) · [Image](../../docs/designs/design-sequence/dsg-dsd-order-design-sequence.png)
+
+## Acceptance Criteria
+
+- **FUN-ORDER-001**: A customer can create an order.
+`)
+	writeTestFile(t, ssdPath, validSystemSequenceSource(`""`, `""`, []string{"CreateOrder"}))
+	writeTestFile(t, dsdPath, validDesignSequenceSource(`""`, `""`, "DSG-FUN-ORDER-SYSTEM-SEQUENCE",
+		[]string{"CreateOrder"}, []string{"src/order_service.go:3"}))
+
+	if err := renderDesign(ssdPath); err != nil {
+		t.Fatalf("render SSD: %v", err)
+	}
+	if err := attestDesign(ssdPath); err != nil {
+		t.Fatalf("attest SSD: %v", err)
+	}
+	if err := renderDesign(dsdPath); err != nil {
+		t.Fatalf("render DSD: %v", err)
+	}
+	if err := attestDesign(dsdPath); err != nil {
+		t.Fatalf("attest DSD: %v", err)
+	}
+	if err := validateDesigns(dsdPath); err != nil {
+		t.Fatalf("validate DSD: %v", err)
+	}
 }
 
 func validDesignSource(sourceHash, imageHash string) string {

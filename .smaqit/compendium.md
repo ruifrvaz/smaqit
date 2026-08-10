@@ -42,6 +42,18 @@ Deleting canonical source and regenerating installer staging removes a skill fro
 
 ---
 
+**What does the `system-sequence` design profile require, and why does its validator only scan explicit declarations?**
+
+A `system-sequence` design must model a strict black box: exactly one actor and exactly one system-side participant, and that participant's identifier must be exactly `System` (e.g. `participant "<domain name>" as System`). `installer/design.go`'s `validateSystemSequenceProfile` enforces this with a source-level scan over explicit `actor`/`participant`-family declaration lines only (defensively skipping `note`/`title`/`legend` blocks) — it never parses arrow or message lines, so a participant PlantUML would auto-create purely from an undeclared arrow reference is outside its detection. This scope is deliberate: scanning declarations only reduces the check to simple counting, avoiding the much larger bug surface an arrow-parsing heuristic carries (decorated arrows, alias decorations, `create` shorthand, multi-line title/legend bodies all previously caused false accepts or false rejects). A spec whose behavior spans more than one actor or flow must be authored as multiple linked `system-sequence` designs — one per actor/flow — rather than merged into a single diagram; `specDesignReady` already supports multiple linked designs per spec. See also: are actor names constrained in `system-sequence` designs?
+
+---
+
+**Are actor names constrained in `system-sequence` designs?**
+
+No. Only the system-side participant has a fixed identity requirement (it must be identified as `System`, exactly, case-sensitive). Actors may use any name, quoted label, or alias — `Customer`, `Employee`, `Visitor`, `actor "Front Desk Clerk" as Clerk`, etc. `validateSystemSequenceProfile` only checks that exactly one actor declaration exists, never what it's named.
+
+---
+
 ## Hooks
 
 **Do VS Code Copilot hooks fire for `runSubagent` tool calls?**

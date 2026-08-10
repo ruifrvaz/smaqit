@@ -14,30 +14,41 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gopkg.in/yaml.v3"
 )
 
 var (
-	designIDPattern  = regexp.MustCompile(`^DSG-(BUS|FUN|STK|INF|COV)-[A-Z0-9]+(?:-[A-Z0-9]+)*$`)
+	designIDPattern  = regexp.MustCompile(`^DSG-(BUS|FUN|STK|INF|COV|DSD)-[A-Z0-9]+(?:-[A-Z0-9]+)*$`)
 	markdownLink     = regexp.MustCompile(`\[[^]]+\]\(([^)]+)\)`)
 	unsafePlantUML   = regexp.MustCompile(`(?im)^\s*!(include|include_once|include_many|includeurl|import|pragma\s+include)\b`)
 	requirementToken = regexp.MustCompile(`\b(?:BUS|FUN|STK|INF|COV)-[A-Z0-9]+(?:-[A-Z0-9]+)*\b`)
+	implCitation     = regexp.MustCompile(`(?m)^[ \t]*'[ \t]*impl:[ \t]*(\S+):(\d+)[ \t]*$`)
+	plantUMLArrow    = regexp.MustCompile(`^("[^"]+"|\w+)\s*(-+>>?|<-+<?|\.+>>?|<\.+<?)\s*("[^"]+"|\w+)\s*:\s*(.+)$`)
 )
 
+// designProfiles' "design-sequence" entry is not a specification layer: it has
+// no specs/design-sequence directory and is never subject to the
+// active-spec-needs-a-design completeness walk in
+// collectActiveSpecDesignDiagnostics. It is Phase 1/Development-owned output,
+// documented as its own artifact category distinct from Design Artifacts.
 var designProfiles = map[string]map[string]bool{
-	"business":       {"use-case": true},
-	"functional":     {"system-sequence": true, "domain-model": true, "context-map": true, "state": true},
-	"stack":          {"component": true},
-	"infrastructure": {"deployment": true},
-	"coverage":       {"requirement-trace": true},
+	"business":        {"use-case": true},
+	"functional":      {"system-sequence": true, "domain-model": true, "context-map": true, "state": true},
+	"stack":           {"component": true},
+	"infrastructure":  {"deployment": true},
+	"coverage":        {"requirement-trace": true},
+	"design-sequence": {"design-sequence": true},
 }
 
 var designLayerPrefix = map[string]string{
 	"business": "BUS", "functional": "FUN", "stack": "STK", "infrastructure": "INF", "coverage": "COV",
+	"design-sequence": "DSD",
 }
 
 var lifecycleRank = map[string]int{
@@ -63,6 +74,10 @@ type designFrontmatter struct {
 	SourceSHA256     string           `yaml:"source_sha256"`
 	ImageSHA256      string           `yaml:"image_sha256"`
 	VisualValidation visualValidation `yaml:"visual_validation"`
+	// Realizes is set only on design-sequence designs: the id of the
+	// system-sequence design this diagram realizes. Omitted entirely for
+	// every other layer so existing Design Artifacts are unaffected.
+	Realizes string `yaml:"realizes,omitempty"`
 }
 
 type designArtifact struct {
@@ -256,7 +271,14 @@ func validateDesignMetadataKeys(node *yaml.Node) error {
 	allowed := map[string]bool{
 		"id": true, "status": true, "created": true, "layer": true, "diagram_type": true,
 		"notation": true, "specifications": true, "requirements": true, "source_sha256": true,
-		"image_sha256": true, "visual_validation": true,
+		"image_sha256": true, "visual_validation": true, "realizes": true,
+	}
+	// realizes is conditionally required (design-sequence layer only, checked
+	// in validateDesignMetadata where the layer is known) — every other field
+	// remains unconditionally required across all layers.
+	alwaysRequired := []string{
+		"id", "status", "created", "layer", "diagram_type", "notation", "specifications",
+		"requirements", "source_sha256", "image_sha256", "visual_validation",
 	}
 	mapping := node.Content[0]
 	found := map[string]bool{}
@@ -288,7 +310,7 @@ func validateDesignMetadataKeys(node *yaml.Node) error {
 			}
 		}
 	}
-	for key := range allowed {
+	for _, key := range alwaysRequired {
 		if !found[key] {
 			return fmt.Errorf("DESIGN-VISUAL-INVALID: missing frontmatter field %q", key)
 		}
@@ -319,6 +341,12 @@ func validateDesignMetadata(d *designArtifact) error {
 		if err := validateSystemSequenceProfile(d); err != nil {
 			return err
 		}
+	}
+	if f.Layer == "design-sequence" && f.Realizes == "" {
+		return errors.New("DESIGN-VISUAL-INVALID: design-sequence designs must set realizes to their paired system-sequence design id")
+	}
+	if f.Layer != "design-sequence" && f.Realizes != "" {
+		return errors.New("DESIGN-VISUAL-INVALID: realizes is only valid for design-sequence designs")
 	}
 	if f.Notation != "plantuml" || f.Created == "" {
 		return errors.New("DESIGN-VISUAL-INVALID: required design metadata is missing")
@@ -393,24 +421,21 @@ func systemSequenceDeclIdentifier(rest string) string {
 	return label
 }
 
-// validateSystemSequenceProfile enforces the black-box System Sequence
-// Diagram convention the `system-sequence` profile requires: exactly one
-// actor and exactly one system-side participant, the latter always
-// identified as `System` (e.g. `participant "<domain name>" as System`). It
-// is a source-level scan over explicit actor/participant-family
-// declarations only — no PlantUML grammar parser exists in this codebase.
-// PlantUML also auto-creates participants purely from arrow references that
-// are never explicitly declared; this check does not see those, so it is
-// not adversarial-proof. It exists to catch the honest/default-authoring
-// case: extra system-side collaborators declared outright, more than one
-// actor, or a missing/misnamed System participant.
-func validateSystemSequenceProfile(d *designArtifact) error {
-	var actors, systemSide []string
-	seenActor := map[string]bool{}
-	seenSystem := map[string]bool{}
-
+// stripNonStructuralPlantUML returns every structurally-relevant line of a
+// PlantUML source, in order, with comments and note/title/legend block
+// bodies removed. Shared by every source-level heuristic scan in this file
+// (validateSystemSequenceProfile's participant classification,
+// extractOperationLabels' message-label extraction) so free-text prose
+// inside a note can never be misread as a declaration or an arrow. Comment
+// lines (`'`/`/'`) are dropped here too — grounding citations are also
+// PlantUML comments, but validateDesignSequenceGrounding reads them via its
+// own direct regex over the raw source, deliberately not through this
+// filter, since it needs exactly the `'`-prefixed lines this function
+// discards.
+func stripNonStructuralPlantUML(source string) []string {
+	var kept []string
 	inNote, inTitle, inLegend := false, false, false
-	for _, raw := range strings.Split(d.Source, "\n") {
+	for _, raw := range strings.Split(source, "\n") {
 		line := strings.TrimSpace(raw)
 		if line == "" || strings.HasPrefix(line, "'") || strings.HasPrefix(line, "/'") {
 			continue
@@ -451,7 +476,28 @@ func validateSystemSequenceProfile(d *designArtifact) error {
 			inLegend = true
 			continue
 		}
+		kept = append(kept, line)
+	}
+	return kept
+}
 
+// validateSystemSequenceProfile enforces the black-box System Sequence
+// Diagram convention the `system-sequence` profile requires: exactly one
+// actor and exactly one system-side participant, the latter always
+// identified as `System` (e.g. `participant "<domain name>" as System`). It
+// is a source-level scan over explicit actor/participant-family
+// declarations only — no PlantUML grammar parser exists in this codebase.
+// PlantUML also auto-creates participants purely from arrow references that
+// are never explicitly declared; this check does not see those, so it is
+// not adversarial-proof. It exists to catch the honest/default-authoring
+// case: extra system-side collaborators declared outright, more than one
+// actor, or a missing/misnamed System participant.
+func validateSystemSequenceProfile(d *designArtifact) error {
+	var actors, systemSide []string
+	seenActor := map[string]bool{}
+	seenSystem := map[string]bool{}
+
+	for _, line := range stripNonStructuralPlantUML(d.Source) {
 		m := systemSequenceDecl.FindStringSubmatch(line)
 		if m == nil {
 			continue
@@ -562,12 +608,25 @@ func validateDesignArtifact(d *designArtifact) error {
 func validateDesignReferences(d *designArtifact) error {
 	seen := map[string]bool{}
 	minimumLinkedRank := 4
+	// design-sequence is Phase 1/Development output, not a specification
+	// layer: it has no specs/design-sequence directory, and its diagrams are
+	// generated after their linked functional spec is already implemented —
+	// unlike a Design Artifact, its own status is never forced to track the
+	// spec's current lifecycle rank (trackRank stays false), since nothing
+	// about later Deploy/Validate phases changes the collaboration it
+	// documents.
+	specLayer := d.Front.Layer
+	trackRank := true
+	if d.Front.Layer == "design-sequence" {
+		specLayer = "functional"
+		trackRank = false
+	}
 	for _, ref := range d.Front.Specifications {
 		specPath, err := resolvedProjectPath(d.Root, d.Path, ref)
 		if err != nil {
 			return fmt.Errorf("DESIGN-VISUAL-INVALID: unsafe specification reference: %w", err)
 		}
-		expected := filepath.Join(d.Root, "specs", d.Front.Layer)
+		expected := filepath.Join(d.Root, "specs", specLayer)
 		if filepath.Dir(specPath) != expected || filepath.Ext(specPath) != ".md" {
 			return errors.New("DESIGN-VISUAL-INVALID: design references a specification outside its layer")
 		}
@@ -592,7 +651,7 @@ func validateDesignReferences(d *designArtifact) error {
 			if !exists {
 				return fmt.Errorf("DESIGN-VISUAL-INVALID: unsupported linked specification status %q", specFront.Status)
 			}
-			if rank < minimumLinkedRank {
+			if trackRank && rank < minimumLinkedRank {
 				minimumLinkedRank = rank
 			}
 		}
@@ -604,11 +663,11 @@ func validateDesignReferences(d *designArtifact) error {
 		}
 	}
 	for _, requirement := range d.Front.Requirements {
-		if !requirementToken.MatchString(requirement) || !strings.HasPrefix(requirement, designLayerPrefix[d.Front.Layer]+"-") || !seen[requirement] {
+		if !requirementToken.MatchString(requirement) || !strings.HasPrefix(requirement, designLayerPrefix[specLayer]+"-") || !seen[requirement] {
 			return fmt.Errorf("DESIGN-VISUAL-INVALID: requirement %s does not exist in a linked specification", requirement)
 		}
 	}
-	if d.Front.Status != "deprecated" && minimumLinkedRank < 4 {
+	if trackRank && d.Front.Status != "deprecated" && minimumLinkedRank < 4 {
 		designRank := lifecycleRank[d.Front.Status]
 		if designRank != minimumLinkedRank {
 			return fmt.Errorf("DESIGN-ARTIFACT-STALE: design lifecycle rank %d must equal least-advanced linked specification rank %d", designRank, minimumLinkedRank)
@@ -885,6 +944,137 @@ func renderDesign(path string) error {
 	return nil
 }
 
+// resolveRootRelativePath resolves reference against root directly (not
+// against a design's own directory, unlike resolvedProjectPath) — grounding
+// citations are authored as project-root-relative paths, matching how
+// file:line references are already written throughout this codebase (e.g.
+// "installer/design.go:42"), regardless of how deeply nested the citing
+// design file itself is.
+func resolveRootRelativePath(root, reference string) (string, error) {
+	if reference == "" || filepath.IsAbs(reference) {
+		return "", fmt.Errorf("path must be a non-empty relative path: %s", reference)
+	}
+	clean := filepath.Clean(filepath.Join(root, filepath.FromSlash(reference)))
+	rel, err := filepath.Rel(root, clean)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path escapes project: %s", reference)
+	}
+	for current := clean; current != root; current = filepath.Dir(current) {
+		if info, err := os.Lstat(current); err == nil && info.Mode()&os.ModeSymlink != 0 {
+			return "", fmt.Errorf("symlink paths are forbidden: %s", reference)
+		}
+	}
+	return clean, nil
+}
+
+// validateDesignSequenceGrounding requires every message in a design-sequence
+// diagram to carry a `' impl: <path>:<line>` citation and checks each one
+// resolves to a real file with at least that many lines. This is
+// existence-only — it cannot verify the cited code actually does what the
+// message claims — the same accepted "lint-style heuristic, not semantic
+// verifier" limitation task 104 documents for its own PlantUML-source scan.
+func validateDesignSequenceGrounding(d *designArtifact) error {
+	matches := implCitation.FindAllStringSubmatch(d.Source, -1)
+	if len(matches) == 0 {
+		return errors.New("DESIGN-VISUAL-INVALID: design-sequence diagram has no `' impl: <path>:<line>` citations")
+	}
+	for _, m := range matches {
+		refPath, lineStr := m[1], m[2]
+		line, err := strconv.Atoi(lineStr)
+		if err != nil || line < 1 {
+			return fmt.Errorf("DESIGN-VISUAL-INVALID: invalid citation line number in %q", strings.TrimSpace(m[0]))
+		}
+		cleanPath, err := resolveRootRelativePath(d.Root, refPath)
+		if err != nil {
+			return fmt.Errorf("DESIGN-VISUAL-INVALID: citation %q: %w", refPath, err)
+		}
+		content, err := os.ReadFile(cleanPath)
+		if err != nil {
+			return fmt.Errorf("DESIGN-VISUAL-INVALID: citation references a file that does not exist: %s", refPath)
+		}
+		if lineCount := bytes.Count(content, []byte("\n")) + 1; line > lineCount {
+			return fmt.Errorf("DESIGN-VISUAL-INVALID: citation %s:%d exceeds file length (%d lines)", refPath, line, lineCount)
+		}
+	}
+	return nil
+}
+
+// extractOperationLabels pulls the message label from every PlantUML arrow
+// line (Source -> Target: Label form, including async/dashed/return arrow
+// variants) found among stripNonStructuralPlantUML's structural lines — the
+// same note/title/legend-aware scan validateSystemSequenceProfile uses, so a
+// note documenting hypothetical behavior can't be misread as a real message.
+// A source-level heuristic scan, not a PlantUML parser.
+func extractOperationLabels(source string) []string {
+	var labels []string
+	for _, line := range stripNonStructuralPlantUML(source) {
+		m := plantUMLArrow.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+		if label := strings.TrimSpace(m[4]); label != "" {
+			labels = append(labels, label)
+		}
+	}
+	return labels
+}
+
+// normalizeOperationLabel strips everything but letters/digits and
+// lowercases, so "CreateOrder", "Create Order", and "createOrder()" compare
+// equal — deliberately forgiving, since this is a completeness heuristic,
+// not an exact-match contract between diagram authors.
+func normalizeOperationLabel(label string) string {
+	var b strings.Builder
+	for _, r := range label {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(unicode.ToLower(r))
+		}
+	}
+	return b.String()
+}
+
+// validateDesignSequenceCompleteness requires every operation the paired
+// system-sequence design promises to have a matching (normalized,
+// substring-tolerant) operation label somewhere in this diagram. Like
+// grounding, this is a heuristic label comparison, not semantic
+// verification that the represented collaboration is correct.
+func validateDesignSequenceCompleteness(d *designArtifact) error {
+	ssdPath := filepath.Join(d.Root, "docs", "designs", "functional", strings.ToLower(d.Front.Realizes)+".md")
+	ssd, err := parseDesign(ssdPath)
+	if err != nil {
+		return fmt.Errorf("DESIGN-VISUAL-INVALID: realizes %s: %w", d.Front.Realizes, err)
+	}
+	if ssd.Front.Layer != "functional" || ssd.Front.DiagramType != "system-sequence" {
+		return fmt.Errorf("DESIGN-VISUAL-INVALID: realizes must reference a functional system-sequence design, got layer %q diagram_type %q", ssd.Front.Layer, ssd.Front.DiagramType)
+	}
+	ssdOps := extractOperationLabels(ssd.Source)
+	if len(ssdOps) == 0 {
+		return fmt.Errorf("DESIGN-VISUAL-INVALID: paired system-sequence design %s has no extractable operations", d.Front.Realizes)
+	}
+	var normalizedDSD []string
+	for _, op := range extractOperationLabels(d.Source) {
+		normalizedDSD = append(normalizedDSD, normalizeOperationLabel(op))
+	}
+	var missing []string
+	for _, op := range ssdOps {
+		norm := normalizeOperationLabel(op)
+		found := norm == ""
+		for _, dop := range normalizedDSD {
+			if dop == norm || (dop != "" && strings.Contains(dop, norm)) || (norm != "" && strings.Contains(norm, dop)) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			missing = append(missing, op)
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("DESIGN-VISUAL-INVALID: design-sequence diagram is missing operation(s) promised by %s: %s — represent every promised operation, or split by actor/flow if it genuinely spans more than one collaboration", d.Front.Realizes, strings.Join(missing, ", "))
+	}
+	return nil
+}
+
 func attestDesign(path string) error {
 	d, err := parseDesign(path)
 	if err != nil {
@@ -900,6 +1090,18 @@ func attestDesign(path string) error {
 	imageHash := hashBytes(imageBytes)
 	if d.Front.SourceSHA256 != d.SourceHash || d.Front.ImageSHA256 != imageHash {
 		return errors.New("DESIGN-ARTIFACT-STALE: render the current design before attesting")
+	}
+	// design-sequence attestation is earned, not just procedurally ordered:
+	// both checks must pass before a "passed" status can be stamped, so a
+	// misordered workflow can't produce a false attestation the way relying
+	// on caller discipline alone would allow.
+	if d.Front.Layer == "design-sequence" {
+		if err := validateDesignSequenceGrounding(d); err != nil {
+			return err
+		}
+		if err := validateDesignSequenceCompleteness(d); err != nil {
+			return err
+		}
 	}
 	d.Front.VisualValidation = visualValidation{
 		Status: "passed", ValidatedAt: time.Now().UTC().Format(time.RFC3339), SourceSHA256: d.SourceHash, ImageSHA256: imageHash,

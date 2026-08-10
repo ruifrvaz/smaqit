@@ -8,7 +8,7 @@ smaqit operates in three sequential phases:
 
 | Phase | Name | Specification Artifacts | Design Artifacts | Implementation Artifacts |
 |-------|------|------------------------|------------------|-------------------------|
-| Phase 1 | Develop | Business, Functional, Stack | Use-case, system-sequence/domain, component PNGs | Code, README, Development report in `.smaqit/reports/` |
+| Phase 1 | Develop | Business, Functional, Stack | Use-case, system-sequence/domain, component PNGs | Code, README, Development report in `.smaqit/reports/`, Design Sequence Diagram PNGs (own category, not a Design Artifact — see `ARTIFACTS.md`) |
 | Phase 2 | Deploy | Infrastructure | Deployment/topology PNGs | Running system, Deployment report in `.smaqit/reports/` |
 | Phase 3 | Validate | Coverage | Requirement-trace PNGs | Validation report in `.smaqit/reports/` |
 
@@ -78,7 +78,7 @@ The Development agent then consolidates specs for coherence, generates applicati
 
 **Phase Completion:**
 
-The Develop phase completes when Business, Functional, and Stack specifications are produced, code is generated and compiles without errors, tests pass, and the application runs successfully with behavior matching spec acceptance criteria. Development report documents build, test, and run results. Spec frontmatter reflects implemented state with timestamps.
+The Develop phase completes when Business, Functional, and Stack specifications are produced, code is generated and compiles without errors, tests pass, and the application runs successfully with behavior matching spec acceptance criteria. One Design Sequence Diagram per implemented Functional spec is generated, grounded, and attested. Development report documents build, test, and run results. Spec frontmatter reflects implemented state with timestamps.
 
 ---
 
@@ -222,6 +222,7 @@ The Validate phase completes when Coverage specs exist with all testable criteri
 - Application compiles and runs
 - Unit tests pass
 - Behavior verified in isolated environment
+- Design Sequence Diagrams generated, grounded, and attested for every implemented Functional spec
 
 **Handoff:**
 - Working application code

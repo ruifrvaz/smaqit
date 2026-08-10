@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [2.3.0] - 2026-08-10
+
+### Added
+- Strict black-box validation for `system-sequence` designs — `smaqit design validate` now enforces that Functional-layer `system-sequence` diagrams contain exactly one declared actor and exactly one system-side participant identified as `System`. Diagrams with multiple participants, missing declarations, or a misnamed system participant fail with `DESIGN-VISUAL-INVALID` and an actionable remedy.
+
+### Changed
+- `framework/LAYERS.md` Functional row now documents the one-actor/`System`-participant requirement and mandates a per-actor/per-flow design split when a spec spans multiple actor-initiated flows.
+- `agents/functional.md` directives now explicitly instruct authoring one `system-sequence` design per actor or user-story/flow rather than merging multiple flows into a single diagram.
+- Task-lifecycle, release, session, research, and worktree skills refreshed across all three platforms (Copilot, Claude, Codex) with refinements to script logic, agent metadata, and platform-specific path handling.
+
 ## [2.2.0] - 2026-08-07
 
 ### Added
@@ -736,7 +746,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/ruifrvaz/smaqit/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/ruifrvaz/smaqit/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/ruifrvaz/smaqit/compare/v2.0.2...v2.1.0
 [2.0.2]: https://github.com/ruifrvaz/smaqit/compare/v2.0.1...v2.0.2

@@ -315,6 +315,11 @@ func validateDesignMetadata(d *designArtifact) error {
 	if !designProfiles[f.Layer][f.DiagramType] {
 		return fmt.Errorf("DESIGN-VISUAL-INVALID: diagram_type %q is not controlled for layer %q", f.DiagramType, f.Layer)
 	}
+	if f.DiagramType == "system-sequence" {
+		if err := validateSystemSequenceProfile(d); err != nil {
+			return err
+		}
+	}
 	if f.Notation != "plantuml" || f.Created == "" {
 		return errors.New("DESIGN-VISUAL-INVALID: required design metadata is missing")
 	}
@@ -335,6 +340,167 @@ func validateDesignMetadata(d *designArtifact) error {
 			return fmt.Errorf("DESIGN-VISUAL-INVALID: duplicate requirement reference %s", requirement)
 		}
 		requirements[requirement] = true
+	}
+	return nil
+}
+
+var (
+	systemSequenceDecl     = regexp.MustCompile(`(?i)^(actor|participant|boundary|control|entity|database|collections|queue)\s+(.+)$`)
+	systemSequenceAsAlias  = regexp.MustCompile(`(?i)^\s*as\s+("[^"]+"|[\w.]+)`)
+	systemSequenceQuoted   = regexp.MustCompile(`^"([^"]*)"`)
+	systemSequenceBareword = regexp.MustCompile(`^([\w.]+)`)
+)
+
+// systemSequenceIdentifier extracts a normalized participant identifier from
+// a PlantUML token: a quoted label or a bareword.
+func systemSequenceIdentifier(token string) (string, bool) {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return "", false
+	}
+	if m := systemSequenceQuoted.FindStringSubmatch(token); m != nil {
+		return m[1], true
+	}
+	if m := systemSequenceBareword.FindStringSubmatch(token); m != nil {
+		return m[1], true
+	}
+	return "", false
+}
+
+// systemSequenceDeclIdentifier extracts the effective identifier of an
+// actor/participant-family declaration: the `as <alias>` alias if present,
+// otherwise the quoted label or bareword name itself. Any trailing
+// decoration (color, stereotype, `order N`) is ignored since it is only
+// ever searched for within the tail after the label/bareword, never inside
+// a quoted label itself.
+func systemSequenceDeclIdentifier(rest string) string {
+	rest = strings.TrimSpace(rest)
+	var label, tail string
+	if m := systemSequenceQuoted.FindStringSubmatch(rest); m != nil {
+		label = m[1]
+		tail = rest[len(m[0]):]
+	} else if m := systemSequenceBareword.FindStringSubmatch(rest); m != nil {
+		label = m[1]
+		tail = rest[len(m[0]):]
+	} else {
+		return ""
+	}
+	if am := systemSequenceAsAlias.FindStringSubmatch(tail); am != nil {
+		if alias, ok := systemSequenceIdentifier(am[1]); ok {
+			return alias
+		}
+	}
+	return label
+}
+
+// validateSystemSequenceProfile enforces the black-box System Sequence
+// Diagram convention the `system-sequence` profile requires: exactly one
+// actor and exactly one system-side participant, the latter always
+// identified as `System` (e.g. `participant "<domain name>" as System`). It
+// is a source-level scan over explicit actor/participant-family
+// declarations only — no PlantUML grammar parser exists in this codebase.
+// PlantUML also auto-creates participants purely from arrow references that
+// are never explicitly declared; this check does not see those, so it is
+// not adversarial-proof. It exists to catch the honest/default-authoring
+// case: extra system-side collaborators declared outright, more than one
+// actor, or a missing/misnamed System participant.
+func validateSystemSequenceProfile(d *designArtifact) error {
+	var actors, systemSide []string
+	seenActor := map[string]bool{}
+	seenSystem := map[string]bool{}
+
+	inNote, inTitle, inLegend := false, false, false
+	for _, raw := range strings.Split(d.Source, "\n") {
+		line := strings.TrimSpace(raw)
+		if line == "" || strings.HasPrefix(line, "'") || strings.HasPrefix(line, "/'") {
+			continue
+		}
+		if inNote {
+			if strings.EqualFold(line, "end note") {
+				inNote = false
+			}
+			continue
+		}
+		if inTitle {
+			if strings.EqualFold(line, "end title") {
+				inTitle = false
+			}
+			continue
+		}
+		if inLegend {
+			if strings.EqualFold(line, "endlegend") || strings.EqualFold(line, "end legend") {
+				inLegend = false
+			}
+			continue
+		}
+		lower := strings.ToLower(line)
+		if strings.HasPrefix(lower, "note") {
+			if !strings.Contains(line, ":") {
+				inNote = true
+			}
+			continue
+		}
+		if lower == "title" {
+			inTitle = true
+			continue
+		}
+		if strings.HasPrefix(lower, "title ") {
+			continue
+		}
+		if strings.HasPrefix(lower, "legend") {
+			inLegend = true
+			continue
+		}
+
+		m := systemSequenceDecl.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+		keyword := strings.ToLower(m[1])
+		name := systemSequenceDeclIdentifier(m[2])
+		if name == "" {
+			continue
+		}
+		if keyword == "actor" {
+			if !seenActor[name] {
+				seenActor[name] = true
+				actors = append(actors, name)
+			}
+			continue
+		}
+		if !seenSystem[name] {
+			seenSystem[name] = true
+			systemSide = append(systemSide, name)
+		}
+	}
+
+	switch len(actors) {
+	case 0:
+		return errors.New("DESIGN-VISUAL-INVALID: system-sequence diagrams must declare exactly one actor, found none")
+	case 1:
+	default:
+		return fmt.Errorf(
+			"DESIGN-VISUAL-INVALID: system-sequence diagrams must model exactly one actor, found %d (%s) — author one system-sequence design per actor instead",
+			len(actors), strings.Join(actors, ", "),
+		)
+	}
+
+	switch len(systemSide) {
+	case 0:
+		return errors.New(`DESIGN-VISUAL-INVALID: system-sequence diagrams must declare exactly one system participant identified as "System" (e.g. participant "<name>" as System), found none`)
+	case 1:
+	default:
+		return fmt.Errorf(
+			`DESIGN-VISUAL-INVALID: system-sequence diagrams must model exactly one system participant, found %d (%s) — split multi-flow behavior into separate per-flow system-sequence designs instead`,
+			len(systemSide), strings.Join(systemSide, ", "),
+		)
+	}
+
+	if systemSide[0] != "System" {
+		return fmt.Errorf(
+			`DESIGN-VISUAL-INVALID: system-sequence diagrams must identify their system participant as "System" (e.g. participant "<name>" as System), found %q instead`,
+			systemSide[0],
+		)
 	}
 	return nil
 }

@@ -269,7 +269,7 @@ Designs use PlantUML and remain inside their owning specification layer. Every a
 | Layer | Required default view | Conditional high-signal views |
 |-------|-----------------------|-------------------------------|
 | Business | `use-case` | None; split by actor goal when readability requires it |
-| Functional | `system-sequence` | `domain-model`, `context-map`, `state` when domain boundaries, entities, or lifecycle behavior exist |
+| Functional | `system-sequence` | `domain-model`, `context-map`, `state` when domain boundaries, entities, or lifecycle behavior exist. `system-sequence` itself stays a strict black box (exactly one actor, exactly one system participant identified as `System`, enforced at validation) — author one design per actor or per user-story/flow whenever a spec involves more than one |
 | Stack | `component` | Technology realization detail when one component view cannot express a material constraint |
 | Infrastructure | `deployment` | Network/topology detail when deployment boundaries require it |
 | Coverage | `requirement-trace` | None; it visualizes existing mappings only |

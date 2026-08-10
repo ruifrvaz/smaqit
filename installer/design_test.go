@@ -325,6 +325,247 @@ func TestGreenfieldReferencePlantUMLIsValid(t *testing.T) {
 	}
 }
 
+func TestSystemSequenceProfileEnforcesBlackBox(t *testing.T) {
+	root := designTestProject(t)
+	path := filepath.Join(root, "docs", "designs", "functional", "dsg-fun-test-flow-system-sequence.md")
+
+	blackBox := `@startuml
+actor Customer
+participant "IODIS CRM" as System
+
+Customer -> System: GET /activate?token
+activate System
+System --> Customer: activation form (rendered unconditionally)
+deactivate System
+
+Customer -> System: POST /activate (token, password)
+activate System
+alt token valid and unexpired
+  System --> Customer: activated
+else token invalid, expired, or already used
+  System --> Customer: generic rejection, form re-rendered
+end
+deactivate System
+
+note over System
+  RegistrationToken is issued earlier, at customer
+  creation, out of scope for this diagram.
+end note
+@enduml`
+
+	decoratedAlias := `@startuml
+actor Customer
+participant "Payment System" as System #LightBlue
+Customer -> System: GET /activate?token
+System --> Customer: 200
+@enduml`
+
+	multiLineTitle := `@startuml
+title
+Describes the Customer -> System handoff
+end title
+actor Customer
+participant "IODIS CRM" as System
+Customer -> System: GET /activate?token
+System --> Customer: 200
+@enduml`
+
+	multiParticipant := `@startuml
+actor Customer
+participant "VisitorConvertHandler / CustomerNewHandler" as CreateHandler
+participant CustomerActivationHandler as ActivateHandler
+participant CustomerActivationService as ActSvc
+
+== Token Issuance ==
+Customer -> CreateHandler: POST /visitors/{id}/convert
+activate CreateHandler
+CreateHandler -> ActivateHandler: forward
+CreateHandler --> Customer: 200 (customer created)
+deactivate CreateHandler
+
+== Submit Activation ==
+Customer -> ActivateHandler: POST /activate
+activate ActivateHandler
+ActivateHandler -> ActSvc: activate(token, password)
+activate ActSvc
+ActSvc --> ActivateHandler: activated
+ActivateHandler --> Customer: 200
+deactivate ActSvc
+deactivate ActivateHandler
+@enduml`
+
+	twoActors := `@startuml
+actor Admin
+actor Customer
+participant "IODIS CRM" as System
+Admin -> System: seed data
+Customer -> System: GET /activate?token
+System --> Customer: 200
+@enduml`
+
+	misnamedSystem := `@startuml
+actor Customer
+participant "IODIS CRM" as CRM
+Customer -> CRM: GET /activate?token
+CRM --> Customer: 200
+@enduml`
+
+	noExplicitSystem := `@startuml
+actor Customer
+Customer -> System: GET /activate?token
+System --> Customer: 200
+@enduml`
+
+	noActor := `@startuml
+participant "IODIS CRM" as System
+System --> System: noop
+@enduml`
+
+	tests := []struct {
+		name     string
+		plantUML string
+		wantErr  bool
+		wantMsg  string
+	}{
+		{"black box passes", blackBox, false, ""},
+		{"decorated alias still resolves to System", decoratedAlias, false, ""},
+		{"multi-line title body is not parsed as content", multiLineTitle, false, ""},
+		{"two actors fails", twoActors, true, "exactly one actor"},
+		{"explicit multi participant fails", multiParticipant, true, "exactly one system participant"},
+		{"system participant not named System fails", misnamedSystem, true, `identify their system participant as "System"`},
+		{"system participant never explicitly declared fails", noExplicitSystem, true, "found none"},
+		{"no actor declared fails", noActor, true, "exactly one actor"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			writeTestFile(t, path, validFunctionalSystemSequenceSource(tc.plantUML))
+			_, err := parseDesign(path)
+			if tc.wantErr {
+				if err == nil || !strings.Contains(err.Error(), "DESIGN-VISUAL-INVALID") || !strings.Contains(err.Error(), tc.wantMsg) {
+					t.Fatalf("expected system-sequence profile failure containing %q, got %v", tc.wantMsg, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("expected success, got %v", err)
+			}
+		})
+	}
+}
+
+func TestSystemSequenceProfileAcceptsShippedTemplateAndReference(t *testing.T) {
+	block := func(path string) string {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		matches := regexp.MustCompile("(?s)```plantuml\\n(.*?)```").FindSubmatch(content)
+		if matches == nil {
+			t.Fatalf("no PlantUML fence found in %s", path)
+		}
+		return string(matches[1])
+	}
+	for _, path := range []string{
+		filepath.Join("..", "templates", "designs", "functional.template.md"),
+	} {
+		source := normalizePlantUMLSource(block(path))
+		if err := validateSystemSequenceProfile(&designArtifact{Source: source}); err != nil {
+			t.Fatalf("%s: expected shipped reference to satisfy the black-box profile, got %v", path, err)
+		}
+	}
+}
+
+func TestSystemSequenceProfileSupportsMultipleDesignsPerSpec(t *testing.T) {
+	major, err := installedNodeMajor()
+	if err != nil || major < minimumNodeMajor {
+		t.Skipf("Node %d+ is the mandatory consumer prerequisite: %v", minimumNodeMajor, err)
+	}
+	root := designTestProject(t)
+	for _, dir := range []string{"docs/designs/functional", "specs/functional"} {
+		if err := os.MkdirAll(filepath.Join(root, dir), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	registrationPath := filepath.Join(root, "docs", "designs", "functional", "dsg-fun-test-flow-registration-system-sequence.md")
+	activationPath := filepath.Join(root, "docs", "designs", "functional", "dsg-fun-test-flow-activation-system-sequence.md")
+	specPath := filepath.Join(root, "specs", "functional", "test-flow.md")
+
+	writeTestFile(t, registrationPath, strings.Replace(
+		validFunctionalSystemSequenceSource(`@startuml
+actor Admin
+participant "IODIS CRM" as System
+Admin -> System: create customer
+System --> Admin: 200
+@enduml`),
+		"DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE", "DSG-FUN-TEST-FLOW-REGISTRATION-SYSTEM-SEQUENCE", 1))
+	writeTestFile(t, activationPath, strings.Replace(
+		validFunctionalSystemSequenceSource(`@startuml
+actor Customer
+participant "IODIS CRM" as System
+Customer -> System: GET /activate?token
+System --> Customer: 200
+@enduml`),
+		"DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE", "DSG-FUN-TEST-FLOW-ACTIVATION-SYSTEM-SEQUENCE", 1))
+	writeTestFile(t, specPath, `---
+id: FUN-TEST-FLOW
+status: draft
+created: 2026-08-07
+---
+
+# Test Flow
+
+## Design References
+
+- [DSG-FUN-TEST-FLOW-REGISTRATION-SYSTEM-SEQUENCE](../../docs/designs/functional/dsg-fun-test-flow-registration-system-sequence.md) · [Image](../../docs/designs/functional/dsg-fun-test-flow-registration-system-sequence.png)
+- [DSG-FUN-TEST-FLOW-ACTIVATION-SYSTEM-SEQUENCE](../../docs/designs/functional/dsg-fun-test-flow-activation-system-sequence.md) · [Image](../../docs/designs/functional/dsg-fun-test-flow-activation-system-sequence.png)
+
+## Acceptance Criteria
+
+- **FUN-TEST-FLOW-001**: A customer can activate their account.
+`)
+
+	for _, path := range []string{registrationPath, activationPath} {
+		if err := renderDesign(path); err != nil {
+			t.Fatalf("render %s: %v", path, err)
+		}
+		if err := attestDesign(path); err != nil {
+			t.Fatalf("attest %s: %v", path, err)
+		}
+	}
+	ready, reason := specDesignReady(specPath, "functional")
+	if !ready {
+		t.Fatalf("expected spec with two linked black-box system-sequence designs to be ready: %s", reason)
+	}
+}
+
+func validFunctionalSystemSequenceSource(plantUML string) string {
+	return fmt.Sprintf(`---
+id: DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
+status: draft
+created: 2026-08-07
+layer: functional
+diagram_type: system-sequence
+notation: plantuml
+specifications:
+  - ../../../specs/functional/test-flow.md
+requirements:
+  - FUN-TEST-FLOW-001
+source_sha256: "[SOURCE_SHA256]"
+image_sha256: "[IMAGE_SHA256]"
+visual_validation:
+  status: pending
+  validated_at: null
+  source_sha256: null
+  image_sha256: null
+---
+
+`+"```plantuml"+`
+%s
+`+"```"+`
+`, plantUML)
+}
+
 func designTestProject(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()

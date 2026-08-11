@@ -27,9 +27,9 @@ Skills — one shared source tree, since SKILL.md frontmatter needs no per-platf
 The only platform-specific bit is each skill's own install path, referenced in a few
 usage comments via the [SMAQIT_SKILLS_DIR] placeholder, resolved here (not at install time):
   skills/<name>/**
-  -> installer/skills-copilot/<name>/**   ([SMAQIT_SKILLS_DIR] -> .github/skills)
-  -> installer/skills-claude/<name>/**    ([SMAQIT_SKILLS_DIR] -> .claude/skills)
-  -> installer/skills-codex/<name>/**     ([SMAQIT_SKILLS_DIR] -> .agents/skills)
+  -> installer/skills-copilot/<name>/**   ([SMAQIT_SKILLS_DIR] -> ${HOME}/.agents/skills)
+  -> installer/skills-claude/<name>/**    ([SMAQIT_SKILLS_DIR] -> ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills)
+  -> installer/skills-codex/<name>/**     ([SMAQIT_SKILLS_DIR] -> ${HOME}/.agents/skills)
 
 Run via `make -C installer prepare`, or directly after editing agents/, commands/, skills/,
 or .smaqit/definitions/agents/:
@@ -71,9 +71,9 @@ SKILLS_OUT_DIR_BY_PLATFORM = {
     "codex": ROOT / "installer" / "skills-codex",
 }
 SKILLS_DIR_BY_PLATFORM = {
-    "copilot": ".github/skills",
-    "claude": ".claude/skills",
-    "codex": ".agents/skills",
+    "copilot": "${HOME}/.agents/skills",
+    "claude": "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills",
+    "codex": "${HOME}/.agents/skills",
 }
 
 PLACEHOLDER_RE = re.compile(r"\{\{([A-Z0-9_]+)\}\}")

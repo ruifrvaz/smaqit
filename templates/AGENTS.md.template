@@ -8,11 +8,8 @@ This project uses [smaqit](https://github.com/ruifrvaz/smaqit) for spec-and-desi
 The following paths are smaqit tooling, not part of this project's business domain. When reasoning about architecture, domain logic, or conventions, ignore them:
 
 - `.smaqit/` — task/spec state, session history, templates
-- `.github/agents/`, `.github/skills/` — GitHub Copilot agent and skill definitions
 - `.github/workflows/copilot-setup-steps.yml` — Copilot coding-agent bootstrap workflow
-- `.claude/agents/`, `.claude/commands/`, `.claude/skills/` — Claude Code agent, command, and skill definitions
-- `.codex/agents/` — Codex project custom-agent definitions
-- `.agents/skills/` — Codex repository skill definitions
+- User-level agent and skill directories (`~/.copilot/agents/`, `~/.claude/`, `~/.codex/agents/`, `~/.agents/skills/`) are framework tooling, not project-domain source
 
 ## Working with smaqit
 

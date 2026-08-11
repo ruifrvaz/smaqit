@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing to add.
 
 ### Changed
-- Nothing to add.
+- Agents, commands, and skills now install once per user rather than into every initialized project. The shell installer invokes an internal global-install step; `smaqit init` now creates only project-local specifications, designs, runtime, configuration, instructions, and workflow scaffolding.
+- The Copilot setup workflow bootstraps the same global payload on every ephemeral runner before conditionally scaffolding project state.
 
 ### Deprecated
 - Nothing to add.

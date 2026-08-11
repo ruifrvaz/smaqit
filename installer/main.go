@@ -55,8 +55,8 @@ var Version = "2.3.0"
 
 func main() {
 	if len(os.Args) < 2 {
-		printUsage()
-		os.Exit(1)
+		cmdHelp()
+		return
 	}
 
 	switch os.Args[1] {
@@ -66,6 +66,8 @@ func main() {
 			targetDir = os.Args[2]
 		}
 		cmdInit(targetDir)
+	case "--install-global":
+		cmdInstallGlobal()
 	case "plan":
 		cmdPlan()
 	case "status":
@@ -96,7 +98,7 @@ func printUsage() {
 Usage: smaqit <command>
 
 Commands:
-  init [dir] Scaffold .smaqit/, .github/, .claude/, .codex/, and .agents/ directories
+  init [dir] Scaffold project-local smaqit directories and configuration
              Optional: specify target directory (default: current)
   plan       Show specs to process (for agents)
   status     Show project state and spec coverage
@@ -115,9 +117,9 @@ func cmdHelp() {
 
 	fmt.Println("CLI Commands:")
 	fmt.Println("  smaqit init [dir] Scaffold smaqit project structure")
-	fmt.Println("                    Creates .smaqit/, .github/, .claude/, .codex/, and .agents/")
-	fmt.Println("                    with templates, skills, and agent definitions for")
-	fmt.Println("                    GitHub Copilot, Claude Code, and Codex")
+	fmt.Println("                    Creates project-local templates, specifications, designs,")
+	fmt.Println("                    and PlantUML configuration. Agents and skills are installed")
+	fmt.Println("                    globally by the installer script.")
 	fmt.Println("                    Optional: specify target directory (created if needed)")
 	fmt.Println()
 	fmt.Println("  smaqit plan       Show work plan for current phase")
@@ -129,7 +131,7 @@ func cmdHelp() {
 	fmt.Println("                    Reports number of specs per layer and phase status")
 	fmt.Println()
 	fmt.Println("  smaqit validate   Verify project structure integrity")
-	fmt.Println("                    Checks directory structure, framework files, and")
+	fmt.Println("                    Checks project directory structure and")
 	fmt.Println("                    validates spec template compliance")
 	fmt.Println()
 	fmt.Println("  smaqit design render <design.md>  Syntax-check and render its PNG")
@@ -141,10 +143,9 @@ func cmdHelp() {
 	fmt.Println()
 	fmt.Println("  smaqit help       Show this help message")
 	fmt.Println()
-	fmt.Println("  smaqit uninstall  Remove smaqit from project")
-	fmt.Println("                    Removes .smaqit/, .github/agents/, .github/skills/,")
-	fmt.Println("                    .claude/agents/, .claude/skills/, .claude/commands/,")
-	fmt.Println("                    and only smaqit-owned Codex agents and skills")
+	fmt.Println("  smaqit uninstall  Remove smaqit from project and its owned global payload")
+	fmt.Println("                    Removes project state and only smaqit-owned global")
+	fmt.Println("                    agents and skills; unrelated user content is preserved")
 	fmt.Println()
 	fmt.Println("  smaqit update     Update to the latest release")
 	fmt.Println("                    Downloads the latest GitHub release for your platform,")
@@ -347,6 +348,75 @@ func getAgentName(phase string) string {
 	}
 }
 
+// resolveGlobalDir returns a user-level destination for an owned payload kind.
+// Platform configuration overrides apply only to their respective client roots;
+// the shared Copilot/Codex skill tree deliberately remains under the user's home.
+func resolveGlobalDir(kind string) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("resolving user home: %w", err)
+	}
+	switch kind {
+	case "copilot-agents":
+		if root := os.Getenv("COPILOT_HOME"); root != "" {
+			return filepath.Join(root, "agents"), nil
+		}
+		return filepath.Join(home, ".copilot", "agents"), nil
+	case "claude-agents":
+		if root := os.Getenv("CLAUDE_CONFIG_DIR"); root != "" {
+			return filepath.Join(root, "agents"), nil
+		}
+		return filepath.Join(home, ".claude", "agents"), nil
+	case "claude-commands":
+		if root := os.Getenv("CLAUDE_CONFIG_DIR"); root != "" {
+			return filepath.Join(root, "commands"), nil
+		}
+		return filepath.Join(home, ".claude", "commands"), nil
+	case "claude-skills":
+		if root := os.Getenv("CLAUDE_CONFIG_DIR"); root != "" {
+			return filepath.Join(root, "skills"), nil
+		}
+		return filepath.Join(home, ".claude", "skills"), nil
+	case "codex-agents":
+		if root := os.Getenv("CODEX_HOME"); root != "" {
+			return filepath.Join(root, "agents"), nil
+		}
+		return filepath.Join(home, ".codex", "agents"), nil
+	case "shared-skills":
+		return filepath.Join(home, ".agents", "skills"), nil
+	default:
+		return "", fmt.Errorf("unknown global installation kind %q", kind)
+	}
+}
+
+func cmdInstallGlobal() {
+	mappings := []struct {
+		embeddedFS embed.FS
+		srcDir     string
+		kind       string
+		label      string
+	}{
+		{agentFiles, "agents-copilot", "copilot-agents", "Copilot agents"},
+		{skillFilesCopilot, "skills-copilot", "shared-skills", "shared Copilot/Codex skills"},
+		{claudeAgentFiles, "agents-claude", "claude-agents", "Claude agents"},
+		{claudeCommandFiles, "commands-claude", "claude-commands", "Claude commands"},
+		{skillFilesClaude, "skills-claude", "claude-skills", "Claude skills"},
+		{codexAgentFiles, "agents-codex", "codex-agents", "Codex agents"},
+	}
+	for _, mapping := range mappings {
+		destination, err := resolveGlobalDir(mapping.kind)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error resolving %s path: %v\n", mapping.label, err)
+			os.Exit(1)
+		}
+		if err := copyEmbeddedDir(mapping.embeddedFS, mapping.srcDir, destination); err != nil {
+			fmt.Fprintf(os.Stderr, "Error installing %s: %v\n", mapping.label, err)
+			os.Exit(1)
+		}
+		fmt.Printf("✓ Installed %s to %s\n", mapping.label, destination)
+	}
+}
+
 // detectConflicts checks which embedded files would conflict with existing files
 func detectConflicts() []string {
 	var conflicts []string
@@ -360,14 +430,7 @@ func detectConflicts() []string {
 	}{
 		{templateFiles, "templates/specs", ".smaqit/templates/specs", false},
 		{designTemplateFiles, "templates/designs", ".smaqit/templates/designs", false},
-		{agentFiles, "agents-copilot", ".github/agents", false},
-		{skillFilesCopilot, "skills-copilot", ".github/skills", false},
 		{workflowFiles, "templates/workflows", ".github/workflows", true},
-		{claudeAgentFiles, "agents-claude", ".claude/agents", false},
-		{claudeCommandFiles, "commands-claude", ".claude/commands", false},
-		{skillFilesClaude, "skills-claude", ".claude/skills", false},
-		{codexAgentFiles, "agents-codex", ".codex/agents", false},
-		{skillFilesCodex, "skills-codex", ".agents/skills", false},
 	}
 
 	// Check each file mapping for conflicts
@@ -517,14 +580,7 @@ func cmdInit(targetDir string) {
 		"docs/designs/coverage",
 		"docs/designs/design-sequence",
 		".vscode",
-		".github/agents",
-		".github/skills",
 		".github/workflows",
-		".claude/agents",
-		".claude/commands",
-		".claude/skills",
-		".codex/agents",
-		".agents/skills",
 	}
 
 	for _, dir := range dirs {
@@ -556,51 +612,14 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
-	// Copy agent files
-	if err := copyEmbeddedDir(agentFiles, "agents-copilot", ".github/agents"); err != nil {
-		fmt.Printf("Error copying agent files: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Copy skill files
-	if err := copyEmbeddedDir(skillFilesCopilot, "skills-copilot", ".github/skills"); err != nil {
-		fmt.Printf("Error copying skill files: %v\n", err)
-		os.Exit(1)
-	}
-
 	// Copy workflow files
 	if err := copyEmbeddedDir(workflowFiles, "templates/workflows", ".github/workflows"); err != nil {
 		fmt.Printf("Error copying workflow files: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Copy Claude Code agent files
-	if err := copyEmbeddedDir(claudeAgentFiles, "agents-claude", ".claude/agents"); err != nil {
-		fmt.Printf("Error copying Claude Code agent files: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Copy Claude Code slash commands
-	if err := copyEmbeddedDir(claudeCommandFiles, "commands-claude", ".claude/commands"); err != nil {
-		fmt.Printf("Error copying Claude Code command files: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Copy skill files for Claude Code (same skills, resolved for the .claude/ install path)
-	if err := copyEmbeddedDir(skillFilesClaude, "skills-claude", ".claude/skills"); err != nil {
-		fmt.Printf("Error copying Claude Code skill files: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Copy Codex project custom agents and repository skills. The managed
-	// .codex/config.toml registration installed above makes the mandatory
-	// PlantUML MCP server available to trusted Codex project sessions.
-	if err := copyEmbeddedDir(codexAgentFiles, "agents-codex", ".codex/agents"); err != nil {
-		fmt.Printf("Error copying Codex agent files: %v\n", err)
-		os.Exit(1)
-	}
-	if err := copyEmbeddedDir(skillFilesCodex, "skills-codex", ".agents/skills"); err != nil {
-		fmt.Printf("Error copying Codex skill files: %v\n", err)
+	if err := removeLegacyProjectMirrors(); err != nil {
+		fmt.Printf("Error removing legacy project agent/skill mirrors: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -632,10 +651,8 @@ func cmdInit(targetDir string) {
 	fmt.Println("✓ Installed bundled PlantUML MCP and PNG rendering runtime")
 	fmt.Println("✓ Configured project-local PlantUML MCP discovery for VS Code, Claude Code, and Codex")
 	fmt.Println("✓ Verified PlantUML MCP configuration and local stdio transport")
-	fmt.Println("✓ Copied agent definitions (GitHub Copilot + Claude Code + Codex)")
-	fmt.Println("✓ Copied skill files (GitHub Copilot + Claude Code + Codex)")
+	fmt.Println("✓ Global agent and skill installation is managed by the installer script")
 	fmt.Println("✓ Copied workflow files")
-	fmt.Println("✓ Copied Claude Code slash commands")
 	fmt.Printf("✓ AGENTS.md %s, CLAUDE.md %s\n", agentsStatus, claudeStatus)
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
@@ -738,6 +755,39 @@ func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
 
 		return nil
 	})
+}
+
+// removeLegacyProjectMirrors removes only artifacts smaqit owned under the
+// legacy project-scoped locations. It is deliberately exact-file based so a
+// project can retain unrelated agents or custom files beside old smaqit output.
+func removeLegacyProjectMirrors() error {
+	mappings := []struct {
+		embeddedFS embed.FS
+		srcDir     string
+		dstDir     string
+		skills     bool
+	}{
+		{agentFiles, "agents-copilot", filepath.Join(".github", "agents"), false},
+		{skillFilesCopilot, "skills-copilot", filepath.Join(".github", "skills"), true},
+		{claudeAgentFiles, "agents-claude", filepath.Join(".claude", "agents"), false},
+		{claudeCommandFiles, "commands-claude", filepath.Join(".claude", "commands"), false},
+		{skillFilesClaude, "skills-claude", filepath.Join(".claude", "skills"), true},
+		{codexAgentFiles, "agents-codex", filepath.Join(".codex", "agents"), false},
+		{skillFilesCodex, "skills-codex", filepath.Join(".agents", "skills"), true},
+	}
+	for _, mapping := range mappings {
+		if mapping.skills {
+			if _, err := removeEmbeddedSkillDirs(mapping.embeddedFS, mapping.srcDir, mapping.dstDir); err != nil {
+				return err
+			}
+		} else if _, err := removeEmbeddedFiles(mapping.embeddedFS, mapping.srcDir, mapping.dstDir); err != nil {
+			return err
+		}
+		if _, err := removeDirIfEmpty(mapping.dstDir); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // removeEmbeddedFiles removes only files represented in an embedded source tree.
@@ -849,12 +899,7 @@ func cmdUninstall() {
 	// Prompt for confirmation
 	fmt.Println("This will remove:")
 	fmt.Println("  • .smaqit/")
-	fmt.Println("  • .github/agents/")
-	fmt.Println("  • .github/skills/")
-	fmt.Println("  • .claude/agents/")
-	fmt.Println("  • .claude/skills/")
-	fmt.Println("  • .claude/commands/")
-	fmt.Println("  • smaqit-owned files in .codex/agents/ and .agents/skills/")
+	fmt.Println("  • smaqit-owned global agents, commands, and skills")
 	fmt.Println("  • smaqit-owned PlantUML MCP registrations")
 	fmt.Print("\nContinue? [y/N]: ")
 
@@ -913,53 +958,39 @@ func cmdUninstall() {
 	}
 	fmt.Println("✓ Kept docs/designs/ (user design artifacts)")
 
-	for _, dir := range []string{
-		filepath.Join(".github", "agents"),
-		filepath.Join(".github", "skills"),
-		filepath.Join(".claude", "agents"),
-		filepath.Join(".claude", "skills"),
-		filepath.Join(".claude", "commands"),
-	} {
-		if err := os.RemoveAll(dir); err != nil && !os.IsNotExist(err) {
-			fmt.Printf("Error removing %s/: %v\n", dir, err)
-			errors++
-		} else {
-			fmt.Printf("✓ Removed %s/\n", dir)
-		}
+	globalMappings := []struct {
+		embeddedFS embed.FS
+		srcDir     string
+		kind       string
+		skills     bool
+	}{
+		{agentFiles, "agents-copilot", "copilot-agents", false},
+		{skillFilesCopilot, "skills-copilot", "shared-skills", true},
+		{claudeAgentFiles, "agents-claude", "claude-agents", false},
+		{claudeCommandFiles, "commands-claude", "claude-commands", false},
+		{skillFilesClaude, "skills-claude", "claude-skills", true},
+		{codexAgentFiles, "agents-codex", "codex-agents", false},
 	}
-
-	codexAgentsRemoved, err := removeEmbeddedFiles(codexAgentFiles, "agents-codex", filepath.Join(".codex", "agents"))
-	if err != nil {
-		fmt.Printf("Error removing Codex agents: %v\n", err)
-		errors++
-	} else {
-		fmt.Printf("✓ Removed %d smaqit-owned Codex agent(s)\n", codexAgentsRemoved)
-	}
-
-	codexSkillsRemoved, err := removeEmbeddedSkillDirs(skillFilesCodex, "skills-codex", filepath.Join(".agents", "skills"))
-	if err != nil {
-		fmt.Printf("Error removing Codex skills: %v\n", err)
-		errors++
-	} else {
-		fmt.Printf("✓ Cleaned %d smaqit-owned Codex skill package(s)\n", codexSkillsRemoved)
-	}
-
-	// Remove .github/ and .claude/ themselves if now empty (.github/workflows/ is never
-	// auto-removed, so .github/ commonly survives with just that directory left behind)
-	for _, dir := range []string{
-		".github",
-		".claude",
-		filepath.Join(".codex", "agents"),
-		".codex",
-		filepath.Join(".agents", "skills"),
-		".agents",
-	} {
-		removed, err := removeDirIfEmpty(dir)
+	for _, mapping := range globalMappings {
+		dir, err := resolveGlobalDir(mapping.kind)
 		if err != nil {
+			fmt.Printf("Error resolving global uninstall path: %v\n", err)
+			errors++
+			continue
+		}
+		if mapping.skills {
+			_, err = removeEmbeddedSkillDirs(mapping.embeddedFS, mapping.srcDir, dir)
+		} else {
+			_, err = removeEmbeddedFiles(mapping.embeddedFS, mapping.srcDir, dir)
+		}
+		if err != nil {
+			fmt.Printf("Error removing global smaqit payload from %s: %v\n", dir, err)
+			errors++
+			continue
+		}
+		if _, err := removeDirIfEmpty(dir); err != nil {
 			fmt.Printf("Error pruning %s/: %v\n", dir, err)
 			errors++
-		} else if removed {
-			fmt.Printf("✓ Removed empty %s/\n", dir)
 		}
 	}
 
@@ -997,13 +1028,6 @@ func cmdValidate() {
 		"docs/designs/infrastructure",
 		"docs/designs/coverage",
 		"docs/designs/design-sequence",
-		".github/agents",
-		".github/skills",
-		".claude/agents",
-		".claude/skills",
-		".claude/commands",
-		".codex/agents",
-		".agents/skills",
 	}
 
 	for _, dir := range requiredDirs {

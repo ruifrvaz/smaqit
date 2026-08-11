@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.0.1] - 2026-08-11
+
+### Fixed
+- `smaqit init` now reports the resolved absolute project directory when invoked without a target argument, instead of the literal `.`.
+
 ## [3.0.0] - 2026-08-11
 
 ### Changed
@@ -762,7 +767,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/ruifrvaz/smaqit/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/ruifrvaz/smaqit/compare/v2.4.0...v3.0.0
 [2.4.0]: https://github.com/ruifrvaz/smaqit/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/ruifrvaz/smaqit/compare/v2.2.0...v2.3.0

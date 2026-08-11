@@ -1,5 +1,15 @@
 # Project Compendium
 
+## Installation
+
+**Where does smaqit install agents and skills, and what does `smaqit init` create?**
+
+The shell installer and `smaqit update` install the shared framework payload once per user: Copilot agents go to `~/.copilot/agents/` (or `$COPILOT_HOME/agents/`), Claude Code agents, commands, and skills go under `~/.claude/` (or `$CLAUDE_CONFIG_DIR/`), Codex agents go to `~/.codex/agents/` (or `$CODEX_HOME/agents/`), and Copilot/Codex share skills in `~/.agents/skills/`. The hidden bootstrap used by those entry points is not a public installation command.
+
+`smaqit init` is project scaffolding only. It creates and maintains project state such as `.smaqit/`, specifications, design artifacts, MCP configuration, instruction-file integration, and the create-if-absent Copilot setup workflow; it does not create `.github/agents/`, `.github/skills/`, `.claude/`, `.codex/agents/`, or `.agents/skills/` mirrors in the repository. Existing SmaQit-owned legacy mirrors are removed selectively without deleting unrelated user files.
+
+---
+
 ## Self-Update
 
 **Why does smaqit install thousands of files under `.smaqit/tools/`, and should they be committed?**
@@ -30,9 +40,9 @@ The current validator is fail-fast: it stops at the first invalid design, stale 
 
 ---
 
-**Why does `smaqit update` silently skip new skills/scripts after downloading a new release?**
+**How does `smaqit update` refresh newly shipped content?**
 
-The self-update flow must re-exec the newly downloaded binary after replacing the file on disk. Go's `//go:embed` content is fixed in the running process, so an in-process reinitialization would still use the old agents, skills, and templates. The no-replacement paths (already up to date, or local newer than remote) can safely reinitialize in-process. See `installer/update.go`'s `reinitWithBinary()`.
+The self-update flow re-execs the newly downloaded binary after replacing the file on disk, because Go's `//go:embed` content is fixed in the running process. The fresh binary refreshes the global agent/skill payload through its internal bootstrap and re-scaffolds project-local assets only when the current directory is already a smaqit project. Updaters older than v3.0.0 predate global-payload bootstrapping: after such an updater first replaces itself with v3+, run `smaqit update` once more or rerun the shell installer to install the global payload.
 
 ---
 
@@ -104,7 +114,7 @@ There is no direct equivalent because Claude Code has no magic-filename bootstra
 
 **What is `installer/commands-claude/`?**
 
-It is the gitignored compiled-output directory holding Claude Code slash-command files. `scripts/generate-agents.py` generates it from root `commands/*.md`, and the installer copies it to `.claude/commands/` in target projects. Only development, deployment, validation, and QA receive direct commands; specification agents remain delegation-only.
+It is the gitignored compiled-output directory holding Claude Code slash-command files. `scripts/generate-agents.py` generates it from root `commands/*.md`, and the global installer copies it to `~/.claude/commands/` (or `$CLAUDE_CONFIG_DIR/commands/`). Only development, deployment, validation, and QA receive direct commands; specification agents remain delegation-only.
 
 ---
 
@@ -116,7 +126,7 @@ It installs `AGENTS.md` plus a thin `CLAUDE.md` that imports it. Copilot and Cod
 
 **Why don't Claude Code slash commands show up when typing `/` in the VS Code extension chat?**
 
-In the smaqit source repository, product commands exist only as generated installer staging and are not installed into the repository itself. In an initialized target project, reload the VS Code window first. If the Linux or WSL extension still misses `.claude/commands/`, use the Claude CLI in an integrated terminal; the CLI surface can discover commands even when the extension panel does not.
+In the smaqit source repository, product commands exist only as generated installer staging and are not installed into the repository itself. After global installation, reload the VS Code window so it discovers `~/.claude/commands/` (or `$CLAUDE_CONFIG_DIR/commands/`). If the Linux or WSL extension still misses them, use the Claude CLI in an integrated terminal; the CLI surface can discover commands even when the extension panel does not.
 
 ---
 
@@ -156,7 +166,7 @@ The decision is per `provisioning_mode`, independent of which credential scheme 
 
 **How does smaqit provide first-class Codex compatibility?**
 
-`scripts/generate-agents.py` compiles the 9 canonical agent bodies and platform metadata into `installer/agents-codex/*.toml`, and copies all 26 canonical product skills into `installer/skills-codex/` with `.agents/skills` path substitution. `smaqit init` installs agents to `.codex/agents/`, skills to `.agents/skills/`, and the exact `smaqit-plantuml` server table to trusted `.codex/config.toml`. Validation checks all three, update reinitialization uses the fresh binary's embedded content, and uninstall removes only exact smaqit-owned entries while preserving unrelated or nested custom content.
+`scripts/generate-agents.py` compiles canonical agent bodies and platform metadata into `installer/agents-codex/*.toml`, and renders the shared product skills for a global `.agents/skills` root. The shell installer and updater install Codex agents to `~/.codex/agents/` (or `$CODEX_HOME/agents/`) and shared Copilot/Codex skills to `~/.agents/skills/`; `smaqit init` does not create project agent or skill mirrors. It still registers the exact `smaqit-plantuml` server table in the initialized project’s trusted `.codex/config.toml`, together with the other project-local MCP configuration. Uninstall removes only exact SmaQit-owned global entries while preserving unrelated or nested custom content.
 
 ---
 

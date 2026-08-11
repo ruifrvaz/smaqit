@@ -57,6 +57,7 @@ assert_file "$CLAUDE_CONFIG_DIR/commands/smaqit.development.md" "global Claude c
 assert_file "$CLAUDE_CONFIG_DIR/skills/smaqit.feature-new/SKILL.md" "global Claude skill"
 assert_file "$CODEX_HOME/agents/smaqit.business.toml" "global Codex agent"
 assert_file "$HOME/.agents/skills/smaqit.feature-new/SKILL.md" "shared global skill"
+grep -Fq 'Author, render, visually review, attest, or repair designs' "$CODEX_HOME/agents/smaqit.development.toml"
 grep -Fq '${HOME}/.agents/skills' "$HOME/.agents/skills/smaqit.feature-new/SKILL.md"
 grep -Fq '${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills' "$CLAUDE_CONFIG_DIR/skills/smaqit.feature-new/SKILL.md"
 

@@ -525,6 +525,11 @@ func cmdInit(targetDir string) {
 		fmt.Printf("Error changing to directory %s: %v\n", targetDir, err)
 		os.Exit(1)
 	}
+	projectDir, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Error resolving project directory: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Handle both reinstallation and an initial install that would overwrite an exact
 	// owned destination. Unrelated files in shared platform directories are not conflicts.
@@ -561,7 +566,7 @@ func cmdInit(targetDir string) {
 		fmt.Println()
 	}
 
-	fmt.Printf("Initializing smaqit project in %s...\n", targetDir)
+	fmt.Printf("Initializing smaqit project in %s...\n", projectDir)
 
 	// Create directory structure
 	dirs := []string{

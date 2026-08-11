@@ -65,7 +65,8 @@ mkdir -p "$HOME/.agents/skills/custom-skill"
 printf '%s\n' 'user-owned content' > "$HOME/.agents/skills/custom-skill/SKILL.md"
 
 git init -q "$project"
-printf 'y\n' | "$binary" init "$project" >/dev/null
+init_output="$(cd "$project" && "$binary" init)"
+grep -Fq "Initializing smaqit project in $project..." <<< "$init_output"
 assert_file "$project/.smaqit/templates/specs/business.template.md" "project template"
 assert_file "$project/.smaqit/tools/plantuml/plantuml-mcp-js-0.2.0_resvg-wasm-2.6.2_noto-sans-5.3.0_opaque-png-1/node_modules/@plantuml/mcp-js/server.js" "project PlantUML runtime"
 for path in .github/agents .github/skills .claude .codex/agents .agents/skills; do

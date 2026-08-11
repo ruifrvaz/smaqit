@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.0.0] - 2026-08-11
+
+### Changed
+- **Breaking:** agents, commands, and skills now install once per user rather than into every initialized project. The shell installer invokes an internal global-install step; `smaqit init` now creates only project-local specifications, designs, runtime, configuration, instructions, and workflow scaffolding.
+- The Copilot setup workflow bootstraps the same global payload on every ephemeral runner before conditionally scaffolding project state.
+
 ## [2.4.0] - 2026-08-10
 
 ### Added
@@ -756,7 +762,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/ruifrvaz/smaqit/compare/v2.4.0...v3.0.0
 [2.4.0]: https://github.com/ruifrvaz/smaqit/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/ruifrvaz/smaqit/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/ruifrvaz/smaqit/compare/v2.1.0...v2.2.0

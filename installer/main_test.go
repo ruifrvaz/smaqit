@@ -8,6 +8,35 @@ import (
 	"testing"
 )
 
+func TestResolveGlobalDirHonorsOverrides(t *testing.T) {
+	t.Setenv("COPILOT_HOME", "/tmp/copilot")
+	t.Setenv("CLAUDE_CONFIG_DIR", "/tmp/claude")
+	t.Setenv("CODEX_HOME", "/tmp/codex")
+	tests := map[string]string{
+		"copilot-agents":  "/tmp/copilot/agents",
+		"claude-agents":   "/tmp/claude/agents",
+		"claude-commands": "/tmp/claude/commands",
+		"claude-skills":   "/tmp/claude/skills",
+		"codex-agents":    "/tmp/codex/agents",
+	}
+	for kind, want := range tests {
+		got, err := resolveGlobalDir(kind)
+		if err != nil {
+			t.Fatalf("resolveGlobalDir(%q): %v", kind, err)
+		}
+		if got != want {
+			t.Errorf("resolveGlobalDir(%q) = %q, want %q", kind, got, want)
+		}
+	}
+	shared, err := resolveGlobalDir("shared-skills")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(shared, filepath.Join(".agents", "skills")) {
+		t.Errorf("shared skills path = %q", shared)
+	}
+}
+
 func TestEnsureManagedToolsGitignorePreservesExistingRules(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, ".gitignore")

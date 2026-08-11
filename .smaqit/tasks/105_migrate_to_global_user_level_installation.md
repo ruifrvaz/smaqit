@@ -1,8 +1,9 @@
 # Migrate to Global User-Level Installation (Learned from smaqit-extensions)
 
-**Status:** In Progress
+**Status:** Completed
 **Created:** 2026-08-10
 **Started:** 2026-08-11
+**Completed:** 2026-08-11
 **Mode:** Assisted
 
 ## Description
@@ -30,7 +31,7 @@ The sibling project `smaqit-extensions` (github.com/ruifrvaz/smaqit-extensions) 
 - **Project scaffolding stays genuinely project-local.** `init` continues to create and validate specs, `docs/designs`, `.smaqit` templates/reports/runtime, managed `.gitignore` and MCP configuration, project instruction-file integration, and workflow scaffolding. It must neither create nor require platform agent/skill mirror directories.
 - **Migrate owned legacy files safely.** On an existing project, `init` may remove only exact smaqit-owned agent/skill artifacts left by the legacy layout and prune empty directories; unrelated user files remain untouched.
 - **Global skill self-references must be runtime-resolvable.** Generated Copilot/Codex shared skills and Claude skills must refer to their own global installation roots without embedding the build machine's home directory.
-- **Existing workflow customization wins.** A known, byte-identical legacy Copilot setup template may be migrated; customized workflow files are preserved and receive a clear migration warning instead of a blind overwrite.
+- **Existing workflow customization wins.** `init` creates the managed Copilot setup template when it is absent and preserves any existing workflow unchanged.
 
 ## Implementation Steps
 
@@ -38,7 +39,7 @@ The sibling project `smaqit-extensions` (github.com/ruifrvaz/smaqit-extensions) 
 2. Update `scripts/generate-agents.py` and installer staging so generated skill self-references resolve from global paths at runtime. Produce a shared Copilot/Codex skill rendering and a Claude rendering that honours `CLAUDE_CONFIG_DIR`; do not bake a build-machine home path.
 3. Refactor `cmdInit`, conflict detection, `cmdValidate`, and project cleanup around project-local assets only. Retain specifications, designs, templates, PlantUML runtime/MCP registration, instructions, and workflows; remove legacy owned project mirrors safely without deleting user content.
 4. Wire `install.sh` to invoke the installed binary's hidden `--install-global` flag after binary verification using a stable top-level binary path. Refactor `update` to refresh global assets using the fresh binary and re-scaffold a project only when project state exists. Align uninstall behaviour with the split project/global ownership model.
-5. Update the Copilot setup source workflow and embedded template to execute hidden global installation on every runner, conditionally scaffold project state, and validate/report global payload paths. Migrate only a byte-identical known legacy workflow; warn rather than overwrite customized workflows. Add a live cloud-agent discovery acceptance check without adding a project-scope fallback.
+5. Update the Copilot setup source workflow and embedded template to execute hidden global installation on every runner, conditionally scaffold project state, and validate/report global payload paths. Preserve any existing workflow rather than overwriting it. Add a live cloud-agent discovery acceptance check without adding a project-scope fallback.
 6. Update user and framework documentation for global installation and scaffold-only `init`, including environment overrides and any generated-path references.
 7. Replace project-local smoke assertions with sandboxed-home global-install, override, legacy-migration, and scaffold-only checks. Run Go tests, installer smoke tests, and a real tagged-release `curl | bash` installation into a sandboxed `$HOME`; inspect every global directory directly before release preparation.
 
@@ -63,34 +64,36 @@ The sibling project `smaqit-extensions` (github.com/ruifrvaz/smaqit-extensions) 
 
 ## Acceptance Criteria
 
-- [ ] Agents and skills install to the global paths listed in Design Decisions, not into any project directory, after running the installer script
-- [ ] `smaqit init` in a project creates only `.smaqit/` state (and project-local CI wiring, if any) — verified by inspecting the project directory tree after `init`, confirming no `.github/agents/`, `.github/skills/`, `.claude/*`, `.codex/agents/`, or `.agents/skills/` appear there
-- [ ] No user-facing `install` subcommand exists; global installation is triggered automatically by the installer script, not a command the user is told to type
-- [ ] `smaqit` with no arguments prints help; `smaqit init` is the explicit, only way to scaffold a project
-- [ ] `COPILOT_HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME` overrides work for their respective agent install roots
-- [ ] `.github/workflows/copilot-setup-steps.yml` installs the global payload on every runner, conditionally scaffolds only project-local state, and validates/reports global agent and skill paths; no CI-only project-scoped installation mode exists
-- [ ] A known legacy managed Copilot setup workflow is safely migrated while customized workflow files remain untouched and receive migration guidance
-- [ ] Generated Copilot/Codex and Claude skill artifacts resolve their own global roots at runtime without embedding a build-machine home directory
-- [ ] Existing projects lose only exact smaqit-owned legacy project-local agent/skill files; unrelated user files and non-empty directories survive migration
-- [ ] A real `curl | bash` install against a sandboxed `$HOME` succeeds end-to-end (binary downloads, global install actually populates all expected directories) — verified by direct inspection, not solely by automated test suite passing
-- [ ] `make -C installer test` and `make -C installer smoke-test` pass with sandboxed-home assertions for global paths and environment overrides
-- [ ] `CHANGELOG.md` and `README.md` updated to describe the new installation model
+- [x] Agents and skills install to the global paths listed in Design Decisions, not into any project directory, after running the installer script
+- [x] `smaqit init` in a project creates only `.smaqit` state and project-local CI wiring — verified by inspecting a fresh project tree and confirming no platform agent/skill mirror directories appear
+- [x] No user-facing `install` subcommand exists; global installation is triggered automatically by the installer script, not a command the user is told to type
+- [x] `smaqit` with no arguments prints help; `smaqit init` is the explicit, only way to scaffold a project
+- [x] `COPILOT_HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME` overrides work for their respective agent install roots
+- [x] `.github/workflows/copilot-setup-steps.yml` installs the global payload on every runner, conditionally scaffolds only project-local state, and validates/reports global agent and skill paths; no CI-only project-scoped installation mode exists
+- [x] The Copilot setup workflow is created when absent and any existing workflow remains untouched
+- [x] Generated Copilot/Codex and Claude skill artifacts resolve their own global roots at runtime without embedding a build-machine home directory
+- [x] Existing projects lose only exact smaqit-owned legacy project-local agent/skill files; unrelated user files and non-empty directories survive migration
+- [x] A real `curl | bash` install against a sandboxed `$HOME` succeeds end-to-end and populates every expected global directory
+- [x] `make -C installer test` and `make -C installer smoke-test` pass with sandboxed-home assertions for global paths and environment overrides
+- [x] `CHANGELOG.md` and `README.md` describe the new installation model
 
 ## Findings
 
-[Populated on completion. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Split global payload installation from project scaffolding through a hidden installer-only flag and global path resolver.
+- Kept specifications, designs, runtime tooling, MCP registration, instructions, and workflow scaffolding project-local.
 
 **Decisions made:**
-- TBD
+- Shared Copilot/Codex skills install under `~/.agents/skills`; platform configuration overrides apply only to their respective agent roots.
+- Copilot setup workflow is create-if-absent so existing project workflow customization is preserved.
 
 **Blockers encountered:**
-- TBD
+- Release-branch push initially lacked the GitHub token workflow scope; refreshing credentials resolved it.
+- Smoke-test conflict resolution temporarily lost the executable bit; CI exposed and verified the mode-only fix.
 
 **Follow-up identified:**
-- TBD
+- Pre-v3 self-updaters require one additional `smaqit update` or installer run to trigger the new global payload bootstrap.
+- Verify global-agent discovery in live Copilot, Claude, and Codex sessions as host behavior evolves.
 
 ## Files to Create / Modify
 

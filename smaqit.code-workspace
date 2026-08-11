@@ -5,8 +5,8 @@
       "path": "."
     },
     {
-      "name": "task/105-migrate-to-global-user-level-installation-learned-from-smaqit-extensions",
-      "path": "../smaqit-wt-task-105-migrate-to-global-user-level-installation-learned-from-smaqit-extensions"
+      "name": "release/v3.0.1",
+      "path": "../smaqit-wt-release-v3-0-1"
     }
   ],
   "settings": {

@@ -23,6 +23,7 @@ NC='\033[0m' # No Color
 # Configuration
 REPO="ruifrvaz/smaqit"
 INSTALL_DIR="${HOME}/.local/bin"
+BINARY_PATH="${INSTALL_DIR}/smaqit"
 SMAQIT_VERSION="${SMAQIT_VERSION:-latest}"  # Default to latest stable
 
 # Helper functions
@@ -133,8 +134,6 @@ download_binary() {
 
 # Install binary
 install_binary() {
-    local target="${INSTALL_DIR}/smaqit"
-    
     # Create install directory if it doesn't exist
     mkdir -p "$INSTALL_DIR"
     
@@ -142,20 +141,18 @@ install_binary() {
     chmod +x "$TEMP_FILE"
     
     # Move to install directory
-    mv "$TEMP_FILE" "$target"
+    mv "$TEMP_FILE" "$BINARY_PATH"
     
-    info "Installed to ${target}"
+    info "Installed to ${BINARY_PATH}"
 }
 
 # Verify installation
 verify_installation() {
-    local target="${INSTALL_DIR}/smaqit"
-    
-    if ! "$target" --version &>/dev/null; then
+    if ! "$BINARY_PATH" --version &>/dev/null; then
         error "Installation verification failed"
     fi
     
-    local installed_version=$("$target" --version 2>&1 || echo "unknown")
+    local installed_version=$("$BINARY_PATH" --version 2>&1 || echo "unknown")
     info "Verified installation: ${installed_version}"
 }
 
@@ -185,6 +182,10 @@ main() {
     download_binary
     install_binary
     verify_installation
+    info "Installing agents and skills globally..."
+    if ! "$BINARY_PATH" --install-global; then
+        error "Global agent and skill installation failed"
+    fi
     check_path
     
     echo ""

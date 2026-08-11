@@ -35,6 +35,11 @@ Currently supported:
 curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit/main/install.sh | bash
 ```
 
+The installer places agents and skills once per user: `~/.copilot/agents/`,
+`~/.claude/{agents,commands,skills}/`, `~/.codex/agents/`, and the shared
+`~/.agents/skills/` tree. `COPILOT_HOME`, `CLAUDE_CONFIG_DIR`, and `CODEX_HOME`
+override their respective agent roots.
+
 **Initialize:**
 
 ```bash
@@ -61,7 +66,7 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 
 | Command | Description |
 |---------|-------------|
-| `smaqit init` | Scaffold `.smaqit/`, `.github/`, `.claude/`, `.codex/`, and `.agents/`, plus `AGENTS.md`/`CLAUDE.md` |
+| `smaqit init` | Scaffold project-local specs, designs, `.smaqit/`, MCP configuration, workflows, and instruction files |
 | `smaqit status` | Show project state and spec coverage |
 | `smaqit plan` | Show specs to process (for agents) |
 | `smaqit validate` | Verify project structure integrity |
@@ -88,7 +93,7 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 | `smaqit.validation` | Run tests against deployed system | direct command | named subagent |
 | `smaqit.qa` | Answer questions about the smaqit framework | direct command | named subagent |
 
-On Claude Code, the five specification agents are Task-delegated subagents rather than standalone slash commands — the same `user-invocable: false` boundary they already have in GitHub Copilot. Codex discovers all nine project agents from `.codex/agents/*.toml` and the 26 repository skills from `.agents/skills/`; skills can be selected with `/skills` or mentioned with `$`.
+On Claude Code, the five specification agents are Task-delegated subagents rather than standalone slash commands — the same `user-invocable: false` boundary they already have in GitHub Copilot. Codex discovers all nine user-level agents from `~/.codex/agents/*.toml` and shared skills from `~/.agents/skills/`; skills can be selected with `/skills` or mentioned with `$`.
 
 ### Reinstallation and Updates
 

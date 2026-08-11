@@ -11,7 +11,7 @@ Skills are reusable agent capabilities invoked when agents detect specific condi
 
 **Structure:**
 
-- Skills reside in `.github/skills/[skill-name]/` (GitHub Copilot), `.claude/skills/[skill-name]/` (Claude Code), or `.agents/skills/[skill-name]/` (Codex) — `smaqit init` installs the same skill content to all three
+- Skills reside in the global shared `~/.agents/skills/[skill-name]/` tree (GitHub Copilot and Codex) or `~/.claude/skills/[skill-name]/` (Claude Code) — the installer script installs them once per user
 - Each skill directory contains `SKILL.md` with YAML frontmatter and markdown instructions
 - Follow agentskills.io specification format
 - Optional directories: `scripts/`, `references/`, `assets/` for supporting resources
@@ -31,7 +31,7 @@ Skills provide structured workflows for common agent needs. When agents detect c
 
 ### Location
 
-Skills live in `.github/skills/` (GitHub Copilot), `.claude/skills/` (Claude Code), and `.agents/skills/` (Codex). Each skill occupies its own subdirectory following agentskills.io specification. `smaqit init` installs identical skill content to all three locations — a skill that needs to reference its own install path uses the `[SMAQIT_SKILLS_DIR]` placeholder, which the generator resolves per target (see `scripts/generate-agents.py` in the smaqit source repo).
+Skills live in `~/.agents/skills/` (shared by GitHub Copilot and Codex) and `~/.claude/skills/` (Claude Code). Each skill occupies its own subdirectory following agentskills.io specification. The installer script installs the generated content; a skill that needs to reference its own location uses the `[SMAQIT_SKILLS_DIR]` placeholder, resolved at generation time to a runtime-safe global expression.
 
 **User project structure:**
 ```

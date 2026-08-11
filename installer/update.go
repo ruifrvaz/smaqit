@@ -44,11 +44,13 @@ func runUpdate() {
 	}
 	if cmp == 0 {
 		fmt.Printf("Already up to date (%s)\n", localVersion)
+		cmdInstallGlobal()
 		checkAndReInit(".")
 		return
 	}
 	if cmp > 0 {
 		fmt.Printf("Local version (%s) is newer than latest release (%s). Nothing to do.\n", localVersion, release.TagName)
+		cmdInstallGlobal()
 		checkAndReInit(".")
 		return
 	}
@@ -105,7 +107,8 @@ func runUpdate() {
 
 	fmt.Printf("Updated from %s to %s\n", localVersion, release.TagName)
 
-	// Re-exec the freshly-downloaded binary to perform the reinit, rather than
+	// Re-exec the freshly-downloaded binary to refresh global payloads and perform
+	// the reinit, rather than
 	// reinitializing in this (now stale) process. go:embed content is compiled into
 	// the binary at build time, so this still-running process only has the OLD
 	// version's embedded skills/agents/templates in memory even though the file on
@@ -300,6 +303,15 @@ func checkAndReInit(dir string) {
 // that now sits on disk after a self-update — only a fresh process image loaded from
 // that file has the new release's skills, agents, and templates.
 func reinitWithBinary(binaryPath, dir string) {
+	install := exec.Command(binaryPath, "--install-global")
+	install.Stdin = os.Stdin
+	install.Stdout = os.Stdout
+	install.Stderr = os.Stderr
+	if err := install.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error refreshing global smaqit assets: %v\n", err)
+		os.Exit(1)
+	}
+
 	smaqitPath := filepath.Join(dir, ".smaqit")
 	if _, err := os.Stat(smaqitPath); err != nil {
 		// .smaqit/ not present — skip auto-init

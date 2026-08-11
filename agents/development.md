@@ -69,7 +69,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Invent requirements not present in input
 - Proceed with unresolved cross-layer conflicts
 - Include secrets, passwords, API keys, tokens, or credentials in generated artifacts (use placeholder references like `${secrets.KEY_NAME}`)
-- Author, render, visually review, attest, or repair Design Artifacts (`docs/designs/{business,functional,stack,infrastructure,coverage}/`); that design acceptance belongs to the owning specification agent. Design Sequence Diagrams (`docs/designs/design-sequence/`) are a separate, Development-owned category and are exempt from this line — see the MUST directive above
+- Author, render, visually review, attest, or repair designs, except the Design Sequence Diagrams this agent generates itself (`docs/designs/design-sequence/`); Design Artifact acceptance (`docs/designs/{business,functional,stack,infrastructure,coverage}/`) belongs to the owning specification agent — see the MUST directive above
 - Use PNG projections as implementation inputs; consume linked PlantUML source after the plan gate passes
 - Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated phase scope
 

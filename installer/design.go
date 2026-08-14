@@ -377,6 +377,7 @@ var (
 	systemSequenceAsAlias  = regexp.MustCompile(`(?i)^\s*as\s+("[^"]+"|[\w.]+)`)
 	systemSequenceQuoted   = regexp.MustCompile(`^"([^"]*)"`)
 	systemSequenceBareword = regexp.MustCompile(`^([\w.]+)`)
+	systemSequenceArrow    = regexp.MustCompile(`^("[^"]+"|[\w.]+)\s*(-+>>?|<-+<?|\.+>>?|<\.+<?)\s*("[^"]+"|[\w.]+)(?:\s*:\s*.*)?$`)
 )
 
 // systemSequenceIdentifier extracts a normalized participant identifier from
@@ -395,13 +396,16 @@ func systemSequenceIdentifier(token string) (string, bool) {
 	return "", false
 }
 
-// systemSequenceDeclIdentifier extracts the effective identifier of an
-// actor/participant-family declaration: the `as <alias>` alias if present,
-// otherwise the quoted label or bareword name itself. Any trailing
-// decoration (color, stereotype, `order N`) is ignored since it is only
-// ever searched for within the tail after the label/bareword, never inside
-// a quoted label itself.
-func systemSequenceDeclIdentifier(rest string) string {
+type systemSequenceDeclaration struct {
+	Keyword  string
+	Label    string
+	Alias    string
+	HasAlias bool
+}
+
+// parseSystemSequenceDeclaration extracts the visible label and effective
+// identifier of an actor or participant declaration. Decorations are ignored.
+func parseSystemSequenceDeclaration(keyword, rest string) (systemSequenceDeclaration, bool) {
 	rest = strings.TrimSpace(rest)
 	var label, tail string
 	if m := systemSequenceQuoted.FindStringSubmatch(rest); m != nil {
@@ -411,14 +415,20 @@ func systemSequenceDeclIdentifier(rest string) string {
 		label = m[1]
 		tail = rest[len(m[0]):]
 	} else {
-		return ""
+		return systemSequenceDeclaration{}, false
+	}
+	declaration := systemSequenceDeclaration{
+		Keyword: strings.ToLower(keyword),
+		Label:   label,
+		Alias:   label,
 	}
 	if am := systemSequenceAsAlias.FindStringSubmatch(tail); am != nil {
 		if alias, ok := systemSequenceIdentifier(am[1]); ok {
-			return alias
+			declaration.Alias = alias
+			declaration.HasAlias = true
 		}
 	}
-	return label
+	return declaration, true
 }
 
 // stripNonStructuralPlantUML returns every structurally-relevant line of a
@@ -483,40 +493,45 @@ func stripNonStructuralPlantUML(source string) []string {
 
 // validateSystemSequenceProfile enforces the black-box System Sequence
 // Diagram convention the `system-sequence` profile requires: exactly one
-// actor and exactly one system-side participant, the latter always
-// identified as `System` (e.g. `participant "<domain name>" as System`). It
-// is a source-level scan over explicit actor/participant-family
-// declarations only — no PlantUML grammar parser exists in this codebase.
-// PlantUML also auto-creates participants purely from arrow references that
-// are never explicitly declared; this check does not see those, so it is
-// not adversarial-proof. It exists to catch the honest/default-authoring
-// case: extra system-side collaborators declared outright, more than one
-// actor, or a missing/misnamed System participant.
+// explicit actor, exactly one explicit `participant "System" as System`, no
+// footbox/footer output, and no arrow endpoint PlantUML would infer as an
+// additional participant. This intentionally uses a source-level profile,
+// rather than a full PlantUML grammar parser, so the canonical two-lifeline
+// boundary remains deterministic.
 func validateSystemSequenceProfile(d *designArtifact) error {
-	var actors, systemSide []string
+	var actors, systemSide []systemSequenceDeclaration
 	seenActor := map[string]bool{}
 	seenSystem := map[string]bool{}
+	var structuralLines []string
+	hasHiddenFootbox := false
 
 	for _, line := range stripNonStructuralPlantUML(d.Source) {
+		structuralLines = append(structuralLines, line)
+		normalized := strings.Join(strings.Fields(strings.ToLower(line)), " ")
+		if normalized == "hide footbox" {
+			hasHiddenFootbox = true
+		}
+		if strings.HasPrefix(normalized, "footer") {
+			return errors.New("DESIGN-VISUAL-INVALID: system-sequence diagrams must not contain a footer directive")
+		}
 		m := systemSequenceDecl.FindStringSubmatch(line)
 		if m == nil {
 			continue
 		}
-		keyword := strings.ToLower(m[1])
-		name := systemSequenceDeclIdentifier(m[2])
-		if name == "" {
+		declaration, ok := parseSystemSequenceDeclaration(m[1], m[2])
+		if !ok {
 			continue
 		}
-		if keyword == "actor" {
-			if !seenActor[name] {
-				seenActor[name] = true
-				actors = append(actors, name)
+		if declaration.Keyword == "actor" {
+			if !seenActor[declaration.Alias] {
+				seenActor[declaration.Alias] = true
+				actors = append(actors, declaration)
 			}
 			continue
 		}
-		if !seenSystem[name] {
-			seenSystem[name] = true
-			systemSide = append(systemSide, name)
+		if !seenSystem[declaration.Alias] {
+			seenSystem[declaration.Alias] = true
+			systemSide = append(systemSide, declaration)
 		}
 	}
 
@@ -525,9 +540,13 @@ func validateSystemSequenceProfile(d *designArtifact) error {
 		return errors.New("DESIGN-VISUAL-INVALID: system-sequence diagrams must declare exactly one actor, found none")
 	case 1:
 	default:
+		actorNames := make([]string, len(actors))
+		for i, actor := range actors {
+			actorNames[i] = actor.Alias
+		}
 		return fmt.Errorf(
 			"DESIGN-VISUAL-INVALID: system-sequence diagrams must model exactly one actor, found %d (%s) — author one system-sequence design per actor instead",
-			len(actors), strings.Join(actors, ", "),
+			len(actors), strings.Join(actorNames, ", "),
 		)
 	}
 
@@ -536,17 +555,41 @@ func validateSystemSequenceProfile(d *designArtifact) error {
 		return errors.New(`DESIGN-VISUAL-INVALID: system-sequence diagrams must declare exactly one system participant identified as "System" (e.g. participant "<name>" as System), found none`)
 	case 1:
 	default:
+		participantNames := make([]string, len(systemSide))
+		for i, participant := range systemSide {
+			participantNames[i] = participant.Alias
+		}
 		return fmt.Errorf(
 			`DESIGN-VISUAL-INVALID: system-sequence diagrams must model exactly one system participant, found %d (%s) — split multi-flow behavior into separate per-flow system-sequence designs instead`,
-			len(systemSide), strings.Join(systemSide, ", "),
+			len(systemSide), strings.Join(participantNames, ", "),
 		)
 	}
 
-	if systemSide[0] != "System" {
+	system := systemSide[0]
+	if system.Keyword != "participant" || !system.HasAlias || !strings.EqualFold(system.Label, "System") || !strings.EqualFold(system.Alias, "System") {
 		return fmt.Errorf(
-			`DESIGN-VISUAL-INVALID: system-sequence diagrams must identify their system participant as "System" (e.g. participant "<name>" as System), found %q instead`,
-			systemSide[0],
+			`DESIGN-VISUAL-INVALID: system-sequence diagrams must declare exactly participant "System" as System (case-insensitive), found %s %q as %q instead`,
+			system.Keyword, system.Label, system.Alias,
 		)
+	}
+	if !hasHiddenFootbox {
+		return errors.New("DESIGN-VISUAL-INVALID: system-sequence diagrams must include `hide footbox`")
+	}
+
+	allowedEndpoints := map[string]bool{actors[0].Alias: true, system.Alias: true}
+	for _, line := range structuralLines {
+		m := systemSequenceArrow.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+		from, fromOK := systemSequenceIdentifier(m[1])
+		to, toOK := systemSequenceIdentifier(m[3])
+		if !fromOK || !toOK || !allowedEndpoints[from] || !allowedEndpoints[to] {
+			return fmt.Errorf(
+				"DESIGN-VISUAL-INVALID: system-sequence message endpoints must be the declared actor %q or System %q; found %q -> %q",
+				actors[0].Alias, system.Alias, from, to,
+			)
+		}
 	}
 	return nil
 }

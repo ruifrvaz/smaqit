@@ -21,7 +21,8 @@ visual_validation:
 ```plantuml
 @startuml
 actor "[ACTOR]" as Actor
-participant "[SYSTEM]" as System
+participant "System" as System
+hide footbox
 Actor -> System: [REQUEST]
 activate System
 System --> Actor: [RESPONSE]

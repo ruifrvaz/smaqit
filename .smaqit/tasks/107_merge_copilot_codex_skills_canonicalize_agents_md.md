@@ -1,8 +1,9 @@
 # Merge Copilot/Codex Skills; Canonicalize AGENTS.md
 
-**Status:** In Progress
+**Status:** Completed
 **Created:** 2026-08-13
 **Started:** 2026-08-14
+**Completed:** 2026-08-14
 **Mode:** Assisted
 
 ## Description
@@ -44,29 +45,32 @@ No third-party tools identified — this task is an internal refactor of smaqit'
 
 ## Acceptance Criteria
 
-- [ ] `scripts/generate-agents.py` produces exactly two rendered skill trees: `installer/skills-shared/` (Copilot + Codex, `${HOME}/.agents/skills` paths) and `installer/skills-claude/`; no `skills-copilot` or `skills-codex` output remains.
-- [ ] `installer/main.go` embeds and installs only `skillFilesShared` for the `shared-skills` kind in both `cmdInstallGlobal` and `cmdUninstall`; `removeLegacyProjectMirrors()` and its call site are removed.
-- [ ] `installer/Makefile` prepare/clean targets reference `skills-shared` only.
-- [ ] `go test ./...` in `installer/` passes, including a new invariant test proving the shared tree serves both Copilot and Codex (26 skill dirs, no unresolved placeholders, all paths `${HOME}/.agents/skills`).
-- [ ] Repo root has `AGENTS.md` with all coding-agent-specific instructions, reflecting current v3 architecture; `.github/copilot-instructions.md` is deleted; root `CLAUDE.md` contains the `@AGENTS.md` hook.
-- [ ] No canonical source, skill, template, or definition file references `copilot-instructions.md` (historical docs/logs excluded); `copilot-setup-steps.yml` still ships unchanged in function.
-- [ ] `bash scripts/smoke-test-installer.sh` passes: 26 shared skills present at `~/.agents/skills/`, Claude skills at the Claude-specific path, Copilot/Codex agents unaffected.
+- [x] `scripts/generate-agents.py` produces exactly two rendered skill trees: `installer/skills-shared/` (Copilot + Codex, `${HOME}/.agents/skills` paths) and `installer/skills-claude/`; no `skills-copilot` or `skills-codex` output remains.
+- [x] `installer/main.go` embeds and installs only `skillFilesShared` for the `shared-skills` kind in both `cmdInstallGlobal` and `cmdUninstall`; `removeLegacyProjectMirrors()` and its call site are removed.
+- [x] `installer/Makefile` prepare/clean targets reference `skills-shared` only.
+- [x] `go test ./...` in `installer/` passes, including a new invariant test proving the shared tree serves both Copilot and Codex (26 skill dirs, no unresolved placeholders, all paths `${HOME}/.agents/skills`).
+- [x] Repo root has `AGENTS.md` with all coding-agent-specific instructions, reflecting current v3 architecture; `.github/copilot-instructions.md` is deleted; root `CLAUDE.md` contains the `@AGENTS.md` hook.
+- [x] No canonical source, skill, template, or definition file references `copilot-instructions.md` (historical docs/logs excluded); `copilot-setup-steps.yml` still ships unchanged in function.
+- [x] `bash scripts/smoke-test-installer.sh` passes: 26 shared skills present at `~/.agents/skills/`, Claude skills at the Claude-specific path, Copilot/Codex agents unaffected.
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Merged `skills-copilot`/`skills-codex` generator outputs into a single `skills-shared` tree (`scripts/generate-agents.py`), updated the Go embeds/mappings in `installer/main.go`, deleted `removeLegacyProjectMirrors()` outright, and updated `installer/Makefile` accordingly.
+- Rewrote root `AGENTS.md` from `.github/copilot-instructions.md` content to reflect current v3 global-install architecture, added thin `CLAUDE.md` (`@AGENTS.md`), deleted the stale Copilot-only instructions file.
+- Updated all live canonical references from `copilot-instructions.md` to `AGENTS.md`, and fixed `.gitignore` (still listed old `skills-copilot`/`skills-codex` names) discovered during final verification.
+- Added `TestSharedSkillsServeCopilotAndCodex` invariant test asserting 26 skill dirs, no unresolved `[SMAQIT_SKILLS_DIR]` placeholders, and no stray Claude/legacy paths in the shared tree.
 
 **Decisions made:**
-- TBD
+- Kept `smaqit.infrastructure-vault-loader`'s `AGENTS.md → CLAUDE.md → .github/copilot-instructions.md` fallback chain untouched — it is intentional generic compatibility logic for arbitrary downstream projects, not a stale self-reference.
+- Left `.github/scripts/SUMMARY.md` untouched — a dated historical investigation log, out of scope per the task's own "historical docs/logs untouched" decision.
+- Removed the legacy-mirror-migration smoke-test block since it exercised the now-deleted `removeLegacyProjectMirrors()`.
 
 **Blockers encountered:**
-- TBD
+- None.
 
 **Follow-up identified:**
-- TBD
+- None — all in-scope references swept and verified via `git grep`.
 
 ## Files to Create / Modify
 

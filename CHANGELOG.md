@@ -28,6 +28,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.1.0] - 2026-08-14
+
+### Added
+- `smaqit.infrastructure-deploy-rsync-python-tornado` — new canonical deployment skill for Python/Tornado monoliths (single-process, no Docker, no build step, SQLite persistence, nginx, systemd) deployed to a remote VM via rsync. Discovered automatically by stack-detection routing via its skill metadata; no synthesis needed for matching stacks.
+- Invariant test proving the shared skill tree serves both Copilot and Codex (27 skill directories, no unresolved placeholders).
+
+### Changed
+- `skills-copilot` and `skills-codex` merged into a single `skills-shared` tree — one embedded skill payload serves both platforms' shared `~/.agents/skills/` path.
+- Root `AGENTS.md` is now the single canonical instructions file for GitHub Copilot and Codex, rewritten to reflect the v3 global-install architecture; `.github/copilot-instructions.md` is deleted and `CLAUDE.md` remains a thin `@AGENTS.md` hook.
+- `system-sequence` designs are now strictly deterministic: exactly one actor plus one visible participant named `System` (case-insensitive), `hide footbox` required, literal footers forbidden, and undeclared message endpoints rejected. Non-conforming designs fail validation (forward-only policy).
+
+### Removed
+- Legacy project-mirror migration (`removeLegacyProjectMirrors()`) — pre-8/11 project-local installs now resolve via a clean reinstall.
+
 ## [3.0.1] - 2026-08-11
 
 ### Fixed
@@ -767,7 +781,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each layer's prompt file is sole source of requirements
   - Upstream layers provide context, not requirements
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v3.0.1...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/ruifrvaz/smaqit/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/ruifrvaz/smaqit/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/ruifrvaz/smaqit/compare/v2.4.0...v3.0.0
 [2.4.0]: https://github.com/ruifrvaz/smaqit/compare/v2.3.0...v2.4.0

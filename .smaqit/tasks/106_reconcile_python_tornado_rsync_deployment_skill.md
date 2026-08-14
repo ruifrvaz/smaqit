@@ -1,7 +1,10 @@
 # Reconcile Python/Tornado Rsync Deployment Skill Into Canonical smaqit
 
-**Status:** Not Started
+**Status:** Completed
 **Created:** 2026-08-13
+**Started:** 2026-08-14
+**Completed:** 2026-08-14
+**Mode:** Assisted
 
 ## Description
 
@@ -31,28 +34,31 @@ The product implementation must retain the safety-critical deployment behavior w
 
 ## Acceptance Criteria
 
-- [ ] Canonical smaqit contains a reviewed, product-generic definition and compiled `smaqit.infrastructure-deploy-rsync-python-tornado` skill.
-- [ ] Dynamic deploy-skill selection recognizes the Python/Tornado, SQLite, nginx, systemd, no-Docker profile and selects the canonical skill without synthesis.
-- [ ] The skill preserves database and virtual-environment rsync exclusions, uses the shared nginx-vhost and deploy-stamp conventions, and does not introduce Terraform or Docker steps.
-- [ ] The released global payload makes the skill available through the supported global skill roots.
-- [ ] Automated tests cover profile routing and the safety-critical deployment behavior, and relevant product/installer tests pass.
-- [ ] Product documentation records the supported deployment profile and its operational prerequisites.
+- [x] Canonical smaqit contains a reviewed, product-generic definition and compiled `smaqit.infrastructure-deploy-rsync-python-tornado` skill.
+- [x] Dynamic deploy-skill selection recognizes the Python/Tornado, SQLite, nginx, systemd, no-Docker profile and selects the canonical skill without synthesis.
+- [x] The skill preserves database and virtual-environment rsync exclusions, uses the shared nginx-vhost and deploy-stamp conventions, and does not introduce Terraform or Docker steps.
+- [x] The released global payload makes the skill available through the supported global skill roots.
+- [x] Automated tests cover profile routing and the safety-critical deployment behavior, and relevant product/installer tests pass.
+- [x] Product documentation records the supported deployment profile and its operational prerequisites.
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Compiled the contributed definition directly into `skills/smaqit.infrastructure-deploy-rsync-python-tornado/SKILL.md`, following the structural shape of the sibling `smaqit.infrastructure-deploy-rsync-python-nextjs` skill: YAML frontmatter (`name`, `description`, `metadata.version/validated/validated-stack`), then Pre-conditions, Steps, Output, Scope, Examples, Gotchas, Completion, Failure Handling, Allowed Tools.
+- Dropped the definitions-only `Provenance` and `Required-inherited-context` headings from the compiled skill — the latter's four points (`__APP_DIR__` token, shared `write-vhost.sh` reuse, shared deploy-stamp `printf` pattern, no-Terraform-step) were already expressed inline in Steps/Gotchas, so no information was lost.
+- Confirmed Task 087's Phase 4 Step 6 routing in `smaqit.new-greenfield-project` is already generic ("compare the declared stack against the currently-installed `smaqit.infrastructure-deploy-rsync*` skills by description/metadata") — no code or skill-name enumeration needed updating; an accurate `description:` field in the new skill's frontmatter is sufficient for discovery.
+- Bumped the two hardcoded skill-count assertions from 26 to 27 (`installer/main_test.go`'s `TestRemoveEmbeddedSkillDirsPreservesUnownedCodexContent` and `TestSharedSkillsServeCopilotAndCodex`) and the matching count in `docs/wiki/workflows/testing-smaqit.md`.
+- Regenerated installer build artifacts (`make -C installer prepare`), ran `go vet`/`go test ./...` (pass), and `scripts/smoke-test-installer.sh` (pass) to confirm the new skill installs cleanly to the shared global path with its `[SMAQIT_SKILLS_DIR]` placeholder resolved.
 
 **Decisions made:**
-- TBD
+- No dedicated Go-level "stack matching" test was added — deploy-skill selection is a prose/metadata judgment step performed by an agent reading `SKILL.md` descriptions during Phase 4 Step 6, not a code path; the existing generic `TestSharedSkillsServeCopilotAndCodex` invariant (count, placeholder resolution, path correctness) is the appropriate and proportionate automated coverage for a pure-documentation skill.
+- No wiki or README page enumerates the `deploy-rsync*` family by name, so no additional documentation location needed updating beyond the release CHANGELOG entry and the skill file itself.
 
 **Blockers encountered:**
-- TBD
+- None.
 
 **Follow-up identified:**
-- TBD
+- None.
 
 ## Files to Create / Modify
 

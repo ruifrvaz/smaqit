@@ -5,6 +5,7 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 109 | Phase Design-Readiness Gate Scans All Active Specs, Not Just the Touched Feature | new | High |
+| 110 | Vault Loader: Wrong Project-Slug Derivation, and Non-Interactive Runs Silently Write Placeholder Secrets | new | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
 | 074 | Update "Extensible Through Templates" Principle Context | new | Low |

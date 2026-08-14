@@ -20,13 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing to add.
 
 ### Fixed
-- **Phase design-readiness gate scoped to the current cycle** (pending v3.1.1 · PR #83) — `smaqit plan --phase=develop|deploy|validate` no longer blocks on legacy specs outside the current feature/cycle, and now reports every blocking spec at once instead of failing on the first.
+- Nothing to add.
 
 ### Security
 - Nothing to add.
 
 ### Chore
 - Nothing to add.
+
+## [3.1.1] - 2026-08-14
+
+### Fixed
+- **Phase design-readiness gate scoped to the current cycle** — `smaqit plan --phase=develop|deploy|validate` no longer blocks on legacy specs outside the current feature/cycle, and now reports every blocking spec at once instead of failing on the first.
 
 ## [3.1.0] - 2026-08-14
 

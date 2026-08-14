@@ -94,6 +94,14 @@ Storage and lifecycle are deliberately not shared with Design Artifacts: `docs/d
 
 ---
 
+**How does `smaqit plan`'s phase design-readiness gate decide which specs need a design pair?**
+
+For `--phase=develop|deploy|validate`, `getPhaseDesignGateSpecs` (`installer/spec.go`) scopes its check to only the specs currently in the incremental cycle — those with `status: draft` or `status: failed` — using the same predicate `filterSpecsByStatus` already applies for pending-work accounting. A spec already `implemented`/`deployed`/`validated` is never re-checked: it already passed this same gate once, as a precondition of leaving `draft` in the first place (the phase workflow runs the gate automatically right after spec generation), so it cannot reach a post-draft status without an already-valid design pair. Editing an already-passed spec reverts its status to `draft`, which naturally brings it back into the gate's scope — nothing currently being touched can slip through. `validatePhaseDesignReadiness` reports every currently-blocking spec at once (aggregate), not just the first.
+
+This scoping means the gate can never block on legacy, unrelated specs in a project that has used the design-pair convention from the start; it matters specifically for a project retrofitting the convention onto specs written before it existed, since those pre-existing specs sit at a post-draft status with no design pair and would otherwise be re-litigated on every unrelated feature's plan run. One case this scoping does not resolve: a project convention that deliberately never gives one layer (e.g. Coverage) a design pair — a draft spec in that layer is still in-cycle and still fails the gate, since that is a distinct per-layer policy question, not a scoping question. See also: why does `smaqit design validate` show only one failure? (a different, sibling command with its own separate fail-fast behavior).
+
+---
+
 ## Hooks
 
 **Do VS Code Copilot hooks fire for `runSubagent` tool calls?**

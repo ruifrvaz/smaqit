@@ -6,7 +6,19 @@
 
 The shell installer and `smaqit update` install the shared framework payload once per user: Copilot agents go to `~/.copilot/agents/` (or `$COPILOT_HOME/agents/`), Claude Code agents, commands, and skills go under `~/.claude/` (or `$CLAUDE_CONFIG_DIR/`), Codex agents go to `~/.codex/agents/` (or `$CODEX_HOME/agents/`), and Copilot/Codex share skills in `~/.agents/skills/`. The hidden bootstrap used by those entry points is not a public installation command.
 
-`smaqit init` is project scaffolding only. It creates and maintains project state such as `.smaqit/`, specifications, design artifacts, MCP configuration, instruction-file integration, and the create-if-absent Copilot setup workflow; it does not create `.github/agents/`, `.github/skills/`, `.claude/`, `.codex/agents/`, or `.agents/skills/` mirrors in the repository. Existing SmaQit-owned legacy mirrors are removed selectively without deleting unrelated user files.
+`smaqit init` is project scaffolding only. It creates and maintains project state such as `.smaqit/`, specifications, design artifacts, MCP configuration, instruction-file integration, and the create-if-absent Copilot setup workflow; it does not create `.github/agents/`, `.github/skills/`, `.claude/`, `.codex/agents/`, or `.agents/skills/` mirrors in the repository, and it performs no legacy-mirror migration — global installation is the only agent/skill distribution path, and an outdated project-level installation is replaced by reinstalling cleanly.
+
+---
+
+**How do I clean up installer build artifacts?**
+
+There is no `make clean` target. Run `make uninstall` from `installer/`; it removes the dev binary and then prompts to also clean the build artifacts (`dist/`, `framework/`, `templates/`, `tools/`, `agents-*` platform trees, `commands-claude/`, `skills-shared/`, `skills-claude/`, `test/`, `.test-venv/`). Answer `y` at the prompt to remove them.
+
+---
+
+**Does the installer smoke test install into the real home directory?**
+
+No. `scripts/smoke-test-installer.sh` redirects `HOME`, `COPILOT_HOME`, `CLAUDE_CONFIG_DIR`, and `CODEX_HOME` into a `mktemp -d` tree before invoking the binary, so every global install destination resolves inside the temporary directory. The tree is deleted by an `EXIT` trap; set `KEEP_SMOKE_DIR=1` to preserve it for debugging.
 
 ---
 
@@ -168,13 +180,13 @@ The decision is per `provisioning_mode`, independent of which credential scheme 
 
 **How does smaqit provide first-class Codex compatibility?**
 
-`scripts/generate-agents.py` compiles canonical agent bodies and platform metadata into `installer/agents-codex/*.toml`, and renders the shared product skills for a global `.agents/skills` root. The shell installer and updater install Codex agents to `~/.codex/agents/` (or `$CODEX_HOME/agents/`) and shared Copilot/Codex skills to `~/.agents/skills/`; `smaqit init` does not create project agent or skill mirrors. It still registers the exact `smaqit-plantuml` server table in the initialized project’s trusted `.codex/config.toml`, together with the other project-local MCP configuration. Uninstall removes only exact SmaQit-owned global entries while preserving unrelated or nested custom content.
+`scripts/generate-agents.py` compiles canonical agent bodies and platform metadata into `installer/agents-codex/*.toml`, and renders the shared product skills into `installer/skills-shared/` for the global `~/.agents/skills/` root. The shell installer and updater install Codex agents to `~/.codex/agents/` (or `$CODEX_HOME/agents/`) and shared Copilot/Codex skills to `~/.agents/skills/`; `smaqit init` does not create project agent or skill mirrors. It still registers the exact `smaqit-plantuml` server table in the initialized project’s trusted `.codex/config.toml`, together with the other project-local MCP configuration. Uninstall removes only exact SmaQit-owned global entries while preserving unrelated or nested custom content.
 
 ---
 
 **What must be updated when adding a new canonical skill?**
 
-The total shipped skill count is asserted independently in two places, and both must be bumped together: `installer/main_test.go`'s `TestRemoveEmbeddedSkillDirsPreservesUnownedCodexContent` (a hardcoded `removed != N` check), and `scripts/smoke-test-installer.sh`'s Python verification block (a hardcoded `len(expected_skills) != N` check). Missing either one fails CI (`go test` or `make smoke-test` respectively) with a count mismatch, not a useful error about which skill changed.
+The total shipped skill count is asserted in `installer/main_test.go` in two tests that must be bumped together: `TestRemoveEmbeddedSkillDirsPreservesUnownedSharedContent` (a hardcoded `removed != N` check against the `skills-shared` embed) and `TestSharedSkillsServeCopilotAndCodex` (a hardcoded top-level skill-directory count, plus placeholder/path invariant checks). `scripts/smoke-test-installer.sh` asserts one representative skill file's presence rather than a count. Missing either Go count fails `go test` with a count mismatch, not a useful error about which skill changed.
 
 ---
 

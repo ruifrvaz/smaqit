@@ -31,7 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.0] - 2026-08-14
 
 ### Added
-- Invariant test proving the shared skill tree serves both Copilot and Codex (26 skill directories, no unresolved placeholders).
+- `smaqit.infrastructure-deploy-rsync-python-tornado` — new canonical deployment skill for Python/Tornado monoliths (single-process, no Docker, no build step, SQLite persistence, nginx, systemd) deployed to a remote VM via rsync. Discovered automatically by stack-detection routing via its skill metadata; no synthesis needed for matching stacks.
+- Invariant test proving the shared skill tree serves both Copilot and Codex (27 skill directories, no unresolved placeholders).
 
 ### Changed
 - `skills-copilot` and `skills-codex` merged into a single `skills-shared` tree — one embedded skill payload serves both platforms' shared `~/.agents/skills/` path.

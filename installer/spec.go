@@ -182,15 +182,29 @@ func filterSpecsByStatus(specs []Spec, phase string, regen bool) []Spec {
 	return toProcess
 }
 
+// isCycleRelevant reports whether a spec's status marks it as part of the
+// current incremental cycle — the same draft/failed predicate that already
+// drives filterSpecsByStatus's "N pending" accounting.
+func isCycleRelevant(status string) bool {
+	return status == "draft" || status == "failed"
+}
+
 // validatePhaseDesignReadiness enforces the specification agents' design
-// acceptance contract before a phase exposes any implementation work.
+// acceptance contract before a phase exposes any implementation work. It
+// aggregates every blocking spec instead of failing on the first, since
+// getPhaseDesignGateSpecs now scopes its input to the current cycle and a
+// caller resolving the gate needs the full blocking set in one pass.
 func validatePhaseDesignReadiness(specs []Spec) error {
+	var blocked []string
 	for _, spec := range specs {
 		if !spec.DesignReady {
-			return fmt.Errorf("%s: %s", spec.Path, spec.DesignError)
+			blocked = append(blocked, fmt.Sprintf("%s: %s", spec.Path, spec.DesignError))
 		}
 	}
-	return nil
+	if len(blocked) == 0 {
+		return nil
+	}
+	return fmt.Errorf("%s", strings.Join(blocked, "\n"))
 }
 
 // getPhaseSpecs returns all specs for a given phase's layers
@@ -219,12 +233,17 @@ func getPhaseSpecs(allSpecs map[string][]Spec, phase string) []Spec {
 }
 
 // getPhaseDesignGateSpecs returns every specification whose design source is
-// consumed by a phase, without changing the target-layer paths emitted by plan.
+// consumed by a phase and is part of the current incremental cycle (status
+// draft or failed), without changing the target-layer paths emitted by plan.
+// A spec already implemented/deployed/validated passed this gate under
+// whatever design contract applied at that time; re-litigating it on every
+// later phase run for an unrelated feature blocked incremental adoption of
+// the design-pair convention (task 109).
 func getPhaseDesignGateSpecs(allSpecs map[string][]Spec, phase string) []Spec {
 	var specs []Spec
 	appendActive := func(layer string) {
 		for _, spec := range allSpecs[layer] {
-			if spec.Frontmatter.Status != "deprecated" {
+			if isCycleRelevant(spec.Frontmatter.Status) {
 				specs = append(specs, spec)
 			}
 		}

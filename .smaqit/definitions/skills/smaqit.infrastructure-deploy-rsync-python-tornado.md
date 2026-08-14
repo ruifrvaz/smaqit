@@ -14,7 +14,7 @@ the CI/CD pipeline.
 ## Provenance
 
 - `synthesized: true`
-- `synthesized-for-project: iodis-crm-poc`
+- `synthesized-for-project: [a downstream project]`
 - `synthesized-date: 2026-07-21`
 - `synthesized-stack: Python 3.12/Tornado 6.4/SQLite (stdlib)/nginx 1.24/systemd 255, no Docker, no build step`
 - Candidate for a future Task-086-style reconciliation into canonical `smaqit` once proven by real use.
@@ -175,11 +175,11 @@ Bash(ssh:*), Bash(rsync:*), Bash(scp:*), Bash(vault:*), Bash(git:*)
 
 ## Examples
 
-**Input:** `iodis-crm-poc` (Python 3.12/Tornado 6.4/SQLite/nginx/systemd) Phase 4 dev sweep invokes
+**Input:** a downstream project (Python 3.12/Tornado 6.4/SQLite/nginx/systemd) Phase 4 dev sweep invokes
 this skill after Phase 4 Step 6 determined no existing deploy skill matches the declared stack.
 
 **Output:** `src/` rsynced to `81.24.7.14:__APP_DIR__/app/` (excluding `*.db`), systemd unit
-installed and `iodis-crm-poc.service` restarted, nginx vhost written via `write-vhost.sh` as
+installed and the application service restarted, nginx vhost written via `write-vhost.sh` as
 `default_server` (first site on this dedicated VM), deploy stamps written, health endpoint returns
 correct SHA.
 

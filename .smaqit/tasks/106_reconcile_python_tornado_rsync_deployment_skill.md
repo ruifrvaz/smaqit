@@ -5,7 +5,7 @@
 
 ## Description
 
-IODIS CRM validated a deployment skill for a Python/Tornado monolith with SQLite persistence, nginx, systemd, and rsync. The authored definition has been contributed to canonical smaqit at `.smaqit/definitions/skills/smaqit.infrastructure-deploy-rsync-python-tornado.md`; this task makes it a supported product capability rather than a downstream-only artifact.
+A downstream project validated a deployment skill for a Python/Tornado monolith with SQLite persistence, nginx, systemd, and rsync. The authored definition has been contributed to canonical smaqit at `.smaqit/definitions/skills/smaqit.infrastructure-deploy-rsync-python-tornado.md`; this task makes it a supported product capability rather than a downstream-only artifact.
 
 The product implementation must retain the safety-critical deployment behavior while generalizing project-specific provenance and examples. It must integrate with the global installation model and the Dynamic Stack Detection / on-the-fly deploy-skill synthesis flow from Task 087, so matching projects select this maintained skill rather than synthesizing an equivalent copy.
 
@@ -18,7 +18,7 @@ The product implementation must retain the safety-critical deployment behavior w
 
 ## Implementation Steps
 
-1. Assess the contributed definition against the canonical deployment-skill conventions and generalize any IODIS-specific provenance, paths, or examples.
+1. Assess the contributed definition against the canonical deployment-skill conventions and generalize any project-specific provenance, paths, or examples.
 2. Compile the definition into `skills/smaqit.infrastructure-deploy-rsync-python-tornado/`, including any required bundled references or scripts, and validate its metadata and self-references.
 3. Update stack-detection and no-match/synthesis routing so the Python/Tornado/systemd/SQLite profile selects the maintained skill.
 4. Include the skill in global payload generation and installation for every supported agent platform.
@@ -66,4 +66,4 @@ The product implementation must retain the safety-critical deployment behavior w
 
 ## Notes
 
-The source definition was synthesized and validated in IODIS CRM on 2026-07-21. It deliberately differs from the existing Node/React Docker Compose and FastAPI/Next.js Docker Compose deploy skills: the target is a direct Python/Tornado rsync deployment with a persistent SQLite database and systemd supervision.
+The source definition was synthesized and validated in a downstream project on 2026-07-21. It deliberately differs from the existing Node/React Docker Compose and FastAPI/Next.js Docker Compose deploy skills: the target is a direct Python/Tornado rsync deployment with a persistent SQLite database and systemd supervision.

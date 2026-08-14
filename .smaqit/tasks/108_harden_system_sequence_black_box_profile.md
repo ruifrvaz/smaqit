@@ -1,9 +1,10 @@
 # Harden System-Sequence Black-Box Profile
 
-**Status:** In Progress
+**Status:** Completed
 **Created:** 2026-08-14
 **Mode:** Assisted
 **Started:** 2026-08-14
+**Completed:** 2026-08-14
 
 ## Description
 
@@ -55,30 +56,30 @@ migration behavior is required.
 
 ## Acceptance Criteria
 
-- [ ] A system-sequence passes only when it has one explicit actor and one explicitly declared,
+- [x] A system-sequence passes only when it has one explicit actor and one explicitly declared,
   visibly named `System` participant, both with a `System` alias where applicable.
-- [ ] A system-sequence lacking `hide footbox`, containing a literal footer directive, declaring
+- [x] A system-sequence lacking `hide footbox`, containing a literal footer directive, declaring
   additional actors or participants, or referencing an undeclared arrow endpoint fails with a
   deterministic design-validation error.
-- [ ] The canonical Functional template emits `participant "System" as System` and `hide footbox`.
-- [ ] Functional-agent instructions describe the strict visible-System and no-footbox contract.
-- [ ] Regression tests cover the new profile and the installer test suite passes.
+- [x] The canonical Functional template emits `participant "System" as System` and `hide footbox`.
+- [x] Functional-agent instructions describe the strict visible-System and no-footbox contract.
+- [x] Regression tests cover the new profile and the installer test suite passes.
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Parsed explicit declarations and message endpoints in the system-sequence validator.
+- Enforced the canonical System participant and deterministic PlantUML directives.
 
 **Decisions made:**
-- TBD
+- Treat visible System text and alias case-insensitively while forbidding all other labels.
+- Reject footbox omission, literal footer directives, extra actors or participants, and inferred endpoints.
 
 **Blockers encountered:**
-- TBD
+- None.
 
 **Follow-up identified:**
-- TBD
+- None; legacy nonconforming diagrams are intentionally outside the forward-only policy.
 
 ## Files to Create / Modify
 

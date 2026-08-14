@@ -5,7 +5,6 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 107 | Merge Copilot/Codex Skills; Canonicalize AGENTS.md | In Progress | Medium |
-| 108 | Harden System-Sequence Black-Box Profile | In Progress | High |
 | 106 | Reconcile Python/Tornado Rsync Deployment Skill Into Canonical smaqit | Not Started | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
@@ -16,6 +15,7 @@
 
 | ID | Title |
 |----|-------|
+| 108 | Harden System-Sequence Black-Box Profile |
 | 105 | Migrate to Global User-Level Installation (Learned from smaqit-extensions) |
 | 102 | Design Sequence Diagrams for the Development Phase |
 | 104 | Strict Black-Box Validation for `system-sequence` Designs |

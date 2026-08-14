@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -242,10 +243,10 @@ func TestRemoveEmbeddedFilesPreservesUnownedCodexAgents(t *testing.T) {
 	}
 }
 
-func TestRemoveEmbeddedSkillDirsPreservesUnownedCodexContent(t *testing.T) {
+func TestRemoveEmbeddedSkillDirsPreservesUnownedSharedContent(t *testing.T) {
 	dstDir := filepath.Join(t.TempDir(), ".agents", "skills")
-	if err := copyEmbeddedDir(skillFilesCodex, "skills-codex", dstDir); err != nil {
-		t.Fatalf("copying embedded Codex skills: %v", err)
+	if err := copyEmbeddedDir(skillFilesShared, "skills-shared", dstDir); err != nil {
+		t.Fatalf("copying embedded shared skills: %v", err)
 	}
 
 	customPath := filepath.Join(dstDir, "custom-skill", "SKILL.md")
@@ -262,12 +263,12 @@ func TestRemoveEmbeddedSkillDirsPreservesUnownedCodexContent(t *testing.T) {
 		t.Fatalf("writing custom content inside owned skill directory: %v", err)
 	}
 
-	removed, err := removeEmbeddedSkillDirs(skillFilesCodex, "skills-codex", dstDir)
+	removed, err := removeEmbeddedSkillDirs(skillFilesShared, "skills-shared", dstDir)
 	if err != nil {
-		t.Fatalf("removing embedded Codex skills: %v", err)
+		t.Fatalf("removing embedded shared skills: %v", err)
 	}
 	if removed != 26 {
-		t.Fatalf("removed %d Codex skills, want 26", removed)
+		t.Fatalf("removed %d shared skills, want 26", removed)
 	}
 
 	got, err := os.ReadFile(customPath)
@@ -283,6 +284,54 @@ func TestRemoveEmbeddedSkillDirsPreservesUnownedCodexContent(t *testing.T) {
 	}
 	if string(nestedGot) != string(nestedCustomContent) {
 		t.Fatalf("nested custom content changed: got %q, want %q", nestedGot, nestedCustomContent)
+	}
+}
+
+// TestSharedSkillsServeCopilotAndCodex is the merge invariant test for task 107: the
+// skills-shared embed must serve as the single global skill tree read by both GitHub
+// Copilot and Codex. It asserts the expected skill count, that no [SMAQIT_SKILLS_DIR]
+// placeholder was left unresolved, and that every resolved self-reference points at the
+// shared ${HOME}/.agents/skills path — never a Claude-specific or legacy project path.
+func TestSharedSkillsServeCopilotAndCodex(t *testing.T) {
+	entries, err := skillFilesShared.ReadDir("skills-shared")
+	if err != nil {
+		t.Fatalf("reading skills-shared: %v", err)
+	}
+	topLevelDirs := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			topLevelDirs++
+		}
+	}
+	if topLevelDirs != 26 {
+		t.Fatalf("skills-shared has %d top-level skill directories, want 26", topLevelDirs)
+	}
+
+	err = fs.WalkDir(skillFilesShared, "skills-shared", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		content, err := skillFilesShared.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		text := string(content)
+		if strings.Contains(text, "[SMAQIT_SKILLS_DIR]") {
+			t.Errorf("%s: unresolved [SMAQIT_SKILLS_DIR] placeholder", path)
+		}
+		if strings.Contains(text, filepath.Join(".github", "skills")) {
+			t.Errorf("%s: contains legacy .github/skills path", path)
+		}
+		if strings.Contains(text, "CLAUDE_CONFIG_DIR") || strings.Contains(text, filepath.Join(".claude", "skills")) {
+			t.Errorf("%s: contains Claude-specific path in shared skills tree", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walking skills-shared: %v", err)
 	}
 }
 

@@ -7,6 +7,10 @@
     {
       "name": "task/107-merge-copilot-codex-skills-canonicalize-agents-md",
       "path": "../smaqit-wt-task-107-merge-copilot-codex-skills-canonicalize-agents-md"
+    },
+    {
+      "name": "task/108-harden-system-sequence-black-box-profile",
+      "path": "../smaqit-wt-task-108-harden-system-sequence-black-box-profile"
     }
   ],
   "settings": {

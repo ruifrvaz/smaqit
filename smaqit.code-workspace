@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/107-merge-copilot-codex-skills-canonicalize-agents-md",
+      "path": "../smaqit-wt-task-107-merge-copilot-codex-skills-canonicalize-agents-md"
     }
   ],
   "settings": {

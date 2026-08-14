@@ -6,7 +6,7 @@
 
 ## Description
 
-`smaqit.infrastructure-vault-loader`'s `load-credentials.sh` has two distinct, real bugs found live in `iodis-crm-poc` (2026-08-13), both in the "new scheme" (`apps/`+`machines/`) code path.
+`smaqit.infrastructure-vault-loader`'s `load-credentials.sh` has two distinct, real bugs found live in a downstream project (2026-08-13), both in the "new scheme" (`apps/`+`machines/`) code path.
 
 ### Bug 1 — project-slug derivation truncates multi-word `AGENTS.md` project names
 
@@ -15,11 +15,11 @@
 - **Inline format** (`Project Name: value`, line 129): `grep ... | tr ' ' '-'` — replaces every space with a hyphen, so a multi-word name survives intact.
 - **Heading + next-line format** (`## Project Name\n\nvalue`, lines 130-133, the fallback when the inline grep finds nothing): `awk '...' | sed 's/ .*$//'` — this `sed` keeps only the text **before the first space**, silently dropping everything after the first word.
 
-`iodis-crm-poc`'s `AGENTS.md` uses the heading+next-line format, with the value `IODIS CRM (PoC)`. The inline grep (needs `": "` on the same line as "project name") doesn't match a bare `## Project Name` heading line, so it falls through to the awk+sed fallback — which truncates `IODIS CRM (PoC)` to `iodis`, not the project's actual established slug `iodis-crm-poc` (which matches the repository/directory name, used everywhere else in that project's Vault layout: `secret/apps/iodis-crm-poc/*`, `secret/machines/iodis-test/*`).
+The downstream project's `AGENTS.md` uses the heading+next-line format, with a multi-word value like `Acme Case Manager (PoC)`. The inline grep (needs `": "` on the same line as "project name") doesn't match a bare `## Project Name` heading line, so it falls through to the awk+sed fallback — which truncates `Acme Case Manager (PoC)` to `acme`, not the project's actual established slug `acme-case-manager-poc` (which matches the repository/directory name, used everywhere else in that project's Vault layout: `secret/apps/acme-case-manager-poc/*`, `secret/machines/acme-test/*`).
 
 Two separate problems compound here:
 1. The two extraction strategies are inconsistent with each other (one preserves multi-word names, the other truncates to the first word) — likely unintentional, since there's no reason the heading+next-line format should behave differently.
-2. Even a fixed hyphenation (`iodis-crm-(poc)` → sanitized → `iodis-crm-poc`, coincidentally) is fragile in general: it derives a *technical* slug from a *human-readable display title* with no guaranteed relationship to the real slug. The actual source of truth for a project's identity throughout the rest of this framework's Vault conventions is the repository/directory name (`agents.md`'s heading is prose for humans, not a machine identifier). Deriving from `git remote get-url origin` (basename, `.git` stripped) or the current working directory's basename would be a more reliable source than parsing a title field — worth considering as the actual fix rather than just hardening the string manipulation.
+2. Even a fixed hyphenation (`acme-case-manager-(poc)` → sanitized → `acme-case-manager-poc`, coincidentally) is fragile in general: it derives a *technical* slug from a *human-readable display title* with no guaranteed relationship to the real slug. The actual source of truth for a project's identity throughout the rest of this framework's Vault conventions is the repository/directory name (`agents.md`'s heading is prose for humans, not a machine identifier). Deriving from `git remote get-url origin` (basename, `.git` stripped) or the current working directory's basename would be a more reliable source than parsing a title field — worth considering as the actual fix rather than just hardening the string manipulation.
 
 ### Bug 2 — a non-interactive run silently writes a placeholder secret instead of failing
 
@@ -43,7 +43,7 @@ read -s -p "  github_token: " GH_TOKEN && echo
 vault kv put "secret/apps/${APP_SLUG}/github" token="$GH_TOKEN" > /dev/null
 ```
 
-In a non-interactive shell, this `read` doesn't fail — it returns immediately (empty value, or whatever happens to be on stdin), and the script proceeds unconditionally to `vault kv put` with that value. Observed live: an agent running this script non-interactively got `GH_TOKEN="n/a"` written as a real Vault secret value at `secret/apps/iodis/github` (compounding with Bug 1's wrong slug), reported as `[1/1] GitHub fine-grained PAT ... DONE` — no error, no warning, a secret path that now looks populated with a real credential but isn't. Found and manually deleted before it could mislead a later session into trusting that path.
+In a non-interactive shell, this `read` doesn't fail — it returns immediately (empty value, or whatever happens to be on stdin), and the script proceeds unconditionally to `vault kv put` with that value. Observed live: an agent running this script non-interactively got `GH_TOKEN="n/a"` written as a real Vault secret value at `secret/apps/acme/github` (compounding with Bug 1's wrong slug), reported as `[1/1] GitHub fine-grained PAT ... DONE` — no error, no warning, a secret path that now looks populated with a real credential but isn't. Found and manually deleted before it could mislead a later session into trusting that path.
 
 ## Design Decisions
 
@@ -98,4 +98,4 @@ TBD — sketch, not committed:
 
 ## Notes
 
-Found live in `iodis-crm-poc` during task 058 (2026-08-13) — that project's established slug (`iodis-crm-poc`) is confirmed correct and already populated at `secret/apps/iodis-crm-poc/*`/`secret/machines/iodis-test/*`; the bogus `secret/apps/iodis/github` (`token: n/a`) placeholder written by this bug was found and deleted the same session. Not yet independently verified whether `bootstrap-app-to-machine.sh`/`rotate-credential.sh` share the same ad hoc `read` pattern — flagged as an audit step above rather than assumed.
+Found live in a downstream project during task 058 (2026-08-13) — that project's established slug (`acme-case-manager-poc`) is confirmed correct and already populated at `secret/apps/acme-case-manager-poc/*`/`secret/machines/acme-test/*`; the bogus `secret/apps/acme/github` (`token: n/a`) placeholder written by this bug was found and deleted the same session. Not yet independently verified whether `bootstrap-app-to-machine.sh`/`rotate-credential.sh` share the same ad hoc `read` pattern — flagged as an audit step above rather than assumed.

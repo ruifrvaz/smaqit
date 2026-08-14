@@ -25,7 +25,7 @@ case "validate":
 
 This makes the gate structurally incompatible with any project that is incrementally adopting the PlantUML design-pair convention (i.e., has pre-existing specs from before the convention existed, and is intentionally not batch-migrating all of them at once — an explicitly supported, documented workflow). In such a project, the gate can fail on a spec with zero relationship to the feature actually being planned, and there is no way to proceed short of giving every legacy spec in the phase's layers a design pair.
 
-**Real-world impact, observed same-day in `iodis-crm-poc` (2026-08-13/14), independently by two concurrent sessions working unrelated features:**
+**Real-world impact, observed same-day in a downstream project (2026-08-13/14), independently by two concurrent sessions working unrelated features:**
 
 - `--phase=develop`: failed on `specs/business/admin-authentication.md` — a spec neither session's feature touched, last modified weeks earlier.
 - `--phase=deploy`: failed identically on `specs/stack/platform-stack.md` / `specs/infrastructure/deployment.md` — again, unrelated to either feature.
@@ -95,4 +95,4 @@ TBD — sketch, not committed:
 
 ## Notes
 
-Found and root-caused live in `iodis-crm-poc` during a `smaqit.feature-new` cycle (their tasks 055/061-065 and, concurrently and independently, tasks 054/056-060), same calendar day, by two separate sessions hitting the identical bug from different features. Also referenced there as a documented project-level workaround pattern (`smaqit-framework-gap-plan-phase-develop-scope` / `smaqit-framework-gap-plan-phase-validate-scope` in that project's session memory) until this upstream fix lands. One session in that project also independently proposed an agent-side bypass for the `deploy`-phase case; the project's real user explicitly rejected it in favor of authoring genuine design pairs — worth noting as a signal that users want this gate *enforced correctly*, not routed around, which is exactly why the scoping (not the enforcement) is the right thing to fix here.
+Found and root-caused live in a downstream project during a `smaqit.feature-new` cycle (their tasks 055/061-065 and, concurrently and independently, tasks 054/056-060), same calendar day, by two separate sessions hitting the identical bug from different features. Also referenced there as a documented project-level workaround pattern (`smaqit-framework-gap-plan-phase-develop-scope` / `smaqit-framework-gap-plan-phase-validate-scope` in that project's session memory) until this upstream fix lands. One session in that project also independently proposed an agent-side bypass for the `deploy`-phase case; the project's real user explicitly rejected it in favor of authoring genuine design pairs — worth noting as a signal that users want this gate *enforced correctly*, not routed around, which is exactly why the scoping (not the enforcement) is the right thing to fix here.

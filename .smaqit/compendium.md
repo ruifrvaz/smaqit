@@ -10,6 +10,12 @@ The shell installer and `smaqit update` install the shared framework payload onc
 
 ---
 
+**How do I confirm a fresh `curl install.sh | bash` run matches a given release?**
+
+Check the platform agent directories directly rather than trusting the script's own log output: `~/.copilot/agents/`, `~/.claude/{agents,commands,skills}/`, `~/.codex/agents/`, and the shared `~/.agents/skills/` should all show the 9 canonical agents and the current shipped skill count with today's mtime. The shared skill and agent directories are also used by the separate `smaqit-extensions` tool, so they legitimately contain more entries than smaqit's own `skills/`/`agents/` source trees (e.g. `smaqit.session-*`, `smaqit.task-*`, `smaqit.release-*`, `smaqit.project-*`, `smaqit.utils.*` skills, and extra Codex/Claude release/session/testing agents) — diff the installed directory listing against this repo's own `skills/`/`agents/` directories rather than assuming every installed entry originates from smaqit. Files with an older mtime than the install run are smaqit-extensions content correctly left untouched, not evidence of a partial install.
+
+---
+
 **How do I clean up installer build artifacts?**
 
 There is no `make clean` target. Run `make uninstall` from `installer/`; it removes the dev binary and then prompts to also clean the build artifacts (`dist/`, `framework/`, `templates/`, `tools/`, `agents-*` platform trees, `commands-claude/`, `skills-shared/`, `skills-claude/`, `test/`, `.test-venv/`). Answer `y` at the prompt to remove them.
@@ -226,7 +232,7 @@ No. The installer's `go:embed` manifest in `installer/main.go` only ships `agent
 
 **Where does the task-lifecycle tooling (`task-start`, `task-create`, `task-complete`, `task-list`, `utils.worktree`) live, and does `smaqit init` install it?**
 
-It is owned entirely by the sibling `smaqit-extensions` repository, not by `smaqit`'s own `skills/` directory or its 26 shipped product skills. `smaqit init` does not install it — a consumer project only gets task-lifecycle skills (branch/worktree creation, parent-child task ownership, assisted/autonomous mode) if `smaqit-extensions` is installed separately. Shipped smaqit skills that reference the lifecycle (`smaqit.new-greenfield-project`, `smaqit.feature-new`) call `smaqit.task-start`/`smaqit.task-create`/`smaqit.task-complete` by name without re-implementing any of their branch, worktree, or merge mechanics — those skills assume the lifecycle tooling is present, they do not provide a fallback if it isn't. In this repo, the copies under `.github/skills/`, `.claude/skills/`, and `.agents/skills/` for task-lifecycle skill names are committed dogfooding install output from `smaqit-extensions`, not canonical smaqit source.
+It is owned entirely by the sibling `smaqit-extensions` repository, not by `smaqit`'s own `skills/` directory or its shipped product skills. `smaqit init` does not install it — a consumer project only gets task-lifecycle skills (branch/worktree creation, parent-child task ownership, assisted/autonomous mode) if `smaqit-extensions` is installed separately. Shipped smaqit skills that reference the lifecycle (`smaqit.new-greenfield-project`, `smaqit.feature-new`) call `smaqit.task-start`/`smaqit.task-create`/`smaqit.task-complete` by name without re-implementing any of their branch, worktree, or merge mechanics — those skills assume the lifecycle tooling is present, they do not provide a fallback if it isn't. In this repo, the copies under `.github/skills/`, `.claude/skills/`, and `.agents/skills/` for task-lifecycle skill names are committed dogfooding install output from `smaqit-extensions`, not canonical smaqit source.
 
 `smaqit-extensions` also ships a parent-owned subtask lifecycle (`Parent: NNN` task metadata): a child task joins its parent's existing branch/worktree and inherits its mode instead of creating its own; only the parent merges and cleans up, and only once every declared child is `Completed`. `smaqit.feature-new` adopts this contract for its own five-phase structure (one shared feature-cycle parent, five phase children) rather than spawning a separate branch per phase.
 

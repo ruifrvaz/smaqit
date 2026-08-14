@@ -128,31 +128,6 @@ To update embedded files, run `make -C installer prepare`. Never copy files into
 
 Keep `installer/main.go` `Version` const in sync with `SMAQIT.md` version.
 
-## Workflow Commands
-
-Session management and task management commands are available as skills in `.agents/skills/` and `.claude/skills/` (this repo's own dogfooded install):
-
-**Session commands:**
-- `/session.start` - Load full project context for new chat
-- `/session.assess` - Analyze request before implementation
-- `/session.finish` - Document session history at completion
-
-**Task commands:**
-- `/task.create [title]` - Create new task with auto-numbering
-- `/task.list` - Show current active tasks
-- `/task.plan [id or idea]` - Plan a task before creation or implementation
-- `/task.start [id]` - Start work on a task (branch/worktree, mode)
-- `/task.complete [id]` - Mark task as completed with verification
-
-### Task Management
-
-- `.smaqit/tasks/PLANNING.md` has three tables: Active, Completed, and Abandoned
-- New tasks go in Active table with status `Not Started`
-- **When starting work on a task, ALWAYS update status to `In Progress` in PLANNING.md BEFORE beginning implementation**
-- When completing a task, move from Active to Completed table
-- When abandoning a task (superseded, no longer relevant, incorrect approach), move from Active to Abandoned table with reason
-- Individual task files in `.smaqit/tasks/{id}_{title}.md` contain details
-
 **Quick commands:**
 
 ```bash
@@ -160,10 +135,3 @@ Session management and task management commands are available as skills in `.age
 cd installer && make build && mkdir -p test && cd test
 ../dist/smaqit-dev init && ../dist/smaqit-dev status
 cd .. && make uninstall  # Also cleans test/ and embedded files
-
-# Release workflow (local development — direct git push)
-User: /smaqit.release.local
-
-# Release workflow (CI/CD — Copilot Coding Agent via PR)
-User: /smaqit.release.pr
-```

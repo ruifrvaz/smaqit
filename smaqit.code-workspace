@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/109-phase-design-readiness-gate-scans-all-active-specs-not-just-the-touched-feature",
+      "path": "../smaqit-wt-task-109-phase-design-readiness-gate-scans-all-active-specs-not-just-the-touched-feature"
     }
   ],
   "settings": {

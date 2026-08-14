@@ -5,7 +5,7 @@ version: "1.0.0"
 # Project Research Map
 **Project:** smaqit
 **Refreshed:** 2026-08-14
-**Active task:** 107 — Merge Copilot/Codex Skills; Canonicalize AGENTS.md
+**Active task:** 109 — Phase Design-Readiness Gate Scans All Active Specs, Not Just the Touched Feature
 
 | Tool | Section | URL |
 |------|---------|-----|
@@ -27,3 +27,7 @@ version: "1.0.0"
 ## Task 107 — Merge Copilot/Codex Skills; Canonicalize AGENTS.md
 
 No task-layer tools; this task is an internal refactor of installer assets and generated instructions.
+
+## Task 109 — Phase Design-Readiness Gate Scans All Active Specs, Not Just the Touched Feature
+
+No task-layer tools; this task is an internal refactor of `installer/spec.go` (Go standard library only, already covered by the project-layer Go entry).

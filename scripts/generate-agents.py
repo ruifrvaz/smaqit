@@ -24,12 +24,12 @@ Claude Code command file (frontmatter + body):
   -> installer/commands-claude/<name>.md   (copied verbatim)
 
 Skills — one shared source tree, since SKILL.md frontmatter needs no per-platform variance.
-The only platform-specific bit is each skill's own install path, referenced in a few
-usage comments via the [SMAQIT_SKILLS_DIR] placeholder, resolved here (not at install time):
+GitHub Copilot and Codex both read skills from the same global directory, so they share one
+rendered output tree. The only platform-specific bit is each skill's own install path, referenced
+in a few usage comments via the [SMAQIT_SKILLS_DIR] placeholder, resolved here (not at install time):
   skills/<name>/**
-  -> installer/skills-copilot/<name>/**   ([SMAQIT_SKILLS_DIR] -> ${HOME}/.agents/skills)
+  -> installer/skills-shared/<name>/**    ([SMAQIT_SKILLS_DIR] -> ${HOME}/.agents/skills; read by GitHub Copilot and Codex)
   -> installer/skills-claude/<name>/**    ([SMAQIT_SKILLS_DIR] -> ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills)
-  -> installer/skills-codex/<name>/**     ([SMAQIT_SKILLS_DIR] -> ${HOME}/.agents/skills)
 
 Run via `make -C installer prepare`, or directly after editing agents/, commands/, skills/,
 or .smaqit/definitions/agents/:
@@ -66,14 +66,12 @@ COMMANDS_OUT_DIR = ROOT / "installer" / "commands-claude"
 
 SKILLS_SRC_DIR = ROOT / "skills"
 SKILLS_OUT_DIR_BY_PLATFORM = {
-    "copilot": ROOT / "installer" / "skills-copilot",
+    "shared": ROOT / "installer" / "skills-shared",
     "claude": ROOT / "installer" / "skills-claude",
-    "codex": ROOT / "installer" / "skills-codex",
 }
 SKILLS_DIR_BY_PLATFORM = {
-    "copilot": "${HOME}/.agents/skills",
+    "shared": "${HOME}/.agents/skills",
     "claude": "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills",
-    "codex": "${HOME}/.agents/skills",
 }
 
 PLACEHOLDER_RE = re.compile(r"\{\{([A-Z0-9_]+)\}\}")

@@ -7,7 +7,7 @@
 
 ## Steps
 1. **Read existing workflows** (if any) from `.github/workflows/` to understand the current state. If workflows already exist and are substantially complete, offer to diff rather than overwrite.
-2. **Resolve configuration values** from Infrastructure specs and `copilot-instructions.md`:
+2. **Resolve configuration values** from Infrastructure specs and `AGENTS.md`:
    - VM host variable reference (default: `${{ secrets.VM_HOST }}`)
    - SSH key secret name (default: `VM_SSH_KEY`)
    - Terraform backend secret names (default: `TF_BACKEND_ACCESS_KEY`, `TF_BACKEND_SECRET_KEY`)

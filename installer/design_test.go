@@ -332,23 +332,24 @@ func TestSystemSequenceProfileEnforcesBlackBox(t *testing.T) {
 
 	blackBox := `@startuml
 actor Customer
-participant "IODIS CRM" as System
+participant "SYSTEM" as SYSTEM
+hide footbox
 
-Customer -> System: GET /activate?token
-activate System
-System --> Customer: activation form (rendered unconditionally)
-deactivate System
+Customer -> SYSTEM: GET /activate?token
+activate SYSTEM
+SYSTEM --> Customer: activation form (rendered unconditionally)
+deactivate SYSTEM
 
-Customer -> System: POST /activate (token, password)
-activate System
+Customer -> SYSTEM: POST /activate (token, password)
+activate SYSTEM
 alt token valid and unexpired
-  System --> Customer: activated
+  SYSTEM --> Customer: activated
 else token invalid, expired, or already used
-  System --> Customer: generic rejection, form re-rendered
+  SYSTEM --> Customer: generic rejection, form re-rendered
 end
-deactivate System
+deactivate SYSTEM
 
-note over System
+note over SYSTEM
   RegistrationToken is issued earlier, at customer
   creation, out of scope for this diagram.
 end note
@@ -356,7 +357,8 @@ end note
 
 	decoratedAlias := `@startuml
 actor Customer
-participant "Payment System" as System #LightBlue
+participant "System" as System #LightBlue
+hide footbox
 Customer -> System: GET /activate?token
 System --> Customer: 200
 @enduml`
@@ -366,7 +368,8 @@ title
 Describes the Customer -> System handoff
 end title
 actor Customer
-participant "IODIS CRM" as System
+participant "System" as System
+hide footbox
 Customer -> System: GET /activate?token
 System --> Customer: 200
 @enduml`
@@ -376,6 +379,7 @@ actor Customer
 participant "VisitorConvertHandler / CustomerNewHandler" as CreateHandler
 participant CustomerActivationHandler as ActivateHandler
 participant CustomerActivationService as ActSvc
+hide footbox
 
 == Token Issuance ==
 Customer -> CreateHandler: POST /visitors/{id}/convert
@@ -398,7 +402,8 @@ deactivate ActivateHandler
 	twoActors := `@startuml
 actor Admin
 actor Customer
-participant "IODIS CRM" as System
+participant "System" as System
+hide footbox
 Admin -> System: seed data
 Customer -> System: GET /activate?token
 System --> Customer: 200
@@ -406,20 +411,47 @@ System --> Customer: 200
 
 	misnamedSystem := `@startuml
 actor Customer
-participant "IODIS CRM" as CRM
+participant "System" as CRM
+hide footbox
 Customer -> CRM: GET /activate?token
 CRM --> Customer: 200
 @enduml`
 
 	noExplicitSystem := `@startuml
 actor Customer
+hide footbox
 Customer -> System: GET /activate?token
 System --> Customer: 200
 @enduml`
 
 	noActor := `@startuml
-participant "IODIS CRM" as System
+participant "System" as System
+hide footbox
 System --> System: noop
+@enduml`
+
+	missingFootbox := `@startuml
+actor Customer
+participant "System" as System
+Customer -> System: request
+System --> Customer: response
+@enduml`
+
+	footer := `@startuml
+actor Customer
+participant "System" as System
+hide footbox
+footer generated externally
+Customer -> System: request
+System --> Customer: response
+@enduml`
+
+	inferredEndpoint := `@startuml
+actor Customer
+participant "System" as System
+hide footbox
+Customer -> Other: request
+Other --> Customer: response
 @enduml`
 
 	tests := []struct {
@@ -428,14 +460,17 @@ System --> System: noop
 		wantErr  bool
 		wantMsg  string
 	}{
-		{"black box passes", blackBox, false, ""},
-		{"decorated alias still resolves to System", decoratedAlias, false, ""},
+		{"case-insensitive visible System passes", blackBox, false, ""},
+		{"decorated canonical System passes", decoratedAlias, false, ""},
 		{"multi-line title body is not parsed as content", multiLineTitle, false, ""},
 		{"two actors fails", twoActors, true, "exactly one actor"},
 		{"explicit multi participant fails", multiParticipant, true, "exactly one system participant"},
-		{"system participant not named System fails", misnamedSystem, true, `identify their system participant as "System"`},
+		{"system participant alias not named System fails", misnamedSystem, true, `participant "System" as System`},
 		{"system participant never explicitly declared fails", noExplicitSystem, true, "found none"},
 		{"no actor declared fails", noActor, true, "exactly one actor"},
+		{"missing hide footbox fails", missingFootbox, true, "hide footbox"},
+		{"footer fails", footer, true, "footer directive"},
+		{"inferred endpoint fails", inferredEndpoint, true, "message endpoints"},
 	}
 
 	for _, tc := range tests {
@@ -495,7 +530,8 @@ func TestSystemSequenceProfileSupportsMultipleDesignsPerSpec(t *testing.T) {
 	writeTestFile(t, registrationPath, strings.Replace(
 		validFunctionalSystemSequenceSource(`@startuml
 actor Admin
-participant "IODIS CRM" as System
+participant "System" as System
+hide footbox
 Admin -> System: create customer
 System --> Admin: 200
 @enduml`),
@@ -503,7 +539,8 @@ System --> Admin: 200
 	writeTestFile(t, activationPath, strings.Replace(
 		validFunctionalSystemSequenceSource(`@startuml
 actor Customer
-participant "IODIS CRM" as System
+participant "System" as System
+hide footbox
 Customer -> System: GET /activate?token
 System --> Customer: 200
 @enduml`),
@@ -584,7 +621,7 @@ func designTestProject(t *testing.T) string {
 // validSystemSequenceSource builds a minimal DSG-FUN-ORDER-SYSTEM-SEQUENCE
 // fixture with one labeled actor->system arrow per operation.
 func validSystemSequenceSource(sourceHash, imageHash string, operations []string) string {
-	lines := []string{`actor Customer`, `participant "Order System" as System`}
+	lines := []string{`actor Customer`, `participant "System" as System`, `hide footbox`}
 	for _, op := range operations {
 		lines = append(lines, fmt.Sprintf("Customer -> System: %s", op))
 	}

@@ -4,30 +4,26 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit
-**Refreshed:** 2026-08-06
-**Active task:** None
+**Refreshed:** 2026-08-14
+**Active task:** 107 — Merge Copilot/Codex Skills; Canonicalize AGENTS.md
 
 | Tool | Section | URL |
 |------|---------|-----|
 | Go | Documentation | https://go.dev/doc/ |
 | Go | Getting started | https://go.dev/doc/tutorial/getting-started |
-| gopkg.in/yaml.v3 | Package reference | https://pkg.go.dev/gopkg.in/yaml.v3 |
+| Model Context Protocol | Specification | https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro |
 | Model Context Protocol Go SDK | Package reference | https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk |
-| Model Context Protocol | Specification | https://modelcontextprotocol.io/ |
-| tailscale/hujson | Package reference | https://pkg.go.dev/github.com/tailscale/hujson |
-| @plantuml/mcp-js | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@plantuml/mcp-js |
-| @resvg/resvg-wasm | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@resvg/resvg-wasm |
-| @fontsource/noto-sans | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@fontsource/noto-sans |
-| Python | Documentation | https://docs.python.org/3/ |
-| Python | Installation and usage | https://docs.python.org/3/using/ |
-| GitHub Copilot SDK | Package reference | https://pypi.org/project/github-copilot-sdk/ |
+| go-toml | Package reference | https://pkg.go.dev/github.com/pelletier/go-toml/v2 |
+| hujson | Package reference | https://pkg.go.dev/github.com/tailscale/hujson |
+| YAML v3 | Package reference | https://pkg.go.dev/gopkg.in/yaml.v3 |
+| Node.js | Documentation | https://nodejs.org/docs/latest/api/ |
+| PlantUML MCP | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@plantuml/mcp-js |
+| Resvg WASM | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@resvg/resvg-wasm |
+| Noto Sans | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@fontsource/noto-sans |
 | Git | Documentation | https://git-scm.com/doc |
 | GitHub Actions | Documentation | https://docs.github.com/en/actions |
-| GitHub Actions | Workflow syntax | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
-| GitHub CLI | Manual | https://cli.github.com/manual/ |
-| Terraform | Documentation | https://developer.hashicorp.com/terraform/docs |
-| Terraform | CLI | https://developer.hashicorp.com/terraform/cli |
-| HashiCorp Vault | Documentation | https://developer.hashicorp.com/vault/docs |
-| HashiCorp Vault | CLI | https://developer.hashicorp.com/vault/docs/commands |
-| OpenStack | Documentation | https://docs.openstack.org/2026.1/ |
-| OpenStack | Compute documentation | https://docs.openstack.org/nova/latest/ |
+| VS Code | Documentation | Unreachable (code.visualstudio.com did not respond to automated requests) — https://code.visualstudio.com/docs |
+
+## Task 107 — Merge Copilot/Codex Skills; Canonicalize AGENTS.md
+
+No task-layer tools; this task is an internal refactor of installer assets and generated instructions.

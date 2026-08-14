@@ -3,7 +3,7 @@ name: Copilot Setup
 on:
   workflow_dispatch:
   # This workflow is triggered automatically by the GitHub Copilot coding agent
-  # before starting a new session, as configured in copilot-instructions.md
+  # before starting a new session, as configured in AGENTS.md
 
 jobs:
   copilot-setup-steps:

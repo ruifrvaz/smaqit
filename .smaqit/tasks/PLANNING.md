@@ -13,6 +13,9 @@
 
 | ID | Title |
 |----|-------|
+| 106 | Reconcile Python/Tornado Rsync Deployment Skill Into Canonical smaqit |
+| 107 | Merge Copilot/Codex Skills; Canonicalize AGENTS.md |
+| 108 | Harden System-Sequence Black-Box Profile |
 | 105 | Migrate to Global User-Level Installation (Learned from smaqit-extensions) |
 | 102 | Design Sequence Diagrams for the Development Phase |
 | 104 | Strict Black-Box Validation for `system-sequence` Designs |

@@ -32,17 +32,14 @@ var claudeAgentFiles embed.FS
 //go:embed commands-claude/*.md
 var claudeCommandFiles embed.FS
 
-//go:embed skills-copilot
-var skillFilesCopilot embed.FS
+//go:embed skills-shared
+var skillFilesShared embed.FS
 
 //go:embed skills-claude
 var skillFilesClaude embed.FS
 
 //go:embed agents-codex/*.toml
 var codexAgentFiles embed.FS
-
-//go:embed skills-codex
-var skillFilesCodex embed.FS
 
 //go:embed templates/AGENTS.md.template
 var agentsMdTemplate embed.FS
@@ -51,7 +48,7 @@ var agentsMdTemplate embed.FS
 var claudeMdTemplate embed.FS
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
-var Version = "3.0.1"
+var Version = "3.1.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -350,7 +347,7 @@ func getAgentName(phase string) string {
 
 // resolveGlobalDir returns a user-level destination for an owned payload kind.
 // Platform configuration overrides apply only to their respective client roots;
-// the shared Copilot/Codex skill tree deliberately remains under the user's home.
+// the shared skill tree read by both Copilot and Codex deliberately remains under the user's home.
 func resolveGlobalDir(kind string) (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -397,7 +394,7 @@ func cmdInstallGlobal() {
 		label      string
 	}{
 		{agentFiles, "agents-copilot", "copilot-agents", "Copilot agents"},
-		{skillFilesCopilot, "skills-copilot", "shared-skills", "shared Copilot/Codex skills"},
+		{skillFilesShared, "skills-shared", "shared-skills", "shared Copilot/Codex skills"},
 		{claudeAgentFiles, "agents-claude", "claude-agents", "Claude agents"},
 		{claudeCommandFiles, "commands-claude", "claude-commands", "Claude commands"},
 		{skillFilesClaude, "skills-claude", "claude-skills", "Claude skills"},
@@ -623,14 +620,9 @@ func cmdInit(targetDir string) {
 		os.Exit(1)
 	}
 
-	if err := removeLegacyProjectMirrors(); err != nil {
-		fmt.Printf("Error removing legacy project agent/skill mirrors: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Install project-instructions files: AGENTS.md (read natively by GitHub Copilot) with a
-	// thin CLAUDE.md pointing at it (Claude Code does not read AGENTS.md on its own). Existing
-	// files are never overwritten — smaqit's section is appended if not already present.
+	// Install project-instructions files: AGENTS.md (read natively by GitHub Copilot and Codex)
+	// with a thin CLAUDE.md pointing at it (Claude Code does not read AGENTS.md on its own).
+	// Existing files are never overwritten — smaqit's section is appended if not already present.
 	agentsStatus, err := installInstructionsFile(agentsMdTemplate, "templates/AGENTS.md.template", "AGENTS.md")
 	if err != nil {
 		fmt.Printf("Error installing AGENTS.md: %v\n", err)
@@ -760,39 +752,6 @@ func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
 
 		return nil
 	})
-}
-
-// removeLegacyProjectMirrors removes only artifacts smaqit owned under the
-// legacy project-scoped locations. It is deliberately exact-file based so a
-// project can retain unrelated agents or custom files beside old smaqit output.
-func removeLegacyProjectMirrors() error {
-	mappings := []struct {
-		embeddedFS embed.FS
-		srcDir     string
-		dstDir     string
-		skills     bool
-	}{
-		{agentFiles, "agents-copilot", filepath.Join(".github", "agents"), false},
-		{skillFilesCopilot, "skills-copilot", filepath.Join(".github", "skills"), true},
-		{claudeAgentFiles, "agents-claude", filepath.Join(".claude", "agents"), false},
-		{claudeCommandFiles, "commands-claude", filepath.Join(".claude", "commands"), false},
-		{skillFilesClaude, "skills-claude", filepath.Join(".claude", "skills"), true},
-		{codexAgentFiles, "agents-codex", filepath.Join(".codex", "agents"), false},
-		{skillFilesCodex, "skills-codex", filepath.Join(".agents", "skills"), true},
-	}
-	for _, mapping := range mappings {
-		if mapping.skills {
-			if _, err := removeEmbeddedSkillDirs(mapping.embeddedFS, mapping.srcDir, mapping.dstDir); err != nil {
-				return err
-			}
-		} else if _, err := removeEmbeddedFiles(mapping.embeddedFS, mapping.srcDir, mapping.dstDir); err != nil {
-			return err
-		}
-		if _, err := removeDirIfEmpty(mapping.dstDir); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // removeEmbeddedFiles removes only files represented in an embedded source tree.
@@ -970,7 +929,7 @@ func cmdUninstall() {
 		skills     bool
 	}{
 		{agentFiles, "agents-copilot", "copilot-agents", false},
-		{skillFilesCopilot, "skills-copilot", "shared-skills", true},
+		{skillFilesShared, "skills-shared", "shared-skills", true},
 		{claudeAgentFiles, "agents-claude", "claude-agents", false},
 		{claudeCommandFiles, "commands-claude", "claude-commands", false},
 		{skillFilesClaude, "skills-claude", "claude-skills", true},

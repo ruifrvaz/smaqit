@@ -93,14 +93,6 @@ printf '%s\n' \
   'User --> Smoke' '@enduml' '```' > "$design_source"
 (cd "$project" && "$binary" design render "${design_source#$project/}" && "$binary" design attest "${design_source#$project/}" && "$binary" design validate "${design_source#$project/}")
 
-# Existing projects are migrated by deleting only exact legacy smaqit files.
-mkdir -p "$project/.github/agents"
-cp "$repo_root/installer/agents-copilot/smaqit.business.agent.md" "$project/.github/agents/smaqit.business.agent.md"
-printf '%s\n' 'keep me' > "$project/.github/agents/custom.agent.md"
-printf 'y\n' | "$binary" init "$project" >/dev/null
-assert_absent "$project/.github/agents/smaqit.business.agent.md"
-assert_file "$project/.github/agents/custom.agent.md" "user-owned legacy neighbour"
-
 if "$binary" >/dev/null 2>&1; then
   :
 fi

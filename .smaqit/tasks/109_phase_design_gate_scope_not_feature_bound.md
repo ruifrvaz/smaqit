@@ -1,6 +1,7 @@
 # Phase Design-Readiness Gate Scans All Active Specs, Not Just the Touched Feature
 
-**Status:** In Progress
+**Status:** PR Open
+**PR:** #83
 **Created:** 2026-08-15
 **Started:** 2026-08-14
 **Mode:** Assisted
@@ -36,11 +37,9 @@ One team member's assessment, verified directly against this file: the design-re
 
 ## Design Decisions
 
-TBD — open questions for whoever picks this up:
-
-- Should the gate scope to specs with `status: draft` (i.e., specs a spec agent actually touched this cycle), mirroring how `smaqit plan`'s non-gate path already reports "N pending" specs? This seems like the most direct fix: reuse whatever draft-detection already drives the plan's own pending-count output, rather than the full active-layer sweep.
-- Should `validatePhaseDesignReadiness` report *all* failing specs (aggregate) rather than fail-fast on the first, even after scoping is fixed? An aggregate report is strictly more useful once the set is meant to be small (post-fix), and removes the "which one blocked me, and are there more after I fix it" guessing game users currently hit.
-- Should a project be able to declare "layer X's specs are exempt from this gate" (e.g., a documented incremental-adoption flag), for projects that have decided a whole layer (like Coverage, in the observed case) never carries design pairs by convention? Or is scoping-to-draft sufficient to make this moot?
+- **Scope to `draft`/`failed` status — adopted.** `getPhaseDesignGateSpecs` now calls a shared `isCycleRelevant(status)` predicate (`status == "draft" || status == "failed"`) instead of only excluding `deprecated`. This is the exact predicate `filterSpecsByStatus` already used for the "N pending" accounting, so the gate and the pending-count logic now agree on what "this cycle" means — no new concept introduced.
+- **Aggregate reporting — adopted.** `validatePhaseDesignReadiness` now collects every blocking spec in the scoped input and returns one newline-joined error instead of returning on the first miss. Once the input is scoped to the current cycle the blocking set is expected to be small, so surfacing all of it in one pass removes the "fix one, rerun, find the next" loop. The existing call site (`main.go:251-254`) needed no change — it already just prints `%v` and exits.
+- **Per-layer exemption flag — not implemented, left as a follow-up.** The `validate`-phase real-world impact included the *feature's own* Coverage spec failing because that project's own convention is "Coverage specs never carry a design pair." Scoping to draft/failed does **not** fix that specific case — a draft Coverage spec is still in-cycle and still lacks a design pair by that project's deliberate choice, so it still blocks. That is a distinct question from this task's bug (structural over-scoping to unrelated legacy specs) — it's about whether smaqit's canonical design convention (which does include a Coverage design template, per `templates/designs/`) can be intentionally opted out of per layer, which is a product decision requiring its own design pass rather than something to improvise inside this bug fix. Recorded here so it isn't lost; a fresh task should propose the exemption mechanism (or an explicit "no, author the pair" answer) on its own merits.
 
 ## Implementation Steps
 
@@ -60,24 +59,31 @@ TBD — sketch, not committed:
 
 ## Acceptance Criteria
 
-- [ ] `smaqit plan --phase=develop|deploy|validate` no longer fails on a spec that the current feature/cycle did not touch and is not `status: draft`/`failed`
-- [ ] The gate's failure output (if it still fails) reflects only specs actually relevant to the current cycle's scope
-- [ ] Regression test fixture: an old, unrelated, un-paired spec in the same layer as a feature's new draft spec does not block that feature's phase plan
-- [ ] Decision recorded on fail-fast vs. aggregate reporting, and implemented accordingly
+- [x] `smaqit plan --phase=develop|deploy|validate` no longer fails on a spec that the current feature/cycle did not touch and is not `status: draft`/`failed`
+- [x] The gate's failure output (if it still fails) reflects only specs actually relevant to the current cycle's scope
+- [x] Regression test fixture: an old, unrelated, un-paired spec in the same layer as a feature's new draft spec does not block that feature's phase plan
+- [x] Decision recorded on fail-fast vs. aggregate reporting, and implemented accordingly
 
 ## Findings
 
 **Implementation approach:**
-- TBD
+- Added `isCycleRelevant(status string) bool` in `installer/spec.go`, shared between `getPhaseDesignGateSpecs`'s `appendActive` closure and (conceptually) `filterSpecsByStatus`'s existing inline checks — same `draft`/`failed` predicate, now named and reused rather than duplicated as a bare comparison.
+- `validatePhaseDesignReadiness` now builds a `[]string` of `"path: reason"` per blocking spec and joins with `\n` into a single `fmt.Errorf`; returns `nil` unchanged when nothing blocks. No caller changes needed — `main.go`'s `fmt.Fprintf(os.Stderr, "Phase design readiness failed: %v\n", err)` already prints the full (now multi-line) message.
+- Left `getPhaseSpecs` (main.go's separate phase-output-layer resolver) and `specDesignReady`/`design.go` untouched — confirmed via `grep` that neither needed changes; the bug was entirely in `getPhaseDesignGateSpecs`'s input filter.
 
 **Decisions made:**
-- TBD
+- See Design Decisions above: scoping and aggregate reporting both adopted; per-layer exemption explicitly deferred as a separate follow-up rather than bundled into this fix.
+- No help-text or `framework/PHASES.md` changes were needed — the existing doc wording ("A phase is incomplete when any required design is missing...") doesn't claim a specific scope and remains accurate after the fix.
 
 **Blockers encountered:**
-- TBD
+- None.
 
 **Follow-up identified:**
-- TBD
+- A new task should decide whether smaqit needs a per-layer/per-project design-gate exemption mechanism (e.g., a project declaring "Coverage specs never carry a design pair" as smaqit's own convention allows, and having the gate honor that) — see Design Decisions for the concrete case this task's fix does not resolve.
+
+**Verification:**
+- `go build ./...`, `go vet ./...`, and `go test ./...` all pass in `installer/` (full suite, 20.4s) after `make prepare` regenerated the gitignored embedded-asset staging required to build.
+- New/updated tests: `TestGetPhaseDesignGateSpecsIncludesConsumedUpstreamLayers` (updated to use draft-status fixtures so the existing layer-scope assertion still holds under the new filter), `TestGetPhaseDesignGateSpecsScopesToCurrentCycle` (new — the task's own regression scenario: legacy implemented/deployed/deprecated specs excluded, failed/draft specs included, scoped set passes the gate cleanly), `TestValidatePhaseDesignReadinessAggregatesAllFailures` (new — two blocking specs both appear in one error, a ready spec does not).
 
 ## Files to Create / Modify
 

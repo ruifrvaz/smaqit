@@ -16,8 +16,8 @@ releases/
 # Embedded copies (installer needs local copies for go:embed)
 # These are auto-populated by `make prepare` — never edit or commit manually.
 # installer/agents-copilot/, installer/agents-claude/, installer/agents-codex/,
-# installer/commands-claude/, installer/skills-copilot/, installer/skills-claude/,
-# installer/skills-codex/ are compiled by
+# installer/commands-claude/, installer/skills-shared/, installer/skills-claude/
+# are compiled by
 # scripts/generate-agents.py from ../agents/, ../commands/, ../skills/, and
 # ../.smaqit/definitions/agents/ (see installer/Makefile).
 installer/framework/
@@ -26,9 +26,8 @@ installer/agents-copilot/
 installer/agents-claude/
 installer/agents-codex/
 installer/commands-claude/
-installer/skills-copilot/
+installer/skills-shared/
 installer/skills-claude/
-installer/skills-codex/
 installer/prompts/
 installer/tools/
 tools/plantuml/node_modules/

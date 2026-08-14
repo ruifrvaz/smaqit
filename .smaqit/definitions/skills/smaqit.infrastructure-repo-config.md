@@ -14,7 +14,7 @@
 - Fine-grained PAT with `variables:write` repository permission available (for GH_TERRAFORM_TOKEN)
 
 ## Steps
-1. **Confirm repository** — resolve `<owner>/<repo>` from context (copilot-instructions.md or user input).
+1. **Confirm repository** — resolve `<owner>/<repo>` from context (AGENTS.md or user input).
 2. **Set SSH deploy key** — the key MUST be passphrase-free (standard `him_key` has a passphrase; generate a separate deploy key):
    ```
    gh secret set VM_SSH_KEY --body "$(cat ~/.ssh/<deploy-key> | tr -d '\n')" -R <owner>/<repo>

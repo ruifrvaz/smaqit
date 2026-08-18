@@ -31,3 +31,7 @@ No task-layer tools; this task is an internal refactor of installer assets and g
 ## Task 109 — Phase Design-Readiness Gate Scans All Active Specs, Not Just the Touched Feature
 
 No task-layer tools; this task is an internal refactor of `installer/spec.go` (Go standard library only, already covered by the project-layer Go entry).
+
+## Task 111 — Design Sequence Diagram Has No Deterministic Enforcement, and a Layer-Mismatch Bug Rejects the Established Convention That Would Link One
+
+No task-layer tools; this task is an internal fix to `installer/design.go` (Go standard library only, already covered by the project-layer Go entry).

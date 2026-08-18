@@ -1,14 +1,17 @@
-# Design Sequence Diagram Has No Deterministic Enforcement, and a Layer-Mismatch Bug Rejects the Established Convention That Would Link One
+---
+status: In Progress
+created: "2026-08-18"
+mode: Assisted
+started: "2026-08-18"
+---
 
-**Status:** Not Started
-**Created:** 2026-08-18
-**Mode:** Assisted
+# Design Sequence Diagram Has No Deterministic Enforcement, and a Layer-Mismatch Bug Rejects the Established Convention That Would Link One
 
 ## Description
 
 The Development phase (`smaqit.feature-new` Phase 2, Step 3: "Invoke `/smaqit.development`...") is documented as owning a mandatory artifact — a `design-sequence`-layer diagram that grounds a Functional spec's black-box `system-sequence` design in real implementation, via `' impl: <path>:<line>` citations, `realizes:` pointing at the system-sequence design it grounds. This is a real, code-enforced artifact type (`installer/design.go`'s `designProfiles["design-sequence"]`, `validateDesignSequenceGrounding` at `design.go:1019`, which correctly requires `impl:` citations and requires every operation promised by the `realizes:` target's message labels to be represented — both working as intended once a diagram exists).
 
-The problem: **nothing forces one to exist.** Found live in a downstream project (2026-08-18, `iodis-crm-poc`) — an orchestrating session ran a `smaqit.feature-new` Phase 2 (Development) child task, implemented the feature's code directly instead of invoking `/smaqit.development`, bumped the Functional/Business specs to `status: implemented`, and moved on. No tool anywhere flagged the missing Design Sequence Diagram. A second, independent instance of the identical failure mode already happened in this same downstream project (see task 062 there: "first Development-agent invocation wrongly skipped `docs/designs/`, missing its separate mandatory Design Sequence Diagram requirement") — two occurrences is a real pattern, not a one-off.
+The problem: **nothing forces one to exist.** Found live in a downstream project — an orchestrating session ran a `smaqit.feature-new` Phase 2 (Development) child task, implemented the feature's code directly instead of invoking `/smaqit.development`, bumped the Functional/Business specs to `status: implemented`, and moved on. No tool anywhere flagged the missing Design Sequence Diagram. A second, independent instance of the identical failure mode already happened in this same downstream project (see task 062 there: "first Development-agent invocation wrongly skipped `docs/designs/`, missing its separate mandatory Design Sequence Diagram requirement") — two occurrences is a real pattern, not a one-off.
 
 Root-caused to two distinct issues in `installer/design.go`:
 
@@ -40,7 +43,7 @@ TBD — sketch, not committed:
 
 1. Fix 1: change the layer-mismatch condition at `design.go:787` as described above. Add a regression test: a `functional` spec whose `## Design References` links both a `system-sequence` design and a `design-sequence` design passes `specDesignReady`; a spec linking a design from an unrelated third layer (e.g. `infrastructure`) still correctly fails.
 2. Fix 2: add the new grounding check inside (or alongside) `collectActiveSpecDesignDiagnostics`, scoped to `functional`-layer, `status >= implemented` specs. Reuse the existing Design-References-link-parsing logic already in `specDesignReady` rather than duplicating it — consider extracting that parsing into a shared helper both functions call. Add regression tests: an `implemented` functional spec with a valid, `realizes`-linked design-sequence diagram passes; the same spec with no design-sequence diagram at all fails with the new `DESIGN-ARTIFACT-MISSING` message; a still-`draft` functional spec with no design-sequence diagram does **not** fail (the requirement only applies once implementation has actually happened).
-3. Re-verify the two currently-dormant real-world cases this task references (`price-override.md`/`settings.md` in the downstream `iodis-crm-poc` project, or an equivalent local fixture) both pass cleanly under both fixes together, not just individually.
+3. Re-verify the two currently-dormant real-world cases this task references (`price-override.md`/`settings.md` in the downstream project, or an equivalent local fixture) both pass cleanly under both fixes together, not just individually.
 4. Update any doc/help text describing `smaqit design validate`'s general-sweep scope to mention the new grounding check.
 
 ## Known Issues Triage
@@ -80,6 +83,6 @@ TBD — sketch, not committed:
 
 ## Notes
 
-Found live in `iodis-crm-poc` (downstream project) during that project's task 076 (Phase 2/Development of a `smaqit.feature-new` cycle, 2026-08-18) — an orchestrating session implemented the feature's code directly rather than invoking `/smaqit.development`, and neither `smaqit plan --phase=develop` nor `smaqit design validate` (scoped or general) ever signaled the missing Design Sequence Diagram until a human reviewer asked "shouldn't the development [phase] generate designs?" The diagrams were authored retroactively in that same session and both fixes below were needed just to get them to validate cleanly — the layer-mismatch bug (Issue 2) was hit immediately upon linking the new design-sequence diagram from the Functional spec's Design References, exactly as this task predicts it will eventually hit `price-override.md`/`settings.md` too once their own unrelated participant-naming issue is fixed. That "second bug currently masked by a first, unrelated bug" relationship is real and independently reproducible — not speculative.
+Found live in downstream project during that project's task 076 (Phase 2/Development of a `smaqit.feature-new` cycle, 2026-08-18) — an orchestrating session implemented the feature's code directly rather than invoking `/smaqit.development`, and neither `smaqit plan --phase=develop` nor `smaqit design validate` (scoped or general) ever signaled the missing Design Sequence Diagram until a human reviewer asked "shouldn't the development [phase] generate designs?" The diagrams were authored retroactively in that same session and both fixes below were needed just to get them to validate cleanly — the layer-mismatch bug (Issue 2) was hit immediately upon linking the new design-sequence diagram from the Functional spec's Design References, exactly as this task predicts it will eventually hit `price-override.md`/`settings.md` too once their own unrelated participant-naming issue is fixed. That "second bug currently masked by a first, unrelated bug" relationship is real and independently reproducible — not speculative.
 
 This is the same *category* of gap as task 109 (a design-related gate with real, observed downstream impact, found live rather than hypothesized) — recommend similar priority.

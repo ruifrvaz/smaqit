@@ -658,7 +658,7 @@ visual_validation:
 // arrow per operation, each optionally followed by a `' impl:` citation
 // (citations[i] == "" omits the citation for that operation).
 func validDesignSequenceSource(sourceHash, imageHash, realizes string, operations, citations []string) string {
-	lines := []string{`participant "OrderHandler" as Handler`, `participant "OrderService" as Service`}
+	lines := []string{`participant "OrderHandler" as Handler`, `participant "OrderService" as Service`, `hide footbox`}
 	for i, op := range operations {
 		lines = append(lines, fmt.Sprintf("Handler -> Service: %s", op))
 		if i < len(citations) && citations[i] != "" {
@@ -799,6 +799,31 @@ func TestValidateDesignSequenceCompletenessRejectsMissingOperations(t *testing.T
 	}
 	if err := validateDesignSequenceCompleteness(d); err != nil {
 		t.Fatalf("expected full operation coverage to pass, got %v", err)
+	}
+}
+
+// TestDesignSequenceRequiresFootboxHidden guards against the duplicated
+// actor/participant boxes PlantUML renders at the bottom of a sequence
+// diagram by default: design-sequence diagrams have no full black-box
+// profile like system-sequence (they legitimately declare multiple internal
+// participants), but must still suppress the footbox explicitly.
+func TestDesignSequenceRequiresFootboxHidden(t *testing.T) {
+	root := designTestProject(t)
+	designPath := filepath.Join(root, "docs", "designs", "design-sequence", "dsg-dsd-order-design-sequence.md")
+
+	withFootbox := validDesignSequenceSource(`""`, `""`, "DSG-FUN-ORDER-SYSTEM-SEQUENCE", []string{"CreateOrder"}, nil)
+	withoutFootbox := strings.Replace(withFootbox, "hide footbox\n", "", 1)
+	if withoutFootbox == withFootbox {
+		t.Fatal("test fixture did not contain a removable hide footbox line")
+	}
+	writeTestFile(t, designPath, withoutFootbox)
+	if _, err := parseDesign(designPath); err == nil || !strings.Contains(err.Error(), "hide footbox") {
+		t.Fatalf("expected missing-footbox rejection, got %v", err)
+	}
+
+	writeTestFile(t, designPath, withFootbox)
+	if _, err := parseDesign(designPath); err != nil {
+		t.Fatalf("expected hide footbox to satisfy the requirement, got %v", err)
 	}
 }
 

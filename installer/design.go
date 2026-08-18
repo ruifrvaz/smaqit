@@ -342,6 +342,9 @@ func validateDesignMetadata(d *designArtifact) error {
 			return err
 		}
 	}
+	if f.DiagramType == "design-sequence" && !footboxHidden(d.Source) {
+		return errors.New("DESIGN-VISUAL-INVALID: design-sequence diagrams must include `hide footbox`")
+	}
 	if f.Layer == "design-sequence" && f.Realizes == "" {
 		return errors.New("DESIGN-VISUAL-INVALID: design-sequence designs must set realizes to their paired system-sequence design id")
 	}
@@ -489,6 +492,22 @@ func stripNonStructuralPlantUML(source string) []string {
 		kept = append(kept, line)
 	}
 	return kept
+}
+
+// footboxHidden reports whether a diagram's structural PlantUML lines
+// include `hide footbox`, the directive suppressing PlantUML's default
+// duplicated actor/participant boxes at the bottom of a sequence diagram
+// render. system-sequence tracks this inline as part of its fuller black-box
+// profile (validateSystemSequenceProfile); design-sequence diagrams — which
+// have no such profile, since they legitimately declare multiple internal
+// participants — use this standalone check instead.
+func footboxHidden(source string) bool {
+	for _, line := range stripNonStructuralPlantUML(source) {
+		if strings.Join(strings.Fields(strings.ToLower(line)), " ") == "hide footbox" {
+			return true
+		}
+	}
+	return false
 }
 
 // validateSystemSequenceProfile enforces the black-box System Sequence

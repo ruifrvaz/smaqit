@@ -449,6 +449,10 @@ Same required fields as a Design Artifact (`id`, `status`, `created`, `layer: de
 
 `specifications` points at the same Functional spec the paired `system-sequence` design links; `requirements` reuses the same `FUN-*` requirement IDs.
 
+### Footbox Suppression
+
+A Design Sequence Diagram's PlantUML source MUST include `hide footbox`. PlantUML otherwise duplicates every declared participant box at the bottom of the render — unlike `system-sequence`, a design-sequence diagram has no full black-box profile (it legitimately declares multiple internal collaborators), so this is checked as its own standalone structural requirement rather than folded into a broader profile. Missing it reports `DESIGN-VISUAL-INVALID: design-sequence diagrams must include \`hide footbox\``.
+
 ### Grounding and Completeness
 
 Two checks run inside `smaqit design attest` before it will stamp a passing attestation — attestation is earned, not merely ordered correctly by the caller:

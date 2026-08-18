@@ -1,8 +1,9 @@
 ---
-status: In Progress
+status: PR Open
 created: "2026-08-18"
 mode: Assisted
 started: "2026-08-18"
+pr: 84
 ---
 
 # Design Sequence Diagram Has No Deterministic Enforcement, and a Layer-Mismatch Bug Rejects the Established Convention That Would Link One
@@ -54,25 +55,32 @@ TBD — sketch, not committed:
 
 ## Acceptance Criteria
 
-- [ ] `specDesignReady` no longer rejects a `business`/`functional` spec's `## Design References` section solely because one of its links is a `design-sequence`-layer design
-- [ ] `smaqit design validate` (general sweep) reports `DESIGN-ARTIFACT-MISSING: implemented spec has no grounding design-sequence diagram...` for a `functional` spec at `status: implemented`+ that has no linked, `realizes`-matched, valid `design-sequence` design
-- [ ] A still-`draft` functional spec is never blocked by the new check — it only applies once a spec has moved past `draft`
-- [ ] Regression tests cover both fixes independently and together
-- [ ] The two real, currently-dormant downstream cases (`price-override.md`/`settings.md`-shaped Design References) are confirmed to pass cleanly
+- [x] `specDesignReady` no longer rejects a `business`/`functional` spec's `## Design References` section solely because one of its links is a `design-sequence`-layer design
+- [x] `smaqit design validate` (general sweep) reports `DESIGN-ARTIFACT-MISSING: implemented spec has no grounding design-sequence diagram...` for a `functional` spec at `status: implemented`+ that has no linked, `realizes`-matched, valid `design-sequence` design
+- [x] A still-`draft` functional spec is never blocked by the new check — it only applies once a spec has moved past `draft`
+- [x] Regression tests cover both fixes independently and together
+- [x] The two real, currently-dormant downstream cases (`price-override.md`/`settings.md`-shaped Design References) are confirmed to pass cleanly (via an equivalent local fixture — the real downstream files aren't in this repo)
 
 ## Findings
 
 **Implementation approach:**
-- TBD
+- Fix 1 (`design.go:~786`): split the per-link loop's single `d.Front.Layer != layer` rejection into `sameLayer := d.Front.Layer == layer` plus a rejection only when `!sameLayer && d.Front.Layer != "design-sequence"`. `seenPair` (the spec's own-layer design-pair requirement) is now set only when `sameLayer`, so a `design-sequence` companion link stops being an outright rejection without starting to satisfy the own-layer requirement by itself — exactly as specified.
+- Extracted the existing Design-References-section parsing (marker lookup, section slicing, markdown-link regex, `.md` filtering, `resolvedProjectPath`/`parseDesign` per link) out of `specDesignReady` into a new shared helper, `designReferenceLinks(specPath) (root string, designs []*designArtifact, sectionFound, anyLinkFound bool, err error)`. `sectionFound`/`anyLinkFound` preserve the two distinct pre-existing "no Design References section" vs "no linked design" error messages that a single nil-slice return would have collapsed. `specDesignReady` now calls this helper instead of duplicating the parsing.
+- Fix 2: added `functionalGroundingDiagnostics(specPath string, links []*designArtifact) []string`, called from `collectActiveSpecDesignDiagnostics` only when `layer == "functional" && !isCycleRelevant(front.Status)` (i.e. status is `implemented`/`deployed`/`validated`, reusing the existing `isCycleRelevant` predicate from task 109 rather than a new rank comparison). For every `functional`/`system-sequence` design among the spec's links, it looks for a `design-sequence` link whose `Realizes` field names that system-sequence design's `ID`; missing → `DESIGN-ARTIFACT-MISSING: implemented spec has no grounding design-sequence diagram for <id> (see smaqit.feature-new Development phase requirement)`; found but invalid → the underlying `validateDesignArtifact` error. One diagnostic line per unmatched system-sequence design, so a multi-actor-flow spec gets a precise message per missing pairing rather than one bundled line.
+- Reused the existing Node-free attestable-fixture pattern (`writeAttestableDesign`, `minimalValidPNG`, `hashBytes`) already established in the design-sequence grounding/completeness tests, plus a new parameterized-status variant (`functionalSystemSequenceSourceWithStatus` / `writeAttestableFunctionalDesign`) so a system-sequence design's lifecycle rank could be kept aligned with its spec's rank as the spec moves `draft` → `implemented` in the same test, without needing Node/MCP rendering.
+- Added a doc pass in `framework/ARTIFACTS.md`: a note on the two-link convention under "Reference Rules", and a new "Existence Enforcement" subsection under "Design Sequence Diagrams" describing the general-sweep grounding check, why the phase-readiness gate can't do this instead, and the explicit no-grandfathering breaking-change behavior.
 
 **Decisions made:**
-- TBD
+- Did not touch `smaqit plan`/`getPhaseDesignGateSpecs`/`validatePhaseDesignReadiness` at all, per the task's own Fix 2 design decision — confirmed live that `isCycleRelevant`'s draft/failed scoping applies identically across `develop`/`deploy`/`validate` phases (`spec.go`), so no phase-readiness gate invocation could structurally ever see a post-implementation artifact.
+- Did not modify `validateDesignSequenceGrounding`/`validateDesignSequenceCompleteness` — confirmed they only run inside `attestDesign` (gating the "passed" stamp), and `validateDesignArtifact`/the general sweep re-checks freshness via the stored attestation status + hash match rather than re-running those scans — exactly the "already working as intended once a diagram exists" behavior the task said not to touch.
+- Chose one diagnostic per unmatched system-sequence design (rather than one bundled message per spec) for clearer multi-actor-flow signal; not explicitly specified by the task, but consistent with task 109's aggregate-reporting precedent.
 
 **Blockers encountered:**
-- TBD
+- Task 111's own file used the pre-frontmatter `**Status:**` header format (as does every task file in this repo, including all of last session's completed tasks) while the `task-start` lifecycle resolver now requires YAML frontmatter — a `smaqit-extensions` tooling change the `.smaqit/tasks/` corpus hasn't been migrated to. Converted just this task's header to the current template's frontmatter shape to unblock `task-start`; did not migrate any other task file.
+- `smaqit.project-research`'s `task-map.sh status` has no fingerprint to compare for a legacy-format task (`task-context.sh` only emits a `fingerprint` field on the structured/non-legacy path), so it always reports `missing` for this repo's current task files — matches the pre-existing task 107/109 map blocks (also fingerprint-less, prose-only "no task-layer tools" shape), so followed that established precedent rather than inventing a new one.
 
 **Follow-up identified:**
-- TBD
+- None within this task's scope. (A prior turn identified a related but explicitly out-of-scope idea — stickier `smaqit-extensions`-side gate enforcement so a bypassed `smaqit.feature-new`/`smaqit.new-greenfield-project` gate step can't silently defer detection to the next feature cycle — the user asked not to plan or file that as a follow-up.)
 
 ## Files to Create / Modify
 

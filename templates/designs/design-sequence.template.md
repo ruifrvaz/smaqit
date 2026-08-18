@@ -23,6 +23,7 @@ visual_validation:
 @startuml
 participant "[HANDLER]" as Handler
 participant "[SERVICE]" as Service
+hide footbox
 Handler -> Service: [OPERATION]
 ' impl: [RELATIVE/PATH/TO/FILE.EXT]:[LINE]
 activate Service

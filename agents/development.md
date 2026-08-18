@@ -41,6 +41,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Development report MUST be written to `.smaqit/reports/development-phase-report-YYYY-MM-DD.md` and document build/test/run outcomes
 - Development report MUST document the output of `smaqit plan --phase=develop` command execution
 - Each Design Sequence Diagram MUST cite the real code it represents with `' impl: <path>:<line>` PlantUML comments and MUST pass `smaqit design attest` (which enforces grounding and operation completeness against the paired `system-sequence` design) before phase completion
+- Each Design Sequence Diagram MUST include `hide footbox` — PlantUML otherwise duplicates every participant box at the bottom of the render
 
 ## Directives
 

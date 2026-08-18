@@ -658,7 +658,7 @@ visual_validation:
 // arrow per operation, each optionally followed by a `' impl:` citation
 // (citations[i] == "" omits the citation for that operation).
 func validDesignSequenceSource(sourceHash, imageHash, realizes string, operations, citations []string) string {
-	lines := []string{`participant "OrderHandler" as Handler`, `participant "OrderService" as Service`}
+	lines := []string{`participant "OrderHandler" as Handler`, `participant "OrderService" as Service`, `hide footbox`}
 	for i, op := range operations {
 		lines = append(lines, fmt.Sprintf("Handler -> Service: %s", op))
 		if i < len(citations) && citations[i] != "" {
@@ -802,6 +802,31 @@ func TestValidateDesignSequenceCompletenessRejectsMissingOperations(t *testing.T
 	}
 }
 
+// TestDesignSequenceRequiresFootboxHidden guards against the duplicated
+// actor/participant boxes PlantUML renders at the bottom of a sequence
+// diagram by default: design-sequence diagrams have no full black-box
+// profile like system-sequence (they legitimately declare multiple internal
+// participants), but must still suppress the footbox explicitly.
+func TestDesignSequenceRequiresFootboxHidden(t *testing.T) {
+	root := designTestProject(t)
+	designPath := filepath.Join(root, "docs", "designs", "design-sequence", "dsg-dsd-order-design-sequence.md")
+
+	withFootbox := validDesignSequenceSource(`""`, `""`, "DSG-FUN-ORDER-SYSTEM-SEQUENCE", []string{"CreateOrder"}, nil)
+	withoutFootbox := strings.Replace(withFootbox, "hide footbox\n", "", 1)
+	if withoutFootbox == withFootbox {
+		t.Fatal("test fixture did not contain a removable hide footbox line")
+	}
+	writeTestFile(t, designPath, withoutFootbox)
+	if _, err := parseDesign(designPath); err == nil || !strings.Contains(err.Error(), "hide footbox") {
+		t.Fatalf("expected missing-footbox rejection, got %v", err)
+	}
+
+	writeTestFile(t, designPath, withFootbox)
+	if _, err := parseDesign(designPath); err != nil {
+		t.Fatalf("expected hide footbox to satisfy the requirement, got %v", err)
+	}
+}
+
 func TestAttestDesignSequenceEnforcesGroundingAndCompleteness(t *testing.T) {
 	root := designTestProject(t)
 	srcPath := filepath.Join(root, "src", "order_service.go")
@@ -886,6 +911,235 @@ created: 2026-08-07
 	}
 	if err := validateDesigns(dsdPath); err != nil {
 		t.Fatalf("validate DSD: %v", err)
+	}
+}
+
+// functionalSystemSequenceSourceWithStatus is validSystemSequenceSource with
+// a parameterized status, so a test can keep a system-sequence design's rank
+// aligned with its spec's rank as the spec moves draft -> implemented (the
+// least-advanced-linked-spec rule in validateDesignReferences requires the
+// two to match exactly).
+func functionalSystemSequenceSourceWithStatus(sourceHash, imageHash, status string, operations []string) string {
+	lines := []string{`actor Customer`, `participant "System" as System`, `hide footbox`}
+	for _, op := range operations {
+		lines = append(lines, fmt.Sprintf("Customer -> System: %s", op))
+	}
+	return fmt.Sprintf(`---
+id: DSG-FUN-ORDER-SYSTEM-SEQUENCE
+status: %s
+created: 2026-08-07
+layer: functional
+diagram_type: system-sequence
+notation: plantuml
+specifications:
+  - ../../../specs/functional/order.md
+requirements:
+  - FUN-ORDER-001
+source_sha256: %s
+image_sha256: %s
+visual_validation:
+  status: pending
+  validated_at: null
+  source_sha256: null
+  image_sha256: null
+---
+
+`+"```plantuml"+`
+@startuml
+%s
+@enduml
+`+"```"+`
+`, status, sourceHash, imageHash, strings.Join(lines, "\n"))
+}
+
+// writeAttestableFunctionalDesign writes and attests (Node-free) a
+// system-sequence design at the given status, mirroring writeAttestableDesign
+// for the design-sequence layer.
+func writeAttestableFunctionalDesign(t *testing.T, designPath, status string, operations []string) {
+	t.Helper()
+	imageBytes := minimalValidPNG(t)
+	imageHash := hashBytes(imageBytes)
+	if err := os.WriteFile(strings.TrimSuffix(designPath, ".md")+".png", imageBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	writeTestFile(t, designPath, functionalSystemSequenceSourceWithStatus("PLACEHOLDER", imageHash, status, operations))
+	d, err := parseDesign(designPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeTestFile(t, designPath, functionalSystemSequenceSourceWithStatus(d.SourceHash, imageHash, status, operations))
+	if err := attestDesign(designPath); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestSpecDesignReadyAcceptsDesignSequenceCompanionLink is task 111's Fix 1
+// regression: a functional spec's Design References section may legitimately
+// link both its own-layer system-sequence design and a design-sequence
+// companion diagram (the established two-link convention). The companion
+// link must not be treated as an outright layer-mismatch rejection.
+func TestSpecDesignReadyAcceptsDesignSequenceCompanionLink(t *testing.T) {
+	root := designTestProject(t)
+	srcPath := filepath.Join(root, "src", "order_service.go")
+	writeTestFile(t, srcPath, "package order\n\nfunc CreateOrder() {}\n")
+	specPath := filepath.Join(root, "specs", "functional", "order.md")
+	ssdPath := filepath.Join(root, "docs", "designs", "functional", "dsg-fun-order-system-sequence.md")
+	dsdPath := filepath.Join(root, "docs", "designs", "design-sequence", "dsg-dsd-order-design-sequence.md")
+
+	writeAttestableFunctionalDesign(t, ssdPath, "implemented", []string{"CreateOrder"})
+	writeAttestableDesign(t, root, dsdPath, "DSG-FUN-ORDER-SYSTEM-SEQUENCE", []string{"CreateOrder"}, []string{"src/order_service.go:3"})
+	if err := attestDesign(dsdPath); err != nil {
+		t.Fatalf("attest DSD: %v", err)
+	}
+	writeTestFile(t, specPath, `---
+id: FUN-ORDER
+status: implemented
+created: 2026-08-07
+---
+
+# FUN-ORDER: Order Processing
+
+## Design References
+
+- [DSG-FUN-ORDER-SYSTEM-SEQUENCE](../../docs/designs/functional/dsg-fun-order-system-sequence.md) · [Image](../../docs/designs/functional/dsg-fun-order-system-sequence.png)
+- [DSG-DSD-ORDER-DESIGN-SEQUENCE](../../docs/designs/design-sequence/dsg-dsd-order-design-sequence.md) · [Image](../../docs/designs/design-sequence/dsg-dsd-order-design-sequence.png)
+
+## Acceptance Criteria
+
+- **FUN-ORDER-001**: A customer can create an order.
+`)
+
+	ready, reason := specDesignReady(specPath, "functional")
+	if !ready {
+		t.Fatalf("expected spec linking both its system-sequence design and a design-sequence companion to be ready: %s", reason)
+	}
+}
+
+// TestSpecDesignReadyStillRejectsUnrelatedLayerLink confirms Fix 1 only
+// special-cases design-sequence: a link to a genuinely unrelated third layer
+// (e.g. infrastructure) must still be rejected.
+func TestSpecDesignReadyStillRejectsUnrelatedLayerLink(t *testing.T) {
+	root := designTestProject(t)
+	specPath := filepath.Join(root, "specs", "functional", "order.md")
+	ssdPath := filepath.Join(root, "docs", "designs", "functional", "dsg-fun-order-system-sequence.md")
+	infPath := filepath.Join(root, "docs", "designs", "infrastructure", "dsg-inf-order-deployment.md")
+	if err := os.MkdirAll(filepath.Dir(infPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	writeAttestableFunctionalDesign(t, ssdPath, "draft", []string{"CreateOrder"})
+	writeTestFile(t, infPath, `---
+id: DSG-INF-ORDER-DEPLOYMENT
+status: draft
+created: 2026-08-07
+layer: infrastructure
+diagram_type: deployment
+notation: plantuml
+specifications:
+  - ../../../specs/infrastructure/order.md
+requirements:
+  - INF-ORDER-001
+source_sha256: ""
+image_sha256: ""
+visual_validation:
+  status: pending
+  validated_at: null
+  source_sha256: null
+  image_sha256: null
+---
+
+`+"```plantuml"+`
+@startuml
+node Order
+@enduml
+`+"```"+`
+`)
+	writeTestFile(t, specPath, `---
+id: FUN-ORDER
+status: draft
+created: 2026-08-07
+---
+
+# FUN-ORDER: Order Processing
+
+## Design References
+
+- [DSG-FUN-ORDER-SYSTEM-SEQUENCE](../../docs/designs/functional/dsg-fun-order-system-sequence.md) · [Image](../../docs/designs/functional/dsg-fun-order-system-sequence.png)
+- [DSG-INF-ORDER-DEPLOYMENT](../../docs/designs/infrastructure/dsg-inf-order-deployment.md) · [Image](../../docs/designs/infrastructure/dsg-inf-order-deployment.png)
+
+## Acceptance Criteria
+
+- **FUN-ORDER-001**: A customer can create an order.
+`)
+
+	ready, reason := specDesignReady(specPath, "functional")
+	if ready || !strings.Contains(reason, "linked design belongs to another layer") {
+		t.Fatalf("expected unrelated third-layer link to still be rejected, got ready=%v reason=%q", ready, reason)
+	}
+}
+
+// TestCollectActiveSpecDesignDiagnosticsRequiresGroundingOnceImplemented is
+// task 111's Fix 2 regression, exercised through the same general sweep
+// smaqit design validate uses: a still-draft functional spec is never
+// blocked by the new grounding requirement; once implemented, a missing
+// design-sequence diagram is reported; and once one is authored, attested,
+// and linked (the two-link convention Fix 1 permits), the spec passes
+// cleanly — matching the price-override.md/settings.md-shaped real cases.
+func TestCollectActiveSpecDesignDiagnosticsRequiresGroundingOnceImplemented(t *testing.T) {
+	root := designTestProject(t)
+	srcPath := filepath.Join(root, "src", "order_service.go")
+	writeTestFile(t, srcPath, "package order\n\nfunc CreateOrder() {}\n")
+	specPath := filepath.Join(root, "specs", "functional", "order.md")
+	ssdPath := filepath.Join(root, "docs", "designs", "functional", "dsg-fun-order-system-sequence.md")
+	dsdPath := filepath.Join(root, "docs", "designs", "design-sequence", "dsg-dsd-order-design-sequence.md")
+
+	ssdOnlyLink := "- [DSG-FUN-ORDER-SYSTEM-SEQUENCE](../../docs/designs/functional/dsg-fun-order-system-sequence.md) · [Image](../../docs/designs/functional/dsg-fun-order-system-sequence.png)"
+	bothLinks := ssdOnlyLink + "\n" +
+		"- [DSG-DSD-ORDER-DESIGN-SEQUENCE](../../docs/designs/design-sequence/dsg-dsd-order-design-sequence.md) · [Image](../../docs/designs/design-sequence/dsg-dsd-order-design-sequence.png)"
+	specSource := func(status, links string) string {
+		return fmt.Sprintf(`---
+id: FUN-ORDER
+status: %s
+created: 2026-08-07
+---
+
+# FUN-ORDER: Order Processing
+
+## Design References
+
+%s
+
+## Acceptance Criteria
+
+- **FUN-ORDER-001**: A customer can create an order.
+`, status, links)
+	}
+
+	// Still draft, no design-sequence diagram at all: the grounding
+	// requirement must not apply yet.
+	writeAttestableFunctionalDesign(t, ssdPath, "draft", []string{"CreateOrder"})
+	writeTestFile(t, specPath, specSource("draft", ssdOnlyLink))
+	if diagnostics := collectActiveSpecDesignDiagnostics(root); len(diagnostics) != 0 {
+		t.Fatalf("expected a still-draft spec to be exempt from the grounding check, got %v", diagnostics)
+	}
+
+	// Implemented, still no design-sequence diagram: must now be reported.
+	writeAttestableFunctionalDesign(t, ssdPath, "implemented", []string{"CreateOrder"})
+	writeTestFile(t, specPath, specSource("implemented", ssdOnlyLink))
+	diagnostics := collectActiveSpecDesignDiagnostics(root)
+	if len(diagnostics) != 1 || !strings.Contains(diagnostics[0], "DESIGN-ARTIFACT-MISSING: implemented spec has no grounding design-sequence diagram for DSG-FUN-ORDER-SYSTEM-SEQUENCE") {
+		t.Fatalf("expected missing-grounding diagnostic naming the system-sequence design, got %v", diagnostics)
+	}
+
+	// Author, attest, and link the grounding design-sequence diagram: the
+	// two-link convention must now pass cleanly under both fixes together.
+	writeAttestableDesign(t, root, dsdPath, "DSG-FUN-ORDER-SYSTEM-SEQUENCE", []string{"CreateOrder"}, []string{"src/order_service.go:3"})
+	if err := attestDesign(dsdPath); err != nil {
+		t.Fatalf("attest DSD: %v", err)
+	}
+	writeTestFile(t, specPath, specSource("implemented", bothLinks))
+	if diagnostics := collectActiveSpecDesignDiagnostics(root); len(diagnostics) != 0 {
+		t.Fatalf("expected fully grounded implemented spec to pass cleanly, got %v", diagnostics)
 	}
 }
 

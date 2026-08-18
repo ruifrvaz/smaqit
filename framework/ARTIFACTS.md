@@ -402,6 +402,8 @@ Every active spec MUST contain `## Design References` with links to the canonica
 
 All reference paths MUST stay within the project, resolve without symlink/path traversal escape, and match the declared layer. Coverage designs visualize existing traceability but MUST NOT create requirements or duplicate the Coverage Map.
 
+A Functional spec's `## Design References` section MAY additionally link its paired Design Sequence Diagram alongside its own-layer `system-sequence` design — the established two-link convention. That companion link does not count toward the spec's own-layer design-pair requirement, but it is not a layer mismatch either.
+
 ### Validation Gates
 
 1. **Structural:** schema, ID, layer/profile, one-block/no-prose content, safe paths, bidirectional references, requirement existence, PNG signature/dimensions, opaque canvas, hashes, lifecycle, and minimum coverage.
@@ -447,6 +449,10 @@ Same required fields as a Design Artifact (`id`, `status`, `created`, `layer: de
 
 `specifications` points at the same Functional spec the paired `system-sequence` design links; `requirements` reuses the same `FUN-*` requirement IDs.
 
+### Footbox Suppression
+
+A Design Sequence Diagram's PlantUML source MUST include `hide footbox`. PlantUML otherwise duplicates every declared participant box at the bottom of the render — unlike `system-sequence`, a design-sequence diagram has no full black-box profile (it legitimately declares multiple internal collaborators), so this is checked as its own standalone structural requirement rather than folded into a broader profile. Missing it reports `DESIGN-VISUAL-INVALID: design-sequence diagrams must include \`hide footbox\``.
+
 ### Grounding and Completeness
 
 Two checks run inside `smaqit design attest` before it will stamp a passing attestation — attestation is earned, not merely ordered correctly by the caller:
@@ -457,6 +463,12 @@ Two checks run inside `smaqit design attest` before it will stamp a passing atte
 Both are source-level heuristic scans over the PlantUML text — not a full PlantUML parser and not semantic verification of correctness — the same lint-style tradeoff already accepted for `system-sequence`'s own structural validation. An author (human or agent) could still mislabel or omit a citation to dodge the check; the goal is catching honest drift, not adversarial-proofing the format.
 
 A diagram is a complement to code review, not a substitute for it — especially for security-sensitive or edge-case-heavy code, where a diagram is necessarily a lossy abstraction.
+
+### Existence Enforcement
+
+The phase-readiness gate behind `smaqit plan --phase=develop|deploy|validate` cannot enforce this artifact — it is scoped to specs still in the current incremental cycle (`draft`/`failed`), and a Design Sequence Diagram structurally cannot exist before a spec passes that point. Enforcement instead lives in `smaqit design validate`'s general sweep: for every Functional spec at `status: implemented` or beyond, each linked `system-sequence` design MUST have a companion Design Sequence Diagram in the same `## Design References` section whose `realizes` field names it, and that diagram MUST itself pass validation. A still-`draft` Functional spec is exempt — the requirement applies only once implementation has actually happened. A missing or invalid grounding diagram reports `DESIGN-ARTIFACT-MISSING`.
+
+This is a breaking change with no grandfathering: an existing project's `functional` specs that reached `implemented` before this check existed, without a Design Sequence Diagram, fail `smaqit design validate` immediately on adoption. Fix forward by authoring the missing diagram — there is no legacy exemption, version gate, or downgrade-to-warning path.
 
 ### Design Sequence Lifecycle
 

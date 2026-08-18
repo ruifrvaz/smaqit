@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Design References layer-mismatch rejection** — `specDesignReady` no longer rejects a `business`/`functional` spec's `## Design References` section solely because one of its links is a `design-sequence`-layer companion diagram; the established two-link convention (a spec linking both its own `system-sequence` design and its grounding Design Sequence Diagram) is now accepted.
+- **Design Sequence Diagrams missing `hide footbox`** — the duplicated actor/participant boxes PlantUML renders at the bottom of a sequence diagram by default were never suppressed for Design Sequence Diagrams (only `system-sequence` diagrams had this check). Now enforced as its own structural requirement; the design-sequence template and Development agent directive were updated accordingly.
 
 ### Chore
 - **Post-task-109 housekeeping** — reconciled task backlog, session history, and compendium documentation; removed deprecated instruction text from `AGENTS.md` and stray dogfooding skill/agent mirrors under `.agents/`, `.claude/`, `.codex/`, `.github/`; documented the no-AI-authorship-footer PR convention in `CLAUDE.md`.

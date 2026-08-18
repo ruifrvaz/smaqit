@@ -60,6 +60,7 @@ TBD — sketch, not committed:
 - [x] A still-`draft` functional spec is never blocked by the new check — it only applies once a spec has moved past `draft`
 - [x] Regression tests cover both fixes independently and together
 - [x] The two real, currently-dormant downstream cases (`price-override.md`/`settings.md`-shaped Design References) are confirmed to pass cleanly (via an equivalent local fixture — the real downstream files aren't in this repo)
+- [x] Design Sequence Diagrams require `hide footbox` — folded in mid-PR after the user reported the rendered footbox duplication persisting in the released v3.1.1 (see Notes)
 
 ## Findings
 
@@ -69,6 +70,7 @@ TBD — sketch, not committed:
 - Fix 2: added `functionalGroundingDiagnostics(specPath string, links []*designArtifact) []string`, called from `collectActiveSpecDesignDiagnostics` only when `layer == "functional" && !isCycleRelevant(front.Status)` (i.e. status is `implemented`/`deployed`/`validated`, reusing the existing `isCycleRelevant` predicate from task 109 rather than a new rank comparison). For every `functional`/`system-sequence` design among the spec's links, it looks for a `design-sequence` link whose `Realizes` field names that system-sequence design's `ID`; missing → `DESIGN-ARTIFACT-MISSING: implemented spec has no grounding design-sequence diagram for <id> (see smaqit.feature-new Development phase requirement)`; found but invalid → the underlying `validateDesignArtifact` error. One diagnostic line per unmatched system-sequence design, so a multi-actor-flow spec gets a precise message per missing pairing rather than one bundled line.
 - Reused the existing Node-free attestable-fixture pattern (`writeAttestableDesign`, `minimalValidPNG`, `hashBytes`) already established in the design-sequence grounding/completeness tests, plus a new parameterized-status variant (`functionalSystemSequenceSourceWithStatus` / `writeAttestableFunctionalDesign`) so a system-sequence design's lifecycle rank could be kept aligned with its spec's rank as the spec moves `draft` → `implemented` in the same test, without needing Node/MCP rendering.
 - Added a doc pass in `framework/ARTIFACTS.md`: a note on the two-link convention under "Reference Rules", and a new "Existence Enforcement" subsection under "Design Sequence Diagrams" describing the general-sweep grounding check, why the phase-readiness gate can't do this instead, and the explicit no-grandfathering breaking-change behavior.
+- Folded-in footbox fix: `validateSystemSequenceProfile` (the black-box profile for `system-sequence`) enforces `hide footbox`, but it's gated to `diagram_type == "system-sequence"` and never runs for `design-sequence` — confirmed via a targeted trace (call sites, template, agent directive, test fixtures, task 104/108 scope, CHANGELOG v2.3.0/v3.1.0 entries) that this was never in scope for the earlier system-sequence-only footbox work, not a regression. Added a standalone `footboxHidden(source string) bool` helper (reusing `stripNonStructuralPlantUML`) and a new gate in `validateDesignMetadata` for `diagram_type == "design-sequence"`, deliberately not folded into `validateSystemSequenceProfile` itself since that profile's one-actor/one-System-participant rules don't apply to a design-sequence diagram's legitimately multi-participant internal collaboration. Updated `templates/designs/design-sequence.template.md` and `agents/development.md`'s MUST-directive list so newly generated diagrams include it; updated the shared `validDesignSequenceSource` test fixture (all design-sequence tests, old and new, depend on it) plus a dedicated regression test.
 
 **Decisions made:**
 - Did not touch `smaqit plan`/`getPhaseDesignGateSpecs`/`validatePhaseDesignReadiness` at all, per the task's own Fix 2 design decision — confirmed live that `isCycleRelevant`'s draft/failed scoping applies identically across `develop`/`deploy`/`validate` phases (`spec.go`), so no phase-readiness gate invocation could structurally ever see a post-implementation artifact.
@@ -86,11 +88,16 @@ TBD — sketch, not committed:
 
 | File | Action |
 |------|--------|
-| `installer/design.go` | Modify — `specDesignReady` (layer-mismatch fix), `collectActiveSpecDesignDiagnostics` (new grounding check) |
-| `installer/design_test.go` | Modify — regression coverage for both fixes |
+| `installer/design.go` | Modify — `specDesignReady` (layer-mismatch fix), `collectActiveSpecDesignDiagnostics` (new grounding check), `footboxHidden` + `validateDesignMetadata` gate (footbox fix) |
+| `installer/design_test.go` | Modify — regression coverage for all three fixes |
+| `templates/designs/design-sequence.template.md` | Modify — add `hide footbox` to the example |
+| `agents/development.md` | Modify — add footbox MUST directive |
+| `CHANGELOG.md` | Modify — `v3.2.0` entry, promoted on the PR branch |
 
 ## Notes
 
 Found live in downstream project during that project's task 076 (Phase 2/Development of a `smaqit.feature-new` cycle, 2026-08-18) — an orchestrating session implemented the feature's code directly rather than invoking `/smaqit.development`, and neither `smaqit plan --phase=develop` nor `smaqit design validate` (scoped or general) ever signaled the missing Design Sequence Diagram until a human reviewer asked "shouldn't the development [phase] generate designs?" The diagrams were authored retroactively in that same session and both fixes below were needed just to get them to validate cleanly — the layer-mismatch bug (Issue 2) was hit immediately upon linking the new design-sequence diagram from the Functional spec's Design References, exactly as this task predicts it will eventually hit `price-override.md`/`settings.md` too once their own unrelated participant-naming issue is fixed. That "second bug currently masked by a first, unrelated bug" relationship is real and independently reproducible — not speculative.
 
 This is the same *category* of gap as task 109 (a design-related gate with real, observed downstream impact, found live rather than hypothesized) — recommend similar priority.
+
+**Footbox fix folded in mid-PR (2026-08-18):** while this task's PR (#84) was open, the user reported that Design Sequence Diagrams in the released v3.1.1 still showed the duplicated actor/participant boxes PlantUML renders at the bottom of a sequence diagram by default (the "footbox"), and believed this had already been resolved. Investigated and confirmed: task 104/108 added `hide footbox` enforcement, but scoped it exclusively to `system-sequence` diagrams (`validateSystemSequenceProfile`, gated on `diagram_type == "system-sequence"`) — `design-sequence` diagrams were never in scope and have no equivalent check anywhere (not in the validator, the template, the agent directive, or the test fixtures). User asked to fold the fix into this PR rather than file it as a separate task, given the PR was already open on the same file. See Findings/Acceptance Criteria/Files above for the fix itself.

@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 111 | Design Sequence Diagram Has No Deterministic Enforcement, and a Layer-Mismatch Bug Rejects the Established Convention That Would Link One | PR Open (#84) | High |
 | 110 | Vault Loader: Wrong Project-Slug Derivation, and Non-Interactive Runs Silently Write Placeholder Secrets | new | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
@@ -15,6 +14,7 @@
 
 | ID | Title |
 |----|-------|
+| 111 | Design Sequence Diagram Has No Deterministic Enforcement, and a Layer-Mismatch Bug Rejects the Established Convention That Would Link One |
 | 109 | Phase Design-Readiness Gate Scans All Active Specs, Not Just the Touched Feature |
 | 106 | Reconcile Python/Tornado Rsync Deployment Skill Into Canonical smaqit |
 | 107 | Merge Copilot/Codex Skills; Canonicalize AGENTS.md |

@@ -1,9 +1,9 @@
 ---
-status: PR Open
+status: Completed
 created: "2026-08-18"
 mode: Assisted
 started: "2026-08-18"
-pr: 84
+completed: "2026-08-18"
 ---
 
 # Design Sequence Diagram Has No Deterministic Enforcement, and a Layer-Mismatch Bug Rejects the Established Convention That Would Link One

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing to add.
+- **Design Sequence Diagram grounding enforcement** (pending v3.2.0 · PR #84) — `smaqit design validate`'s general sweep now requires every `functional` spec at `status: implemented`+ to have a linked, `realizes`-matched, valid Design Sequence Diagram for each of its `system-sequence` designs, reporting `DESIGN-ARTIFACT-MISSING` otherwise. A still-`draft` spec is exempt. Forward-only: existing implemented specs without one now fail immediately, with no legacy exemption.
 
 ### Changed
 - Nothing to add.
@@ -20,13 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing to add.
 
 ### Fixed
-- Nothing to add.
+- **Design References layer-mismatch rejection** (pending v3.2.0 · PR #84) — `specDesignReady` no longer rejects a `business`/`functional` spec's `## Design References` section solely because one of its links is a `design-sequence`-layer companion diagram; the established two-link convention (a spec linking both its own `system-sequence` design and its grounding Design Sequence Diagram) is now accepted.
 
 ### Security
 - Nothing to add.
 
 ### Chore
-- Nothing to add.
+- **Post-task-109 housekeeping** (pending v3.2.0 · PR #84) — reconciled task backlog, session history, and compendium documentation; removed deprecated instruction text from `AGENTS.md` and stray dogfooding skill/agent mirrors under `.agents/`, `.claude/`, `.codex/`, `.github/`; documented the no-AI-authorship-footer PR convention in `CLAUDE.md`.
 
 ## [3.1.1] - 2026-08-14
 

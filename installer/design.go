@@ -743,24 +743,30 @@ func specReferencesDesign(root, specPath string, content []byte, designPath, ima
 	return foundDesign && foundImage
 }
 
-func specDesignReady(specPath, layer string) (bool, string) {
+// designReferenceLinks parses a spec's ## Design References section and
+// resolves every linked Markdown design, shared by specDesignReady and the
+// design-sequence grounding check so both consume identical link parsing.
+// sectionFound distinguishes a missing section from one with no links;
+// anyLinkFound distinguishes zero links from links that were all non-.md
+// (e.g. only the rendered PNG) and therefore never resolved to a design.
+func designReferenceLinks(specPath string) (root string, designs []*designArtifact, sectionFound, anyLinkFound bool, err error) {
 	absSpecPath, err := filepath.Abs(specPath)
 	if err != nil {
-		return false, err.Error()
+		return "", nil, false, false, err
 	}
 	specPath = absSpecPath
-	root, err := findProjectRoot(filepath.Dir(specPath))
+	root, err = findProjectRoot(filepath.Dir(specPath))
 	if err != nil {
-		return false, err.Error()
+		return "", nil, false, false, err
 	}
 	content, err := os.ReadFile(specPath)
 	if err != nil {
-		return false, err.Error()
+		return "", nil, false, false, err
 	}
 	text := strings.ReplaceAll(string(content), "\r\n", "\n")
 	marker := strings.Index(text, "## Design References\n")
 	if marker < 0 {
-		return false, "DESIGN-ARTIFACT-MISSING: no Design References section"
+		return root, nil, false, false, nil
 	}
 	section := text[marker+len("## Design References\n"):]
 	if next := strings.Index(section, "\n## "); next >= 0 {
@@ -768,22 +774,40 @@ func specDesignReady(specPath, layer string) (bool, string) {
 	}
 	links := markdownLink.FindAllStringSubmatch(section, -1)
 	if len(links) == 0 {
-		return false, "DESIGN-ARTIFACT-MISSING: no linked design"
+		return root, nil, true, false, nil
 	}
-	seenPair := false
 	for _, link := range links {
 		if filepath.Ext(link[1]) != ".md" {
 			continue
 		}
 		designPath, err := resolvedProjectPath(root, specPath, link[1])
 		if err != nil {
-			return false, "DESIGN-VISUAL-INVALID: " + err.Error()
+			return root, nil, true, true, fmt.Errorf("DESIGN-VISUAL-INVALID: %w", err)
 		}
 		d, err := parseDesign(designPath)
 		if err != nil {
-			return false, err.Error()
+			return root, nil, true, true, err
 		}
-		if d.Front.Layer != layer {
+		designs = append(designs, d)
+	}
+	return root, designs, true, true, nil
+}
+
+func specDesignReady(specPath, layer string) (bool, string) {
+	_, links, sectionFound, anyLinkFound, err := designReferenceLinks(specPath)
+	if err != nil {
+		return false, err.Error()
+	}
+	if !sectionFound {
+		return false, "DESIGN-ARTIFACT-MISSING: no Design References section"
+	}
+	if !anyLinkFound {
+		return false, "DESIGN-ARTIFACT-MISSING: no linked design"
+	}
+	seenPair := false
+	for _, d := range links {
+		sameLayer := d.Front.Layer == layer
+		if !sameLayer && d.Front.Layer != "design-sequence" {
 			return false, "DESIGN-VISUAL-INVALID: linked design belongs to another layer"
 		}
 		if d.Front.Status == "deprecated" {
@@ -792,12 +816,46 @@ func specDesignReady(specPath, layer string) (bool, string) {
 		if err := validateDesignArtifact(d); err != nil {
 			return false, err.Error()
 		}
-		seenPair = true
+		if sameLayer {
+			seenPair = true
+		}
 	}
 	if !seenPair {
 		return false, "DESIGN-ARTIFACT-MISSING: no canonical Markdown/PNG design pair"
 	}
 	return true, ""
+}
+
+// functionalGroundingDiagnostics requires every system-sequence design a
+// functional spec links to have a companion design-sequence diagram in the
+// same Design References section whose realizes field names it. Scoped to
+// callers that have already confirmed the spec's status is implemented or
+// beyond — a Design Sequence Diagram structurally cannot exist before then.
+func functionalGroundingDiagnostics(specPath string, links []*designArtifact) []string {
+	var systemSequenceIDs []string
+	for _, d := range links {
+		if d.Front.Layer == "functional" && d.Front.DiagramType == "system-sequence" {
+			systemSequenceIDs = append(systemSequenceIDs, d.Front.ID)
+		}
+	}
+	var diagnostics []string
+	for _, ssdID := range systemSequenceIDs {
+		var grounding *designArtifact
+		for _, d := range links {
+			if d.Front.Layer == "design-sequence" && d.Front.Realizes == ssdID {
+				grounding = d
+				break
+			}
+		}
+		if grounding == nil {
+			diagnostics = append(diagnostics, fmt.Sprintf("active specification %s: DESIGN-ARTIFACT-MISSING: implemented spec has no grounding design-sequence diagram for %s (see smaqit.feature-new Development phase requirement)", filepath.Base(specPath), ssdID))
+			continue
+		}
+		if err := validateDesignArtifact(grounding); err != nil {
+			diagnostics = append(diagnostics, fmt.Sprintf("active specification %s: %s", filepath.Base(specPath), err.Error()))
+		}
+	}
+	return diagnostics
 }
 
 func validateDesigns(path string) error {
@@ -891,6 +949,14 @@ func collectActiveSpecDesignDiagnostics(root string) []string {
 			ready, reason := specDesignReady(path, layer)
 			if !ready {
 				diagnostics = append(diagnostics, fmt.Sprintf("active specification %s: %s", filepath.Base(path), reason))
+			}
+			if layer == "functional" && !isCycleRelevant(front.Status) {
+				_, links, _, _, err := designReferenceLinks(path)
+				if err != nil {
+					diagnostics = append(diagnostics, fmt.Sprintf("active specification %s: %s", filepath.Base(path), err.Error()))
+				} else {
+					diagnostics = append(diagnostics, functionalGroundingDiagnostics(path, links)...)
+				}
 			}
 		}
 	}

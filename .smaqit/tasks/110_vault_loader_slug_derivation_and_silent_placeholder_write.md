@@ -1,8 +1,11 @@
-# Vault Loader: Wrong Project-Slug Derivation, and Non-Interactive Runs Silently Write Placeholder Secrets
+---
+status: In Progress
+created: "2026-08-15"
+mode: Assisted
+started: "2026-08-19"
+---
 
-**Status:** Not Started
-**Created:** 2026-08-15
-**Mode:** Assisted
+# Vault Loader: Wrong Project-Slug Derivation, and Non-Interactive Runs Silently Write Placeholder Secrets
 
 ## Description
 
@@ -74,9 +77,24 @@ In a non-interactive shell, this `read` doesn't fail — it returns immediately 
 
 ## Known Issues Triage
 
-**Triaged:** 2026-08-15
-**Tools searched:** HashiCorp Vault
-**Result:** Clear — this is an internal bug in this framework's own script, not a Vault defect.
+**Triaged:** 2026-08-19
+**Tools searched:** HashiCorp Vault (resolved to `hashicorp/vault-guides` — a fuzzy-search mismatch against the tutorial/examples repo, not the main `hashicorp/vault` product repo; recorded as a categorization limitation below, not treated as evidence of Vault-side clearance), OpenAI Codex CLI (`openai/codex`, newly relevant since this plan adds a Codex-driven Bench case)
+**Result:** Advisory — one known, already-mitigated Codex issue; no blockers.
+
+### Advisory Issues
+- [#36570 exec: approvals_reviewer = "auto_review" silently defeats an explicit --sandbox level](https://github.com/openai/codex/issues/36570) — `openai/codex` — opened 2026-08-02 — bug, sandbox, exec, CLI, config. Directly relevant to this task's new Bench case (`codex exec` driven non-interactively). Downgraded from Blocking: already a documented, mitigated known limitation in this framework's own Bench conventions (`smaqit-adk/.smaqit/bench/README.md`'s reusable Codex process-variant block already pins `--sandbox danger-full-access` explicitly rather than relying on defaults) — the planned manifest copies that same block verbatim per Implementation Step 9.
+
+### Historical (Closed)
+- None directly relevant — closed-search results for `openai/codex` were mostly unrelated feature requests/enhancements (headless fork, replay mode, structured metrics) or fixed bugs in unrelated areas (hooks, apply_patch rollout); none concerning `--sandbox`/non-interactive secret-write behavior specifically.
+
+### Unresolvable Tools
+- None
+
+### Omitted Tools
+- None (2 of 5 max repositories used)
+
+### Search Warnings
+- None
 
 ## Acceptance Criteria
 

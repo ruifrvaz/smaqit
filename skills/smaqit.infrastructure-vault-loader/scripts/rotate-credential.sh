@@ -30,6 +30,21 @@ export VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
 SSH_REMOTE_USER="${SSH_REMOTE_USER:-ubuntu}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# shellcheck source=lib-project-slug.sh
+source "${SCRIPT_DIR}/lib-project-slug.sh"
+
+# ── Helper: read a secret without echoing, then export to named variable ──────
+# Usage: read_secret VAR_NAME "Prompt label"
+read_secret() {
+  local _var="$1"
+  local _prompt="$2"
+  local _value
+  IFS= read -rs -p "  ${_prompt}: " _value </dev/tty && echo >&2
+  # Assign to the caller's variable name without eval
+  printf -v "$_var" '%s' "$_value"
+  unset _value
+}
+
 CREDENTIAL_PATH="${1:-}"
 if [ -z "$CREDENTIAL_PATH" ]; then
   echo "Usage: $0 <path>"
@@ -65,24 +80,10 @@ esac
 # ── Legacy scheme: unchanged behavior ───────────────────────────────────────────
 
 if [ "$SCHEME" = "legacy" ]; then
-  INSTRUCTIONS_FILE="AGENTS.md"
-  if [ ! -f "$INSTRUCTIONS_FILE" ]; then
-    INSTRUCTIONS_FILE="CLAUDE.md"
-  fi
-  if [ ! -f "$INSTRUCTIONS_FILE" ]; then
-    INSTRUCTIONS_FILE=".github/copilot-instructions.md"
-  fi
-  if [ ! -f "$INSTRUCTIONS_FILE" ]; then
-    echo "ERROR: Run from repo root (no AGENTS.md, CLAUDE.md, or .github/copilot-instructions.md found)"
-    exit 1
-  fi
-
-  PROJECT_SLUG=$(grep -i "project name" "$INSTRUCTIONS_FILE" | grep -i ": " | head -1 \
-    | sed 's/.*: *//' | sed 's/[^a-zA-Z0-9 -].*$//' \
-    | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -s '-' || true)
+  PROJECT_SLUG=$(derive_project_slug)
 
   if [ -z "$PROJECT_SLUG" ]; then
-    read -r -p "Enter project slug manually: " PROJECT_SLUG
+    read -r -p "Could not derive project slug from git remote or the current directory. Enter manually: " PROJECT_SLUG
   fi
 
   FULL_PATH="secret/${PROJECT_SLUG}/${CREDENTIAL_PATH}"
@@ -136,7 +137,11 @@ if [ "$SCHEME" = "apps" ]; then
     echo "==> Re-running bootstrap against machine '${MACHINE_SLUG}'..."
     bash "${SCRIPT_DIR}/bootstrap-app-to-machine.sh" "$APP_SLUG" "$MACHINE_SLUG"
   else
-    read -s -p "  github_token: " GH_TOKEN && echo
+    read_secret GH_TOKEN "github_token"
+    if [ -z "$GH_TOKEN" ]; then
+      echo "ERROR: github_token is empty — refusing to write a placeholder secret." >&2
+      exit 1
+    fi
     vault kv put "$FULL_PATH" token="$GH_TOKEN" > /dev/null
     unset GH_TOKEN
     echo "    DONE"
@@ -166,14 +171,22 @@ if [ "$CRED_TYPE" = "cyso" ] || [ "$CRED_TYPE" = "tfstate" ]; then
 
   if [ "$CRED_TYPE" = "cyso" ]; then
     read -r -p "  app_credential_id: " CYSO_ID
-    read -rs -p "  app_credential_secret: " CYSO_SECRET && echo
+    read_secret CYSO_SECRET "app_credential_secret"
+    if [ -z "$CYSO_ID" ] || [ -z "$CYSO_SECRET" ]; then
+      echo "ERROR: app_credential_id or app_credential_secret is empty — refusing to write a placeholder secret." >&2
+      exit 1
+    fi
     vault kv put "$FULL_PATH" \
       app_credential_id="$CYSO_ID" \
       app_credential_secret="$CYSO_SECRET" > /dev/null
     unset CYSO_ID CYSO_SECRET
   else
     read -r -p "  access_key: " TF_KEY
-    read -rs -p "  secret_key: " TF_SECRET && echo
+    read_secret TF_SECRET "secret_key"
+    if [ -z "$TF_KEY" ] || [ -z "$TF_SECRET" ]; then
+      echo "ERROR: access_key or secret_key is empty — refusing to write a placeholder secret." >&2
+      exit 1
+    fi
     vault kv put "$FULL_PATH" \
       access_key="$TF_KEY" \
       secret_key="$TF_SECRET" > /dev/null

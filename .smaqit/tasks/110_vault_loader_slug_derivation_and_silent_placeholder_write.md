@@ -47,20 +47,30 @@ In a non-interactive shell, this `read` doesn't fail — it returns immediately 
 
 ## Design Decisions
 
-TBD — open questions:
-
-- For Bug 1: fix the `sed` truncation to match the inline path's hyphenation, or replace the whole prose-parsing approach with `basename "$(git remote get-url origin 2>/dev/null || pwd)" .git`-style derivation from the repo identity instead? The latter is more robust but is a bigger behavioral change — worth deciding whether `AGENTS.md`'s Project Name field is meant to be authoritative for the slug at all, or was only ever intended as a convenient first guess.
-- For Bug 2: should the fix be narrowly "use the existing `read_secret` helper here too" (minimal, consistent with the rest of the script), or should there be a broader non-interactive-safety pass across every raw `read` call in this script family (`bootstrap-app-to-machine.sh`, `rotate-credential.sh` likely have the same ad hoc pattern)?
-- Should `vault kv put` calls in this script family generally refuse to write an empty-string secret value, as a defense-in-depth backstop independent of how the value was read?
+- **Bug 1 — full replacement, not a minimal patch.** Replace `AGENTS.md` Project Name parsing entirely with `git remote get-url origin` (basename, `.git` stripped) → current-directory-basename derivation, extracted into a new shared `lib-project-slug.sh` sourced by both `load-credentials.sh` and `rotate-credential.sh`. Accepted risk, deliberately not mitigated: a project whose current slug differs from its repo identity would compute a different slug post-fix, with no mismatch-detection safety net added. Verified live against this machine's real Vault (9+ populated app slugs, cross-referenced against each checked-out project's actual `AGENTS.md`/git remote/dirname) — every project's derived slug already matches its real Vault path; `areaoffice-poc` and `iodis-crm-poc` in particular have multi-word `AGENTS.md` titles that the *current* buggy fallback would already mis-derive, yet their real Vault paths use the correct repo-identity slug, meaning the fix closes a gap those two are already silently sitting in rather than opening a new one.
+- **Bug 2 — broad fix, all confirmed sites.** Fix all 5 confirmed ad hoc-read sites, not just the 1 originally flagged: `load-credentials.sh:167` (new-scheme github token), `load-credentials.sh:334` (legacy-scheme github token, not in the original report), `rotate-credential.sh:139` (github token), `rotate-credential.sh:169` (Cyso secret), `rotate-credential.sh:176` (Terraform secret key) — all confirmed live by direct inspection. `bootstrap-app-to-machine.sh` needs no change; confirmed it already uses the safe `read_secret` helper throughout with no ad hoc secret-feeding reads.
+- **Empty-value guard: yes**, added before every affected `vault kv put` call, independent of the `read_secret` fix, as defense-in-depth (e.g. a user hitting Enter on an empty prompt with a real tty attached).
+- **Regression coverage — two layers.** (1) A fast, deterministic static-analysis check (`check-no-ad-hoc-secret-reads.sh`) grepping this skill's `scripts/*.sh` for any bare `read -s`/`-p` feeding a `vault kv put` without going through `read_secret` — guards against this exact regression class recurring via a future ad hoc read. (2) A new agent-driven `.smaqit/bench/skills/smaqit.infrastructure-vault-loader/bench.yaml` Bench case (first Bench manifest in this repo — existing manifests are all in the sibling `smaqit-adk` repo) proving both fixes end-to-end through a real Codex agent following the skill's documented flow, against a real ephemeral `vault server -dev` (not a mock) — a single with-artifact-only variant, since there's no meaningful without-artifact baseline for a pure bug fix (an agent without the skill staged wouldn't be running these scripts at all). This deliberately deviates from Bench's headline with/without-artifact comparison pattern.
+- **Slug derivation is extracted to one shared library**, not duplicated per-script — this also fixes a pre-existing inconsistency where `rotate-credential.sh`'s own copy of the derivation logic has no fallback path at all (falls straight to manual entry). `read_secret` itself stays duplicated per-script, matching its existing convention (already duplicated between `load-credentials.sh` and `bootstrap-app-to-machine.sh`) — not forcing an unrelated refactor of an already-working pattern.
+- **New `--print-slug` dry-run flag** added to `load-credentials.sh` — independently useful for manual debugging, and needed by the Bench case to check derived slug without a full interactive/Vault-writing run.
 
 ## Implementation Steps
 
-TBD — sketch, not committed:
+**Phase A — Slug derivation (Bug 1)**
+1. New shared lib `skills/smaqit.infrastructure-vault-loader/scripts/lib-project-slug.sh`: `derive_project_slug()` tries `git remote get-url origin` (basename, `.git` stripped) → current-directory basename → empty (caller prompts manually), sanitized to the existing lowercase-hyphenated form.
+2. `load-credentials.sh`: replace the AGENTS.md-parsing block (current lines ~128-133) with a sourced call to `derive_project_slug`; keep the existing manual-entry fallback (~135-137) unchanged.
+3. `rotate-credential.sh`: replace its duplicated, fallback-less inline derivation (current lines ~80-82) with the same sourced call — also fixes the pre-existing inconsistency between the two scripts' derivation logic.
+4. Add a `--print-slug` flag to `load-credentials.sh`: prints the derived slug and exits 0 before any Vault interaction.
 
-1. Audit every raw `read`/`read -s`/`read -p` call across `load-credentials.sh`, `bootstrap-app-to-machine.sh`, and `rotate-credential.sh` for the same ad hoc (non-`/dev/tty`, non-`read_secret`) pattern; replace with `read_secret` (or a non-secret equivalent with the same `/dev/tty` safety) everywhere.
-2. Add an empty-value guard immediately before every `vault kv put` in this script family — refuse to write and exit non-zero rather than silently persisting an empty/placeholder value.
-3. Fix the heading+next-line slug-extraction `sed` to hyphenate multi-word values consistently with the inline path (minimum fix), or replace both paths with repo-identity-based derivation (preferred fix, pending the Design Decision above).
-4. Add regression coverage: a multi-word `## Project Name` heading value produces the expected hyphenated slug; a non-interactive invocation (no `/dev/tty` available) fails loudly instead of writing an empty/placeholder secret.
+**Phase B — Non-interactive secret-write safety (Bug 2)**
+5. Add `read_secret` (verbatim, matching its existing definition) to `rotate-credential.sh`, which currently lacks it.
+6. Replace all 5 confirmed ad hoc reads with `read_secret`: `load-credentials.sh:167`, `load-credentials.sh:334`, `rotate-credential.sh:139`, `rotate-credential.sh:169`, `rotate-credential.sh:176`.
+7. Add an empty-value guard immediately before each of those 5 `vault kv put` calls — exit non-zero with a clear error rather than writing.
+
+**Phase C — Regression coverage**
+8. New static-analysis check `check-no-ad-hoc-secret-reads.sh`: greps this skill's `scripts/*.sh` for a bare `read -s`/`-p` feeding a `vault kv put` without going through `read_secret`.
+9. New `.smaqit/bench/skills/smaqit.infrastructure-vault-loader/bench.yaml` (and `.smaqit/bench/README.md` if this repo doesn't already have one): single with-artifact-only case; `prepare` launches an ephemeral `vault server -dev`; fixture is a project with a multi-word, heading-format `AGENTS.md` Project Name; prompt directs Codex to run `load-credentials.sh --print-slug` then attempt the github-token load non-interactively; expectations assert the printed slug matches the expected git-remote/dirname value and that nothing was written to Vault.
+10. `smaqit-adk bench validate` the new manifest, then a live trial via `smaqit-adk bench suite run .smaqit/bench`; report the result.
 
 ## Known Issues Triage
 
@@ -70,9 +80,10 @@ TBD — sketch, not committed:
 
 ## Acceptance Criteria
 
-- [ ] A multi-word `AGENTS.md` "Project Name" value (either format) produces a correctly hyphenated slug, with both extraction paths behaving consistently
-- [ ] Running any secret-writing prompt in this script family with no `/dev/tty` available fails loudly (non-zero exit, clear error) instead of silently writing an empty or placeholder secret
-- [ ] Regression tests cover both fixes
+- [ ] Project slug derives from `git remote get-url origin` (basename, `.git` stripped) or the current directory name — no longer parsed from `AGENTS.md` — via one shared function used by both `load-credentials.sh` and `rotate-credential.sh`
+- [ ] Running any secret-writing prompt in this script family with no `/dev/tty` available fails loudly (non-zero exit, clear error) instead of silently writing an empty or placeholder secret, confirmed across all 5 identified sites
+- [ ] Every affected `vault kv put` refuses to write when its secret value is empty, independent of how it was read
+- [ ] A static-analysis safety check and a new Bench case both pass, covering both fixes together against a real ephemeral Vault
 
 ## Findings
 
@@ -92,10 +103,18 @@ TBD — sketch, not committed:
 
 | File | Action |
 |------|--------|
-| `skills/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh` | Modify — slug derivation, GH token prompt |
-| `skills/smaqit.infrastructure-vault-loader/scripts/bootstrap-app-to-machine.sh` | Audit/modify — same ad hoc `read` pattern likely present |
-| `skills/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh` | Audit/modify — same ad hoc `read` pattern likely present |
+| `skills/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh` | Modify — slug derivation, both GH token sites (:167, :334), new `--print-slug` flag |
+| `skills/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh` | Modify — slug derivation, all 3 secret-read sites (:139, :169, :176), add `read_secret` |
+| `skills/smaqit.infrastructure-vault-loader/scripts/bootstrap-app-to-machine.sh` | No change — confirmed already uses `read_secret` throughout, no ad hoc secret-feeding reads found |
+| `skills/smaqit.infrastructure-vault-loader/scripts/lib-project-slug.sh` | Create — shared `derive_project_slug()` |
+| `skills/smaqit.infrastructure-vault-loader/scripts/check-no-ad-hoc-secret-reads.sh` | Create — static regression check |
+| `.smaqit/bench/skills/smaqit.infrastructure-vault-loader/bench.yaml` | Create — first Bench manifest in this repo |
+| `.smaqit/bench/README.md` | Create if absent — adapted from `smaqit-adk`'s conventions |
 
 ## Notes
 
-Found live in a downstream project during task 058 (2026-08-13) — that project's established slug (`acme-case-manager-poc`) is confirmed correct and already populated at `secret/apps/acme-case-manager-poc/*`/`secret/machines/acme-test/*`; the bogus `secret/apps/acme/github` (`token: n/a`) placeholder written by this bug was found and deleted the same session. Not yet independently verified whether `bootstrap-app-to-machine.sh`/`rotate-credential.sh` share the same ad hoc `read` pattern — flagged as an audit step above rather than assumed.
+Found live in a downstream project during task 058 (2026-08-13) — that project's established slug (`acme-case-manager-poc`) is confirmed correct and already populated at `secret/apps/acme-case-manager-poc/*`/`secret/machines/acme-test/*`; the bogus `secret/apps/acme/github` (`token: n/a`) placeholder written by this bug was found and deleted the same session.
+
+**Planning follow-up (2026-08-19):** Re-verified both bugs are still live by direct code inspection (not assumed) before planning: `load-credentials.sh:131-132`'s fallback path still truncates via `sed 's/ .*$//'`; the ad hoc-read pattern is confirmed present at 5 sites, not just the 1 originally flagged (`load-credentials.sh:167,334`; `rotate-credential.sh:139,169,176`) — `bootstrap-app-to-machine.sh` is confirmed clean (already uses `read_secret` throughout). Also found `rotate-credential.sh` has its own duplicated, fallback-less copy of the slug-derivation logic — it never actually reproduced Bug 1's truncation (no heading-format fallback path at all; on inline-grep failure it goes straight to manual entry), which is why only `load-credentials.sh` hit the bug live.
+
+Before approving the git-remote/dirname derivation approach, cross-referenced this machine's real, populated local Vault (9+ app slugs) against every checkable real project's actual `AGENTS.md`/git-remote/dirname — every one already matches its real Vault path today. `areaoffice-poc` and `iodis-crm-poc` are notable: their `AGENTS.md` titles are multi-word display text (`Commerce CRM — Proof of Concept`, `IODIS CRM (PoC)`) that the *current* buggy fallback would already mis-derive (to `commerce`/`iodis`), yet their real Vault paths use the correct repo-identity slug — meaning those two projects are likely already silently exposed to Bug 1 today, with the correct slug having reached Vault some other way (manual entry). The planned fix closes that gap rather than opening a new one, on this machine at least; the general risk (a project whose current slug genuinely differs from its repo identity) remains an accepted, undefended trade-off for machines/projects not checked here.

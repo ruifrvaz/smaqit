@@ -44,3 +44,7 @@ No task-layer tools; this task is an internal fix to `installer/design.go` (Go s
 | HashiCorp Vault | CLI: vault kv | https://developer.hashicorp.com/vault/docs/commands/kv |
 | HashiCorp Vault | Dev Server Mode | https://developer.hashicorp.com/vault/docs/concepts/dev-server |
 | OpenAI Codex CLI | Documentation | https://github.com/openai/codex |
+
+## Task 112 — Require Identifying Title Directive in Design Artifacts
+
+No task-layer tools; this task adds a `title` directive to PlantUML design templates and enforces it in `installer/design.go` (Go standard library only, already covered by the project-layer Go entry).

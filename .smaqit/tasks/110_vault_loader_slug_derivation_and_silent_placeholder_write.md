@@ -1,8 +1,9 @@
 ---
-status: In Progress
+status: PR Open
 created: "2026-08-15"
 mode: Assisted
 started: "2026-08-19"
+pr: 85
 ---
 
 # Vault Loader: Wrong Project-Slug Derivation, and Non-Interactive Runs Silently Write Placeholder Secrets

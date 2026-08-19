@@ -20,13 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing to add.
 
 ### Fixed
-- Nothing to add.
+- **Vault loader project-slug derivation** (pending v3.2.1 · PR #85) — project slug now derives from `git remote get-url origin` (basename, `.git` stripped) or the current directory name, via one shared function used by both `load-credentials.sh` and `rotate-credential.sh`, instead of parsing `AGENTS.md`'s human-readable "Project Name" field, which inconsistently truncated multi-word heading-format titles.
+- **Vault loader non-interactive secret-write safety** (pending v3.2.1 · PR #85) — all 7 confirmed ad hoc, non-`/dev/tty` secret reads across `load-credentials.sh` and `rotate-credential.sh` now use the existing `read_secret` helper, so a non-interactive invocation fails loudly instead of silently writing an empty or placeholder secret to Vault. An empty-value guard is also checked immediately before every affected `vault kv put`.
 
 ### Security
 - Nothing to add.
 
 ### Chore
-- Nothing to add.
+- **Removed 18 leftover ADK-generic duplicate template/rules files** (pending v3.2.1 · PR #85) under `templates/` and `.smaqit/templates/` that escaped an earlier cleanup pass and were never read by any generator.
 
 ## [3.2.0] - 2026-08-18
 

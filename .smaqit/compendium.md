@@ -102,6 +102,18 @@ This scoping means the gate can never block on legacy, unrelated specs in a proj
 
 ---
 
+**What is smaqit-adk, and how does it relate to this repo?**
+
+smaqit-adk is a separate, generic Agent Development Kit repo that this project was built with: it owns the L0/L1/L2 principle-curation and compilation agents (`smaqit.L0`, `smaqit.L1`, `smaqit.L2`), installed globally, plus the `smaqit.create-agent`/`smaqit.create-skill`/`smaqit.new-principle` skills. This repo's own `agents/`, `commands/`, `skills/`, and `framework/*.md` are product-domain content only — smaqit's five-layer specification system (Layers, Phases, spec/design agents) — compiled independently via `scripts/generate-agents.py`, with no runtime dependency on smaqit-adk's L0/L1/L2 chain. `framework/*.md` in this repo is not generic ADK principle content; it documents this product's own domain concepts and is verified independent of smaqit-adk's own `framework/*.md`. See also: does changing a principle in `framework/*.md` automatically update this repo's agents or skills?
+
+---
+
+**Does changing a principle in framework/*.md automatically update this repo's agents or skills?**
+
+No. There is currently no compiler that reads `framework/*.md` and regenerates `agents/*.md` or `skills/*/SKILL.md` from it — every agent and skill body in this repo is hand-authored. `scripts/generate-agents.py` only renders already-written `agents/*.md` + `commands/*.md` + `skills/*/SKILL.md` + `.smaqit/definitions/agents/*.frontmatter.yaml` into per-platform installer output; it never reads `framework/*.md`. A framework principle change must be manually reflected in whichever agent/skill bodies it affects. See also: what is smaqit-adk, and how does it relate to this repo?
+
+---
+
 ## Hooks
 
 **Do VS Code Copilot hooks fire for `runSubagent` tool calls?**

@@ -1,0 +1,78 @@
+schemaVersion: 2
+name: smaqit-infrastructure-vault-loader
+# Dogfood suite for skills/smaqit.infrastructure-vault-loader/SKILL.md (task 110).
+# First bench.yaml in this repo — see ../../README.md for the conventions it
+# follows (adapted from smaqit-adk's own dogfood suite).
+#
+# Scoped to Bug 1 (git-remote/dirname slug derivation) only. Bug 2
+# (non-interactive secret-write safety) is NOT covered here: it would need a
+# live `vault server -dev` alive across this Case's full lifecycle (through
+# the variant's process execution and into `expect`), but Bench's
+# Case.prepare has no teardown guarantee for a backgrounded process on a
+# successful run — confirmed live against src/bench/run.go and process.go,
+# filed as smaqit-adk task 033. Bug 2 is instead proven by
+# scripts/check-no-ad-hoc-secret-reads.sh (a fast, deterministic static
+# check) plus manual live verification against a real dev Vault.
+cases:
+  - id: derive-slug-from-git-remote-not-agents-md-title
+    fixture:
+      source: fixtures/multi-word-project
+      destination: project
+    prepare:
+      - executable: sh
+        arguments:
+          - -c
+          - "cd project && git init -q . && git remote add origin https://github.com/example-org/derived-repo-slug.git"
+    given:
+      prompt:
+        text: |
+          You are validating the smaqit.infrastructure-vault-loader skill's
+          project-slug derivation. If the Case brief lists a variant
+          treatment named `skill`, read its SKILL.md first and follow it
+          exactly — the treatment table gives its resolved path; do not use
+          any other credential-loading logic. If the treatment set is empty,
+          do not search project-global or user-global smaqit paths.
+
+          From the `project/` directory (already git-initialized with a
+          remote), run the skill's own `scripts/load-credentials.sh
+          --print-slug` (found under the `skill` treatment's resolved path).
+          Write its exact single-line stdout, and nothing else, to
+          `project/derived-slug.txt`. Do not attempt to reach Vault or write
+          any credential — this Case only checks slug derivation.
+
+          There is no clarifying question needed here — proceed directly;
+          you are running non-interactively via `codex exec` and there is no
+          further input coming.
+    expect:
+      - id: derived-slug-matches-git-remote-not-agents-md-title
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -qx derived-repo-slug project/derived-slug.txt"]
+variants:
+  - id: with-artifact
+    adapter: process
+    treatment:
+      - id: skill
+        source: ../../../../skills/smaqit.infrastructure-vault-loader
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{briefFile}"
+      inputMode: argument
+    intendedDifferences:
+      - Exposes the vault-loader skill, including its scripts/, as the variant treatment.
+execution:
+  repetitions: 1
+  timeoutSeconds: 600
+comparison:
+  minimumRequiredPassRate: 1
+output:
+  directory: ../../runs/skills-infrastructure-vault-loader

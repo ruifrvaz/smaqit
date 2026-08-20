@@ -27,6 +27,16 @@
 
 set -euo pipefail
 
+# shellcheck source=lib-project-slug.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib-project-slug.sh"
+
+# ── Dry run: print the derived slug and exit, no Vault interaction ─────────────
+
+if [ "${1:-}" = "--print-slug" ]; then
+  echo "$(derive_project_slug)"
+  exit 0
+fi
+
 # ── Environment ───────────────────────────────────────────────────────────────
 
 export VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
@@ -111,29 +121,10 @@ echo "    Vault: running, unsealed, authenticated"
 
 # ── Derive project slug ───────────────────────────────────────────────────────
 
-# AGENTS.md is shared by Codex and GitHub Copilot and is the canonical installed file.
-# Fall back to legacy/platform-specific instruction files for older projects.
-INSTRUCTIONS_FILE="AGENTS.md"
-if [ ! -f "$INSTRUCTIONS_FILE" ]; then
-  INSTRUCTIONS_FILE="CLAUDE.md"
-fi
-if [ ! -f "$INSTRUCTIONS_FILE" ]; then
-  INSTRUCTIONS_FILE=".github/copilot-instructions.md"
-fi
-if [ ! -f "$INSTRUCTIONS_FILE" ]; then
-  echo "ERROR: No AGENTS.md, CLAUDE.md, or .github/copilot-instructions.md found. Run from repo root."
-  exit 1
-fi
-
-# Handle both inline format ("Project Name: value") and heading+next-line format ("## Project Name\n\nvalue")
-PROJECT_SLUG=$(grep -i "project name" "$INSTRUCTIONS_FILE" | grep -i ": " | head -1 | sed 's/.*: *//' | sed 's/[^a-zA-Z0-9 -].*$//' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -s '-' || true)
-if [ -z "$PROJECT_SLUG" ]; then
-  PROJECT_SLUG=$(awk '/^##? *[Pp]roject [Nn]ame/{found=1; next} found && /^[[:space:]]*$/{next} found{print; exit}' "$INSTRUCTIONS_FILE" \
-    | sed 's/ .*$//' | tr '[:upper:]' '[:lower:]' | tr -s '-' || true)
-fi
+PROJECT_SLUG=$(derive_project_slug)
 
 if [ -z "$PROJECT_SLUG" ]; then
-  read -p "Could not derive project slug from $INSTRUCTIONS_FILE. Enter manually: " PROJECT_SLUG
+  read -p "Could not derive project slug from git remote or the current directory. Enter manually: " PROJECT_SLUG
 fi
 
 echo "==> Project slug: $PROJECT_SLUG"
@@ -164,7 +155,11 @@ if [ "$NEW_SCHEME" = "true" ]; then
     echo "    SKIP — path already populated"
   else
     echo "  Required scopes: variables:write on the target repository"
-    read -s -p "  github_token: " GH_TOKEN && echo
+    read_secret GH_TOKEN "github_token"
+    if [ -z "$GH_TOKEN" ]; then
+      echo "ERROR: github_token is empty — refusing to write a placeholder secret." >&2
+      exit 1
+    fi
     vault kv put "secret/apps/${APP_SLUG}/github" token="$GH_TOKEN" > /dev/null
     unset GH_TOKEN
     echo "    DONE"
@@ -213,7 +208,11 @@ else
     echo "    SKIP — path already populated"
   else
     read -p "  app_credential_id: " CYSO_ID
-    read -s -p "  app_credential_secret: " CYSO_SECRET && echo
+    read_secret CYSO_SECRET "app_credential_secret"
+    if [ -z "$CYSO_ID" ] || [ -z "$CYSO_SECRET" ]; then
+      echo "ERROR: app_credential_id or app_credential_secret is empty — refusing to write a placeholder secret." >&2
+      exit 1
+    fi
     vault kv put "secret/${PROJECT_SLUG}/cyso" \
       app_credential_id="$CYSO_ID" \
       app_credential_secret="$CYSO_SECRET" > /dev/null
@@ -315,7 +314,11 @@ else
     echo "    SKIP — path already populated"
   else
     read -p "  s3_access_key: " S3_KEY
-    read -s -p "  s3_secret_key: " S3_SECRET && echo
+    read_secret S3_SECRET "s3_secret_key"
+    if [ -z "$S3_KEY" ] || [ -z "$S3_SECRET" ]; then
+      echo "ERROR: s3_access_key or s3_secret_key is empty — refusing to write a placeholder secret." >&2
+      exit 1
+    fi
     vault kv put "secret/${PROJECT_SLUG}/tfstate" \
       access_key="$S3_KEY" \
       secret_key="$S3_SECRET" > /dev/null
@@ -331,7 +334,11 @@ if path_exists "github"; then
   echo "    SKIP — path already populated"
 else
   echo "  Required scopes: variables:write on the target repository"
-  read -s -p "  github_token: " GH_TOKEN && echo
+  read_secret GH_TOKEN "github_token"
+  if [ -z "$GH_TOKEN" ]; then
+    echo "ERROR: github_token is empty — refusing to write a placeholder secret." >&2
+    exit 1
+  fi
   vault kv put "secret/${PROJECT_SLUG}/github" \
     token="$GH_TOKEN" > /dev/null
   unset GH_TOKEN

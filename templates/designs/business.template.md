@@ -20,6 +20,7 @@ visual_validation:
 
 ```plantuml
 @startuml
+title DSG-BUS-[CONCEPT]-USE-CASE
 left to right direction
 actor "[ACTOR]" as Actor
 rectangle "[SYSTEM_BOUNDARY]" {

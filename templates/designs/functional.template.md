@@ -20,6 +20,7 @@ visual_validation:
 
 ```plantuml
 @startuml
+title DSG-FUN-[CONCEPT]-SYSTEM-SEQUENCE
 actor "[ACTOR]" as Actor
 participant "System" as System
 hide footbox

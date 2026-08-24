@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Design artifact title directive** (pending v3.3.0 · PR #86) — every design's PlantUML block must now open with a `title` directive matching its own `id`, enforced by `smaqit design validate`/`render`/`attest` across all diagram types; this reverses the framework's prior prohibition on design titles.
+- Nothing to add.
 
 ### Changed
 - Nothing to add.
@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chore
 - Nothing to add.
+
+## [3.3.0] - 2026-08-20
+
+### Added
+- **Design artifact title directive** — every design's PlantUML block must now open with a `title` directive matching its own `id`, enforced by `smaqit design validate`/`render`/`attest` across all diagram types; this reverses the framework's prior prohibition on design titles.
 
 ## [3.2.1] - 2026-08-20
 

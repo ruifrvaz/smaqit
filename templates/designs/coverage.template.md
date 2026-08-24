@@ -20,6 +20,7 @@ visual_validation:
 
 ```plantuml
 @startuml
+title DSG-COV-[CONCEPT]-REQUIREMENT-TRACE
 rectangle "[SOURCE_REQUIREMENT]" as Requirement
 rectangle "[TEST_CASE]" as TestCase
 rectangle "[EXPECTED_OUTCOME]" as Outcome

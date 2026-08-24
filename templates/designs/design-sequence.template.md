@@ -21,6 +21,7 @@ visual_validation:
 
 ```plantuml
 @startuml
+title DSG-DSD-[CONCEPT]-DESIGN-SEQUENCE
 participant "[HANDLER]" as Handler
 participant "[SERVICE]" as Service
 hide footbox

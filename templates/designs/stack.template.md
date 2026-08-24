@@ -20,6 +20,7 @@ visual_validation:
 
 ```plantuml
 @startuml
+title DSG-STK-[CONCEPT]-COMPONENT
 component "[COMPONENT]" as Component
 component "[DEPENDENCY]" as Dependency
 Component --> Dependency : [INTERFACE]

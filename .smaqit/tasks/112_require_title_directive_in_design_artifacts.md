@@ -1,8 +1,9 @@
 ---
-status: In Progress
+status: PR Open
 created: "2026-08-19"
 mode: Assisted
 started: "2026-08-20"
+pr: 86
 ---
 
 # Require Identifying Title Directive in Design Artifacts
@@ -51,28 +52,32 @@ The design's own `id` is already unique, stable, and threaded through its frontm
 
 ## Acceptance Criteria
 
-- [ ] `framework/ARTIFACTS.md`'s Design Artifacts section requires (not prohibits) a `title` directive matching the design's `id` frontmatter value
-- [ ] All 6 `templates/designs/*.template.md` files include a `title <DESIGN_ID pattern>` line as the first line inside `@startuml`
-- [ ] `installer/design.go` enforces both presence of a `title` directive and that its value exactly matches the design's own `id` field, across all diagram types, failing `DESIGN-VISUAL-INVALID` on violation
-- [ ] `skills/smaqit.design-validate/SKILL.md`'s guidance no longer flags the required title as ceremonial content
-- [ ] New `installer/design_test.go` cases cover missing-title and title/id-mismatch failures; all existing passing fixtures updated to include a matching title
-- [ ] `go test ./...` passes in `installer/`
+- [x] `framework/ARTIFACTS.md`'s Design Artifacts section requires (not prohibits) a `title` directive matching the design's `id` frontmatter value
+- [x] All 6 `templates/designs/*.template.md` files include a `title <DESIGN_ID pattern>` line as the first line inside `@startuml`
+- [x] `installer/design.go` enforces both presence of a `title` directive and that its value exactly matches the design's own `id` field, across all diagram types, failing `DESIGN-VISUAL-INVALID` on violation
+- [x] `skills/smaqit.design-validate/SKILL.md`'s guidance no longer flags the required title as ceremonial content
+- [x] New `installer/design_test.go` cases cover missing-title and title/id-mismatch failures; all existing passing fixtures updated to include a matching title
+- [x] `go test ./...` passes in `installer/`
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Reversed the title prohibition in `framework/ARTIFACTS.md` (line 379, plus the Validation Gates summary at line 409) to a requirement, and added a matching `title` line to all 6 `templates/designs/*.template.md` files as the first line inside `@startuml`.
+- Added `titleDirective()` in `installer/design.go`, mirroring `footboxHidden`'s note/legend-aware raw-source scan, then wired presence + exact id-match enforcement into `validateDesignMetadata` right after the layer/profile checks, applying uniformly across all diagram types (not scoped to `system-sequence` only).
+- Updated `smaqit.design-validate/SKILL.md` step 4 so the required title is not flagged as ceremonial content during visual review.
+- Added `TestDesignRequiresMatchingTitleDirective` covering missing-title and title/id-mismatch rejections, and updated every existing fixture across `installer/design_test.go` (both inline `@startuml` literals and the shared fixture-generator helpers) to carry a matching title so none regressed.
 
 **Decisions made:**
-- TBD
+- Title content is the design's own `id` frontmatter value verbatim — not the Business `UC[N]` heading label (never wired anywhere else in the framework) and not an attempted spec-identifier prefix (breaks under non-1:1 spec-to-design cardinality); this matches the plan's Design Decisions exactly.
+- `titleDirective()` scans the raw source directly (before `stripNonStructuralPlantUML` discards title lines) and only supports the single-line `title <value>` form; the multi-line `title`/`end title` block form is deliberately not read as content.
 
 **Blockers encountered:**
-- TBD
+- `installer/`'s `go:embed` targets (agents/skills/tools) are gitignored generated artifacts not present in a fresh worktree; copied them from the primary checkout's already-`make prepare`d installer directory instead of re-running the full (network-dependent) prepare pipeline, then regenerated `installer/templates/{specs,designs}` from the worktree's own edited canonical templates so the embedded copies reflected this task's changes.
+- The `TestSystemSequenceProfileSupportsMultipleDesignsPerSpec` test built its two design variants via `strings.Replace(source, "DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE", "...-REGISTRATION-...", 1)` — replacing only the first (frontmatter `id`) occurrence. Adding a title line matching the same base id introduced a second occurrence that needed swapping too, so the replace count changed from `1` to `-1` (replace all) for both call sites.
+- One fixture generator (`validDesignSource`) is shared by a test that intentionally never reaches YAML parsing (`TestParseDesignRejectsProseAndUnsafeIncludes`, which short-circuits on earlier prose/include checks) using YAML-invalid bracket placeholder hashes (`[SOURCE_SHA256]`); the new title-directive test does reach YAML parsing, which surfaced that those placeholders parse as YAML flow-sequences, not strings. Standardized all `validDesignSource` call sites in the file on the already-established quoted-empty-string (`""`) convention used elsewhere.
 
 **Follow-up identified:**
-- TBD
+- None — no real design artifacts exist yet anywhere in this repo (`docs/designs/` is empty), so there is no migration burden left for a future task.
 
 ## Files to Create / Modify
 

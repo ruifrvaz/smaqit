@@ -4,7 +4,10 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 112 | Require Identifying Title Directive in Design Artifacts | In Progress | Medium |
+| 115 | New Machine-Monorepo Infrastructure Skills: Provision, Verify, Day-2 Baseline, Tenant Reconcile | new | Medium |
+| 114 | Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from Magnificah/infrastructure Task 001) | new | High |
+| 113 | Business Use-Case Diagrams: No Guardrail Against Generalization-Inheritance Misuse or PlantUML-Alias Collision With the Project's Own UC-ID Convention | new | Medium |
+| 112 | Require Identifying Title Directive in Design Artifacts | PR Open (#86) | Medium |
 | 110 | Vault Loader: Wrong Project-Slug Derivation, and Non-Interactive Runs Silently Write Placeholder Secrets | PR Open (#85) | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |

@@ -89,7 +89,7 @@ printf '%s\n' \
   '  - ../../../specs/business/smoke-design.md' 'requirements:' '  - BUS-SMOKE-001' \
   'source_sha256: ""' 'image_sha256: ""' 'visual_validation:' '  status: pending' \
   '  validated_at: null' '  source_sha256: null' '  image_sha256: null' '---' '' \
-  '```plantuml' '@startuml' 'actor User' 'rectangle System {' '  usecase Smoke' '}' \
+  '```plantuml' '@startuml' 'title DSG-BUS-SMOKE-USE-CASE' 'actor User' 'rectangle System {' '  usecase Smoke' '}' \
   'User --> Smoke' '@enduml' '```' > "$design_source"
 (cd "$project" && "$binary" design render "${design_source#$project/}" && "$binary" design attest "${design_source#$project/}" && "$binary" design validate "${design_source#$project/}")
 

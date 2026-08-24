@@ -214,6 +214,12 @@ The decision is per `provisioning_mode`, independent of which credential scheme 
 
 ---
 
+**How does `load-credentials.sh`/`rotate-credential.sh` derive a project's Vault slug?**
+
+Both scripts source a shared `derive_project_slug()` (`skills/smaqit.infrastructure-vault-loader/scripts/lib-project-slug.sh`): the basename of `git remote get-url origin` (`.git` suffix stripped), falling back to the current working directory's basename if there is no git remote, falling back to a manual prompt only if both are empty. Neither script parses `AGENTS.md`'s human-readable "Project Name" field for this purpose — a project's Vault identity is always its repo/directory identity, never a doc title, since a title has no guaranteed relationship to the technical slug already used throughout the rest of this framework's Vault conventions (see the Vault namespace convention entry above). `check-no-ad-hoc-secret-reads.sh` in the same directory is a separate, unrelated static check (secret-read `/dev/tty` safety, not slug derivation).
+
+---
+
 ## Codex Support
 
 **How does smaqit provide first-class Codex compatibility?**
@@ -243,6 +249,12 @@ Preferred path: `smaqit.release-git-local`'s "Desktop Linux SSH Agent Recovery" 
 Fallback when no usable socket is found: load the key into a temporary `ssh-agent` and use `SSH_ASKPASS_REQUIRE=force` with a WSLg password dialog so the passphrase never passes through chat, command arguments, or logs. This requires a GUI askpass binary (`zenity`, `ssh-askpass-gnome`, or similar) already installed — none ships by default, and installing one via `sudo apt` is blocked by the Claude Code auto-mode permission classifier.
 
 In both cases: confirm authentication with `ssh -T git@github.com`, push `main` and the annotated tag separately, verify both remote refs. The `gh` CLI's HTTPS token is not a usable fallback for either path: it authenticates read operations but returns `403` (no write scope) on push. Note that the Claude Code auto-mode permission classifier may independently deny a push (particularly a tag push) or even a read-only `ls-remote`, with no further reasoning than a generic denial — this is unrelated to SSH/credential state and requires either a Bash permission rule or the user pushing that specific step from their own shell. If no agent socket is usable and no askpass tool is available, the default expectation is a local commit + annotated tag + verified build, with the actual push left to the user's own shell.
+
+---
+
+**Does a later per-task release always contain an earlier one's code?**
+
+Yes, guaranteed by construction: each task's PR is built on whatever `origin/main` tip existed when its branch was created, and PRs merge in review order — so a task that merges later always has the then-current `main` (including every already-merged earlier release) as an ancestor of its own release tag. This holds even when two tasks' version *numbers* land out of strict numeric order (see the boundary-vs-baseline distinction below) — ancestry and version numbering are independent guarantees. Verify directly rather than assuming from version numbers alone: `git merge-base --is-ancestor v<earlier> v<later>` (exit 0 confirms it) or inspect a specific file's content at either tag with `git show v<tag>:<path>`.
 
 ---
 

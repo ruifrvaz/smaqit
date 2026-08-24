@@ -1,9 +1,9 @@
 ---
-status: PR Open
+status: Completed
 created: "2026-08-19"
 mode: Assisted
 started: "2026-08-20"
-pr: 86
+completed: "2026-08-24"
 ---
 
 # Require Identifying Title Directive in Design Artifacts

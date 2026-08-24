@@ -22,7 +22,7 @@ description: Validate canonical smaqit PlantUML/PNG design pairs using determini
    - coherent system, domain, component, or deployment boundaries;
    - no unexplained disconnected elements;
    - consistency with linked specifications and requirement IDs;
-   - minimal complexity with no ceremonial content.
+   - minimal complexity with no ceremonial content beyond the required identifying `title`.
 5. If the image fails, stop with `DESIGN-VISUAL-INVALID` and report the exact visual defect. The owning specification agent may correct the PlantUML and repeat from step 2; other callers request correction from that layer instead of editing the design.
 6. After an authoring review passes, run `smaqit design attest <design.md>` to bind the review to the current source/image hashes.
 7. Run `smaqit design validate <design.md>` for each pair, or `smaqit design validate` for the full project. Do not proceed while any gate fails.

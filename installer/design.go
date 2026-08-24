@@ -337,6 +337,11 @@ func validateDesignMetadata(d *designArtifact) error {
 	if !designProfiles[f.Layer][f.DiagramType] {
 		return fmt.Errorf("DESIGN-VISUAL-INVALID: diagram_type %q is not controlled for layer %q", f.DiagramType, f.Layer)
 	}
+	if title, ok := titleDirective(d.Source); !ok {
+		return errors.New("DESIGN-VISUAL-INVALID: design diagrams must include a `title` directive")
+	} else if title != f.ID {
+		return fmt.Errorf("DESIGN-VISUAL-INVALID: title directive %q must match the design id %q", title, f.ID)
+	}
 	if f.DiagramType == "system-sequence" {
 		if err := validateSystemSequenceProfile(d); err != nil {
 			return err
@@ -492,6 +497,59 @@ func stripNonStructuralPlantUML(source string) []string {
 		kept = append(kept, line)
 	}
 	return kept
+}
+
+// titleDirectivePattern matches a single-line `title <value>` directive.
+// PlantUML also supports a multi-line `title` / `end title` block form, but
+// design artifacts require the single-line form so the title's value can be
+// compared directly against the design's own id.
+var titleDirectivePattern = regexp.MustCompile(`(?i)^title\s+(.+)$`)
+
+// titleDirective extracts the value of a design's required single-line
+// `title <value>` directive directly from the raw source — before
+// stripNonStructuralPlantUML discards title lines as decorative — so its
+// value can be checked against the design's own id. Every design diagram
+// must carry exactly this directive, naming its own id, so a rendered PNG
+// identifies itself without external context. Note/legend block bodies are
+// skipped, mirroring stripNonStructuralPlantUML's own handling, so free-text
+// prose inside one can never be misread as the directive; the multi-line
+// `title` / `end title` block form is deliberately not read as content,
+// since design artifacts require the single-line form specifically.
+func titleDirective(source string) (string, bool) {
+	inNote, inLegend := false, false
+	for _, raw := range strings.Split(source, "\n") {
+		line := strings.TrimSpace(raw)
+		if line == "" || strings.HasPrefix(line, "'") || strings.HasPrefix(line, "/'") {
+			continue
+		}
+		if inNote {
+			if strings.EqualFold(line, "end note") {
+				inNote = false
+			}
+			continue
+		}
+		if inLegend {
+			if strings.EqualFold(line, "endlegend") || strings.EqualFold(line, "end legend") {
+				inLegend = false
+			}
+			continue
+		}
+		lower := strings.ToLower(line)
+		if strings.HasPrefix(lower, "note") {
+			if !strings.Contains(line, ":") {
+				inNote = true
+			}
+			continue
+		}
+		if strings.HasPrefix(lower, "legend") {
+			inLegend = true
+			continue
+		}
+		if m := titleDirectivePattern.FindStringSubmatch(line); m != nil {
+			return strings.TrimSpace(m[1]), true
+		}
+	}
+	return "", false
 }
 
 // footboxHidden reports whether a diagram's structural PlantUML lines

@@ -20,6 +20,7 @@ visual_validation:
 
 ```plantuml
 @startuml
+title DSG-INF-[CONCEPT]-DEPLOYMENT
 node "[ENVIRONMENT]" {
   node "[COMPUTE]" {
     artifact "[DEPLOYABLE]" as Deployable

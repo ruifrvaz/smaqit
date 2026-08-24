@@ -18,18 +18,46 @@ import (
 func TestParseDesignRejectsProseAndUnsafeIncludes(t *testing.T) {
 	root := designTestProject(t)
 	path := filepath.Join(root, "docs", "designs", "business", "dsg-bus-login-use-case.md")
-	content := validDesignSource("[SOURCE_SHA256]", "[IMAGE_SHA256]")
+	content := validDesignSource(`""`, `""`)
 	content = strings.Replace(content, "\n```plantuml\n", "\nThis prose is forbidden.\n\n```plantuml\n", 1)
 	writeTestFile(t, path, content)
 	if _, err := parseDesign(path); err == nil || !strings.Contains(err.Error(), "exactly one PlantUML fence") {
 		t.Fatalf("expected prose rejection, got %v", err)
 	}
 
-	content = validDesignSource("[SOURCE_SHA256]", "[IMAGE_SHA256]")
+	content = validDesignSource(`""`, `""`)
 	content = strings.Replace(content, "Alice -> Bob", "!include https://example.test/remote.puml\nAlice -> Bob", 1)
 	writeTestFile(t, path, content)
 	if _, err := parseDesign(path); err == nil || !strings.Contains(err.Error(), "includes/imports") {
 		t.Fatalf("expected unsafe include rejection, got %v", err)
+	}
+}
+
+// TestDesignRequiresMatchingTitleDirective is task 112's regression: every
+// design diagram must carry a single-line `title` directive whose value
+// exactly matches the design's own frontmatter id, so a rendered PNG
+// identifies itself without external context.
+func TestDesignRequiresMatchingTitleDirective(t *testing.T) {
+	root := designTestProject(t)
+	path := filepath.Join(root, "docs", "designs", "business", "dsg-bus-login-use-case.md")
+
+	missingTitle := strings.Replace(validDesignSource(`""`, `""`),
+		"title DSG-BUS-LOGIN-USE-CASE\n", "", 1)
+	writeTestFile(t, path, missingTitle)
+	if _, err := parseDesign(path); err == nil || !strings.Contains(err.Error(), "DESIGN-VISUAL-INVALID") || !strings.Contains(err.Error(), "must include a `title` directive") {
+		t.Fatalf("expected missing-title rejection, got %v", err)
+	}
+
+	mismatchedTitle := strings.Replace(validDesignSource(`""`, `""`),
+		"title DSG-BUS-LOGIN-USE-CASE", "title DSG-BUS-SIGNUP-USE-CASE", 1)
+	writeTestFile(t, path, mismatchedTitle)
+	if _, err := parseDesign(path); err == nil || !strings.Contains(err.Error(), "DESIGN-VISUAL-INVALID") || !strings.Contains(err.Error(), "must match the design id") {
+		t.Fatalf("expected title/id mismatch rejection, got %v", err)
+	}
+
+	writeTestFile(t, path, validDesignSource(`""`, `""`))
+	if _, err := parseDesign(path); err != nil {
+		t.Fatalf("expected matching title directive to pass, got %v", err)
 	}
 }
 
@@ -331,6 +359,7 @@ func TestSystemSequenceProfileEnforcesBlackBox(t *testing.T) {
 	path := filepath.Join(root, "docs", "designs", "functional", "dsg-fun-test-flow-system-sequence.md")
 
 	blackBox := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Customer
 participant "SYSTEM" as SYSTEM
 hide footbox
@@ -356,6 +385,7 @@ end note
 @enduml`
 
 	decoratedAlias := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Customer
 participant "System" as System #LightBlue
 hide footbox
@@ -364,6 +394,7 @@ System --> Customer: 200
 @enduml`
 
 	multiLineTitle := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 title
 Describes the Customer -> System handoff
 end title
@@ -375,6 +406,7 @@ System --> Customer: 200
 @enduml`
 
 	multiParticipant := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Customer
 participant "VisitorConvertHandler / CustomerNewHandler" as CreateHandler
 participant CustomerActivationHandler as ActivateHandler
@@ -400,6 +432,7 @@ deactivate ActivateHandler
 @enduml`
 
 	twoActors := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Admin
 actor Customer
 participant "System" as System
@@ -410,6 +443,7 @@ System --> Customer: 200
 @enduml`
 
 	misnamedSystem := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Customer
 participant "System" as CRM
 hide footbox
@@ -418,6 +452,7 @@ CRM --> Customer: 200
 @enduml`
 
 	noExplicitSystem := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Customer
 hide footbox
 Customer -> System: GET /activate?token
@@ -425,12 +460,14 @@ System --> Customer: 200
 @enduml`
 
 	noActor := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 participant "System" as System
 hide footbox
 System --> System: noop
 @enduml`
 
 	missingFootbox := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Customer
 participant "System" as System
 Customer -> System: request
@@ -438,6 +475,7 @@ System --> Customer: response
 @enduml`
 
 	footer := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Customer
 participant "System" as System
 hide footbox
@@ -447,6 +485,7 @@ System --> Customer: response
 @enduml`
 
 	inferredEndpoint := `@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Customer
 participant "System" as System
 hide footbox
@@ -529,22 +568,24 @@ func TestSystemSequenceProfileSupportsMultipleDesignsPerSpec(t *testing.T) {
 
 	writeTestFile(t, registrationPath, strings.Replace(
 		validFunctionalSystemSequenceSource(`@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Admin
 participant "System" as System
 hide footbox
 Admin -> System: create customer
 System --> Admin: 200
 @enduml`),
-		"DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE", "DSG-FUN-TEST-FLOW-REGISTRATION-SYSTEM-SEQUENCE", 1))
+		"DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE", "DSG-FUN-TEST-FLOW-REGISTRATION-SYSTEM-SEQUENCE", -1))
 	writeTestFile(t, activationPath, strings.Replace(
 		validFunctionalSystemSequenceSource(`@startuml
+title DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE
 actor Customer
 participant "System" as System
 hide footbox
 Customer -> System: GET /activate?token
 System --> Customer: 200
 @enduml`),
-		"DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE", "DSG-FUN-TEST-FLOW-ACTIVATION-SYSTEM-SEQUENCE", 1))
+		"DSG-FUN-TEST-FLOW-SYSTEM-SEQUENCE", "DSG-FUN-TEST-FLOW-ACTIVATION-SYSTEM-SEQUENCE", -1))
 	writeTestFile(t, specPath, `---
 id: FUN-TEST-FLOW
 status: draft
@@ -647,6 +688,7 @@ visual_validation:
 
 `+"```plantuml"+`
 @startuml
+title DSG-FUN-ORDER-SYSTEM-SEQUENCE
 %s
 @enduml
 `+"```"+`
@@ -688,6 +730,7 @@ visual_validation:
 
 `+"```plantuml"+`
 @startuml
+title DSG-DSD-ORDER-DESIGN-SEQUENCE
 %s
 @enduml
 `+"```"+`
@@ -946,6 +989,7 @@ visual_validation:
 
 `+"```plantuml"+`
 @startuml
+title DSG-FUN-ORDER-SYSTEM-SEQUENCE
 %s
 @enduml
 `+"```"+`
@@ -1050,6 +1094,7 @@ visual_validation:
 
 `+"```plantuml"+`
 @startuml
+title DSG-INF-ORDER-DEPLOYMENT
 node Order
 @enduml
 `+"```"+`
@@ -1166,6 +1211,7 @@ visual_validation:
 
 `+"```plantuml"+`
 @startuml
+title DSG-BUS-LOGIN-USE-CASE
 Alice -> Bob
 @enduml
 `+"```"+`

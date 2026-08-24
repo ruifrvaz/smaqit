@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/110-vault-loader-wrong-project-slug-derivation-and-non-interactive-runs-silently-write-placeholder-secrets",
-      "path": "../smaqit-wt-task-110-vault-loader-wrong-project-slug-derivation-and-non-interactive-runs-silently-write-placeholder-secrets"
     }
   ],
   "settings": {

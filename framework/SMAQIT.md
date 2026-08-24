@@ -121,6 +121,12 @@ Ambiguity multiplies as context travels through layers and agents. Stated assump
 
 Proceeding with unclear input compounds errors through every downstream layer. Invented requirements masquerade as user intent. Early clarification prevents late-stage rework and maintains the integrity of the requirement chain from source to implementation.
 
+### No Grandfathering
+
+**Smaqit carries no legacy support or backward-compatibility guarantees.**
+
+Accommodating prior versions accumulates overhead and bloat. When a new version changes prior behavior, projects fix forward — adopting the new version's constraints — rather than smaqit preserving compatibility with the old one. A breaking change is evidence the framework corrected itself, not a regression to work around.
+
 ## Quick Reference
 
 ### Layers

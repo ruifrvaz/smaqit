@@ -15,7 +15,7 @@
 - Committed (`e9edc32`), created annotated tag `v1.11.0`, pushed both to origin via GNOME Keyring SSH agent (`/run/user/1000/gcr/ssh`). Tag push confirmed on remote.
 
 ### Project Bleed Cleanup
-- Performed a comprehensive repo-wide audit for downstream project names: one project had 19 instances across 4 files, another had 1 instance in 1 file. The remaining names checked were already clean.
+- Performed a comprehensive repo-wide audit for downstream project names: `iodis-crm-poc` (19 instances across 4 files), `fashion-app-poc` (1 instance in 1 file). `magnificah`, `areaoffice-poc`, `assistente-escolas` were already clean.
 - Redacted all instances in `.smaqit/tasks/092_*.md` (5), `.smaqit/tasks/094_*.md` (7), and `.smaqit/tasks/095_*.md` (6), replacing with anonymized phrasing ("a downstream project", "that downstream project", "the downstream project that surfaced this").
 - Deleted `.smaqit/tasks/097_redact_downstream_project_names.md` — the cleanup task superseded by this session's work.
 - Updated `.smaqit/tasks/PLANNING.md` — removed task 097 from the Active table.
@@ -25,7 +25,7 @@
 ## Problems Solved
 
 - **Release v1.11.0 shipped** — task 096's existing-unmanaged provisioning mode is now published, with a clean changelog entry and verified build.
-- **19 instances of project bleed cleaned** — a downstream project name redacted from committed and untracked task files without losing the technical context those references provided (the actual gap descriptions, task IDs on the downstream project, and dates are retained; only the project name/handle itself is anonymized).
+- **19 instances of project bleed cleaned** — `iodis-crm-poc` redacted from committed and untracked task files without losing the technical context those references provided (the actual gap descriptions, task IDs on the downstream project, and dates are retained; only the project name/handle itself is anonymized).
 - **Convention encoded** — the "never name downstream projects" rule is now explicit in `CONTRIBUTING.md`, so future task authors have a durable reference rather than relying on tribal knowledge or post-hoc cleanups.
 
 ## Decisions Made
@@ -58,7 +58,7 @@
 ## Session Metrics
 
 - **Release:** v1.11.0 (published, `post-merge-release` triggered)
-- **Instances redacted:** 19 + 1 (two downstream project names)
+- **Instances redacted:** 19 (`iodis-crm-poc`) + 1 (`fashion-app-poc`)
 - **Files modified:** 8 | **Deleted:** 1
 - **Commit:** `e9edc32` — pushed to `main` + annotated tag `v1.11.0`
 - **Audit:** Zero project-name leaks confirmed across entire repo

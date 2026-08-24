@@ -28,6 +28,12 @@ No. `scripts/smoke-test-installer.sh` redirects `HOME`, `COPILOT_HOME`, `CLAUDE_
 
 ---
 
+**What does `make smoke-test` check beyond `go test`?**
+
+`make smoke-test` (target in `installer/Makefile`) builds the real `smaqit-dev` binary and runs `scripts/smoke-test-installer.sh` end-to-end against a temporary project: full global install, `smaqit init`, and a real `design render`/`design attest`/`design validate` cycle against the script's own inline PlantUML fixture. This exercises the actual compiled binary and its embedded templates, which `go test`'s in-process unit tests (built from their own separate fixture strings in `installer/*_test.go`) do not — a structural rule enforced only in Go validation code (e.g. a new required PlantUML directive) can pass every `go test` case while still failing `make smoke-test` if the script's own fixture wasn't updated to match. `make test` runs `go test`+`go vet` only; `smoke-test` is a separate target and must be run explicitly to catch this class of gap. See also: does the installer smoke test install into the real home directory?
+
+---
+
 ## Self-Update
 
 **Why does smaqit install thousands of files under `.smaqit/tools/`, and should they be committed?**
@@ -75,6 +81,12 @@ Deleting canonical source and regenerating installer staging removes a skill fro
 A Functional `system-sequence` design is a strict black-box contract: it declares exactly one actor and exactly one `participant "System" as System`; both the visible label and alias are case-insensitive matches for `System`. It must include `hide footbox` and may not contain a PlantUML `footer` directive. Every parsed message endpoint must be either the declared actor or `System`, so PlantUML cannot infer a second participant from an undeclared endpoint. The validator rejects extra actors, participant-family declarations, wrong System labels or aliases, missing footbox suppression, footers, and undeclared endpoints deterministically.
 
 Actor names remain unconstrained. When a specification has multiple actor flows, author one linked system-sequence design per actor or flow. See also: what's the difference between a `system-sequence` and a `design-sequence` design?
+
+---
+
+**Why must a design's PlantUML block include a `title` directive?**
+
+Every design diagram's PlantUML block must open with a single-line `title` directive whose value exactly matches the design's own `id` frontmatter field (e.g. `title DSG-BUS-LOGIN-USE-CASE`), enforced across all diagram types by `installer/design.go`'s `validateDesignMetadata` — a missing or mismatched title fails `DESIGN-VISUAL-INVALID`. The title deliberately uses the design's own `id` rather than the Business spec's `UC[N]-[CONCEPT]` heading label (purely cosmetic — never wired into frontmatter, requirement IDs, or cross-layer references anywhere else in the framework) or a linked specification's identifier (spec-to-design cardinality isn't guaranteed 1:1 — one design may legitimately serve several related specs). The `id` is already unique, stable, and threaded through the design's own frontmatter, filename, and requirement IDs, so it needs no new cross-referencing logic and has a single unambiguous value regardless of cardinality.
 
 ---
 

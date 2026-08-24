@@ -4,8 +4,7 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit
-**Refreshed:** 2026-08-14
-**Active task:** 109 — Phase Design-Readiness Gate Scans All Active Specs, Not Just the Touched Feature
+**Refreshed:** 2026-08-24
 
 | Tool | Section | URL |
 |------|---------|-----|
@@ -22,7 +21,7 @@ version: "1.0.0"
 | Noto Sans | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@fontsource/noto-sans |
 | Git | Documentation | https://git-scm.com/doc |
 | GitHub Actions | Documentation | https://docs.github.com/en/actions |
-| VS Code | Documentation | Unreachable (code.visualstudio.com did not respond to automated requests) — https://code.visualstudio.com/docs |
+| VS Code | Documentation | https://code.visualstudio.com/docs |
 
 ## Task 107 — Merge Copilot/Codex Skills; Canonicalize AGENTS.md
 

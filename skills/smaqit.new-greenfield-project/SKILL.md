@@ -125,9 +125,9 @@ Validates the full infrastructure and deployment approach on a dedicated dev VM 
    - **No match** →
      a. Report what was checked: the declared stack, which skills were compared against it, and
         why none matched.
-     b. Check whether `smaqit.create-skill` is available: the skill file under the project's
-        compiled skills directory, its `smaqit.L2` compiler dependency, and
-        `.smaqit/templates/skills/` must all be present.
+     b. Check whether `smaqit.create-skill` is available: it and its `smaqit.L2` compiler
+        dependency are installed globally by smaqit-adk (not project-local), so check that both
+        are present among this environment's available skills/agents.
      c. **If available (primary path):** invoke `smaqit.create-skill` with a name derived from the
         declared stack (e.g. `smaqit.infrastructure-deploy-rsync-<stack-slug>`), explicitly
         pointed at the existing `smaqit.infrastructure-deploy-rsync` and

@@ -7,10 +7,6 @@
     {
       "name": "task/110-vault-loader-wrong-project-slug-derivation-and-non-interactive-runs-silently-write-placeholder-secrets",
       "path": "../smaqit-wt-task-110-vault-loader-wrong-project-slug-derivation-and-non-interactive-runs-silently-write-placeholder-secrets"
-    },
-    {
-      "name": "task/112-require-identifying-title-directive-in-design-artifacts",
-      "path": "../smaqit-wt-task-112-require-identifying-title-directive-in-design-artifacts"
     }
   ],
   "settings": {

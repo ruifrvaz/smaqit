@@ -7,6 +7,10 @@
     {
       "name": "task/116-contribute-a-k3s-app-onboarding-skill-definition",
       "path": "../smaqit-wt-task-116-contribute-a-k3s-app-onboarding-skill-definition"
+    },
+    {
+      "name": "task/117-k3s-app-deployment-skill-with-routing-and-ci-cd",
+      "path": "../smaqit-wt-task-117-k3s-app-deployment-skill-with-routing-and-ci-cd"
     }
   ],
   "settings": {

@@ -65,3 +65,22 @@ No task-layer tools; this task adds a `title` directive to PlantUML design templ
 | k3s | Documentation | https://docs.k3s.io/ |
 | GitHub Actions | Manually running a workflow (workflow_dispatch) | https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow |
 | GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
+
+## Task 117 — k3s App-Deployment Skill With Routing and CI/CD
+
+**Context fingerprint:** sha256:de23ba8d30aa552f06449f35cbfa314993122af3338e75be066906ed4baf97b1
+**Refreshed:** 2026-09-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Kubernetes | Pod Security Admission | https://kubernetes.io/docs/concepts/security/pod-security-admission/ |
+| Kubernetes | Network Policies | https://kubernetes.io/docs/concepts/services-networking/network-policies/ |
+| Kubernetes | Resource Quotas | https://kubernetes.io/docs/concepts/policy/resource-quotas/ |
+| Kubernetes | RBAC | https://kubernetes.io/docs/reference/access-authn-authz/rbac/ |
+| Kubernetes | Ingress | https://kubernetes.io/docs/concepts/services-networking/ingress/ |
+| k3s | Documentation | https://docs.k3s.io/ |
+| cert-manager | Documentation | https://cert-manager.io/docs/ |
+| Traefik | Kubernetes Ingress provider | https://doc.traefik.io/traefik/providers/kubernetes-ingress/ |
+| kubectl | Reference | https://kubernetes.io/docs/reference/kubectl/ |
+| GitHub Actions | Environments | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
+| GitHub Actions | workflow_dispatch | https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow |

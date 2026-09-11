@@ -1,6 +1,8 @@
 ---
-status: Not Started
+status: In Progress
 created: "2026-09-11"
+mode: Assisted
+started: "2026-09-12"
 ---
 
 # k3s App-Deployment Skill With Routing and CI/CD
@@ -195,8 +197,33 @@ names appear in any product artifact this task produces.
     makes no change to task 116.
 
 ## Known Issues Triage
+**Triaged:** 2026-09-12
+**Tools searched:** Kubernetes, kubectl, k3s, cert-manager, Traefik, GitHub Actions
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+_None._
+
+### Advisory Issues
+- [#13791 Kubernetes Ingress: missing TLS secret aborts loading of remaining spec.tls[] entries](https://github.com/traefik/traefik/issues/13791) — `traefik/traefik` — opened 2026-08-27 — `area/provider/k8s/ingress`, `kind/bug/possible` — confirmed only for an Ingress with multiple `spec.tls[]` entries sharing one manifest (a common cert-manager multi-domain pattern per the report); this task's shared Ingress template is single-host-per-app, so it does not currently hit this path — worth re-checking if the template ever grows multi-host support.
+- [#137774 Ineffective resource name restrictions in role](https://github.com/kubernetes/kubernetes/issues/137774) — `kubernetes/kubernetes` — opened 2026-03-16 — `kind/bug`, `sig/api-machinery` — an etcd-exhaustion DoS via unbounded Role/ClusterRole name length, but the exploit path requires permission to create Role/ClusterRole objects. This task's `namespace-guard.sh` design already refuses any cluster-scoped verb and the platform (task 116) is the only actor that ever creates RBAC objects, so this skill's own credential cannot reach the vulnerable path — informational only.
+
+### Historical (Closed)
+- [#134929 ServiceAccount with RoleBinding only can delete its namespace](https://github.com/kubernetes/kubernetes/issues/134929) — `kubernetes/kubernetes` — closed 2026-03-17 — directly relevant precedent for this task's least-privilege RBAC assumption; worth a sanity check during live verification that the onboarded ServiceAccount's RoleBinding cannot delete its own Namespace on the target cluster's Kubernetes version.
+- [#12506 ACME HTTP-01 challenge returns 404 with IngressClass traefik and cert-manager integration](https://github.com/traefik/traefik/issues/12506) — `traefik/traefik` — closed 2026-01-15 — known integration gotcha for exactly this task's stack (Traefik ingress class + cert-manager ACME); the closed issue's resolution is worth reviewing if `Certificate` never reaches `Ready` during live verification.
+
+### Unresolvable Tools
+_None — all named tools resolved to a repository._
+
+### Omitted Tools
+_None — 5 resolved repositories (`kubernetes/kubernetes` also covers `kubectl`), within the 5-repository limit._
+
+### Search Warnings
+_None._
+
+### Notes
+- `cert-manager/cert-manager` and `k3s-io/k3s` searches returned results, but none confirmed a relevant match to this task's platform/feature dimensions (ClusterIssuer/Certificate-Ready reliability, or namespace-scoped-kubeconfig behavior) even loosely — omitted as noise rather than listed.
+- `GitHub Actions` resolved via the deterministic helper to `actions/starter-workflows`, which returned no results for `workflow_dispatch`/environment-protection terms. This is expected: GitHub's `workflow_dispatch`-must-exist-on-default-branch and per-environment-name branch-policy behaviors (already documented in this task's own Design Decisions and in task 116) are platform behavior, not something tracked in that repo's issue tracker — recorded as a categorization limitation, not a Clear result for that dimension.
 
 ## Acceptance Criteria
 

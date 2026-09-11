@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 117 | k3s App-Deployment Skill With Routing and CI/CD | new | High |
+| 117 | k3s App-Deployment Skill With Routing and CI/CD | In Progress | High |
 | 116 | Contribute a k3s App-Onboarding Skill Definition | In Progress | Medium |
 | 115 | New Machine-Monorepo Infrastructure Skills: Provision, Verify, Day-2 Baseline, Tenant Reconcile | new | Medium |
 | 114 | Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from Magnificah/infrastructure Task 001) | new | High |

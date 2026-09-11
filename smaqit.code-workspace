@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/116-contribute-a-k3s-app-onboarding-skill-definition",
+      "path": "../smaqit-wt-task-116-contribute-a-k3s-app-onboarding-skill-definition"
     }
   ],
   "settings": {

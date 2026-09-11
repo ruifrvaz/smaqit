@@ -1,6 +1,8 @@
 ---
-status: Not Started
+status: In Progress
 created: "2026-09-11"
+mode: Assisted
+started: "2026-09-12"
 ---
 
 # Contribute a k3s App-Onboarding Skill Definition
@@ -16,20 +18,30 @@ LimitRange, and issues a scoped long-lived kubeconfig handed off via a workflow 
 external secrets store.
 
 This task turns that contributed pattern into a proper Skill Definition file at
-`.smaqit/definitions/skills/smaqit.infrastructure-deploy-k3s.md`, following the exact structural
-precedent of `.smaqit/definitions/skills/smaqit.infrastructure-deploy-rsync-python-tornado.md` and
-the task-106 contribution model: a definitions-only handoff, not a compiled skill. Compiling it
-into a supported `skills/smaqit.infrastructure-deploy-k3s/` product capability (stack-detection
-routing, global payload, tests, docs) is deliberately out of scope here — a separate follow-up task
-does that, mirroring task 106's own two-step split.
+`.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md`, following the exact structural
+precedent of `.smaqit/definitions/skills/smaqit.infrastructure-deploy-rsync-python-tornado.md`, and
+then compiles and ships it as a real, standalone-invocable product skill at
+`skills/smaqit.infrastructure-onboard-k3s-app/` (frontmatter, global payload inclusion, installer
+tests, docs) — unlike the tornado precedent's initial single-synthesis state, this mechanism is
+already hardened across four rounds of real production use, so there is no reason to withhold
+compilation pending further validation.
+
+**Explicitly out of scope even after compilation:** stack-detection routing and wiring into
+`smaqit.new-greenfield-project`/`smaqit.feature-new` as a selectable deployment target. This skill
+performs app *onboarding* (Namespace/RBAC/kubeconfig issuance for a tenant of an existing cluster)
+— a fundamentally different, cluster/machine-repo-side concern from an app's own *deployment*
+(building and applying the app's own workloads using the issued kubeconfig, analogous to the
+`smaqit.infrastructure-deploy-rsync*` family). No hardened source material covers that app-side
+deploy mechanism or the new `deployment_target_type` input it would require; it is a separate,
+future task requiring its own design work, not a mechanical follow-up like compilation is here.
 
 ## Issue Triage Context
 
 **Mode:** Skip
 **Technologies:** Kubernetes RBAC/PodSecurity/NetworkPolicy/ResourceQuota, k3s, GitHub Actions (`workflow_dispatch`, Environment protection rules), smaqit skill-definition conventions
 **Platforms/Environments:** None — this task produces a definition file only, no live infrastructure is touched
-**Features/Integrations:** `.smaqit/definitions/skills/` (definition authoring), `smaqit.infrastructure-deploy-rsync-python-tornado` (structural precedent), `smaqit.create-skill`/L2 compiler (eventual consumer of this artifact, not invoked by this task)
-**Versions/Constraints:** Definition file only — no compiled `skills/smaqit.infrastructure-deploy-k3s/` directory; Provenance must not name the real downstream project, repo, or machines
+**Features/Integrations:** `.smaqit/definitions/skills/` (definition authoring), `smaqit.infrastructure-deploy-rsync-python-tornado` (structural precedent, both definitions-only and compiled forms), `installer/main_test.go` (skill-count assertions), `make -C installer prepare`/`test`/`smoke-test`
+**Versions/Constraints:** Definition file plus compiled `skills/smaqit.infrastructure-onboard-k3s-app/` skill, both shipped by this task; no stack-detection routing or greenfield/feature-new wiring; Provenance must not name the real downstream project, repo, or machines
 
 ## Design Decisions
 
@@ -44,16 +56,30 @@ does that, mirroring task 106's own two-step split.
 - **Two known gaps in the source mechanism — RBAC read access to `pods/log`, and non-destructive
   in-place credential rotation — are noted as not yet incorporated**, not blockers; the contributed
   mechanism is complete and proven without them.
-- **Compilation into a supported product skill is a separate follow-up task**, not this task's
-  scope — matches task 106's own split between contributing the definition and later reconciling
-  it into `skills/`.
+- **Compilation happens in this task, not a follow-up.** Unlike the tornado skill (contributed
+  unproven, explicitly held back pending real-world validation), this mechanism is already
+  hardened across four rounds of production use — withholding compilation would serve no purpose.
+  Compilation follows the tornado skill's own documented before/after shape: add YAML frontmatter
+  (`name`, `description`, `metadata.version`/`validated`/`validated-stack`), promote Pre-conditions
+  to a top-level `##` heading, and fold `Provenance`/`Required-inherited-context` into
+  `metadata`/inline Steps prose rather than keeping them as standalone sections (this skill has no
+  shared-family "required-inherited-context" to begin with, since it isn't part of the
+  `deploy-rsync*` family).
+- **Routing/wiring remains a separate follow-up task.** Compiling this skill makes it
+  standalone-invocable; it does not make it a selectable alternative inside
+  `smaqit.new-greenfield-project`/`smaqit.feature-new`. That requires a new `deployment_target_type`
+  input, a Phase 4 Step 6-equivalent branch point, dedicated CI/CD workflow generation (this
+  skill's registry+converge shape doesn't fit `smaqit.infrastructure-cicd-generate`'s VM/SSH/rsync
+  templates — it is structurally closer to task 115's `smaqit.infrastructure-tenant-reconcile`
+  pattern), and a net-new app-side deploy mechanism with no hardened source material behind it.
+  None of that is mechanical the way compilation is, so it stays out of this task.
 
 ## Implementation Steps
 
 1. Read `.smaqit/definitions/skills/smaqit.infrastructure-deploy-rsync-python-tornado.md` in full
    as the structural reference, and `.smaqit/tasks/106_reconcile_python_tornado_rsync_deployment_skill.md`
    for how a prior contribution-to-canonical task was scoped and worded.
-2. Author `.smaqit/definitions/skills/smaqit.infrastructure-deploy-k3s.md`:
+2. Author `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md`:
    - **Description** — when to use this skill: per-app Namespace/RBAC/PSA/NetworkPolicy/Quota
      onboarding onto a self-hosted k3s cluster via a registry file + converge workflow.
    - **Provenance** — anonymized (e.g. `synthesized-for-project: [a downstream project]`), framed
@@ -84,9 +110,29 @@ does that, mirroring task 106's own two-step split.
      file's shape.
 3. Grep the finished file for any literal project, repository, or machine name to confirm
    generalization and Provenance anonymization are both clean.
-4. Do not compile a `skills/smaqit.infrastructure-deploy-k3s/` directory, touch stack-detection
-   routing, or touch the installer/release pipeline in this task — that is a separate follow-up,
-   matching task 106's own split.
+4. Compile `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` from the definitions file:
+   - Add YAML frontmatter (`name: smaqit.infrastructure-onboard-k3s-app`, a genericized
+     `description`, `metadata.version`/`validated`/`validated-stack`).
+   - Promote `Pre-conditions` from a nested subsection to its own top-level `##` heading, matching
+     the compiled tornado skill's shape.
+   - Drop `Provenance` and `Required-inherited-context` as standalone sections (this skill has no
+     shared-family inherited context); fold their substance into `metadata` fields and inline
+     Steps/Gotchas prose instead.
+   - Keep Steps, Output, Scope, Gotchas, Completion, Failure Handling, Examples, Allowed Tools,
+     generalizing any remaining synthesis-specific phrasing to steady-state descriptive language.
+5. Run `make -C installer prepare` to regenerate `installer/skills-shared/` and
+   `installer/skills-claude/` with the new skill directory.
+6. Bump the two hardcoded skill-count assertions in `installer/main_test.go` from 27 to 28:
+   `TestRemoveEmbeddedSkillDirsPreservesUnownedSharedContent` and
+   `TestSharedSkillsServeCopilotAndCodex`. Bump the matching count in
+   `docs/wiki/workflows/testing-smaqit.md` if it enumerates the current total.
+7. Run `make -C installer test` (`go vet` + `go test`) and `make -C installer smoke-test` to
+   confirm the new skill installs cleanly to the shared global path with its
+   `[SMAQIT_SKILLS_DIR]` placeholder resolved.
+8. Add a `CHANGELOG.md` entry for the new skill.
+9. Do not touch stack-detection routing, `smaqit.input-deployment`, `smaqit.new-greenfield-project`,
+   `smaqit.feature-new`, or `smaqit.infrastructure-cicd-generate` in this task — routing/wiring is
+   a separate, future task (see Design Decisions).
 
 ## Known Issues Triage
 
@@ -94,7 +140,7 @@ does that, mirroring task 106's own two-step split.
 
 ## Acceptance Criteria
 
-- [ ] `.smaqit/definitions/skills/smaqit.infrastructure-deploy-k3s.md` exists, matching
+- [ ] `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` exists, matching
       `smaqit.infrastructure-deploy-rsync-python-tornado.md`'s section structure
 - [ ] Provenance section contains no real project, repository, or machine names
 - [ ] Documents every real bug and fix listed in Implementation Steps' Gotchas item, not just the
@@ -103,8 +149,16 @@ does that, mirroring task 106's own two-step split.
       GitHub-Environment-branch-policy-applies-per-name gotcha
 - [ ] Notes `pods/log` RBAC access and non-destructive credential rotation as known gaps not yet
       incorporated
-- [ ] No compiled `skills/smaqit.infrastructure-deploy-k3s/` directory is produced by this task —
-      definition file only
+- [ ] `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` exists, compiled with YAML frontmatter
+      (`name`, `description`, `metadata.version`/`validated`/`validated-stack`) and a top-level
+      `Pre-conditions` heading, matching the compiled tornado skill's shape
+- [ ] `installer/main_test.go`'s two hardcoded skill-count assertions are bumped 27→28 and
+      `make -C installer test` passes
+- [ ] `make -C installer smoke-test` passes, confirming the skill installs cleanly with its
+      `[SMAQIT_SKILLS_DIR]` placeholder resolved
+- [ ] No changes are made to `smaqit.input-deployment`, `smaqit.new-greenfield-project`,
+      `smaqit.feature-new`, or `smaqit.infrastructure-cicd-generate` — routing/wiring remains a
+      separate follow-up task
 
 ## Findings
 
@@ -126,13 +180,21 @@ does that, mirroring task 106's own two-step split.
 
 | File | Action |
 |------|--------|
-| `.smaqit/definitions/skills/smaqit.infrastructure-deploy-k3s.md` | Create |
+| `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` | Create |
+| `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` | Create — compiled skill |
+| `installer/main_test.go` | Modify — bump skill-count assertions 27→28 |
+| `docs/wiki/workflows/testing-smaqit.md` | Modify — bump skill count if enumerated |
+| `CHANGELOG.md` | Modify — new skill entry |
 
 ## Notes
 
 Source material was contributed by a downstream project's infrastructure repo, hardened across
 four rounds of real production use (registry-based reconciliation, PSA/NetworkPolicy/quota
 hardening, then a second-machine extension) rather than synthesized once and left unproven.
-Compilation into a supported `skills/smaqit.infrastructure-deploy-k3s/` product capability —
-stack-detection routing, global payload, automated tests, documentation — is intentionally a
-separate follow-up task, matching task 106's own two-step precedent.
+Compilation into a supported `skills/smaqit.infrastructure-onboard-k3s-app/` product capability
+(frontmatter, global payload, automated tests, documentation) is part of this task, given the
+mechanism's proven track record. Stack-detection routing and wiring into
+`smaqit.new-greenfield-project`/`smaqit.feature-new` as a selectable deployment target remain a
+separate, future task — that requires designing a net-new app-side deploy mechanism (building and
+applying the app's own workloads via the kubeconfig this skill issues) with no hardened source
+material behind it, unlike the onboarding mechanism this task ships.

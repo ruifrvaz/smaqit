@@ -4,7 +4,7 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit
-**Refreshed:** 2026-08-24
+**Refreshed:** 2026-09-12
 
 | Tool | Section | URL |
 |------|---------|-----|
@@ -22,6 +22,7 @@ version: "1.0.0"
 | Git | Documentation | https://git-scm.com/doc |
 | GitHub Actions | Documentation | https://docs.github.com/en/actions |
 | VS Code | Documentation | https://code.visualstudio.com/docs |
+| github-copilot-sdk | Package reference | https://pypi.org/project/github-copilot-sdk/ |
 
 ## Task 107 — Merge Copilot/Codex Skills; Canonicalize AGENTS.md
 
@@ -47,3 +48,20 @@ No task-layer tools; this task is an internal fix to `installer/design.go` (Go s
 ## Task 112 — Require Identifying Title Directive in Design Artifacts
 
 No task-layer tools; this task adds a `title` directive to PlantUML design templates and enforces it in `installer/design.go` (Go standard library only, already covered by the project-layer Go entry).
+
+## Task 116 — Contribute a k3s App-Onboarding Skill Definition
+
+**Context fingerprint:** sha256:fbc9c1f1ad1e4dbfd2007da2031512997d7b37aaa31ce99252395131ef0fe6e9
+**Refreshed:** 2026-09-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Kubernetes | RBAC | https://kubernetes.io/docs/reference/access-authn-authz/rbac/ |
+| Kubernetes | Pod Security Admission | https://kubernetes.io/docs/concepts/security/pod-security-admission/ |
+| Kubernetes | Network Policies | https://kubernetes.io/docs/concepts/services-networking/network-policies/ |
+| Kubernetes | Resource Quotas | https://kubernetes.io/docs/concepts/policy/resource-quotas/ |
+| Kubernetes | Limit Ranges | https://kubernetes.io/docs/concepts/policy/limit-range/ |
+| Kubernetes | Service Accounts | https://kubernetes.io/docs/concepts/security/service-accounts/ |
+| k3s | Documentation | https://docs.k3s.io/ |
+| GitHub Actions | Manually running a workflow (workflow_dispatch) | https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow |
+| GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |

@@ -110,6 +110,20 @@ names appear in any product artifact this task produces.
   Namespace; Phase 5 CI/CD deploys into the *prod* Namespace. The skill takes an environment
   argument and reads that environment's kubeconfig secret reference and ingress host from the
   spec. Both Namespaces must already be onboarded — the skill's pre-condition, not its job.
+- **Kubeconfig becomes a new Vault-managed app credential; the Vault spec was stale.**
+  `smaqit.infrastructure-vault-loader`'s namespace convention currently defines only `ssh`,
+  `github`, and `machine` under `secret/apps/<app-slug>/*` — it predates this platform's credential
+  type and has no concept of a kubeconfig, even though `smaqit.feature-new`'s Vault-loading step
+  needs to load one per environment for `existing-k3s`. This task extends the convention rather
+  than routing around it: `secret/apps/<app-slug>/kubeconfig` holds two fields, `test` and `prod`
+  (mirroring how `ssh` already holds `private_key`/`public_key` as two fields on one path), since
+  the platform issues a distinct scoped kubeconfig per Namespace/environment. The value is always
+  received out-of-band from the platform's own onboarding hand-off (a workflow artifact or its
+  external secrets store, per task 116) and pasted in — `load-credentials.sh` never talks to a
+  cluster to obtain or validate it. Rotation follows the same out-of-band shape: the platform's
+  credential rotation is destructive (task 116's known gap), so `rotate-credential.sh`'s
+  `apps/<app-slug>/kubeconfig` support re-prompts for a freshly platform-reissued value rather than
+  generating one locally, unlike `ssh`'s local keypair regeneration.
 - **`cicd-generate` gets a `k3s` mode via a new template variant**, honoring its own rule that
   more variance means a new variant, not a templating engine. `deploy.yml.k3s.template`: a single
   `deploy` job that checks out, sets `KUBECONFIG` from the environment secret, runs the same
@@ -147,17 +161,25 @@ names appear in any product artifact this task produces.
    k3s exemplar and passes the k3s family's four inherited items), and Phase 5 Step 4 (`deploy.yml`
    has a single kubectl-driven `deploy` job); add the k3s family's inherited-context list to
    Gotchas beside the rsync family's; bump `metadata.version`.
-6. `skills/smaqit.feature-new/SKILL.md`: extend provisioning-mode resolution (Steps 5–6) and the
-   per-mode Vault/repo-config callouts: for `existing-k3s`, load only the app's `github` secrets
-   plus the per-environment kubeconfig; `smaqit.infrastructure-repo-config` writes the kubeconfig
+6. `skills/smaqit.infrastructure-vault-loader/`: fix the stale namespace convention. Add
+   `secret/apps/<app-slug>/kubeconfig` (fields `test`, `prod`) to `SKILL.md`'s namespace-convention
+   table and Gotchas; add an `existing-k3s` branch to `scripts/load-credentials.sh` that prompts
+   for and stores both per-environment kubeconfigs verbatim (out-of-band paste — never a cluster
+   call); add `apps/<app-slug>/kubeconfig` support to `scripts/rotate-credential.sh` (re-prompts
+   for a freshly platform-reissued value, since kubeconfig rotation is destructive and
+   platform-side per task 116, not locally regenerated like `ssh`).
+7. `skills/smaqit.feature-new/SKILL.md`: extend provisioning-mode resolution (Steps 5–6) and the
+   per-mode Vault/repo-config callouts: for `existing-k3s`, load only the app's `github` secret
+   plus the now-real `secret/apps/<app-slug>/kubeconfig` (`test`/`prod`) via step 6's new
+   vault-loader support; `smaqit.infrastructure-repo-config` writes the environment's kubeconfig
    as a `KUBECONFIG` secret on each GitHub Environment and sets no `VM_HOST`.
-7. `skills/smaqit.infrastructure-cicd-generate/`: add `k3s` mode, `assets/deploy.yml.k3s.template`,
+8. `skills/smaqit.infrastructure-cicd-generate/`: add `k3s` mode, `assets/deploy.yml.k3s.template`,
    the `__APP_SLUG__` substitution, and Output/Scope/Completion/Gotchas entries for the new mode.
-8. `skills/smaqit.infrastructure-repo-config/SKILL.md`: document the `KUBECONFIG` environment secret
+9. `skills/smaqit.infrastructure-repo-config/SKILL.md`: document the `KUBECONFIG` environment secret
    and the optional registry credential for `existing-k3s` targets.
-9. Build the installer (`installer/Makefile`) and confirm the new skill lands in both
-   `installer/skills-shared/` and `installer/skills-claude/`; run the existing Go test suite.
-10. Live-verify against the downstream platform's onboarded **test** Namespace with a throwaway
+10. Build the installer (`installer/Makefile`) and confirm the new skill lands in both
+    `installer/skills-shared/` and `installer/skills-claude/`; run the existing Go test suite.
+11. Live-verify against the downstream platform's onboarded **test** Namespace with a throwaway
     slug, never a real application: positive path end to end (guard passes with the scoped
     kubeconfig, lint passes, apply, rollout complete, `Certificate` Ready, `deploy-verify` PASS on
     health, SHA, and SPA root over HTTPS); negative paths (`namespace-guard.sh` refuses a
@@ -166,9 +188,9 @@ names appear in any product artifact this task produces.
     then run the generated `deploy.yml` once from GitHub Actions against the same test Namespace
     using the `KUBECONFIG` environment secret and confirm the identical verify result. Tear down
     by removing the throwaway slug through the platform's own offboarding path.
-11. Update `CHANGELOG.md` and user-facing docs for the new supported deployment target and the
-    new provisioning mode.
-12. Confirm task 116's skill is still named `smaqit.infrastructure-onboard-k3s-app` (that task
+12. Update `CHANGELOG.md` and user-facing docs for the new supported deployment target and the
+    new provisioning mode, including the refreshed Vault namespace convention.
+13. Confirm task 116's skill is still named `smaqit.infrastructure-onboard-k3s-app` (that task
     adopted the name itself when it started) so the onboard/deploy pair cannot collide; this task
     makes no change to task 116.
 
@@ -181,6 +203,7 @@ names appear in any product artifact this task produces.
 - [ ] `.smaqit/definitions/skills/smaqit.infrastructure-deploy-k3s-app.md` exists, mirroring the tornado definition's section structure, with an anonymized Provenance
 - [ ] `skills/smaqit.infrastructure-deploy-k3s-app/` is compiled with `SKILL.md`, `scripts/namespace-guard.sh`, `scripts/manifest-lint.sh`, and the Ingress and Deployment templates; the installer build places it in both `installer/skills-shared/` and `installer/skills-claude/`, and the existing Go tests pass
 - [ ] `smaqit.input-deployment` accepts `provisioning_mode: existing-k3s`; `smaqit.new-greenfield-project` and `smaqit.feature-new` carry `→ existing-k3s:` callouts at every step that differs, and Step 6 selects the k3s family (stack matched within it; synthesis uses the k3s exemplar and the k3s family's four inherited items, never the rsync family's)
+- [ ] `smaqit.infrastructure-vault-loader`'s namespace convention is no longer stale: `secret/apps/<app-slug>/kubeconfig` (`test`/`prod` fields) is documented in `SKILL.md`, `load-credentials.sh` has a working `existing-k3s` branch that loads/stores it, `rotate-credential.sh` supports re-prompting for a reissued value at that path, and `smaqit.feature-new`'s `existing-k3s` Vault step actually loads a credential that exists (no dangling reference)
 - [ ] `smaqit.infrastructure-cicd-generate` emits, in `k3s` mode, `deploy.yml` (single kubectl-driven job from a `KUBECONFIG` Environment secret) and `post-merge-deploy.yml` only — no `provision.yml`, nothing vendored, no SSH or Terraform reference
 - [ ] Live, against an onboarded test Namespace with a throwaway slug: `namespace-guard.sh` passes with the scoped kubeconfig; `manifest-lint.sh` passes; apply and `rollout status` succeed; the `Certificate` reaches `Ready`; `smaqit.infrastructure-deploy-verify --url https://<host> --expected-sha <sha>` reports PASS on health, SHA, and SPA root — with `deploy-verify` itself unmodified
 - [ ] Live negative cases: `namespace-guard.sh` refuses a cluster-admin kubeconfig; `manifest-lint.sh` rejects a `privileged: true` Pod template and an over-quota resource request, each before any `kubectl apply` runs
@@ -217,6 +240,9 @@ names appear in any product artifact this task produces.
 | `skills/smaqit.infrastructure-deploy-k3s-app/assets/ingress.yaml.template` | Create |
 | `skills/smaqit.infrastructure-deploy-k3s-app/assets/deployment.yaml.template` | Create |
 | `skills/smaqit.input-deployment/SKILL.md` | Modify (add `existing-k3s`) |
+| `skills/smaqit.infrastructure-vault-loader/SKILL.md` | Modify (stale namespace convention: add `kubeconfig` field) |
+| `skills/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh` | Modify (`existing-k3s` branch: load/store per-environment kubeconfig) |
+| `skills/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh` | Modify (support `apps/<app-slug>/kubeconfig`) |
 | `skills/smaqit.new-greenfield-project/SKILL.md` | Modify (mode, Phase 4/5 callouts, family-aware Step 6, Gotchas, version bump) |
 | `skills/smaqit.feature-new/SKILL.md` | Modify (mode resolution, Vault/repo-config callouts) |
 | `skills/smaqit.infrastructure-cicd-generate/SKILL.md` | Modify (`k3s` mode) |
@@ -243,3 +269,8 @@ names appear in any product artifact this task produces.
 - Two known platform gaps are inherited as constraints, not fixed here: the scoped credential
   cannot read `pods/log` (verification is designed external for this reason), and credential
   rotation is destructive (irrelevant to this skill, which only consumes the credential).
+- Vault kubeconfig scope was added 2026-09-12 during pre-start assessment: `smaqit.feature-new`'s
+  planned `existing-k3s` Vault step referenced a `kubeconfig` credential that
+  `smaqit.infrastructure-vault-loader`'s namespace convention had no concept of — a genuinely
+  stale spec, not a new decision — so fixing it was folded into this task rather than split out,
+  per explicit user confirmation.

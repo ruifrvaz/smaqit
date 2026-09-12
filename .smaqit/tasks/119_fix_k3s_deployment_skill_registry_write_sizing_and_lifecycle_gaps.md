@@ -1,8 +1,9 @@
 ---
-status: In Progress
+status: PR Open
 created: "2026-09-12"
 mode: Assisted
 started: "2026-09-12"
+pr: 89
 ---
 
 # Fix Registry-Write Semantics, Deployment Sizing, and Lifecycle Gaps in the k3s App-Deployment Skills
@@ -127,13 +128,64 @@ skill directory that looks load-bearing but isn't.
 
 No open bug/regression issues confirmed both platform and feature dimensions for either repository — `kubernetes/kubernetes` open-issue matches (Kubemark scalability, PV multi-tenancy, node-shutdown endpoints) and `cli/cli` open-issue matches (`pr create` branch-name mismatch, `gh run download` artifact scoping, input-preservation enhancement) are all unrelated to registry-file overwrite semantics or ResourceQuota/LimitRange sizing.
 
+## Findings
+
+**Implementation approach:**
+- Finding 1: rewrote `smaqit.infrastructure-request-k3s-onboarding/SKILL.md` Step 3 to fetch the
+  platform repo's current `registry_file_path` content on the request branch, then append
+  `entry_content` to it rather than writing it as a full-file replace. Verified with a local git
+  simulation — a bare repo seeded with one existing entry, then the fetch-append-write flow run
+  against it — confirming the pushed branch's file contains both the pre-existing and new entries.
+- Finding 2: tokenized `deployment.yaml.template`'s `replicas`/CPU request/memory request as
+  `__REPLICAS__`/`__CPU_REQUEST__`/`__MEM_REQUEST__`, defaulting to `1`/`50m`/`32Mi`; extended the
+  file's own token-list comment. Verified by rendering the template with sample substituted values
+  and running it through the existing `manifest-lint.sh` — valid YAML, lint passes cleanly.
+- Finding 4: confirmed zero callers of `smaqit.infrastructure-onboard-k3s-app` anywhere in the
+  skill tree, then deleted the directory. Cleaned up two now-stale mentions of it in
+  `smaqit.infrastructure-request-k3s-onboarding/SKILL.md`'s Scope/Gotchas sections that referenced
+  it as if it still existed.
+- Bumped both hardcoded skill-count assertions in `installer/main_test.go` 30 → 29; updated the
+  onboarding-family Q&A entry in `.smaqit/compendium.md`; added `CHANGELOG.md` `[Unreleased]`
+  entries. `go vet ./...` and `go test ./...` pass; `make -C installer prepare` regenerates staging
+  cleanly at the new count.
+
+**Decisions made:**
+- Finding 4 resolved as removal, not fold, per the plan's Design Decisions — nothing in the
+  orphaned stub was missing from `request-k3s-onboarding`'s own Pre-conditions/Gotchas.
+- Implementation Step 2 also called for updating `smaqit.infrastructure-deploy-k3s-app/SKILL.md`'s
+  token documentation — on inspection it never hardcoded the old `replicas: 2`/`100m`/`128Mi`
+  values or enumerated template tokens itself (only the template file's own header comment does),
+  so no change was needed there beyond what Finding 2's template edit already covers.
+- `manifest-lint.sh`'s optional quota-aware warning stayed out of scope per the plan — no
+  quota-ceiling input exists anywhere in its interface today.
+
+**Blockers encountered:**
+- `smaqit.task-start`'s research-map verification step (`task-context.sh --allow-legacy`) requires
+  a `## Notes` section for a legacy-format task file; task 119 didn't have one. Added a minimal
+  Notes section to unblock it — the same class of legacy-format gap already documented for other
+  tasks (107/109/111/112).
+- The task file's Description named a real downstream project by name ("Magnificah"), violating
+  this repo's own `CONTRIBUTING.md` rule against naming consumer projects in task files. Corrected
+  to generic phrasing before implementation began.
+- No live platform repo or GitHub credential was available to test the registry-write fix against
+  a real PR; verified instead via a local git simulation (see Implementation approach). Same class
+  of environment limitation already recorded as Follow-up in tasks 117/118.
+
+**Follow-up identified:**
+- Live verification against a real platform repo (an actual PR open/merge cycle, a real registry
+  file) remains outstanding — same environment limitation already recorded as Follow-up in tasks
+  117/118, not newly introduced by this task.
+- Finding 3 (branch-protection fallback for `smaqit.task-start`/`smaqit.task-complete`) was dropped
+  entirely from this task's scope. A companion task in the sibling `smaqit-extensions` repo would
+  need to be filed separately if that gap should still be fixed.
+
 ## Acceptance Criteria
 
-- `smaqit.infrastructure-request-k3s-onboarding` reads-merges-writes the registry file; a live or
+- [x] `smaqit.infrastructure-request-k3s-onboarding` reads-merges-writes the registry file; a live or
   simulated test confirms an existing unrelated entry survives a new-app onboarding PR.
-- `deployment.yaml.template` defaults to `replicas: 1` and smaller request values, expressed as
+- [x] `deployment.yaml.template` defaults to `replicas: 1` and smaller request values, expressed as
   overridable tokens rather than hardcoded numbers.
-- `smaqit.infrastructure-onboard-k3s-app` is either merged into `request-k3s-onboarding` or
+- [x] `smaqit.infrastructure-onboard-k3s-app` is either merged into `request-k3s-onboarding` or
   removed; no orphaned skill directory remains.
 
 ## Out of Scope

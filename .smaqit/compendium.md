@@ -70,9 +70,9 @@ The self-update flow re-execs the newly downloaded binary after replacing the fi
 
 ---
 
-**How must a release retire a previously shipped skill from existing projects?**
+**Does `smaqit update` remove a skill that a release retires from an already-installed global directory?**
 
-Deleting canonical source and regenerating installer staging removes a skill from new binaries, but it does not remove copies already installed in consumer projects: `cmdInit` overlays the new embedded tree without pruning paths absent from the new release. A skill retirement therefore needs a persistent installer tombstone listing the exact formerly-owned files. After the init conflict/approval gate, cleanup removes only those files from the Copilot, Claude, and Codex skill directories and prunes directories only when empty; uninstall applies the same legacy cleanup where normal embedded-file enumeration can no longer see the retired package. User-added files inside or beside the retired package must survive.
+No. Deleting a skill's canonical source and regenerating installer staging removes it from new binaries, but `cmdInstallGlobal()`'s `copyEmbeddedDir()` calls only walk the *current* binary's embedded agent/skill trees and write or overwrite files — they never compare against what's already on disk to delete a directory absent from the current embed. A retired skill's directory therefore persists indefinitely in every already-installed `~/.claude/skills/`, `~/.agents/skills/`, and platform-specific agent directory, surviving any number of subsequent `smaqit update` runs, with no automatic cleanup path. `removeEmbeddedSkillDirs` exists and is used by `cmdUninstall`, but it only removes files the *current* embed still represents, so it cannot help with a skill the current release no longer ships at all. No tombstone, retirement list, or equivalent pruning mechanism exists anywhere in the installer. The only current remedy is manually deleting the stale directory from each affected machine's global install locations.
 
 ---
 

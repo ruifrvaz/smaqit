@@ -15,7 +15,7 @@
 - Committed (`e9edc32`), created annotated tag `v1.11.0`, pushed both to origin via GNOME Keyring SSH agent (`/run/user/1000/gcr/ssh`). Tag push confirmed on remote.
 
 ### Project Bleed Cleanup
-- Performed a comprehensive repo-wide audit for downstream project names: a downstream project (19 instances across 4 files), another downstream project (1 instance in 1 file). `areaoffice-poc`, `assistente-escolas` were already clean.
+- Performed a comprehensive repo-wide audit for downstream project names: a downstream project (19 instances across 4 files), another downstream project (1 instance in 1 file). `assistente-escolas` was already clean.
 - Redacted all instances in `.smaqit/tasks/092_*.md` (5), `.smaqit/tasks/094_*.md` (7), and `.smaqit/tasks/095_*.md` (6), replacing with anonymized phrasing ("a downstream project", "that downstream project", "the downstream project that surfaced this").
 - Deleted `.smaqit/tasks/097_redact_downstream_project_names.md` — the cleanup task superseded by this session's work.
 - Updated `.smaqit/tasks/PLANNING.md` — removed task 097 from the Active table.

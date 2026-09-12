@@ -1,8 +1,9 @@
 ---
-status: In Progress
+status: PR Open
 created: "2026-09-12"
 mode: Assisted
 started: "2026-09-13"
+pr: 90
 ---
 
 # Surface and Fail Gracefully on Missing existing-k3s Infrastructure-Spec Fields
@@ -68,34 +69,60 @@ early, and specifically when these fields are missing, instead of assuming they 
 
 ## Acceptance Criteria
 
-- [ ] `smaqit.infrastructure-request-k3s-onboarding`'s Failure Handling table has an explicit row
+- [x] `smaqit.infrastructure-request-k3s-onboarding`'s Failure Handling table has an explicit row
       for a spec missing `Platform Repo`/`registry_file_path`/`machine_slug`, naming the exact
       fields and pointing at the platform's own documentation — never fabricating a value
-- [ ] `smaqit.input-deployment`'s `existing-k3s` value description tells the operator, at
+- [x] `smaqit.input-deployment`'s `existing-k3s` value description tells the operator, at
       mode-resolution time, that these fields must already exist in the spec and where they come
       from
-- [ ] The Infrastructure spec-writing agent's instructions name these fields as required spec
+- [x] The Infrastructure spec-writing agent's instructions name these fields as required spec
       content for an `existing-k3s` target
-- [ ] `smaqit.feature-new` checked for the same silent assumption; fixed if it duplicates rather
+- [x] `smaqit.feature-new` checked for the same silent assumption; fixed if it duplicates rather
       than delegates
-- [ ] No component introduced by this task infers, guesses, or defaults any platform-specific
+- [x] No component introduced by this task infers, guesses, or defaults any platform-specific
       value — verified by inspection of every new instruction added
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Fail-fast, documentation-only fix across three touch points, exactly per the Design Decisions:
+  `smaqit.input-deployment`'s `existing-k3s` description (soft prompt at mode-resolution time),
+  `agents/infrastructure.md`'s Layer-Specific Rules (MUST name the fields at spec-authoring time),
+  and `smaqit.infrastructure-request-k3s-onboarding`'s Pre-conditions/Failure Handling (stop with
+  a named-field error at request time). No new elicitation logic, script, or code path was added.
+- Extended `templates/specs/infrastructure.template.md`'s `## Constraints` table with five new
+  conditional rows (`Registry File Path`, `Machine Slug`, `Ingress Class`, `ClusterIssuer`,
+  `Namespace Quota`) alongside the pre-existing `Platform Repo` row, so the agent instructions in
+  `agents/infrastructure.md` have a concrete, named location to point at rather than a vague
+  "declares somewhere" instruction.
 
 **Decisions made:**
-- TBD
+- Covered all six fields named across the task's Description (the onboarding triplet plus the
+  deploy-time trio: ingress class, `ClusterIssuer`, quota/limit numbers), not just the three named
+  in AC #1, since the template's Constraints table was the natural single home for all of them and
+  the Design Decisions' Point 2 ("name these fields... the same way it would for any other
+  provisioning-mode-specific fact") applies equally to both groups.
+- Deliberately left `skills/smaqit.infrastructure-deploy-k3s-app/SKILL.md` unedited even though its
+  own Pre-conditions generically assume these fields exist — it was never one of the task's three
+  named touch points or the `smaqit.feature-new` check, and fixing the upstream source (this task's
+  actual scope) should make its existing generic assumption correct without a matching edit there.
+- Confirmed `smaqit.feature-new` does not duplicate the silent assumption: it never invokes
+  `smaqit.infrastructure-request-k3s-onboarding` itself, and for `existing-k3s` only looks up an
+  already-populated `secret/apps/<app-slug>/<machine-slug>/kubeconfig` in Vault — a distinct, valid
+  assumption that onboarding already happened during the project's initial greenfield deploy, not a
+  repeat of this task's gap. No fix applied there (AC #4 satisfied by inspection, not by edit).
 
 **Blockers encountered:**
-- TBD
+- None.
 
 **Follow-up identified:**
-- TBD
+- `smaqit.infrastructure-deploy-k3s-app`'s own Pre-conditions/Failure Handling still reference
+  these fields only generically ("declares... per environment") rather than by the exact
+  Constraints-table row names this task introduced (`Ingress Class`, `ClusterIssuer`,
+  `Namespace Quota`) — worth tightening in a future task once the new field names are load-bearing
+  in real specs, but out of this task's own scope.
+- The actual field *values* for any real downstream platform repo remain that platform team's own
+  documentation job, tracked separately (see Notes) — unchanged by this task, as designed.
 
 ## Notes
 

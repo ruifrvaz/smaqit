@@ -8,10 +8,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing to add.
+- **k3s app-deployment target** (pending v3.5.0 · PR #88) — new `smaqit.infrastructure-deploy-k3s-app` skill deploys an
+  application into a Namespace-scoped Kubernetes cluster (k3s or any cluster issuing a scoped
+  kubeconfig per app/environment): lints manifests against the platform's Pod Security
+  `restricted` and quota guardrails, applies them, waits for rollout and `Certificate` `Ready`,
+  and verifies externally over HTTPS — never touching anything cluster-scoped or reading pod
+  logs. Paired with a new `provisioning_mode: existing-k3s` value (`smaqit.input-deployment`),
+  family-aware routing in `smaqit.new-greenfield-project` Phase 4 Step 6 and `smaqit.feature-new`,
+  and a `k3s` generation mode in `smaqit.infrastructure-cicd-generate` producing a single
+  kubectl-driven `deploy.yml` job with no Terraform or SSH.
+- **k3s app-onboarding request skill** (pending v3.5.0 · PR #88) — new `smaqit.infrastructure-request-k3s-onboarding` lets
+  an `existing-k3s` app project request onboarding of one environment onto a platform-owned k3s
+  cluster: opens a PR against the platform's own infrastructure repo adding the app's registry
+  entry, then gates on that PR being approved and merged — a human-review gate mirroring
+  `smaqit.feature-new`'s existing deploy-PR pattern, never requiring direct commit or
+  `workflow_dispatch` access to a repo the app doesn't own. Wired into `smaqit.new-greenfield-project`
+  Phase 4 (test) and Phase 5 (prod), before `smaqit.infrastructure-deploy-k3s-app` runs. Adds a new
+  `secret/apps/<app-slug>/platform-repo` credential (`smaqit.infrastructure-vault-loader`) and a
+  new `Platform Repo` row in the Infrastructure spec template's `## Constraints` table.
 
 ### Changed
-- Nothing to add.
+- **Vault namespace convention extended for kubeconfig credentials** (pending v3.5.0 · PR #88) —
+  `smaqit.infrastructure-vault-loader` gains `secret/apps/<app-slug>/<machine-slug>/kubeconfig`
+  (single `value` field) for `existing-k3s` targets, one path per registered machine-slug so
+  "environment" is expressed entirely through which machine-slug is targeted (test and prod get
+  distinct machine-slugs even when they share one physical k3s server, rather than one path
+  split into two fields). There is no `secret/machines/<machine-slug>/*` counterpart for a k3s
+  machine-slug — kubeconfig is the only thing ever stored keyed by it. Always populated
+  out-of-band (never a live cluster call); `rotate-credential.sh` support re-prompts for a
+  freshly platform-reissued value rather than regenerating one locally, since kubeconfig
+  rotation is destructive and platform-side. `smaqit.infrastructure-repo-config` writes it as a
+  `KUBECONFIG` secret on the corresponding GitHub Environment (not a repository-level secret).
 
 ### Deprecated
 - Nothing to add.

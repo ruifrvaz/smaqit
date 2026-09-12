@@ -12,6 +12,13 @@
 #   __IMAGE__      — the app's container image reference
 #   __DEPLOY_SHA__ — the commit SHA being deployed, set by the caller at apply time
 #   __DEPLOY_TIME__ — an ISO 8601 UTC timestamp, set by the caller at apply time
+#   __REPLICAS__   — replica count; defaults to 1. Two replicas at the default request size alone
+#                    consumes a full per-app ResourceQuota ceiling on some onboarded clusters, and
+#                    leaves no headroom for a RollingUpdate surge pod or cert-manager's HTTP-01
+#                    solver pod (both schedule inside this Namespace). Raise only against a
+#                    confirmed quota ceiling.
+#   __CPU_REQUEST__ — per-container CPU request; defaults to 50m (conservative, proven-live)
+#   __MEM_REQUEST__ — per-container memory request; defaults to 32Mi (conservative, proven-live)
 
 apiVersion: apps/v1
 kind: Deployment
@@ -21,7 +28,7 @@ metadata:
   labels:
     app: __APP_SLUG__
 spec:
-  replicas: 2
+  replicas: __REPLICAS__
   selector:
     matchLabels:
       app: __APP_SLUG__
@@ -58,8 +65,8 @@ spec:
               type: RuntimeDefault
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: "__CPU_REQUEST__"
+              memory: "__MEM_REQUEST__"
             limits:
               cpu: "500m"
               memory: "256Mi"

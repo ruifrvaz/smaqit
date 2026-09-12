@@ -1,0 +1,77 @@
+# Reference Deployment template for smaqit.infrastructure-deploy-k3s-app.
+#
+# Shows a Pod Security "restricted"-compliant Pod template with the deploy-stamp environment
+# variables (DEPLOY_SHA, DEPLOY_TIME) set at apply time — the k3s family's equivalent of the
+# rsync family's DEPLOY_SHA/DEPLOY_TIME stamp files, since this credential has no host
+# filesystem to write to. Adapt container name, image, port, and resource sizing to the app;
+# do not remove or weaken any of the securityContext fields below — manifest-lint.sh rejects a
+# manifest missing any of them before any kubectl apply runs.
+#
+# Tokens:
+#   __APP_SLUG__   — the app slug; the Namespace is always app-__APP_SLUG__
+#   __IMAGE__      — the app's container image reference
+#   __DEPLOY_SHA__ — the commit SHA being deployed, set by the caller at apply time
+#   __DEPLOY_TIME__ — an ISO 8601 UTC timestamp, set by the caller at apply time
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __APP_SLUG__
+  namespace: app-__APP_SLUG__
+  labels:
+    app: __APP_SLUG__
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: __APP_SLUG__
+  template:
+    metadata:
+      labels:
+        app: __APP_SLUG__
+    spec:
+      # imagePullSecrets: only present when the spec names a private registry — see
+      # smaqit.infrastructure-deploy-k3s-app/SKILL.md Step 4.
+      # imagePullSecrets:
+      #   - name: app-registry
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: __APP_SLUG__
+          image: __IMAGE__
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DEPLOY_SHA
+              value: "__DEPLOY_SHA__"
+            - name: DEPLOY_TIME
+              value: "__DEPLOY_TIME__"
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __APP_SLUG__
+  namespace: app-__APP_SLUG__
+spec:
+  selector:
+    app: __APP_SLUG__
+  ports:
+    - port: 80
+      targetPort: 8080

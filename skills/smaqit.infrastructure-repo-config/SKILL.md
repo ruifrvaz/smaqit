@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-repo-config
-description: Use when configuring a GitHub repository with the secrets and variables required for CI/CD workflows. Covers Actions secrets (VM_SSH_KEY, Terraform backend credentials, cloud provider credentials, GH_TERRAFORM_TOKEN) and Actions variables (VM_HOST, DEMO_MODE). Uses the `gh` CLI. Prevents GITHUB_TOKEN reserved-name collisions and SSH key trailing-newline drift. Also use when setting up a new deployment repository, rotating CI/CD credentials, or verifying that all required repository secrets and variables are present.
+description: Use when configuring a GitHub repository with the secrets and variables required for CI/CD workflows. Covers Actions secrets (VM_SSH_KEY, Terraform backend credentials, cloud provider credentials, GH_TERRAFORM_TOKEN), Actions variables (VM_HOST, DEMO_MODE), and, for `provisioning_mode: existing-k3s` targets, the environment-scoped `KUBECONFIG` secret and `APP_HOST` variable plus an optional registry credential. Uses the `gh` CLI. Prevents GITHUB_TOKEN reserved-name collisions and SSH key trailing-newline drift. Also use when setting up a new deployment repository, rotating CI/CD credentials, or verifying that all required repository secrets and variables are present.
 metadata:
-  version: "1.4.1"
+  version: "1.5.0"
 ---
 
 # Configure GitHub Repository Secrets and Variables
@@ -23,6 +23,11 @@ metadata:
   and `github` are expected to be populated — `tfstate` and `cyso` are never populated for either
   mode (see `smaqit.infrastructure-vault-loader`) and `scripts/sync-secrets.sh` (Step 3) adapts
   accordingly rather than assuming all four paths exist.
+- **`provisioning_mode: existing-k3s` is a different shape entirely, not a restricted variant of
+  the VM path** — no `ssh`, `tfstate`, `cyso`, or `VM_SSH_KEY`/`VM_HOST` at all. Only `github` and
+  the target environment's registered machine-slug's
+  `secret/apps/<app-slug>/<machine-slug>/kubeconfig` (`value` field) are read, and the output
+  lands on a GitHub **Environment** (`test`/`prod`), not the repository level — see Step 5.
 
 > **Role of this skill:** Vault is the source of truth. GitHub Secrets are a derived copy. This skill
 > reads from Vault and pushes to GitHub. On credential rotation, update Vault first, then re-run
@@ -59,10 +64,32 @@ metadata:
    `gh variable list -R <owner>/<repo>` itself and reports which secrets (if any) were skipped and
    why. Confirm all expected names appear (see Completion checklist) before considering this done.
 
+5. **`existing-k3s` only — sync the kubeconfig and host, on GitHub Environments, not the
+   repository:**
+   ```bash
+   gh secret set KUBECONFIG --env test -R <owner>/<repo> --body "$(vault kv get -field=value secret/apps/<app-slug>/<test-machine-slug>/kubeconfig)"
+   gh secret set KUBECONFIG --env prod -R <owner>/<repo> --body "$(vault kv get -field=value secret/apps/<app-slug>/<prod-machine-slug>/kubeconfig)"
+   gh variable set APP_HOST --env test -R <owner>/<repo> --body <test-ingress-host>
+   gh variable set APP_HOST --env prod -R <owner>/<repo> --body <prod-ingress-host>
+   ```
+   `KUBECONFIG` is set **per GitHub Environment** (`test`, `prod`), never as a single
+   repository-level secret — each environment's Namespace has its own distinct scoped
+   kubeconfig at its own machine-slug's path, and a repository-level secret can't hold two
+   different values. `<test-machine-slug>` and `<prod-machine-slug>` are the machine-slugs the
+   Infrastructure spec registers for each environment — distinct registered machine-slugs even
+   when both environments happen to share one physical k3s server. `APP_HOST` is
+   `existing-k3s`'s analog of `VM_HOST`: a **variable** (not a secret) holding the environment's
+   Ingress hostname, read directly by `smaqit.infrastructure-deploy-k3s-app`'s verify step. No
+   `ssh`/`tfstate`/`cyso`-derived secret is ever synced for this mode, and `VM_HOST` is never
+   set. If the spec names a private registry, also sync the declared registry credential (e.g.
+   `REGISTRY_USERNAME`/`REGISTRY_TOKEN`) the same way — per environment, as GitHub Environment
+   secrets, never a platform-owned credential.
+
 ## Output
 
 - **`provision` / `existing-owned`:** GitHub repository configured with 7 secrets (VM_SSH_KEY, VM_SSH_PUBLIC_KEY, TF_BACKEND_ACCESS_KEY, TF_BACKEND_SECRET_KEY, OS_APPLICATION_CREDENTIAL_ID, OS_APPLICATION_CREDENTIAL_SECRET, GH_TERRAFORM_TOKEN) plus the VM_HOST variable
 - **`existing-shared` / `existing-unmanaged`:** 3 secrets only (VM_SSH_KEY, VM_SSH_PUBLIC_KEY, GH_TERRAFORM_TOKEN) plus the VM_HOST variable (set manually, not derived from Terraform) — identical set for both modes; only the reason there's no Terraform output differs (another project's Terraform vs. no Terraform at all)
+- **`existing-k3s`:** a `KUBECONFIG` secret on each of the `test` and `prod` GitHub Environments (never a repository-level secret), plus an `APP_HOST` variable on each Environment; an optional per-environment registry credential when the spec names a private registry. No `VM_HOST`, no `VM_SSH_KEY`, no Terraform-derived secret at all.
 - All values sourced from Vault; no credentials typed or stored locally outside Vault
 - Verification output confirming presence of each name; absent `tfstate`/`cyso`-derived secrets are reported as skipped, not missing
 
@@ -70,13 +97,20 @@ metadata:
 
 - Does NOT generate SSH keys — the caller must provide a passphrase-free deploy key file path
 - Does NOT create or configure the GitHub repository itself
-- Does NOT manage environment-level secrets (repository-level only)
+- Does NOT manage environment-level secrets, except for `provisioning_mode: existing-k3s` — that
+  mode's `KUBECONFIG` secret and `APP_HOST` variable are deliberately GitHub Environment-scoped
+  (`test`/`prod`), not repository-level, since each environment needs its own distinct value;
+  every other mode's output stays repository-level only
 - Does NOT hard-fail when `tfstate`/`cyso` Vault paths are absent — see Step 3 / `scripts/sync-secrets.sh` for `provisioning_mode: existing-shared`/`existing-unmanaged` handling
+- Does NOT contact a Kubernetes cluster for `existing-k3s` — the kubeconfig is read from Vault and written to GitHub verbatim, never validated against the cluster itself
 
 ## Examples
 
 **Input:** New project repo `ruifrvaz/myapp` created. Operator invokes the skill.
 **Output:** `gh secret list` confirms: VM_SSH_KEY, TF_BACKEND_ACCESS_KEY, TF_BACKEND_SECRET_KEY, TF_VAR_APP_CREDENTIAL_ID, TF_VAR_APP_CREDENTIAL_SECRET, GH_TERRAFORM_TOKEN. `gh variable list` confirms: VM_HOST, DEMO_MODE=true.
+
+**Input:** Namespace-scoped Kubernetes/k3s target, `provisioning_mode: existing-k3s`. Operator invokes the skill.
+**Output:** `gh secret list --env test` and `--env prod` each confirm `KUBECONFIG`; `gh variable list --env test` and `--env prod` each confirm `APP_HOST`. No `VM_HOST`, no `VM_SSH_KEY`, at the repository level or either Environment.
 
 ## Gotchas
 
@@ -85,17 +119,20 @@ metadata:
 - **SSH key trailing newline** — always pipe through `tr -d '\n'` when setting VM_SSH_KEY. Without this, Terraform flags the keypair resource for replacement on every plan.
 - **Fine-grained PAT scope** — repository permissions → Variables: Read and write. Classic PATs are rejected by the GitHub Terraform provider.
 - **`gh auth login` scope** — ensure the `gh` session has `write:secrets` and `write:variables`. The `repo` scope alone is insufficient for variables.
+- **`KUBECONFIG` must be set per Environment, never at the repository level** — a repository-level secret can only hold one value, but `test` and `prod` each resolve to their own registered machine-slug and its own distinct scoped kubeconfig. Setting it at the repository level would silently make one environment deploy with the wrong credential.
+- **`APP_HOST` is a variable, not a secret** — same reasoning as `VM_HOST`: it's a hostname, not sensitive, and the generated `deploy.yml.k3s.template` reads it directly via `${{ vars.APP_HOST }}`.
 
 ## Completion
 
 - [ ] Repository owner/name confirmed
 - [ ] VM_SSH_KEY set (from Vault, trailing newline stripped)
 - [ ] VM_SSH_PUBLIC_KEY set (from Vault)
-- [ ] VM_HOST variable set — from Terraform output (`provision`/`existing-owned`) or manually (`existing-shared`/`existing-unmanaged`)
+- [ ] VM_HOST variable set — from Terraform output (`provision`/`existing-owned`) or manually (`existing-shared`/`existing-unmanaged`); never set for `existing-k3s`
 - [ ] TF_BACKEND_ACCESS_KEY and TF_BACKEND_SECRET_KEY set (from Vault), or cleanly skipped if `secret/<slug>/tfstate` is absent
 - [ ] OS_APPLICATION_CREDENTIAL_ID and OS_APPLICATION_CREDENTIAL_SECRET set (from Vault), or cleanly skipped if `secret/<slug>/cyso` is absent
 - [ ] GH_TERRAFORM_TOKEN set (from Vault; fine-grained PAT, `variables:write` scope)
-- [ ] `gh secret list` and `gh variable list` verified — all expected names present for the active `provisioning_mode`
+- [ ] `existing-k3s` only: `KUBECONFIG` secret and `APP_HOST` variable set on both the `test` and `prod` GitHub Environments; optional registry credential synced per environment if a private registry is declared
+- [ ] `gh secret list` and `gh variable list` verified — all expected names present for the active `provisioning_mode` (pass `--env test`/`--env prod` for `existing-k3s`)
 
 ## Failure Handling
 
@@ -111,3 +148,5 @@ metadata:
 | `scripts/sync-secrets.sh` exits 1 | App root's `ssh` or `github` is missing — these are required in every mode; populate them via `smaqit.infrastructure-vault-loader` before retrying |
 | `GITHUB_TOKEN` collision in existing workflow YAML | Flag it explicitly and require renaming before the workflow is triggered |
 | `gh variable set` returns 403 | Verify the PAT used for `gh auth login` has `write:variables` scope |
+| `existing-k3s`: `secret/apps/<app-slug>/<machine-slug>/kubeconfig` absent for the target environment's registered machine-slug | Stop. This is `smaqit.infrastructure-vault-loader`'s job — populate it there (out-of-band paste from the platform's onboarding hand-off) before retrying; do not fabricate a placeholder |
+| `existing-k3s`: `gh secret set ... --env <name>` fails because the Environment doesn't exist yet | Create the `test`/`prod` GitHub Environments first (`gh api repos/<owner>/<repo>/environments/<name> -X PUT` or via the repository UI), then retry |

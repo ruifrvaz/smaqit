@@ -13,9 +13,10 @@ metadata:
   registry file.** This is smaqit's own declared convention for the app side, not a guarantee
   about any given infra repo. If the target repo's onboarding process works some other way, this
   skill does not apply — that combination is out of scope, not a bug to work around.
-- The Infrastructure spec declares, for the target environment: the platform repository
-  (`owner/repo`, the `## Constraints` table's `Platform Repo` row), the registry-file path within
-  that repository, and the target machine-slug.
+- The Infrastructure spec declares, for the target environment, in its `## Constraints` table: the
+  platform repository (`owner/repo`, the `Platform Repo` row), the registry-file path within that
+  repository (`Registry File Path` row), and the target machine-slug (`Machine Slug` row) —
+  sourced from the platform team's own onboarding documentation, never invented locally.
 - `secret/apps/<app-slug>/platform-repo` is populated (`smaqit.infrastructure-vault-loader`'s
   `existing-k3s` branch) — a fine-grained PAT scoped only to `contents:write` and
   `pull_requests:write` on the platform repository. Distinct from `secret/apps/<app-slug>/github`,
@@ -135,6 +136,7 @@ after the platform team merges PR #42, the skill reports success and Phase 4 pro
 
 | Situation | Action |
 |-----------|--------|
+| Infrastructure spec doesn't declare `Platform Repo`, `Registry File Path`, or `Machine Slug` for the target environment | Stop. Name exactly which Constraints-table field(s) are missing and point at the platform repository's own onboarding documentation as the only valid source. Never fabricate a value or guess a path. |
 | `secret/apps/<app-slug>/platform-repo` absent | Stop. Point at `smaqit.infrastructure-vault-loader`'s `existing-k3s` branch to populate it. Never fabricate a placeholder. |
 | `entry_content` not supplied by the operator | Stop and request it. Never guess a registry-file schema. |
 | PR already open for this app/machine-slug | Skip creation; proceed directly to the merge-state gate. Never open a duplicate. |

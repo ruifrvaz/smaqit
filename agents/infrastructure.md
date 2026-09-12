@@ -136,6 +136,11 @@ These rules are specific to the Infrastructure layer and must be followed when p
 - Specify secrets management approach
 - Be consistent with Phase 1 specs regarding requirements and runtime constraints (validated at implementation)
 - Use the `deployment` diagram profile for Infrastructure visual designs
+- For a target environment resolving to `provisioning_mode: existing-k3s`, populate the
+  Constraints table's `Platform Repo`, `Registry File Path`, `Machine Slug`, `Ingress Class`,
+  `ClusterIssuer`, and `Namespace Quota` rows — every value must come from the platform team's own
+  onboarding documentation for that cluster; never invent, infer, or default one. If the operator
+  cannot supply a required value, flag it as a gap under Untestable Criteria rather than guessing
 
 ### MUST NOT
 

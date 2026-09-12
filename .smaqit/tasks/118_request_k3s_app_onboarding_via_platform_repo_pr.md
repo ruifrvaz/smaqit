@@ -1,9 +1,10 @@
 ---
-status: In Progress
+status: Completed
 created: "2026-09-12"
 parent: "117"
 mode: Assisted
 started: "2026-09-12"
+completed: "2026-09-12"
 ---
 
 # Request k3s App Onboarding via Platform-Repo PR
@@ -131,43 +132,52 @@ _None._
 
 ## Acceptance Criteria
 
-- [ ] `.smaqit/definitions/skills/smaqit.infrastructure-request-k3s-onboarding.md` and compiled
+- [x] `.smaqit/definitions/skills/smaqit.infrastructure-request-k3s-onboarding.md` and compiled
       `skills/smaqit.infrastructure-request-k3s-onboarding/SKILL.md` exist; no real project,
       repository, or machine name anywhere
-- [ ] Skill takes `platform_repo`, `registry_file_path`, `entry_content`, and `machine_slug` as
+- [x] Skill takes `platform_repo`, `registry_file_path`, `entry_content`, and `machine_slug` as
       declared inputs; never assumes or validates a registry-file schema
-- [ ] PR-opening is idempotent — a second invocation for the same `app-slug`/`machine_slug` reuses
+- [x] PR-opening is idempotent — a second invocation for the same `app-slug`/`machine_slug` reuses
       the existing open PR rather than opening a duplicate
-- [ ] The skill gates on PR merge (single state check per invocation, re-entrant — not a busy-poll
+- [x] The skill gates on PR merge (single state check per invocation, re-entrant — not a busy-poll
       loop) before reporting success; never triggers `workflow_dispatch` on the platform repo and
       never attempts to fetch or store the resulting kubeconfig
-- [ ] `templates/specs/infrastructure.template.md` has a new `Platform Repo` row in `##
+- [x] `templates/specs/infrastructure.template.md` has a new `Platform Repo` row in `##
       Constraints`, documented as `existing-k3s`-only
-- [ ] `smaqit.infrastructure-vault-loader` supports `secret/apps/<app-slug>/platform-repo`
+- [x] `smaqit.infrastructure-vault-loader` supports `secret/apps/<app-slug>/platform-repo`
       (distinct from `github`), with `load-credentials.sh`/`rotate-credential.sh` support
-- [ ] `smaqit.new-greenfield-project` Phase 4 (test) and Phase 5 (prod) each gate on this skill
+- [x] `smaqit.new-greenfield-project` Phase 4 (test) and Phase 5 (prod) each gate on this skill
       before invoking `smaqit.infrastructure-deploy-k3s-app`; `metadata.version` bumped
-- [ ] Installer rebuilds cleanly (new skill present in both `installer/skills-shared/` and
+- [x] Installer rebuilds cleanly (new skill present in both `installer/skills-shared/` and
       `installer/skills-claude/`); `go vet`/`go test` pass with skill-count assertions updated
-- [ ] `CHANGELOG.md` has a new entry under `[Unreleased]/Added`
+- [x] `CHANGELOG.md` has a new entry under `[Unreleased]/Added`
 - [ ] A manual dry-run against a real scratch repo confirms the skill opens a PR, detects its
-      merge, and correctly reuses an existing open PR on a repeat invocation
+      merge, and correctly reuses an existing open PR on a repeat invocation — **not done**: no
+      scratch repo or `platform-repo`-scoped credential was available in this environment; see
+      Follow-up identified below
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Authored `.smaqit/definitions/skills/smaqit.infrastructure-request-k3s-onboarding.md` mirroring task 117's own Provenance shape (authored directly, no downstream contribution), then compiled `skills/smaqit.infrastructure-request-k3s-onboarding/SKILL.md` directly (no separate definitions-only period), with inputs `platform_repo`/`registry_file_path`/`entry_content`/`machine_slug`, an idempotent open-PR check, and a single-state-check merge gate mirroring `smaqit.feature-new`'s existing pause-and-recheck pattern.
+- Added a `Platform Repo` row to `templates/specs/infrastructure.template.md`'s `## Constraints` table.
+- Extended `smaqit.infrastructure-vault-loader` (SKILL.md + both scripts) with a new `secret/apps/<app-slug>/platform-repo` credential, distinct from `github`, using the standard delete-and-repopulate rotation shape.
+- Wired `smaqit.new-greenfield-project` Phase 4 and Phase 5 to invoke the new skill and gate on merge before their respective kubeconfig-loading/deploy steps; bumped `metadata.version` to 1.7.0; added a Gotchas entry.
+- Rebuilt the installer (skill count 28→29 in `installer/main_test.go`), ran `go vet`/`go test -count=1` (pass), grepped all new/modified files for real project/repo/machine names (clean).
 
 **Decisions made:**
-- TBD
+- Confirmed as a child of task 117 (shares its branch/worktree/Assisted mode) rather than a standalone task, per explicit user direction during planning.
+- Two PRs per app (one per environment/machine-slug), not one PR covering both — each a one-time Phase 4/Phase 5 setup step, never embedded in the generated `deploy.yml`.
+- `machine_slug`, not `environment`, is the skill's primary targeting input — kept consistent with task 117's same-day Vault revision to `secret/apps/<app-slug>/<machine-slug>/kubeconfig`.
+- Deliberately avoids `gh pr create -H user:branch` (fork-based cross-repo PRs) — issue triage found `cli/cli#10093`, an open upstream limitation in that exact flow; the skill instead uses a directly-scoped collaborator credential to push a branch straight to the platform repo.
+- No credential-scope preflight guard (e.g., a `namespace-guard.sh`-style refusal if the platform-repo PAT has broader-than-declared rights) — explicitly deferred, not built in this task.
 
 **Blockers encountered:**
-- TBD
+- None during implementation. The one real gap is the final acceptance criterion (see Follow-up below), which was a known limitation of this environment rather than an implementation blocker.
 
 **Follow-up identified:**
-- TBD
+- The manual dry-run acceptance criterion (open a real PR against a scratch repo, confirm merge detection and idempotent reuse) was not performed — no scratch GitHub repo or `platform-repo`-scoped PAT was available in this session. Left unchecked rather than falsely marked done; run it manually against a real repo before relying on this skill in production. Confirmed with the user (2026-09-12) to complete the task now rather than block on setting this up.
+- No credential-scope preflight guard exists for the `platform-repo` PAT (unlike `namespace-guard.sh` for the k3s kubeconfig) — noted as a possible future hardening, not required for this task.
 
 ## Files to Create / Modify
 

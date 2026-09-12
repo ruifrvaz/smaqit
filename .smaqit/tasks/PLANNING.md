@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 117 | k3s App-Deployment Skill With Routing and CI/CD | In Progress | High |
+| 117 | k3s App-Deployment Skill With Routing and CI/CD | PR Open | High |
 | 115 | New Machine-Monorepo Infrastructure Skills: Provision, Verify, Day-2 Baseline, Tenant Reconcile | new | Medium |
 | 114 | Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from a Downstream Project's Infrastructure Task 001) | new | High |
 | 113 | Business Use-Case Diagrams: No Guardrail Against Generalization-Inheritance Misuse or PlantUML-Alias Collision With the Project's Own UC-ID Convention | new | Medium |

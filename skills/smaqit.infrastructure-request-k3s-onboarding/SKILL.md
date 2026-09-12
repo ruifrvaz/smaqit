@@ -36,9 +36,15 @@ metadata:
    gh pr list -R "$PLATFORM_REPO" --head "$BRANCH" --state open --json number,url
    ```
    If one exists, skip to Step 5 — never open a duplicate.
-3. **Push the registry entry to a branch on the platform repository** (using the
-   `platform-repo` credential): fetch the platform repo, create `$BRANCH` from its default branch
-   if it doesn't already exist, write `entry_content` at `registry_file_path`, commit, push.
+3. **Fetch the current registry file, then append — never a blind overwrite.** Using the
+   `platform-repo` credential: create `$BRANCH` from the platform repository's default branch if it
+   doesn't already exist, then read the *current* content of `registry_file_path` on that branch
+   (e.g. `gh api repos/"$PLATFORM_REPO"/contents/"$REGISTRY_FILE_PATH" --jq '.content' | base64 -d`,
+   or an equivalent fetched-clone read). Append `entry_content` to that existing content — every
+   other already-onboarded entry and any header/comment lines must survive unchanged — then write
+   the merged result back to `registry_file_path`, commit, and push. If the fetch reports the path
+   doesn't exist at all, treat it as the existing "registry file path doesn't exist" Failure
+   Handling case below; do not invent initial file content.
 4. **Open the PR:**
    ```bash
    gh pr create -R "$PLATFORM_REPO" \
@@ -67,9 +73,8 @@ Namespace, or any change to the platform repository outside the one PR.
 
 - Does NOT perform or know anything about the platform-side onboarding mechanism itself — that is
   entirely that repository's own process, triggered however its own maintainers have set it up to
-  react to this skill's PR merging. `smaqit.infrastructure-onboard-k3s-app` is one possible shape
-  such a process could take on the infra side, but this skill assumes nothing about it beyond "a
-  merged PR triggers something."
+  react to this skill's PR merging. This skill assumes nothing about that process beyond "a merged
+  PR triggers something."
 - Does NOT trigger `workflow_dispatch` on the platform repository, read or write anything else in
   it, or hold any credential broader than PR-create rights on that one repository.
 - Does NOT fetch, store, or validate the resulting kubeconfig — that remains
@@ -91,13 +96,15 @@ after the platform team merges PR #42, the skill reports success and Phase 4 pro
 
 ## Gotchas
 
-- **Deliberately more opinionated than `smaqit.infrastructure-onboard-k3s-app`.** That skill is a
-  thin dispatcher because it lives inside an infra repo smaqit doesn't control the internals of —
-  every such repo can differ. This skill lives inside the smaqit-managed app repo instead, which
-  smaqit fully owns the conventions for, so it declares one fixed request contract
-  (PR-to-a-registry-file, gate-on-merge) rather than deferring to unknown mechanics on its own
-  side. Do not water this down to match the infra side's genericness — the two skills sit on
-  opposite sides of a repo boundary for a reason.
+- **Deliberately opinionated, unlike the platform-side onboarding process it targets.** The
+  platform repo's own onboarding mechanism lives inside an infra repo smaqit doesn't control the
+  internals of — every such repo can differ, and smaqit ships no skill for it (an earlier generic
+  dispatcher stub, `smaqit.infrastructure-onboard-k3s-app`, was removed as an orphaned, unused
+  duplicate of this Pre-conditions/Gotchas guidance — see task 119). This skill lives inside the
+  smaqit-managed app repo instead, which smaqit fully owns the conventions for, so it declares one
+  fixed request contract (PR-to-a-registry-file, gate-on-merge) rather than deferring to unknown
+  mechanics on its own side. Do not water this down to match the infra side's genericness — the two
+  concerns sit on opposite sides of a repo boundary for a reason.
 - **Never use the fork-based `gh pr create -H user:branch` flow.** `cli/cli#10093` (open) tracks a
   real limitation in that flow for cross-repo PRs. This skill avoids it entirely by using a
   directly-scoped collaborator credential to push a branch straight to the platform repository and
@@ -115,6 +122,8 @@ after the platform team merges PR #42, the skill reports success and Phase 4 pro
 
 - [ ] Deterministic branch name computed; an existing open PR for this app/machine-slug is reused,
       never duplicated
+- [ ] Registry file's current content fetched before writing; every pre-existing entry and
+      header/comment line survives unchanged in the merged result — never a full-file replace
 - [ ] Branch pushed directly to the platform repository (never a fork; never `-H user:branch`)
 - [ ] PR opened via `gh pr create -R <platform_repo>`, URL reported
 - [ ] `workflow_dispatch` never triggered on the platform repository

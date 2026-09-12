@@ -84,3 +84,15 @@ No task-layer tools; this task adds a `title` directive to PlantUML design templ
 | kubectl | Reference | https://kubernetes.io/docs/reference/kubectl/ |
 | GitHub Actions | Environments | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
 | GitHub Actions | workflow_dispatch | https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow |
+
+## Task 118 — Request k3s App Onboarding via Platform-Repo PR
+
+**Context fingerprint:** sha256:b5ec7f4b31544d5b4144244783812ff3533ddac316dab252d309513692409940
+**Refreshed:** 2026-09-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| GitHub CLI | pr create | https://cli.github.com/manual/gh_pr_create |
+| GitHub CLI | pr view | https://cli.github.com/manual/gh_pr_view |
+| GitHub REST API | Pulls | https://docs.github.com/en/rest/pulls/pulls |
+| Git | Documentation | https://git-scm.com/doc |

@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/119-fix-registry-write-semantics-deployment-sizing-and-lifecycle-gaps-in-the-k3s-app-deployment-skills",
+      "path": "../smaqit-wt-task-119-fix-registry-write-semantics-deployment-sizing-and-lifecycle-gaps-in-the-k3s-app-deployment-skills"
     }
   ],
   "settings": {

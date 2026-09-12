@@ -96,3 +96,17 @@ No task-layer tools; this task adds a `title` directive to PlantUML design templ
 | GitHub CLI | pr view | https://cli.github.com/manual/gh_pr_view |
 | GitHub REST API | Pulls | https://docs.github.com/en/rest/pulls/pulls |
 | Git | Documentation | https://git-scm.com/doc |
+
+## Task 119 — Fix Registry-Write Semantics, Deployment Sizing, and Lifecycle Gaps in the k3s App-Deployment Skills
+
+No new task-layer tools; reuses GitHub CLI/API and Kubernetes resource-management references
+already verified for Tasks 117/118, plus one addition (GitHub REST API repository-contents, used
+for the read-before-append fix in Finding 1).
+
+| Tool | Section | URL |
+|------|---------|-----|
+| GitHub CLI | pr create | https://cli.github.com/manual/gh_pr_create |
+| GitHub CLI | pr view | https://cli.github.com/manual/gh_pr_view |
+| GitHub REST API | Repository contents | https://docs.github.com/en/rest/repos/contents |
+| Kubernetes | Resource Quotas | https://kubernetes.io/docs/concepts/policy/resource-quotas/ |
+| Kubernetes | Limit Ranges | https://kubernetes.io/docs/concepts/policy/limit-range/ |

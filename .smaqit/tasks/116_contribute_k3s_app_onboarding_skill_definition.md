@@ -1,8 +1,9 @@
 ---
-status: In Progress
+status: PR Open
 created: "2026-09-11"
 mode: Assisted
 started: "2026-09-12"
+pr: 87
 ---
 
 # Contribute a k3s App-Onboarding Skill Definition
@@ -140,41 +141,44 @@ future task requiring its own design work, not a mechanical follow-up like compi
 
 ## Acceptance Criteria
 
-- [ ] `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` exists, matching
+- [x] `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` exists, matching
       `smaqit.infrastructure-deploy-rsync-python-tornado.md`'s section structure
-- [ ] Provenance section contains no real project, repository, or machine names
-- [ ] Documents every real bug and fix listed in Implementation Steps' Gotchas item, not just the
+- [x] Provenance section contains no real project, repository, or machine names
+- [x] Documents every real bug and fix listed in Implementation Steps' Gotchas item, not just the
       final correct mechanism
-- [ ] Documents the `workflow_dispatch`-must-exist-on-the-default-branch constraint and the
+- [x] Documents the `workflow_dispatch`-must-exist-on-the-default-branch constraint and the
       GitHub-Environment-branch-policy-applies-per-name gotcha
-- [ ] Notes `pods/log` RBAC access and non-destructive credential rotation as known gaps not yet
+- [x] Notes `pods/log` RBAC access and non-destructive credential rotation as known gaps not yet
       incorporated
-- [ ] `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` exists, compiled with YAML frontmatter
+- [x] `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` exists, compiled with YAML frontmatter
       (`name`, `description`, `metadata.version`/`validated`/`validated-stack`) and a top-level
       `Pre-conditions` heading, matching the compiled tornado skill's shape
-- [ ] `installer/main_test.go`'s two hardcoded skill-count assertions are bumped 27→28 and
+- [x] `installer/main_test.go`'s two hardcoded skill-count assertions are bumped 27→28 and
       `make -C installer test` passes
-- [ ] `make -C installer smoke-test` passes, confirming the skill installs cleanly with its
+- [x] `make -C installer smoke-test` passes, confirming the skill installs cleanly with its
       `[SMAQIT_SKILLS_DIR]` placeholder resolved
-- [ ] No changes are made to `smaqit.input-deployment`, `smaqit.new-greenfield-project`,
+- [x] No changes are made to `smaqit.input-deployment`, `smaqit.new-greenfield-project`,
       `smaqit.feature-new`, or `smaqit.infrastructure-cicd-generate` — routing/wiring remains a
       separate follow-up task
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Authored `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` mirroring the tornado definitions file's exact section shape, covering all six real bugs from the source mechanism (stdin-consuming `while read`+`ssh` loop, `ca.crt` jsonpath escaping, fail-closed token/CA wait, self-minted-token gap, `workflow_dispatch`-on-default-branch constraint, per-name Environment branch-policy scoping) plus the two known gaps.
+- Compiled `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` following the compiled tornado skill's actual section order — frontmatter with `name`/`description`/`metadata.version`/`validated`/`validated-stack`, `Pre-conditions` promoted to a top-level heading, `Provenance`/`Required-inherited-context` dropped as standalone sections and folded into metadata plus inline prose.
+- Ran `make -C installer prepare`, bumped both hardcoded skill-count assertions in `installer/main_test.go` (27→28) plus the matching count in `docs/wiki/workflows/testing-smaqit.md`, and confirmed `make -C installer test` and `make -C installer smoke-test` both pass.
+- Added a `CHANGELOG.md` entry under `[Unreleased]/Added`.
 
 **Decisions made:**
-- TBD
+- Scope was widened mid-planning (via `task.plan`) from the original definitions-only handoff to also compiling and shipping the skill as a real product capability — the mechanism's four-rounds-of-production-hardening removed the rationale for withholding compilation the way the unproven tornado skill was originally held back.
+- Renamed the skill from `smaqit.infrastructure-deploy-k3s` to `smaqit.infrastructure-onboard-k3s-app` before implementation began, to correctly signal app onboarding (Namespace/RBAC/kubeconfig issuance) as distinct from app deployment.
+- Stack-detection routing and wiring into `smaqit.new-greenfield-project`/`smaqit.feature-new` were deliberately kept out of scope — Discovery confirmed this requires a net-new app-side deploy mechanism and a new routing input with no hardened source material behind it, unlike the mechanical, low-risk compilation done here.
 
 **Blockers encountered:**
-- TBD
+- None. A concurrent session created task 117 mid-implementation, covering exactly the deferred routing/app-deploy work; it landed cleanly on `main` via its own rebase and did not affect this task's worktree or implementation.
 
 **Follow-up identified:**
-- TBD
+- Task 117 ("k3s App-Deployment Skill With Routing and CI/CD") already covers the deferred routing/wiring/app-side-deploy work identified in this task's Design Decisions — no new follow-up task needed.
 
 ## Files to Create / Modify
 

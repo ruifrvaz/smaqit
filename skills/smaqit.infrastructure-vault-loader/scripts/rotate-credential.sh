@@ -8,20 +8,31 @@
 #     cyso | ssh | tfstate | github
 #
 #   New scheme:
-#     apps/<app-slug>/ssh | apps/<app-slug>/github
+#     apps/<app-slug>/ssh | apps/<app-slug>/github | apps/<app-slug>/platform-repo
+#       (platform-repo: existing-k3s only — a PAT scoped only to contents:write +
+#       pull_requests:write on the platform-owned infrastructure repo, distinct from github)
+#     apps/<app-slug>/<machine-slug>/kubeconfig  (existing-k3s only — the machine-slug in the
+#       path is the distinguishing dimension; no separate environment argument)
 #     machines/<machine-slug>/cyso | machines/<machine-slug>/tfstate | machines/<machine-slug>/base-ssh
 #
-# For everything except machines/<slug>/base-ssh, the path is deleted and re-populated (via
-# load-credentials.sh for the legacy scheme; directly here for the new scheme, since
-# load-credentials.sh never writes ssh under the new scheme). base-ssh is different: it generates a
-# new base keypair, uses the OLD one one last time to install the new public key on the machine,
-# then retires the old one — it's the one credential type that has to install itself onto the
-# remote machine, not just be replaced in Vault. This never touches any already-bootstrapped app's
-# secret/apps/<app-slug>/ssh.
+# For everything except machines/<slug>/base-ssh and apps/<slug>/<machine-slug>/kubeconfig, the
+# path is deleted and re-populated (via load-credentials.sh for the legacy scheme; directly here
+# for the new scheme, since load-credentials.sh never writes ssh under the new scheme). base-ssh
+# is different: it generates a new base keypair, uses the OLD one one last time to install the new
+# public key on the machine, then retires the old one — it's the one credential type that has to
+# install itself onto the remote machine, not just be replaced in Vault. This never touches any
+# already-bootstrapped app's secret/apps/<app-slug>/ssh. kubeconfig is different again: the
+# platform's own credential rotation is destructive (a known platform gap), so this script never
+# generates a replacement locally — it deletes the value at that one machine-slug's path and
+# re-prompts for a freshly platform-reissued value, pasted the same out-of-band way
+# load-credentials.sh originally loaded it. There is no sibling field to preserve — each
+# machine-slug's kubeconfig is its own independent path.
 #
 # Example:
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh cyso
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/ssh
+#   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/platform-repo
+#   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/<machine-slug>/kubeconfig
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh machines/<machine-slug>/base-ssh
 
 set -euo pipefail
@@ -49,20 +60,26 @@ CREDENTIAL_PATH="${1:-}"
 if [ -z "$CREDENTIAL_PATH" ]; then
   echo "Usage: $0 <path>"
   echo "  Legacy: cyso | ssh | tfstate | github"
-  echo "  New:    apps/<app-slug>/{ssh,github} | machines/<machine-slug>/{cyso,tfstate,base-ssh}"
+  echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | apps/<app-slug>/<machine-slug>/kubeconfig |"
+  echo "          machines/<machine-slug>/{cyso,tfstate,base-ssh}"
   exit 1
 fi
 
-# ── Classify the target: legacy | apps | machines ──────────────────────────────
+# ── Classify the target: legacy | apps | apps-kubeconfig | machines ────────────
 
 case "$CREDENTIAL_PATH" in
   cyso|ssh|tfstate|github)
     SCHEME="legacy"
     ;;
-  apps/*/ssh|apps/*/github)
+  apps/*/ssh|apps/*/github|apps/*/platform-repo)
     SCHEME="apps"
     APP_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
     CRED_TYPE="$(echo "$CREDENTIAL_PATH" | cut -d/ -f3)"
+    ;;
+  apps/*/*/kubeconfig)
+    SCHEME="apps-kubeconfig"
+    APP_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
+    MACHINE_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f3)"
     ;;
   machines/*/cyso|machines/*/tfstate|machines/*/base-ssh)
     SCHEME="machines"
@@ -72,10 +89,50 @@ case "$CREDENTIAL_PATH" in
   *)
     echo "ERROR: Unrecognized path '$CREDENTIAL_PATH'."
     echo "  Legacy: cyso | ssh | tfstate | github"
-    echo "  New:    apps/<app-slug>/{ssh,github} | machines/<machine-slug>/{cyso,tfstate,base-ssh}"
+    echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | apps/<app-slug>/<machine-slug>/kubeconfig |"
+    echo "          machines/<machine-slug>/{cyso,tfstate,base-ssh}"
     exit 1
     ;;
 esac
+
+# ── New scheme: apps/<app-slug>/<machine-slug>/kubeconfig ──────────────────────
+# Never regenerated locally — the platform's own kubeconfig rotation is destructive (a known
+# platform gap). Delete the value at this one machine-slug's path and re-prompt for a freshly
+# platform-reissued value, pasted the same out-of-band way load-credentials.sh originally
+# loaded it. There is no sibling field to preserve — each machine-slug's kubeconfig is its own
+# independent path, so no other machine's kubeconfig is ever touched.
+
+if [ "$SCHEME" = "apps-kubeconfig" ]; then
+  FULL_PATH="secret/apps/${APP_SLUG}/${MACHINE_SLUG}/kubeconfig"
+  echo "==> About to rotate: $FULL_PATH"
+  echo "    This requires a FRESHLY PLATFORM-REISSUED kubeconfig — rotation never generates"
+  echo "    one locally. Obtain the new value from the platform's own onboarding/rotation"
+  echo "    hand-off before continuing."
+  read -r -p "    Continue? [y/N] " CONFIRM
+  case "$CONFIRM" in
+    y|Y) ;;
+    *) echo "Aborted."; exit 0 ;;
+  esac
+
+  echo "  Paste the freshly platform-reissued kubeconfig for machine '${MACHINE_SLUG}'."
+  echo "  Out-of-band paste only — this script never contacts a cluster. Paste the full YAML,"
+  echo "  then press Ctrl-D on its own line to finish:"
+  NEW_VALUE="$(cat)"
+  if [ -z "$NEW_VALUE" ]; then
+    echo "ERROR: kubeconfig for '${MACHINE_SLUG}' is empty — refusing to write a placeholder secret." >&2
+    exit 1
+  fi
+
+  vault kv put "$FULL_PATH" value="$NEW_VALUE" > /dev/null
+  unset NEW_VALUE
+
+  echo "    DONE"
+  echo ""
+  echo "==> Rotation complete for ${FULL_PATH}."
+  echo "    Re-run smaqit.infrastructure-repo-config to sync the new value to the relevant"
+  echo "    GitHub Environment secret."
+  exit 0
+fi
 
 # ── Legacy scheme: unchanged behavior ───────────────────────────────────────────
 
@@ -111,7 +168,7 @@ if [ "$SCHEME" = "legacy" ]; then
   exit 0
 fi
 
-# ── New scheme: apps/<app-slug>/{ssh,github} ────────────────────────────────────
+# ── New scheme: apps/<app-slug>/{ssh,github,platform-repo} ─────────────────────
 
 if [ "$SCHEME" = "apps" ]; then
   FULL_PATH="secret/apps/${APP_SLUG}/${CRED_TYPE}"
@@ -136,6 +193,17 @@ if [ "$SCHEME" = "apps" ]; then
     fi
     echo "==> Re-running bootstrap against machine '${MACHINE_SLUG}'..."
     bash "${SCRIPT_DIR}/bootstrap-app-to-machine.sh" "$APP_SLUG" "$MACHINE_SLUG"
+  elif [ "$CRED_TYPE" = "platform-repo" ]; then
+    echo "  Required scopes: contents:write, pull_requests:write — on the platform-owned"
+    echo "  infrastructure repository ONLY."
+    read_secret PLATFORM_REPO_TOKEN "platform_repo_token"
+    if [ -z "$PLATFORM_REPO_TOKEN" ]; then
+      echo "ERROR: platform_repo_token is empty — refusing to write a placeholder secret." >&2
+      exit 1
+    fi
+    vault kv put "$FULL_PATH" token="$PLATFORM_REPO_TOKEN" > /dev/null
+    unset PLATFORM_REPO_TOKEN
+    echo "    DONE"
   else
     read_secret GH_TOKEN "github_token"
     if [ -z "$GH_TOKEN" ]; then

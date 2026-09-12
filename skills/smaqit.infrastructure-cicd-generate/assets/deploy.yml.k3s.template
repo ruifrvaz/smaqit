@@ -1,0 +1,117 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# provisioning_mode: existing-k3s — the target is a Namespace-scoped Kubernetes/k3s cluster,
+# not a VM. No provision job, no Terraform, no SSH, no nginx, no VM_HOST anywhere in this
+# workflow. The scoped kubeconfig for this environment is held as a GitHub Environment secret
+# named KUBECONFIG (see smaqit.infrastructure-repo-config) — never a repository-level secret,
+# since test and prod each need their own distinct value.
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # "prod" GitHub Environment — this workflow triggers on push to main, i.e. the production
+    # deploy path. Its KUBECONFIG secret and APP_HOST variable are scoped to this Environment,
+    # not the repository, since the "test" Environment holds a distinct kubeconfig/host for
+    # Phase 4's dev sweep (run by invoking smaqit.infrastructure-deploy-k3s-app directly, not
+    # through this workflow).
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Write kubeconfig
+        run: |
+          install -m 700 -d "$HOME/.kube"
+          printf '%s' "${{ secrets.KUBECONFIG }}" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
+
+      # Refuses to proceed if the kubeconfig's context targets any namespace other than
+      # app-__APP_SLUG__, or if any cluster-scoped verb is permitted — see
+      # smaqit.infrastructure-deploy-k3s-app/scripts/namespace-guard.sh. Never widen scope to
+      # work around a guard refusal.
+      - name: Namespace guard
+        run: |
+          bash deployment/k3s/scripts/namespace-guard.sh "$KUBECONFIG" "app-__APP_SLUG__"
+        # deployment/k3s/scripts/namespace-guard.sh and manifest-lint.sh below are vendored,
+        # checked-in copies of smaqit.infrastructure-deploy-k3s-app's bundled scripts (see
+        # smaqit.infrastructure-cicd-generate Step 5) — this runner has no access to the smaqit
+        # skill directory itself.
+
+      # Only present when the spec names a private registry — see
+      # smaqit.infrastructure-deploy-k3s-app/SKILL.md Step 4. Omit this step entirely for a
+      # public image.
+      # - name: Create imagePullSecret
+      #   run: |
+      #     kubectl create secret docker-registry app-registry \
+      #       --namespace "app-__APP_SLUG__" \
+      #       --docker-server=<registry-host> \
+      #       --docker-username="${{ secrets.REGISTRY_USERNAME }}" \
+      #       --docker-password="${{ secrets.REGISTRY_TOKEN }}" \
+      #       --dry-run=client -o yaml | kubectl apply -n "app-__APP_SLUG__" -f -
+
+      # manifest-lint.sh requires PyYAML — ubuntu-latest ships python3 but not always PyYAML, so
+      # install it explicitly rather than depend on the runner image's current contents.
+      - name: Install manifest-lint dependencies
+        run: pip install --quiet pyyaml
+
+      # Rejects a manifest before any kubectl apply runs — Pod Security restricted fields,
+      # explicit resource requests/limits, and the absence of any cluster-scoped kind. See
+      # smaqit.infrastructure-deploy-k3s-app/scripts/manifest-lint.sh.
+      - name: Lint manifests
+        run: |
+          bash deployment/k3s/scripts/manifest-lint.sh deployment/k3s/deployment.yaml deployment/k3s/service.yaml deployment/k3s/ingress.yaml
+
+      # printf '%s', not echo — echo appends a newline the health endpoint would then include.
+      # DEPLOY_SHA/DEPLOY_TIME are set as pod environment, not a file — this credential has no
+      # host filesystem to write to.
+      - name: Stamp manifest with deploy SHA and time
+        run: |
+          DEPLOY_SHA="${{ github.sha }}"
+          DEPLOY_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          sed -i "s/__DEPLOY_SHA__/${DEPLOY_SHA}/g; s/__DEPLOY_TIME__/${DEPLOY_TIME}/g" deployment/k3s/deployment.yaml
+
+      - name: Apply manifests
+        run: |
+          kubectl apply -n "app-__APP_SLUG__" \
+            -f deployment/k3s/deployment.yaml \
+            -f deployment/k3s/service.yaml \
+            -f deployment/k3s/ingress.yaml
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status -n "app-__APP_SLUG__" "deployment/__APP_SLUG__" --timeout=180s
+
+      # The RBAC allowlist grants read access to this object specifically — it covers the
+      # TLS-validity gap smaqit.infrastructure-deploy-verify explicitly does not check.
+      - name: Wait for Certificate Ready
+        run: |
+          kubectl wait -n "app-__APP_SLUG__" "certificate/__APP_SLUG__-tls" --for=condition=Ready --timeout=180s
+
+      # Inline equivalent of smaqit.infrastructure-deploy-verify's health/SHA/SPA-root checks —
+      # that skill is a documented procedure for an interactive agent, not a bundled script, so
+      # a headless CI job runs the same checks directly rather than shelling out to a path that
+      # only exists in the smaqit skill directory.
+      - name: Verify deployment
+        run: |
+          set -euo pipefail
+          HOST="${{ vars.APP_HOST }}"
+          EXPECTED_SHORT="$(echo "${{ github.sha }}" | cut -c1-8)"
+
+          HEALTH_JSON="$(curl -sf "https://${HOST}/health")"
+          echo "$HEALTH_JSON"
+
+          ACTUAL_SHA="$(echo "$HEALTH_JSON" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("sha", "unknown"))')"
+          if [ "${ACTUAL_SHA:0:8}" != "$EXPECTED_SHORT" ]; then
+            echo "SHA mismatch: expected ${EXPECTED_SHORT}, got ${ACTUAL_SHA}" >&2
+            exit 1
+          fi
+
+          curl -sfI "https://${HOST}/" | head -1 | grep -q "200"
+          echo "Deployment verified — SHA ${ACTUAL_SHA}."

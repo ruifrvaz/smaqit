@@ -1,9 +1,9 @@
 ---
-status: PR Open
+status: Completed
 created: "2026-09-12"
 mode: Assisted
 started: "2026-09-12"
-pr: 89
+completed: "2026-09-12"
 ---
 
 # Fix Registry-Write Semantics, Deployment Sizing, and Lifecycle Gaps in the k3s App-Deployment Skills

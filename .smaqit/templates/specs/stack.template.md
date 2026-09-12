@@ -95,4 +95,4 @@ If any criterion cannot be automatically validated, flag it:
 
 ---
 
-*Generated with smaqit v3.5.0*
+*Generated with smaqit v3.5.1*

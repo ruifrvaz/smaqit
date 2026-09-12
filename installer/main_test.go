@@ -267,8 +267,8 @@ func TestRemoveEmbeddedSkillDirsPreservesUnownedSharedContent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("removing embedded shared skills: %v", err)
 	}
-	if removed != 27 {
-		t.Fatalf("removed %d shared skills, want 27", removed)
+	if removed != 28 {
+		t.Fatalf("removed %d shared skills, want 28", removed)
 	}
 
 	got, err := os.ReadFile(customPath)
@@ -303,8 +303,8 @@ func TestSharedSkillsServeCopilotAndCodex(t *testing.T) {
 			topLevelDirs++
 		}
 	}
-	if topLevelDirs != 27 {
-		t.Fatalf("skills-shared has %d top-level skill directories, want 27", topLevelDirs)
+	if topLevelDirs != 28 {
+		t.Fatalf("skills-shared has %d top-level skill directories, want 28", topLevelDirs)
 	}
 
 	err = fs.WalkDir(skillFilesShared, "skills-shared", func(path string, d fs.DirEntry, err error) error {

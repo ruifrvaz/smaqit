@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/117-k3s-app-deployment-skill-with-routing-and-ci-cd",
-      "path": "../smaqit-wt-task-117-k3s-app-deployment-skill-with-routing-and-ci-cd"
     }
   ],
   "settings": {

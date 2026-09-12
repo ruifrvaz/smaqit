@@ -125,6 +125,11 @@ created: [TIMESTAMP]
 | Geographic | [Region/data residency requirements] | [How it affects resource placement] |
 | Budget | [Cost limits or optimization goals] | [How it constrains resource choices] |
 | Platform Repo | [owner/repo hosting the k3s onboarding registry — `provisioning_mode: existing-k3s` only, omit otherwise] | [`smaqit.infrastructure-request-k3s-onboarding`'s PR must target this repo, never this project's own] |
+| Registry File Path | [path within Platform Repo to the onboarding registry file — `existing-k3s` only, omit otherwise; sourced from the platform team's own onboarding documentation, never invented] | [`smaqit.infrastructure-request-k3s-onboarding` appends this project's entry to this exact path] |
+| Machine Slug | [target machine-slug registered on the platform's k3s cluster, per environment — `existing-k3s` only, omit otherwise; sourced from the platform team, never invented] | [selects which cluster/Namespace this environment onboards onto and deploys into] |
+| Ingress Class | [the cluster's ingress class name — `existing-k3s` only, omit otherwise; sourced from the platform team's own onboarding documentation, never invented] | [`smaqit.infrastructure-deploy-k3s-app`'s generated Ingress manifest must reference this class] |
+| ClusterIssuer | [the cluster's cert-manager `ClusterIssuer` name — `existing-k3s` only, omit otherwise; sourced from the platform team's own onboarding documentation, never invented] | [the deploy skill's Ingress annotation/TLS request must reference this issuer] |
+| Namespace Quota | [the onboarded Namespace's `ResourceQuota`/`LimitRange` numbers — `existing-k3s` only, omit otherwise; sourced from the platform team's own onboarding documentation, never invented] | [application resource requests/limits declared elsewhere in this spec must fit within this ceiling] |
 
 ## Acceptance Criteria
 

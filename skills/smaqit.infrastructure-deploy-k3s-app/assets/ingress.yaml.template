@@ -1,0 +1,36 @@
+# Shared Ingress template for smaqit.infrastructure-deploy-k3s-app.
+#
+# Rendered per app/environment by substituting the tokens below — never hand-write a per-app
+# Ingress. ingressClassName and the cert-manager cluster-issuer annotation come from the
+# Infrastructure spec's declared values, not guessed or hardcoded.
+#
+# Tokens:
+#   __APP_SLUG__       — the app slug; the Namespace is always app-__APP_SLUG__
+#   __INGRESS_CLASS__  — the platform's declared ingress class (e.g. its Traefik ingress class)
+#   __CLUSTER_ISSUER__ — the platform's declared cert-manager ClusterIssuer name
+#   __HOST__           — the environment's declared hostname (test or prod)
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: __APP_SLUG__
+  namespace: app-__APP_SLUG__
+  annotations:
+    cert-manager.io/cluster-issuer: __CLUSTER_ISSUER__
+spec:
+  ingressClassName: __INGRESS_CLASS__
+  tls:
+    - hosts:
+        - __HOST__
+      secretName: __APP_SLUG__-tls
+  rules:
+    - host: __HOST__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: __APP_SLUG__
+                port:
+                  number: 80

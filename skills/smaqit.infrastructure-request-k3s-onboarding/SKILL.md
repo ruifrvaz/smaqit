@@ -1,6 +1,6 @@
 ---
 name: smaqit.infrastructure-request-k3s-onboarding
-description: Use when an app project targeting `provisioning_mode: existing-k3s` needs to request onboarding of one environment onto a platform-owned, self-hosted k3s cluster. Given a declared platform repository, a registry-file path, and operator-supplied entry content, opens a PR against that external repository and gates on merge before reporting success — never requiring direct commit/`workflow_dispatch` access to a repo it doesn't own. Used in Phase 4 (test) and Phase 5 (prod) of `smaqit.new-greenfield-project`, before `smaqit.infrastructure-deploy-k3s-app`. Never performs the platform-side convergence itself (Namespace/RBAC/kubeconfig issuance) — that remains the platform team's own process, triggered by their own repo reacting to the merge.
+description: Use when an app project targeting `provisioning_mode: existing-k3s` needs to request onboarding of one environment onto a platform-owned, self-hosted k3s cluster whose own onboarding process accepts requests via a PR-mergeable registry file. Given a declared platform repository, a registry-file path, and operator-supplied entry content, opens a PR against that external repository and gates on merge before reporting success — never requiring direct commit/`workflow_dispatch` access to a repo it doesn't own. Used in Phase 4 (test) and Phase 5 (prod) of `smaqit.new-greenfield-project`, before `smaqit.infrastructure-deploy-k3s-app`. A smaqit-declared, opinionated app-side convention, not dependent on how any given platform repo actually fulfills the request — never performs or assumes anything about the platform-side convergence mechanism itself (Namespace/RBAC/kubeconfig issuance, or anything else); that remains entirely the platform team's own process, triggered however their own repo reacts to the merge.
 metadata:
   version: "1.0.0"
 ---
@@ -9,6 +9,10 @@ metadata:
 
 ## Pre-conditions
 
+- **The target platform repository's own onboarding process accepts requests via a PR-mergeable
+  registry file.** This is smaqit's own declared convention for the app side, not a guarantee
+  about any given infra repo. If the target repo's onboarding process works some other way, this
+  skill does not apply — that combination is out of scope, not a bug to work around.
 - The Infrastructure spec declares, for the target environment: the platform repository
   (`owner/repo`, the `## Constraints` table's `Platform Repo` row), the registry-file path within
   that repository, and the target machine-slug.
@@ -61,9 +65,11 @@ Namespace, or any change to the platform repository outside the one PR.
 
 ## Scope
 
-- Does NOT perform the platform-side onboarding mechanism itself — that is the platform
-  repository's own process (documented for reference in `smaqit.infrastructure-onboard-k3s-app`),
-  triggered by the platform team after this skill's PR merges.
+- Does NOT perform or know anything about the platform-side onboarding mechanism itself — that is
+  entirely that repository's own process, triggered however its own maintainers have set it up to
+  react to this skill's PR merging. `smaqit.infrastructure-onboard-k3s-app` is one possible shape
+  such a process could take on the infra side, but this skill assumes nothing about it beyond "a
+  merged PR triggers something."
 - Does NOT trigger `workflow_dispatch` on the platform repository, read or write anything else in
   it, or hold any credential broader than PR-create rights on that one repository.
 - Does NOT fetch, store, or validate the resulting kubeconfig — that remains
@@ -85,6 +91,13 @@ after the platform team merges PR #42, the skill reports success and Phase 4 pro
 
 ## Gotchas
 
+- **Deliberately more opinionated than `smaqit.infrastructure-onboard-k3s-app`.** That skill is a
+  thin dispatcher because it lives inside an infra repo smaqit doesn't control the internals of —
+  every such repo can differ. This skill lives inside the smaqit-managed app repo instead, which
+  smaqit fully owns the conventions for, so it declares one fixed request contract
+  (PR-to-a-registry-file, gate-on-merge) rather than deferring to unknown mechanics on its own
+  side. Do not water this down to match the infra side's genericness — the two skills sit on
+  opposite sides of a repo boundary for a reason.
 - **Never use the fork-based `gh pr create -H user:branch` flow.** `cli/cli#10093` (open) tracks a
   real limitation in that flow for cross-repo PRs. This skill avoids it entirely by using a
   directly-scoped collaborator credential to push a branch straight to the platform repository and

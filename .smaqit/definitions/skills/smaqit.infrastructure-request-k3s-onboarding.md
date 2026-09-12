@@ -3,29 +3,37 @@
 ## Description
 
 Use when an app project targeting `provisioning_mode: existing-k3s` needs to request onboarding
-of one of its environments onto a platform-owned, self-hosted k3s cluster. Given a declared
-platform repository, a registry-file path, and operator-supplied entry content, opens a PR against
-that external repository adding the app's registry entry for one named machine, then gates on that
-PR being approved and merged before reporting success. Used in Phase 4 (test) and Phase 5 (prod)
-of `smaqit.new-greenfield-project`, before invoking `smaqit.infrastructure-deploy-k3s-app`. This is
-the app-side *request* half of onboarding — the platform-owned infrastructure repo's own
-convergence mechanism (Namespace/RBAC/kubeconfig issuance), documented as
-`smaqit.infrastructure-onboard-k3s-app`, remains entirely the platform team's own process,
-triggered by their own repo reacting to the merge. This skill never touches that mechanism
-directly, and never requests broader access than opening a PR.
+of one of its environments onto a platform-owned, self-hosted k3s cluster whose own onboarding
+process accepts requests via a PR-mergeable registry file. Given a declared platform repository, a
+registry-file path, and operator-supplied entry content, opens a PR against that external
+repository adding the app's registry entry for one named machine, then gates on that PR being
+approved and merged before reporting success. Used in Phase 4 (test) and Phase 5 (prod) of
+`smaqit.new-greenfield-project`, before invoking `smaqit.infrastructure-deploy-k3s-app`. This is
+the app-side *request* half of onboarding: a smaqit-declared, opinionated convention for how an
+app repo requests k3s onboarding, owned entirely by this skill — never inherited from or dependent
+on how any particular platform repo actually fulfills the request. Whatever happens after the PR
+merges (Namespace/RBAC/kubeconfig issuance, or anything else) is entirely the platform team's own
+process, outside this skill's knowledge or control. This skill never touches that fulfillment
+mechanism directly, and never requests broader access than opening a PR.
 
 ## Provenance
 
 - `synthesized: false`
 - `authored-for-project: smaqit itself`
 - `authored-date: 2026-09-12`
-- Authored directly into canonical `smaqit` as a child of task 117 (`smaqit.infrastructure-deploy-k3s-app`), closing a gap identified during that task's post-implementation review: neither the platform-side onboarding playbook (task 116, `smaqit.infrastructure-onboard-k3s-app`) nor the app-side deploy skill (task 117) gave an app project a way to *request* onboarding without also requiring the broad direct-commit-and-`workflow_dispatch` access the platform-side playbook assumes.
+- Authored directly into canonical `smaqit` as a child of task 117 (`smaqit.infrastructure-deploy-k3s-app`), closing a gap identified during that task's post-implementation review: neither an infra repo's own onboarding process (task 116, `smaqit.infrastructure-onboard-k3s-app`) nor the app-side deploy skill (task 117) gave an app project a declared way to *request* onboarding without also requiring the broad direct-commit-and-`workflow_dispatch` access an infra repo's own maintainers would have.
+- **Deliberately more opinionated than task 116.** Task 116 is a thin dispatcher precisely because it lives inside an infra-owning repo it doesn't control the internals of — every such repo can differ, so smaqit cannot prescribe its mechanics. This skill instead lives inside the smaqit-managed **app** repo, which smaqit fully owns the conventions for, so it can and does declare one fixed, opinionated request contract (PR-to-a-registry-file, gate-on-merge) rather than deferring to unknown mechanics on its own side. Using `existing-k3s` with this skill implicitly requires the target infra repo's onboarding process to accept requests this way; an infra repo that doesn't work this way is simply not compatible with this skill as-is — a scoping boundary, not something this skill adapts around.
 - No family precedent exists for this exact shape (a cross-repository PR request). Its gate mechanics instead mirror `smaqit.feature-new`'s already-proven deploy-PR pattern: create the PR, pause, re-check merge state on the next invocation — never a busy-poll loop.
 
 ## Steps
 
 ### Pre-conditions
 
+- **The target platform repository's own onboarding process accepts requests via a PR-mergeable
+  registry file.** This is smaqit's own declared convention for the app side, not a guarantee
+  about any given infra repo. If the target repo's onboarding process works some other way (a
+  ticket, a chat request, a direct API call, anything not triggered by merging a file change),
+  this skill does not apply — that combination is out of scope, not a bug to work around.
 - The Infrastructure spec declares, for the target environment: the platform repository
   (`owner/repo`, via the `## Constraints` table's `Platform Repo` row), the registry-file path
   within that repository, and the target machine-slug.
@@ -88,10 +96,12 @@ Namespace, or any change to the platform repository outside the one PR.
 
 ## Scope
 
-- Does NOT perform the platform-side onboarding mechanism itself (Namespace/RBAC/PSA/
-  NetworkPolicy/Quota/kubeconfig issuance) — that is the platform repository's own process,
-  documented for reference in `smaqit.infrastructure-onboard-k3s-app`, triggered by the platform
-  team after this skill's PR merges.
+- Does NOT perform or know anything about the platform-side onboarding mechanism itself
+  (Namespace/RBAC/PSA/NetworkPolicy/Quota/kubeconfig issuance, or whatever else a given platform
+  repo does) — that is entirely that repository's own process, triggered however its own
+  maintainers have set it up to react to this skill's PR merging. `smaqit.infrastructure-onboard-k3s-app`
+  is one possible shape such a process could take on the infra side, but this skill assumes
+  nothing about it beyond "a merged PR triggers something."
 - Does NOT trigger `workflow_dispatch` on the platform repository, read or write anything else in
   it, or hold any credential broader than PR-create rights on that one repository.
 - Does NOT fetch, store, or validate the resulting kubeconfig — that remains

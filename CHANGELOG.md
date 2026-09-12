@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **`smaqit.infrastructure-onboard-k3s-app` skill** (pending v3.4.0 · PR #87) — onboards an application as a tenant of an existing, self-hosted k3s cluster (per-app Namespace, least-privilege RBAC, PSA `restricted` enforcement, default-deny NetworkPolicy, ResourceQuota/LimitRange, scoped kubeconfig issuance via a registry file + converge GitHub Actions workflow). A mature, standalone-invocable contribution, hardened across four rounds of real production use; not yet wired into `smaqit.new-greenfield-project`/`smaqit.feature-new` as a routed deployment target.
+- Nothing to add.
 
 ### Changed
 - Nothing to add.
@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chore
 - Nothing to add.
+
+## [3.4.0] - 2026-09-12
+
+### Added
+- **`smaqit.infrastructure-onboard-k3s-app` skill** — onboards an application as a tenant of an existing, self-hosted k3s cluster (per-app Namespace, least-privilege RBAC, PSA `restricted` enforcement, default-deny NetworkPolicy, ResourceQuota/LimitRange, scoped kubeconfig issuance via a registry file + converge GitHub Actions workflow). A mature, standalone-invocable contribution, hardened across four rounds of real production use; not yet wired into `smaqit.new-greenfield-project`/`smaqit.feature-new` as a routed deployment target.
 
 ## [3.3.0] - 2026-08-20
 

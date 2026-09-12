@@ -3,11 +3,11 @@ status: Not Started
 created: "2026-08-24"
 ---
 
-# Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from Magnificah/infrastructure Task 001)
+# Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from a Downstream Project's Infrastructure Task 001)
 
 ## Description
 
-Found live while provisioning `magnificah-test-01` through `Magnificah/infrastructure` task 001
+Found live while provisioning `<machine-slug>` through a downstream project's infrastructure repo task 001
 (2026-08-22 → 2026-08-24, PRs #1–#7 in that repo) — the first real use of the **machine-monorepo
 pattern**: an app-agnostic repository that owns Cyso top-level resources (instances, volumes,
 security groups, keypairs), per-machine Terraform state, host baselines, and a per-machine
@@ -16,7 +16,7 @@ tenancy registry, with application repositories reduced to deploy-only tenants. 
 `secret/<project-slug>/*`, `backend/`/`frontend/`, health-endpoint verification, rsync deploys),
 so most of it was bypassed and re-derived by hand. Along the way, several skills were found to
 carry **actively wrong facts** or misfire in the machine context. Full non-secret evidence:
-`Magnificah/infrastructure` → `.smaqit/reports/provisioning-evidence-2026-08-24.md`.
+a downstream project's infrastructure repo → `.smaqit/reports/provisioning-evidence-2026-08-24.md`.
 
 This task covers refactoring **existing** skills/agents. Sibling task 115 covers the **new**
 machine-monorepo skills.
@@ -43,7 +43,7 @@ by the live machine:
   reattach → remount.
 - **Two inconsistent Ubuntu 24.04 image UUIDs** appear in the same reference (the "Confirmed
   images" table vs. an inline Terraform example). The live-confirmed one is
-  `fd91e198-f162-4b6b-a23e-123304fb408a` (also what the legacy `magnificah-test` VM's applied
+  `fd91e198-f162-4b6b-a23e-123304fb408a` (also what the legacy `<legacy-machine-slug>` VM's applied
   Terraform uses).
 - **Fine-grained PAT permissions for environment-scoped secrets/variables**: repo-level
   Environments + Secrets + Variables grants were **not sufficient** — writes to a GitHub
@@ -70,7 +70,7 @@ First-time population of `secret/machines/<slug>/{base-ssh,cyso,tfstate}` has no
   entrypoint taking the machine slug as a required argument sidesteps the entire class.
 - The workaround was `rotate-credential.sh machines/<slug>/{cyso,tfstate}` (a rotation tool doing
   first-time population) plus hand-running `ssh-keygen` for `base-ssh`.
-- **Latent bug left behind**: `secret/machines/magnificah-test-01/metadata` (host/provider/
+- **Latent bug left behind**: `secret/machines/<machine-slug>/metadata` (host/provider/
   owner_project) was never written, and `rotate-credential.sh machines/<slug>/base-ssh` hard-fails
   without `metadata.host` — so base-ssh rotation for the machine provisioned by task 001 is
   currently broken until metadata is backfilled. Registration must make metadata a first-class
@@ -123,14 +123,14 @@ never apply/dispatch; credentials by reference only). Structural issues:
 The full `Prepare release vX.Y.Z` convention was followed in a repo that doesn't have
 `post-merge-release.yml` installed — so merging PR #1 never created the `v0.1.0` tag or GitHub
 Release, silently. The chain should preflight the workflow's existence and warn (or offer to
-install it) before opening a release-titled PR. (`Magnificah/infrastructure`'s `v0.1.0` remains
+install it) before opening a release-titled PR. (a downstream project's infrastructure repo's `v0.1.0` remains
 untagged as of this filing.)
 
 ## Design Decisions
 
 - Scope is refactors to existing artifacts only; new skills are sibling task 115. The two tasks
   together constitute the "smaqit framework update for the machine-repo pattern" that
-  `Magnificah/infrastructure` task 001 deferred to this repository.
+  a downstream project's infrastructure repo task 001 deferred to this repository.
 - Finding 1's corrections update both `skills/smaqit.infrastructure-provider-cyso/references/`
   and the wiki source they mirror, per that skill's own stated convention.
 - Finding 2 builds on task 110 / PR #85's `lib-project-slug.sh` work rather than reopening it —
@@ -149,7 +149,7 @@ untagged as of this filing.)
    (`register-machine.sh <machine-slug>`): generate + store `base-ssh`, prompt `cyso` and
    `tfstate` (using the hardened `read_secret` + empty-guards from task 110), write `metadata`
    (provider/owner_project at registration; `host` backfilled post-apply). Document that
-   `rotate-credential.sh` is rotation-only. Backfill `secret/machines/magnificah-test-01/metadata`
+   `rotate-credential.sh` is rotation-only. Backfill `secret/machines/<machine-slug>/metadata`
    as the live proof.
 3. Extend `smaqit.infrastructure-repo-config` (or split) for machine-scoped GitHub Environments:
    environment creation/verification, Vault→environment secret/variable mapping for the machine
@@ -174,8 +174,8 @@ untagged as of this filing.)
 - [ ] `register-machine.sh` exists, populates all four `secret/machines/<slug>/` paths
       (base-ssh, cyso, tfstate, metadata) idempotently, takes the machine slug as a required
       argument (no cwd derivation), and passes the skill's no-ad-hoc-secret-reads static check.
-- [ ] `secret/machines/magnificah-test-01/metadata` is backfilled and
-      `rotate-credential.sh machines/magnificah-test-01/base-ssh` no longer fails its
+- [ ] `secret/machines/<machine-slug>/metadata` is backfilled and
+      `rotate-credential.sh machines/<machine-slug>/base-ssh` no longer fails its
       metadata precondition (dry-check acceptable; no live rotation required).
 - [ ] Machine-scoped GitHub Environment configuration is covered by a skill (extended or new),
       including the PAT-permission preflight with the three diagnostic signatures.
@@ -216,8 +216,8 @@ untagged as of this filing.)
 
 ## Notes
 
-Source material: `Magnificah/infrastructure` task file
-`.smaqit/tasks/001_provision_magnificah_test_01.md` (Findings section) and
+Source material: a downstream project's infrastructure repo task file
+`.smaqit/tasks/001_provision_<machine-slug>.md` (Findings section) and
 `.smaqit/reports/provisioning-evidence-2026-08-24.md` in that repo. Sibling: task 115 (new
 machine-monorepo skills). Related: task 110 / PR #85 (vault-loader slug derivation — in flight,
 complementary, not duplicated here).

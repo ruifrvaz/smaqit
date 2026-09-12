@@ -7,7 +7,7 @@ created: "2026-08-24"
 
 ## Description
 
-Companion to task 114. `Magnificah/infrastructure` task 001 (2026-08-22 → 2026-08-24, PRs #1–#7)
+Companion to task 114. A downstream project's infrastructure repo task 001 (2026-08-22 → 2026-08-24, PRs #1–#7)
 established and live-verified the **machine-monorepo pattern** — an app-agnostic repository
 owning cloud top-level resources, per-machine Terraform state, host baselines, and a per-machine
 tenancy registry, with application repositories reduced to deploy-only tenants that register as
@@ -106,10 +106,10 @@ tenants:
 
 - Four separate skills rather than one mega-skill, matching the existing family's granularity
   (provision / verify / day-2 / reconcile map to distinct invocation moments).
-- Reference implementation is `Magnificah/infrastructure` (modules/, machines/magnificah-test-01/,
+- Reference implementation is a downstream project's infrastructure repo (modules/, machines/<machine-slug>/,
   scripts/reconcile/, .github/workflows/{provision,reconcile-tenants,host-baseline}.yml) — the
   skills generalize it (machine-agnostic, provider constants parameterized where sensible) rather
-  than embedding Magnificah specifics; the pattern's rule that no application name may appear in
+  than embedding downstream-specific details; the pattern's rule that no application name may appear in
   machinery applies to the skills too.
 - [TBD at task start: whether provision-machine stays Cyso/OpenStack-specific (matching
   provision-cyso's precedent) or abstracts the provider; whether `smaqit.new-greenfield-project`
@@ -170,7 +170,7 @@ tenants:
 
 ## Notes
 
-Source material: `Magnificah/infrastructure` (repo layout, `scripts/reconcile/`, the three
+Source material: a downstream project's infrastructure repo (repo layout, `scripts/reconcile/`, the three
 workflows) and its `.smaqit/reports/provisioning-evidence-2026-08-24.md`. Together with task 114,
 this is the "smaqit framework update for the machine-repo pattern" that infrastructure task 001
 deferred to this repository. Task 114 should land first (this task consumes its corrected facts

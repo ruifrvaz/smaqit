@@ -152,7 +152,13 @@ It is a sequential workflow: a phase agent orchestrates specification agents in 
 
 `smaqit.feature-new` is the single top-level workflow for specification revalidation, development, deployment, validation, and release. Phase 1 owns one incremental specification pass and records a durable exact-path handoff. Development, Deployment, and Validation consume that handoff in an explicit prevalidated-spec mode, skipping repeated specification generation while retaining consolidation and `smaqit plan` processing; direct phase-agent calls keep orchestration-first behavior.
 
-Deployment remains part of the feature cycle. A feature PR is the human gate: an unmerged PR is active work awaiting approval, not a separate deferred deployment state. The Deployment agent owns the contiguous existing-CI/CD operation—artifact preparation, PR creation, merge pause, exact workflow monitoring, deployed-revision verification, spec state, and report—while Feature New owns phase task state, preflight decisions, and evidence validation.
+Deployment remains part of the feature cycle. A feature PR is the human gate: an unmerged PR is active work awaiting approval, not a separate deferred deployment state. The Deployment agent owns the contiguous existing-CI/CD operation—artifact preparation, PR creation, merge pause, exact workflow monitoring, deployed-revision verification, spec state, and report—while Feature New owns phase task state, preflight decisions, and evidence validation. See also: what subagents and skills does each phase of `smaqit.feature-new` invoke?
+
+---
+
+**What subagents and skills does each phase of `smaqit.feature-new` invoke?**
+
+Phase 0 (Task Creation) uses `smaqit.task-create` and `smaqit.task-start` to set up the shared feature-cycle parent and its five phase children. Phase 1 (Spec Revalidation) invokes `/smaqit.business`, `/smaqit.functional`, `/smaqit.stack`, `/smaqit.infrastructure`, and `/smaqit.coverage` as needed, plus `smaqit.design-validate` and `smaqit.spec-status-update` for status-only bumps. Phase 2 (Development) invokes `/smaqit.development` with `specification_mode: prevalidated`. Phase 3 (Deployment) invokes `smaqit.input-deployment` to resolve `provisioning_mode`, `smaqit.infrastructure-vault-loader` and `smaqit.infrastructure-repo-config` to sync credentials, then `/smaqit.deployment` (which internally invokes `smaqit.infrastructure-deploy-verify` after CI/CD runs). Phase 4 (Validation) invokes `/smaqit.validation` with `specification_mode: prevalidated`. Phase 5 (Close-out) runs the release chain — `smaqit.release-analysis` → `smaqit.release-approval` → `smaqit.release-prepare-files` → `smaqit.release-git-pr` — then completes the parent task. Every phase brackets its work with `smaqit.task-start`/`smaqit.task-complete` for that phase's child task. See also: what is the ownership model for an end-to-end post-MVP feature workflow?
 
 ---
 
@@ -220,6 +226,14 @@ Both scripts source a shared `derive_project_slug()` (`skills/smaqit.infrastruct
 
 ---
 
+**What's the difference between app onboarding and app deployment in smaqit's infrastructure-skill family, and why does it matter for skill design?**
+
+Onboarding grants an app a tenant slot on an already-provisioned, shared host — a Namespace plus RBAC plus a scoped kubeconfig on a Kubernetes cluster, or a Vault-registered slot plus Terraform state on a bare VM. This is a cluster/machine-owning repo's own concern: that repo defines its own onboarding contract (its own registry format, its own RBAC scheme, its own workflow shape), and that contract legitimately varies per repo. Deployment is a distinct, later concern — an individual app project's own CI actually pushing its code or containers onto the host it was already onboarded to (rsync+systemd for a VM, `kubectl apply`/`helm` using an onboarding-issued kubeconfig for a cluster).
+
+This distinction has a direct design consequence: a generic smaqit product skill for the onboarding side must never hardcode one specific infra repo's own mechanics as if they were a universal contract. The correct shape for such a skill is a thin dispatcher — it recognizes that the target host is owned by another repo and defers entirely to that repo's own onboarding skill, workflow, or instructions, rather than prescribing or replicating any registry format, RBAC scheme, or workflow shape. `smaqit.infrastructure-onboard-k3s-app` follows this pattern.
+
+---
+
 ## Codex Support
 
 **How does smaqit provide first-class Codex compatibility?**
@@ -262,6 +276,8 @@ Yes, guaranteed by construction: each task's PR is built on whatever `origin/mai
 
 `post-merge-release.yml` triggers only on a `v*` tag push or a merged pull request to `main` — a plain branch push never fires it, regardless of what changed. Push the annotated release tag separately (`git push origin vX.Y.Z`) to trigger it. A newly triggered run can take a couple of minutes to appear in `gh run list` or the Actions UI; check via `gh api repos/<owner>/<repo>/actions/runs` (unfiltered by status) rather than assuming a run that isn't immediately visible never started.
 
+Under the per-task PR-gated release model, every task's own PR *is* its release: merging it is normally sufficient, with no separate manual tag or release step needed. The one hard requirement is the PR title — it must exactly match `Prepare release vX.Y.Z` (or `Release vX.Y.Z`), since the workflow matches on title and silently skips every job on a mismatch (e.g. extra words, wrong prefix, wrong casing).
+
 ---
 
 ## Skill Development
@@ -269,6 +285,14 @@ Yes, guaranteed by construction: each task's PR is built on whatever `origin/mai
 **Can a shipped skill reference files under `framework/`?**
 
 No. The installer's `go:embed` manifest in `installer/main.go` only ships `agents-*`, `commands-claude`, `skills-*`, and the `AGENTS.md`/`CLAUDE.md` templates — `framework/` is never installed into a consumer project. It exists only in this canonical repo as agent-facing documentation for developing smaqit itself. A skill that depends on framework-documented mechanics (e.g. the Incremental Spec Updates decision table, spec state transitions) must distill the relevant content into its own `references/` file rather than pointing at `framework/*.md`, the same way `smaqit.new-greenfield-project` stays fully self-contained with zero `framework/` references.
+
+---
+
+**When should a contributed skill definition be compiled into a shipped product skill immediately, versus held back as definitions-only pending validation?**
+
+Compile immediately when the source mechanism is already hardened through multiple real rounds of production use — withholding compilation in that case serves no purpose. Hold back as definitions-only (a file under `.smaqit/definitions/skills/`, never a compiled `skills/` directory) only when the mechanism is an unproven, single-use synthesis still awaiting real-world validation, matching the precedent set by `smaqit.infrastructure-deploy-rsync-python-tornado`'s initial contribution. A skill definition contributed this way is a candidate for a later, separate reconciliation task once proven — see task 106's precedent for that two-step shape.
+
+Separately, a generic smaqit product skill must never hardcode one specific contributor's own implementation mechanics as if they were a universal contract, regardless of how proven that specific implementation is — see the app-onboarding-vs-deployment entry under Infrastructure Skills for the concrete failure mode and its correct shape (a thin dispatcher, not a mechanism).
 
 ---
 

@@ -6,6 +6,10 @@ created: [TIMESTAMP]
 
 # [CONCEPT_NAME]
 
+## Design References
+
+- [DSG-STK-[CONCEPT]-COMPONENT](../../docs/designs/stack/dsg-stk-[concept]-component.md) · [Image](../../docs/designs/stack/dsg-stk-[concept]-component.png)
+
 ## References
 
 <!-- References establish traceability and coherence, not requirement derivation -->
@@ -91,4 +95,4 @@ If any criterion cannot be automatically validated, flag it:
 
 ---
 
-*Generated with smaqit v1.5.1*
+*Generated with smaqit v3.5.0*

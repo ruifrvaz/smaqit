@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "smaqit-plantuml": {
+      "args": [
+        "mcp",
+        "plantuml"
+      ],
+      "command": "smaqit",
+      "type": "stdio"
+    }
+  }
+}

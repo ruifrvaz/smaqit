@@ -135,3 +135,36 @@ Keep `installer/main.go` `Version` const in sync with `SMAQIT.md` version.
 cd installer && make build && mkdir -p test && cd test
 ../dist/smaqit-dev init && ../dist/smaqit-dev status
 cd .. && make uninstall  # Also cleans test/ and embedded files
+
+<!-- smaqit:instructions:begin -->
+# smaqit
+
+This project uses [smaqit](https://github.com/ruifrvaz/smaqit) for spec-and-design-driven AI-assisted development. Specifications are canonical for requirements and acceptance criteria. PlantUML sources under `docs/designs/` are canonical for system structure, and their PNG projections are mandatory for specification-agent visual validation. Implementation agents consume validated specifications and PlantUML source without duplicating either.
+
+## Scaffolding to ignore
+
+The following paths are smaqit tooling, not part of this project's business domain. When reasoning about architecture, domain logic, or conventions, ignore them:
+
+- `.smaqit/` — task/spec state, session history, templates
+- `.github/workflows/copilot-setup-steps.yml` — Copilot coding-agent bootstrap workflow
+- User-level agent and skill directories (`~/.copilot/agents/`, `~/.claude/`, `~/.codex/agents/`, `~/.agents/skills/`) are framework tooling, not project-domain source
+
+## Working with smaqit
+
+Specs live under `specs/{business,functional,stack,infrastructure,coverage}/`, one file per distinct concept, each tracking a lifecycle status (`draft` → `implemented` → `deployed` → `validated`).
+
+Design pairs live under `docs/designs/{business,functional,stack,infrastructure,coverage}/`. Every active spec references at least one same-layer PlantUML Markdown/PNG pair. Specification agents MUST first confirm their declared `smaqit-plantuml` tools are available; if the client has not loaded, trusted, or exposed them, stop with `DESIGN-TOOLCHAIN-UNAVAILABLE` rather than substituting direct CLI authoring. They then validate PlantUML syntax, render a current PNG, open that PNG with an image-reading tool, and pass the visual rubric before handoff. If image content cannot be read, stop with `DESIGN-VISION-UNAVAILABLE`; reading PlantUML source is never an authoring-time visual-review fallback. `smaqit plan --phase` blocks downstream work unless that attestation remains current; implementation agents then read PlantUML source directly and do not repeat image review.
+
+Invoke with `/` in GitHub Copilot chat or Claude Code. In Codex, ask it to spawn the corresponding named agent (for example, `smaqit.development`):
+
+| Command | Purpose |
+|---|---|
+| `/smaqit.development` | Build a working app from Business/Functional/Stack specs |
+| `/smaqit.deployment` | Deploy using Infrastructure specs |
+| `/smaqit.validation` | Run tests against the deployed system |
+| `/smaqit.qa` | Answer questions about the smaqit framework |
+
+On GitHub Copilot, the five specification agents (`/smaqit.business`, `/smaqit.functional`, `/smaqit.stack`, `/smaqit.infrastructure`, `/smaqit.coverage`) are also directly invocable. On Claude Code they run automatically as part of the phase commands above. In Codex, phase agents spawn these named project subagents; repository skills are available through `/skills` or `$` mentions.
+
+Run `smaqit status` for spec/design readiness and next steps, `smaqit design validate` for design gates, or `smaqit help` for the full CLI reference.
+<!-- smaqit:instructions:end -->

@@ -33,3 +33,4 @@ installer/tools/
 tools/plantuml/node_modules/
 
 docs/temp
+.smaqit/tools/

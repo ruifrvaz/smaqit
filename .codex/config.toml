@@ -1,0 +1,6 @@
+# smaqit:plantuml-mcp:begin
+[mcp_servers.smaqit-plantuml]
+command = "smaqit"
+args = ["mcp", "plantuml"]
+required = true
+# smaqit:plantuml-mcp:end

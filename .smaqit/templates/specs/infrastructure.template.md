@@ -6,6 +6,10 @@ created: [TIMESTAMP]
 
 # [CONCEPT_NAME]
 
+## Design References
+
+- [DSG-INF-[CONCEPT]-DEPLOYMENT](../../docs/designs/infrastructure/dsg-inf-[concept]-deployment.md) · [Image](../../docs/designs/infrastructure/dsg-inf-[concept]-deployment.png)
+
 ## References
 
 <!-- References establish traceability and coherence, not requirement derivation -->
@@ -120,6 +124,7 @@ created: [TIMESTAMP]
 | Target Environment | [dev/staging/prod] | [Environment-specific considerations] |
 | Geographic | [Region/data residency requirements] | [How it affects resource placement] |
 | Budget | [Cost limits or optimization goals] | [How it constrains resource choices] |
+| Platform Repo | [owner/repo hosting the k3s onboarding registry — `provisioning_mode: existing-k3s` only, omit otherwise] | [`smaqit.infrastructure-request-k3s-onboarding`'s PR must target this repo, never this project's own] |
 
 ## Acceptance Criteria
 
@@ -139,4 +144,4 @@ If any criterion cannot be automatically validated, flag it:
 
 ---
 
-*Generated with smaqit v1.5.1*
+*Generated with smaqit v3.5.0*

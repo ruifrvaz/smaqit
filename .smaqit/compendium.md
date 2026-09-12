@@ -162,6 +162,12 @@ Phase 0 (Task Creation) uses `smaqit.task-create` and `smaqit.task-start` to set
 
 ---
 
+**Does the Deployment agent itself know about `provisioning_mode` values like `existing-k3s`, `existing-shared`, or `existing-unmanaged`?**
+
+No. `agents/deployment.md` is deliberately mode-agnostic: it only branches on its own orthogonal knobs, `specification_mode` (`orchestrate`/`prevalidated`) and `deployment_path` (`standard`/`existing-cicd-pr`) — it has no concept of `provisioning_mode` at all. Every `provisioning_mode` value, including all four VM-based ones and `existing-k3s`, is branched on entirely by the *calling* skills — `smaqit.new-greenfield-project` and `smaqit.feature-new` — which resolve the mode, invoke `smaqit.infrastructure-vault-loader`/`smaqit.infrastructure-repo-config` accordingly, and then invoke the Deployment agent generically. Adding a new `provisioning_mode` value or a new deploy-skill family therefore never requires touching the agent itself — only the orchestrating skills' own step-by-step callouts.
+
+---
+
 ## Claude Code Support
 
 **What's the Claude Code equivalent of `copilot-setup-steps.yml`?**
@@ -210,7 +216,7 @@ Shell command substitution strips the private key's required trailing newline. S
 
 **What Vault namespace convention does smaqit use for machine credentials vs. app credentials?**
 
-Credentials split across two namespaces by what they belong to. `secret/machines/<machine-slug>/*` holds everything scoped to a provisioned VM regardless of which app runs on it: `base-ssh` (the bootstrap-only credential Terraform installs at provision time — never used for routine deploys), `cyso` and `tfstate` (cloud-provisioning credentials, since provisioning is a property of the machine, not any one app), and `metadata` (non-secret host/provider/owner-project info). `secret/apps/<app-slug>/*` holds everything scoped to an individual app: `ssh` (a distinct keypair per app, no exceptions — even the project that originally provisioned the machine gets its own, bootstrapped rather than reused), `github`, and `machine` (a pointer recording which machine-slug this app is bootstrapped against, used by `rotate-credential.sh` to know where to re-authorize a rotated key). An app's `ssh` credential is always populated via `smaqit.infrastructure-vault-loader/scripts/bootstrap-app-to-machine.sh <app-slug> <machine-slug>` — idempotent, never by copying another app's key material or letting Terraform install it directly. Projects predating this convention still use the older flat `secret/<project-slug>/{cyso,ssh,tfstate,github}` scheme with no machine-level namespace at all; `load-credentials.sh` supports both, auto-detecting which applies per invocation, and migrating an existing flat-scheme project onto `apps/`+`machines/` is a manual, project-by-project decision rather than something any smaqit skill does automatically.
+Credentials split across two namespaces by what they belong to. `secret/machines/<machine-slug>/*` holds everything scoped to a provisioned VM regardless of which app runs on it: `base-ssh` (the bootstrap-only credential Terraform installs at provision time — never used for routine deploys), `cyso` and `tfstate` (cloud-provisioning credentials, since provisioning is a property of the machine, not any one app), and `metadata` (non-secret host/provider/owner-project info). `secret/apps/<app-slug>/*` holds everything scoped to an individual app: `ssh` (a distinct keypair per app, no exceptions — even the project that originally provisioned the machine gets its own, bootstrapped rather than reused), `github`, and `machine` (a pointer recording which machine-slug this app is bootstrapped against, used by `rotate-credential.sh` to know where to re-authorize a rotated key). An app's `ssh` credential is always populated via `smaqit.infrastructure-vault-loader/scripts/bootstrap-app-to-machine.sh <app-slug> <machine-slug>` — idempotent, never by copying another app's key material or letting Terraform install it directly. Projects predating this convention still use the older flat `secret/<project-slug>/{cyso,ssh,tfstate,github}` scheme with no machine-level namespace at all; `load-credentials.sh` supports both, auto-detecting which applies per invocation, and migrating an existing flat-scheme project onto `apps/`+`machines/` is a manual, project-by-project decision rather than something any smaqit skill does automatically. See also: what Vault credentials does `provisioning_mode: existing-k3s` use?
 
 ---
 
@@ -226,11 +232,27 @@ Both scripts source a shared `derive_project_slug()` (`skills/smaqit.infrastruct
 
 ---
 
-**What's the difference between app onboarding and app deployment in smaqit's infrastructure-skill family, and why does it matter for skill design?**
+**What's the difference between app onboarding, requesting onboarding, and app deployment in smaqit's k3s infrastructure-skill family, and why does it matter for skill design?**
 
-Onboarding grants an app a tenant slot on an already-provisioned, shared host — a Namespace plus RBAC plus a scoped kubeconfig on a Kubernetes cluster, or a Vault-registered slot plus Terraform state on a bare VM. This is a cluster/machine-owning repo's own concern: that repo defines its own onboarding contract (its own registry format, its own RBAC scheme, its own workflow shape), and that contract legitimately varies per repo. Deployment is a distinct, later concern — an individual app project's own CI actually pushing its code or containers onto the host it was already onboarded to (rsync+systemd for a VM, `kubectl apply`/`helm` using an onboarding-issued kubeconfig for a cluster).
+Three distinct concerns, each with its own skill:
 
-This distinction has a direct design consequence: a generic smaqit product skill for the onboarding side must never hardcode one specific infra repo's own mechanics as if they were a universal contract. The correct shape for such a skill is a thin dispatcher — it recognizes that the target host is owned by another repo and defers entirely to that repo's own onboarding skill, workflow, or instructions, rather than prescribing or replicating any registry format, RBAC scheme, or workflow shape. `smaqit.infrastructure-onboard-k3s-app` follows this pattern.
+1. **Onboarding** (`smaqit.infrastructure-onboard-k3s-app`) — granting an app a tenant slot on an already-provisioned k3s cluster (Namespace, RBAC, Pod Security, NetworkPolicy, quota, kubeconfig issuance). This is the cluster-owning infra repo's own concern: that repo defines its own onboarding contract, and the contract legitimately varies per repo.
+2. **Requesting onboarding** (`smaqit.infrastructure-request-k3s-onboarding`) — the app repo's own means of asking for a tenant slot without needing direct write/dispatch access to a repo it doesn't own: opens a PR against the platform repo's registry file and gates on merge, a human-review handoff.
+3. **Deployment** (`smaqit.infrastructure-deploy-k3s-app`) — the app's own CI applying its manifests into the Namespace using the onboarding-issued kubeconfig, once onboarding (steps 1-2) has already happened.
+
+This split has a direct design consequence, and the asymmetry between skill 1 and skills 2-3 is structural, not incidental: skill 1 lives inside an infra repo smaqit doesn't control the internals of, so it must be a thin dispatcher — it recognizes the onboarding hand-off point and defers entirely to that repo's own onboarding skill, workflow, or instructions, never prescribing or replicating any registry format, RBAC scheme, or workflow shape. Skills 2 and 3 live inside the smaqit-managed **app** repo instead, which smaqit fully owns the conventions for, so they can and do declare one fixed, opinionated contract each (a PR-to-a-registry-file request model; a Pod-Security-`restricted`/quota-guardrail deploy model) rather than deferring to unknown mechanics on their own side. Using `existing-k3s` with skill 2 implicitly requires the target infra repo's onboarding process to accept requests via a PR-mergeable registry file — an infra repo whose onboarding works some other way is simply not compatible with that skill, a scoping boundary rather than something the skill adapts around.
+
+---
+
+**What Vault credentials does `provisioning_mode: existing-k3s` use, and how do they differ from the VM-based conventions?**
+
+Three app-scoped fields, all under `secret/apps/<app-slug>/*`, none with a `secret/machines/*` counterpart since a k3s machine-slug has nothing else machine-level to store (no SSH, no Terraform state):
+
+- `secret/apps/<app-slug>/github` — same as every other mode, scoped to this project's own repository.
+- `secret/apps/<app-slug>/<machine-slug>/kubeconfig` — a single `value` field per registered machine-slug. "Environment" is expressed entirely through which machine-slug is targeted: test and prod get distinct machine-slugs even when they happen to share one physical k3s server, rather than one path split into `test`/`prod` fields — a flat, environment-keyed structure can't represent an app onboarded onto genuinely different machines per environment. Always populated out-of-band (an operator paste of the platform's own onboarding hand-off, never a live cluster call); rotation re-prompts for a freshly platform-reissued value rather than regenerating locally, since the platform's own kubeconfig rotation is destructive.
+- `secret/apps/<app-slug>/platform-repo` — a fine-grained PAT scoped only to `contents:write` + `pull_requests:write` on the platform-owned infrastructure repository, distinct from `github`. Used by `smaqit.infrastructure-request-k3s-onboarding` to open a PR there; never has `workflow_dispatch` scope, since triggering convergence is entirely the platform repo's own concern once the PR merges. Unlike `kubeconfig`, this follows the standard delete-and-repopulate rotation shape, since it's a smaqit-managed PAT the operator can freely regenerate, not a platform-issued artifact.
+
+`load-credentials.sh` requires `MACHINE_SLUG` to be set for this mode and populates one machine's kubeconfig per invocation — run it again with a different `MACHINE_SLUG` to populate a second machine.
 
 ---
 

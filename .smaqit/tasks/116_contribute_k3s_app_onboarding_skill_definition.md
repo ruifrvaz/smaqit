@@ -10,130 +10,87 @@ pr: 87
 
 ## Description
 
-A downstream project's app-agnostic infrastructure repo (self-hosted, single-server k3s per
-machine) has a mature, live-verified app-onboarding mechanism, hardened across four rounds of real
-use: a git-committed per-machine registry file plus a converge GitHub Actions workflow that, for
-every registered app slug, creates a Namespace, least-privilege RBAC (ServiceAccount/Role/
-RoleBinding), PSA `restricted` enforcement, a default-deny NetworkPolicy, a ResourceQuota/
-LimitRange, and issues a scoped long-lived kubeconfig handed off via a workflow artifact plus an
-external secrets store.
+**Corrected mid-review (2026-09-12) — see Notes for the full reassessment.** The original framing
+of this task was wrong: it took one specific downstream infra repo's onboarding implementation
+(a git-committed per-machine registry file plus a converge GitHub Actions workflow, with its own
+Namespace/RBAC/PSA/NetworkPolicy/ResourceQuota specifics and its own six real bugs) and shipped it
+as a smaqit product skill as if that implementation were a universal contract every k3s-onboarding
+infra repo should follow. That inverts the machine-monorepo pattern's own principle: **each
+infra-owning repo defines and owns its own onboarding contract.** That knowledge is repo-specific,
+not something smaqit should centralize, prescribe, or hardcode.
 
-This task turns that contributed pattern into a proper Skill Definition file at
-`.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md`, following the exact structural
-precedent of `.smaqit/definitions/skills/smaqit.infrastructure-deploy-rsync-python-tornado.md`, and
-then compiles and ships it as a real, standalone-invocable product skill at
-`skills/smaqit.infrastructure-onboard-k3s-app/` (frontmatter, global payload inclusion, installer
-tests, docs) — unlike the tornado precedent's initial single-synthesis state, this mechanism is
-already hardened across four rounds of real production use, so there is no reason to withhold
-compilation pending further validation.
+This task now ships `smaqit.infrastructure-onboard-k3s-app` as a **thin dispatcher**, not a
+mechanism: when a project's Infrastructure spec targets a k3s cluster owned by another
+(infrastructure-owning) repository, this skill recognizes that hand-off point and defers entirely
+to that repo's own onboarding skill, workflow, or instructions — never assuming or replicating its
+registry format, RBAC scheme, or workflow shape. The detailed mechanism material originally
+authored here (the specific downstream implementation's mechanics and its six gotchas) has been
+deleted from smaqit entirely — it was one org's own implementation detail, not smaqit's to own.
 
-**Explicitly out of scope even after compilation:** stack-detection routing and wiring into
-`smaqit.new-greenfield-project`/`smaqit.feature-new` as a selectable deployment target. This skill
-performs app *onboarding* (Namespace/RBAC/kubeconfig issuance for a tenant of an existing cluster)
-— a fundamentally different, cluster/machine-repo-side concern from an app's own *deployment*
-(building and applying the app's own workloads using the issued kubeconfig, analogous to the
-`smaqit.infrastructure-deploy-rsync*` family). No hardened source material covers that app-side
-deploy mechanism or the new `deployment_target_type` input it would require; it is a separate,
-future task requiring its own design work, not a mechanical follow-up like compilation is here.
+**Still explicitly out of scope:** stack-detection routing and wiring into
+`smaqit.new-greenfield-project`/`smaqit.feature-new` as a selectable deployment target.
 
 ## Issue Triage Context
 
 **Mode:** Skip
-**Technologies:** Kubernetes RBAC/PodSecurity/NetworkPolicy/ResourceQuota, k3s, GitHub Actions (`workflow_dispatch`, Environment protection rules), smaqit skill-definition conventions
-**Platforms/Environments:** None — this task produces a definition file only, no live infrastructure is touched
-**Features/Integrations:** `.smaqit/definitions/skills/` (definition authoring), `smaqit.infrastructure-deploy-rsync-python-tornado` (structural precedent, both definitions-only and compiled forms), `installer/main_test.go` (skill-count assertions), `make -C installer prepare`/`test`/`smoke-test`
-**Versions/Constraints:** Definition file plus compiled `skills/smaqit.infrastructure-onboard-k3s-app/` skill, both shipped by this task; no stack-detection routing or greenfield/feature-new wiring; Provenance must not name the real downstream project, repo, or machines
+**Technologies:** GitHub Actions/repo conventions, smaqit skill-definition conventions
+**Platforms/Environments:** None — this skill contains no cluster-specific mechanics at all
+**Features/Integrations:** `installer/main_test.go` (skill-count assertions), `make -C installer prepare`/`test`/`smoke-test`, `smaqit.infrastructure-vault-loader` (where the deferred-to credential eventually lands)
+**Versions/Constraints:** Compiled `skills/smaqit.infrastructure-onboard-k3s-app/` skill only — no definitions-only source file (deleted, per Design Decisions); no stack-detection routing or greenfield/feature-new wiring; no infra-repo-specific mechanics anywhere in the shipped skill
 
 ## Design Decisions
 
-- **Mirror `smaqit.infrastructure-deploy-rsync-python-tornado.md`'s exact section shape**
-  (Description, Provenance, Steps [Pre-conditions + Steps], Output, Scope, Completion, Failure
-  Handling, Gotchas, Allowed Tools, Examples) rather than inventing a new definition-file
-  structure.
-- **Provenance is anonymized**, matching that same reference file's pattern (no real project/repo/
-  machine name, anywhere — including in this task's own Notes/Description), and framed as a
-  deliberate mature contribution (hardened across four rounds of real production use) rather than
-  an ad-hoc single-use dev-sweep synthesis.
-- **Two known gaps in the source mechanism — RBAC read access to `pods/log`, and non-destructive
-  in-place credential rotation — are noted as not yet incorporated**, not blockers; the contributed
-  mechanism is complete and proven without them.
-- **Compilation happens in this task, not a follow-up.** Unlike the tornado skill (contributed
-  unproven, explicitly held back pending real-world validation), this mechanism is already
-  hardened across four rounds of production use — withholding compilation would serve no purpose.
-  Compilation follows the tornado skill's own documented before/after shape: add YAML frontmatter
-  (`name`, `description`, `metadata.version`/`validated`/`validated-stack`), promote Pre-conditions
-  to a top-level `##` heading, and fold `Provenance`/`Required-inherited-context` into
-  `metadata`/inline Steps prose rather than keeping them as standalone sections (this skill has no
-  shared-family "required-inherited-context" to begin with, since it isn't part of the
-  `deploy-rsync*` family).
-- **Routing/wiring remains a separate follow-up task.** Compiling this skill makes it
-  standalone-invocable; it does not make it a selectable alternative inside
-  `smaqit.new-greenfield-project`/`smaqit.feature-new`. That requires a new `deployment_target_type`
-  input, a Phase 4 Step 6-equivalent branch point, dedicated CI/CD workflow generation (this
-  skill's registry+converge shape doesn't fit `smaqit.infrastructure-cicd-generate`'s VM/SSH/rsync
-  templates — it is structurally closer to task 115's `smaqit.infrastructure-tenant-reconcile`
-  pattern), and a net-new app-side deploy mechanism with no hardened source material behind it.
-  None of that is mechanical the way compilation is, so it stays out of this task.
+- **Thin dispatcher, not a mechanism.** The skill's entire content is: recognize that the target
+  k3s cluster is owned by another repo, and defer to that repo's own onboarding process. It never
+  assumes a registry format, an RBAC scheme, a workflow shape, or any other infra-repo-specific
+  detail — those vary per infra repo and are that repo's own contract to define, never smaqit's.
+- **No definitions-only source file.** The original detailed mechanism (one specific downstream
+  repo's real implementation, including its own six gotchas) has been deleted from smaqit
+  entirely — `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` no longer
+  exists. It documented one org's implementation detail, not a generalizable smaqit contract; it
+  had no business being shipped, contributed, or kept as reference material here.
+- **No `validated`/`validated-stack` metadata.** Those fields signal "validated against a specific
+  downstream stack," which doesn't apply to a generic, infra-repo-agnostic dispatcher — matches the
+  frontmatter convention already used by process/config skills like
+  `smaqit.infrastructure-repo-config` and `smaqit.infrastructure-vault-loader` (plain
+  `metadata.version` only).
+- **Compiled directly** (no separate definitions-first period) — the design is narrow and
+  low-risk enough not to need a synthesis/proof period.
+- **Routing/wiring into `smaqit.new-greenfield-project`/`smaqit.feature-new` remains out of scope**
+  for this task — this skill only recognizes the hand-off point; actually wiring it into the phase
+  flow as a selectable target is separate, larger work.
+- **A cross-session design conflict was found and deliberately left unresolved here.** Task 118
+  (child of 117, a concurrent session's work) was designed against this task's *original* detailed
+  version, treating it as a legitimate "platform operator's direct-access playbook" that task 118's
+  own PR-based, no-direct-access alternative complements. That assumption no longer holds now that
+  the detailed mechanism is deleted. The user has taken ownership of reconciling task 117/118's
+  design and implementation separately — not addressed by this task.
 
 ## Implementation Steps
 
-1. Read `.smaqit/definitions/skills/smaqit.infrastructure-deploy-rsync-python-tornado.md` in full
-   as the structural reference, and `.smaqit/tasks/106_reconcile_python_tornado_rsync_deployment_skill.md`
-   for how a prior contribution-to-canonical task was scoped and worded.
-2. Author `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md`:
-   - **Description** — when to use this skill: per-app Namespace/RBAC/PSA/NetworkPolicy/Quota
-     onboarding onto a self-hosted k3s cluster via a registry file + converge workflow.
-   - **Provenance** — anonymized (e.g. `synthesized-for-project: [a downstream project]`), framed
-     as a mature, multi-round-hardened contribution, not a one-off synthesis.
-   - **Steps** (Pre-conditions + Steps) — the registry schema (opaque app slugs), the converge
-     workflow's mechanics (Namespace, least-privilege Role/RoleBinding/ServiceAccount, PSA
-     `restricted`, default-deny NetworkPolicy, ResourceQuota/LimitRange, a fail-closed token/CA
-     wait before assembling the kubeconfig), and the credential handoff (workflow artifact +
-     external secrets store, never committed).
-   - **Output / Scope** — explicitly not cluster provisioning (a separate provisioning skill's
-     job) and not the onboarded app's own deployment.
-   - **Gotchas** — every real bug found in the source mechanism: a `while read`-loop-plus-SSH bug
-     that silently consumed stdin and truncated multi-slug runs to just the first entry; a `ca.crt`
-     jsonpath-quoting bug; the requirement for a fail-closed wait on token/CA availability before
-     assembling a kubeconfig; a self-minted-token gap (a workload can mint its own extra token
-     Secret under a broad `secrets: create` grant); the GitHub constraint that `workflow_dispatch`
-     must already exist on the default branch before it can be dispatched at all, forcing an
-     interim landing PR for a brand-new workflow file; and the discovery that a GitHub Environment
-     deployment-branch policy applies per environment **name**, regardless of which job or trigger
-     references it — silently blocking a PR-triggered read-only job that happens to share an
-     environment name with a separately-gated apply job.
-   - **Known gaps not yet incorporated** — read-only RBAC access to `pods/log` (debugging a
-     container's log output), and non-destructive in-place credential rotation (recreating the
-     onboarded ServiceAccount object to invalidate every previously-issued token via its UID,
-     without touching the Namespace or the app's own workloads) — both are in-flight in the source
-     project and deliberately not folded in yet.
-   - **Completion / Failure Handling / Allowed Tools / Examples** — filled per the reference
-     file's shape.
-3. Grep the finished file for any literal project, repository, or machine name to confirm
-   generalization and Provenance anonymization are both clean.
-4. Compile `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` from the definitions file:
-   - Add YAML frontmatter (`name: smaqit.infrastructure-onboard-k3s-app`, a genericized
-     `description`, `metadata.version`/`validated`/`validated-stack`).
-   - Promote `Pre-conditions` from a nested subsection to its own top-level `##` heading, matching
-     the compiled tornado skill's shape.
-   - Drop `Provenance` and `Required-inherited-context` as standalone sections (this skill has no
-     shared-family inherited context); fold their substance into `metadata` fields and inline
-     Steps/Gotchas prose instead.
-   - Keep Steps, Output, Scope, Gotchas, Completion, Failure Handling, Examples, Allowed Tools,
-     generalizing any remaining synthesis-specific phrasing to steady-state descriptive language.
-5. Run `make -C installer prepare` to regenerate `installer/skills-shared/` and
-   `installer/skills-claude/` with the new skill directory.
-6. Bump the two hardcoded skill-count assertions in `installer/main_test.go` from 27 to 28:
-   `TestRemoveEmbeddedSkillDirsPreservesUnownedSharedContent` and
-   `TestSharedSkillsServeCopilotAndCodex`. Bump the matching count in
-   `docs/wiki/workflows/testing-smaqit.md` if it enumerates the current total.
-7. Run `make -C installer test` (`go vet` + `go test`) and `make -C installer smoke-test` to
-   confirm the new skill installs cleanly to the shared global path with its
-   `[SMAQIT_SKILLS_DIR]` placeholder resolved.
-8. Add a `CHANGELOG.md` entry for the new skill.
-9. Do not touch stack-detection routing, `smaqit.input-deployment`, `smaqit.new-greenfield-project`,
-   `smaqit.feature-new`, or `smaqit.infrastructure-cicd-generate` in this task — routing/wiring is
-   a separate, future task (see Design Decisions).
+1. Delete `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` — the detailed,
+   one-org-specific mechanism has no place in smaqit.
+2. Rewrite `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` as a thin dispatcher:
+   - **Description** (frontmatter) — when to use: a project's Infrastructure spec targets a k3s
+     cluster owned by another repo; this skill recognizes that and defers, never prescribes.
+   - **Pre-conditions** — the target cluster is owned by a different repo; that repo is
+     identifiable (from the Infrastructure spec or the operator).
+   - **Steps** — identify the infra repo; locate its own onboarding mechanism (skill, workflow, or
+     docs) without assuming its shape; follow it exactly as that repo defines it; store whatever
+     credential it issues via this project's own `smaqit.infrastructure-vault-loader` conventions.
+   - **Scope** — does not prescribe or replicate any infra repo's mechanics; does not provision the
+     cluster; does not deploy this app's own workloads.
+   - **Failure Handling** — the infra repo's mechanism can't be located; it issues no usable
+     credential.
+3. Update the `CHANGELOG.md` entry (already promoted to `## [3.4.0]` on this branch) to describe
+   the thin dispatcher, not the deleted mechanism.
+4. Re-run `make -C installer prepare`, `make -C installer test`, and `make -C installer smoke-test`
+   to confirm the rewritten skill still installs and tests cleanly (no change to the skill-count
+   assertions — still one new skill directory).
+5. Grep the rewritten skill for any literal project, repository, or machine name — none should
+   exist at all in the thin version.
+6. Push the correction to the existing `task/116-...` branch — PR #87 stays open, updated in place,
+   not closed/reopened.
 
 ## Known Issues Triage
 
@@ -141,22 +98,17 @@ future task requiring its own design work, not a mechanical follow-up like compi
 
 ## Acceptance Criteria
 
-- [x] `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` exists, matching
-      `smaqit.infrastructure-deploy-rsync-python-tornado.md`'s section structure
-- [x] Provenance section contains no real project, repository, or machine names
-- [x] Documents every real bug and fix listed in Implementation Steps' Gotchas item, not just the
-      final correct mechanism
-- [x] Documents the `workflow_dispatch`-must-exist-on-the-default-branch constraint and the
-      GitHub-Environment-branch-policy-applies-per-name gotcha
-- [x] Notes `pods/log` RBAC access and non-destructive credential rotation as known gaps not yet
-      incorporated
-- [x] `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` exists, compiled with YAML frontmatter
-      (`name`, `description`, `metadata.version`/`validated`/`validated-stack`) and a top-level
-      `Pre-conditions` heading, matching the compiled tornado skill's shape
-- [x] `installer/main_test.go`'s two hardcoded skill-count assertions are bumped 27→28 and
+- [x] `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` does not exist —
+      deleted, no detailed mechanism content anywhere in smaqit
+- [x] `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` exists as a thin dispatcher: no
+      registry schema, RBAC/PSA/NetworkPolicy specifics, or gotchas tied to any specific infra
+      repo's implementation — only recognition-and-defer logic
+- [x] Zero real project, repository, or machine names anywhere in the skill
+- [x] `metadata` carries only `version` (no `validated`/`validated-stack`), matching the
+      process/config skill convention
+- [x] `installer/main_test.go`'s two hardcoded skill-count assertions remain at 28 and
       `make -C installer test` passes
-- [x] `make -C installer smoke-test` passes, confirming the skill installs cleanly with its
-      `[SMAQIT_SKILLS_DIR]` placeholder resolved
+- [x] `make -C installer smoke-test` passes, confirming the skill installs cleanly
 - [x] No changes are made to `smaqit.input-deployment`, `smaqit.new-greenfield-project`,
       `smaqit.feature-new`, or `smaqit.infrastructure-cicd-generate` — routing/wiring remains a
       separate follow-up task
@@ -164,41 +116,44 @@ future task requiring its own design work, not a mechanical follow-up like compi
 ## Findings
 
 **Implementation approach:**
-- Authored `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` mirroring the tornado definitions file's exact section shape, covering all six real bugs from the source mechanism (stdin-consuming `while read`+`ssh` loop, `ca.crt` jsonpath escaping, fail-closed token/CA wait, self-minted-token gap, `workflow_dispatch`-on-default-branch constraint, per-name Environment branch-policy scoping) plus the two known gaps.
-- Compiled `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` following the compiled tornado skill's actual section order — frontmatter with `name`/`description`/`metadata.version`/`validated`/`validated-stack`, `Pre-conditions` promoted to a top-level heading, `Provenance`/`Required-inherited-context` dropped as standalone sections and folded into metadata plus inline prose.
-- Ran `make -C installer prepare`, bumped both hardcoded skill-count assertions in `installer/main_test.go` (27→28) plus the matching count in `docs/wiki/workflows/testing-smaqit.md`, and confirmed `make -C installer test` and `make -C installer smoke-test` both pass.
-- Added a `CHANGELOG.md` entry under `[Unreleased]/Added`.
+- First pass (superseded): authored the definitions file and compiled skill as a detailed mechanism mirroring one specific downstream repo's real onboarding implementation (registry schema, RBAC/PSA/NetworkPolicy specifics, six gotchas). PR #87 opened on this basis.
+- During PR review, the user identified this as the wrong design: a generic smaqit product skill cannot prescribe one org's specific onboarding mechanics as if universal — each infra-owning repo owns its own contract. Corrected in place on the same branch: deleted the definitions file entirely, rewrote the compiled skill as a thin dispatcher (identify the infra repo → locate its own onboarding mechanism → follow it as defined → store the resulting credential via `smaqit.infrastructure-vault-loader`), dropped `validated`/`validated-stack` metadata (doesn't apply to a generic dispatcher), and rewrote the `CHANGELOG.md` entry to match.
+- Re-ran `make -C installer prepare`, `make -C installer test`, and `make -C installer smoke-test` after the rewrite — all pass. No change needed to the skill-count assertions (still one new skill directory).
 
 **Decisions made:**
-- Scope was widened mid-planning (via `task.plan`) from the original definitions-only handoff to also compiling and shipping the skill as a real product capability — the mechanism's four-rounds-of-production-hardening removed the rationale for withholding compilation the way the unproven tornado skill was originally held back.
-- Renamed the skill from `smaqit.infrastructure-deploy-k3s` to `smaqit.infrastructure-onboard-k3s-app` before implementation began, to correctly signal app onboarding (Namespace/RBAC/kubeconfig issuance) as distinct from app deployment.
-- Stack-detection routing and wiring into `smaqit.new-greenfield-project`/`smaqit.feature-new` were deliberately kept out of scope — Discovery confirmed this requires a net-new app-side deploy mechanism and a new routing input with no hardened source material behind it, unlike the mechanical, low-risk compilation done here.
+- Detailed mechanism content is deleted from smaqit entirely, not kept as reference material — it documented one org's implementation, not a generalizable pattern.
+- The existing branch/PR was corrected in place rather than closed and reopened.
+- A cross-session design conflict was discovered (task 118, built by a concurrent session, assumed this task's *original* detailed version was a legitimate "direct-access playbook" it complements) and deliberately left unresolved by this task — the user is reconciling task 117/118 separately.
 
 **Blockers encountered:**
-- None. A concurrent session created task 117 mid-implementation, covering exactly the deferred routing/app-deploy work; it landed cleanly on `main` via its own rebase and did not affect this task's worktree or implementation.
+- The task was materially misscoped on its first pass, caught only during PR review rather than during planning — see Implementation approach.
 
 **Follow-up identified:**
-- Task 117 ("k3s App-Deployment Skill With Routing and CI/CD") already covers the deferred routing/wiring/app-side-deploy work identified in this task's Design Decisions — no new follow-up task needed.
+- Task 117/118's cross-session design needs reconciliation now that this task's detailed mechanism no longer exists for task 118 to reference — owned by the user, not tracked as a new task here.
 
 ## Files to Create / Modify
 
 | File | Action |
 |------|--------|
-| `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` | Create |
-| `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` | Create — compiled skill |
-| `installer/main_test.go` | Modify — bump skill-count assertions 27→28 |
-| `docs/wiki/workflows/testing-smaqit.md` | Modify — bump skill count if enumerated |
-| `CHANGELOG.md` | Modify — new skill entry |
+| `.smaqit/definitions/skills/smaqit.infrastructure-onboard-k3s-app.md` | Delete — created in the superseded first pass, removed on correction |
+| `skills/smaqit.infrastructure-onboard-k3s-app/SKILL.md` | Rewrite — thin dispatcher, replacing the superseded detailed-mechanism version |
+| `installer/main_test.go` | Unchanged from first pass — still bumped 27→28 |
+| `docs/wiki/workflows/testing-smaqit.md` | Unchanged from first pass — still bumped |
+| `CHANGELOG.md` | Rewrite the `[3.4.0]` entry to describe the thin dispatcher |
 
 ## Notes
 
-Source material was contributed by a downstream project's infrastructure repo, hardened across
-four rounds of real production use (registry-based reconciliation, PSA/NetworkPolicy/quota
-hardening, then a second-machine extension) rather than synthesized once and left unproven.
-Compilation into a supported `skills/smaqit.infrastructure-onboard-k3s-app/` product capability
-(frontmatter, global payload, automated tests, documentation) is part of this task, given the
-mechanism's proven track record. Stack-detection routing and wiring into
-`smaqit.new-greenfield-project`/`smaqit.feature-new` as a selectable deployment target remain a
-separate, future task — that requires designing a net-new app-side deploy mechanism (building and
-applying the app's own workloads via the kubeconfig this skill issues) with no hardened source
-material behind it, unlike the onboarding mechanism this task ships.
+**Reassessment (2026-09-12, during PR review):** the original task and its first implementation
+pass were wrong. They took one specific downstream infra repo's real onboarding implementation
+(registry file + converge workflow, with that repo's own RBAC/PSA/NetworkPolicy specifics and six
+real bugs) and shipped it as a smaqit product skill as though it were a universal contract. That
+inverts the machine-monorepo pattern's own principle that each infra-owning repo defines and owns
+its own onboarding contract. Corrected to a thin dispatcher that only recognizes the hand-off point
+and defers to the infra repo's own process — see Design Decisions and Findings for the full
+correction. The detailed mechanism content is deleted from smaqit entirely, not preserved as
+reference material.
+
+A related, unresolved consequence: task 118 (a concurrent session's work, child of task 117) was
+designed assuming this task's *original* detailed version was a legitimate, complementary
+"direct-access playbook." That assumption no longer holds. Reconciling task 117/118 is the user's
+own follow-up, not part of this task.

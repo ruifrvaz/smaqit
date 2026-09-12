@@ -110,3 +110,19 @@ for the read-before-append fix in Finding 1).
 | GitHub REST API | Repository contents | https://docs.github.com/en/rest/repos/contents |
 | Kubernetes | Resource Quotas | https://kubernetes.io/docs/concepts/policy/resource-quotas/ |
 | Kubernetes | Limit Ranges | https://kubernetes.io/docs/concepts/policy/limit-range/ |
+
+## Task 120 — Surface and Fail Gracefully on Missing existing-k3s Infrastructure-Spec Fields
+
+No new task-layer tools; this task only edits smaqit's own skill/agent instruction files
+(`smaqit.infrastructure-request-k3s-onboarding`, `smaqit.input-deployment`,
+`agents/infrastructure.md`, `smaqit.feature-new`) to name required spec fields and add a
+Failure Handling row — it introduces no new external technology, script, or API call. Reuses
+the Kubernetes/cert-manager references already verified for Tasks 116/117, since the fields in
+scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those same concepts.
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Kubernetes | Ingress | https://kubernetes.io/docs/concepts/services-networking/ingress/ |
+| Kubernetes | Resource Quotas | https://kubernetes.io/docs/concepts/policy/resource-quotas/ |
+| Kubernetes | Limit Ranges | https://kubernetes.io/docs/concepts/policy/limit-range/ |
+| cert-manager | Documentation | https://cert-manager.io/docs/ |

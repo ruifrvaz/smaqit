@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.5.2] - 2026-09-13
+
+### Fixed
+- **Missing existing-k3s Infrastructure-spec fields** — surface the required `Platform Repo`,
+  `Registry File Path`, `Machine Slug`, `Ingress Class`, `ClusterIssuer`, and `Namespace Quota`
+  fields for an `existing-k3s` deployment target and fail loudly instead of silently when they're
+  missing, instead of assuming they exist.
+
 ## [3.5.1] - 2026-09-12
 
 ### Removed

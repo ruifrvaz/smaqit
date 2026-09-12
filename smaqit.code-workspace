@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/120-surface-and-fail-gracefully-on-missing-existing-k3s-infrastructure-spec-fields",
+      "path": "../smaqit-wt-task-120-surface-and-fail-gracefully-on-missing-existing-k3s-infrastructure-spec-fields"
     }
   ],
   "settings": {

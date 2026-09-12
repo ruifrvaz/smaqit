@@ -1,9 +1,9 @@
 ---
-status: PR Open
+status: Completed
 created: "2026-09-11"
 mode: Assisted
 started: "2026-09-12"
-pr: 87
+completed: "2026-09-12"
 ---
 
 # Contribute a k3s App-Onboarding Skill Definition

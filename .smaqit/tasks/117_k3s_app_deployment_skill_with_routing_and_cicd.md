@@ -1,9 +1,9 @@
 ---
-status: PR Open
+status: Completed
 created: "2026-09-11"
 mode: Assisted
 started: "2026-09-12"
-pr: 88
+completed: "2026-09-12"
 ---
 
 # k3s App-Deployment Skill With Routing and CI/CD

@@ -17,23 +17,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing to add.
 
 ### Removed
-- **Orphaned `smaqit.infrastructure-onboard-k3s-app` skill stub** (pending v3.5.1 · PR #89) — no
-  caller anywhere in the skill tree; fully superseded by
-  `smaqit.infrastructure-request-k3s-onboarding`'s own Pre-conditions and Gotchas.
+- Nothing to add.
 
 ### Fixed
-- **`smaqit.infrastructure-request-k3s-onboarding` registry-write overwrite risk** (pending v3.5.1
-  · PR #89) — now fetches the platform repo's current registry file content before writing and
-  appends the new entry instead of replacing the whole file.
-- **`smaqit.infrastructure-deploy-k3s-app` unsafe default sizing** (pending v3.5.1 · PR #89) —
-  `deployment.yaml.template` now defaults to `replicas: 1` and smaller per-container CPU/memory
-  requests, expressed as overridable tokens.
+- Nothing to add.
 
 ### Security
 - Nothing to add.
 
 ### Chore
 - Nothing to add.
+
+## [3.5.1] - 2026-09-12
+
+### Removed
+- **Orphaned `smaqit.infrastructure-onboard-k3s-app` skill stub** — no caller anywhere in the
+  skill tree; fully superseded by `smaqit.infrastructure-request-k3s-onboarding`'s own
+  Pre-conditions and Gotchas.
+
+### Fixed
+- **`smaqit.infrastructure-request-k3s-onboarding` registry-write overwrite risk** — now fetches
+  the platform repo's current registry file content before writing and appends the new entry
+  instead of replacing the whole file.
+- **`smaqit.infrastructure-deploy-k3s-app` unsafe default sizing** — `deployment.yaml.template`
+  now defaults to `replicas: 1` and smaller per-container CPU/memory requests, expressed as
+  overridable tokens.
 
 ## [3.5.0] - 2026-09-12
 

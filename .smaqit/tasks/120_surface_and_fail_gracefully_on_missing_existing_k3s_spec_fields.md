@@ -1,9 +1,9 @@
 ---
-status: PR Open
+status: Completed
 created: "2026-09-12"
 mode: Assisted
 started: "2026-09-13"
-pr: 90
+completed: "2026-09-13"
 ---
 
 # Surface and Fail Gracefully on Missing existing-k3s Infrastructure-Spec Fields

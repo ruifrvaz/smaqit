@@ -1,6 +1,8 @@
 ---
-status: Not Started
+status: In Progress
 created: "2026-09-15"
+mode: Assisted
+started: "2026-09-15"
 ---
 
 # Harden the k3s App-Deployment Skill Family: Image Build-Push, Lint, and Vault Conventions
@@ -142,57 +144,137 @@ invocation kept only as a documented fallback for environments with no CI at all
 - **Finding 7 changes a recommended default, not a hard requirement** — keep local
   invocation documented as a valid fallback (e.g., no CI configured yet), but reorder
   the skill's own Examples/Steps so `workflow_dispatch` is presented first.
+- **Reconciliation for Finding 1 goes through `smaqit.create-skill`, not hand-authored
+  files.** It writes `.smaqit/definitions/skills/smaqit.infrastructure-image-build-push-static.md`
+  and invokes `smaqit.L2` to compile `skills/smaqit.infrastructure-image-build-push-static/SKILL.md`.
+  Since `smaqit.create-skill` infers from a name + context, an explicit fidelity check
+  against the downstream source is required afterward (base image choice, the `USER
+  root`→`USER nginx` ordering for baking `health.json`, the `runAsUser: 101` fact), plus
+  a manual correction pass on the Provenance frontmatter (`synthesized: true`,
+  `contributed-for-project: magnificah-website`, `contributed-date: 2026-09-14`) — the
+  compiler cannot infer those from the skill name alone.
+- **Findings 1/2's CI wiring lives in `assets/deploy.yml.k3s.template`, not in the
+  reconciled skill.** Confirmed live: `smaqit.infrastructure-cicd-generate` is
+  stack-agnostic and `assets/deployment.yaml.template` already carries an `__IMAGE__`
+  token with nothing that ever substitutes it — the generated `deploy.yml.k3s.template`
+  stamps `__DEPLOY_SHA__`/`__DEPLOY_TIME__` but has no `build` job and no `__IMAGE__`
+  step at all. Adding the build-and-push job (with the lowercase-tag fix) to the
+  template itself, not the skill, means every future `k3s`-mode project gets it for
+  free; the reconciled skill narrows to what still needs stack judgment (Dockerfile
+  authoring, health-endpoint baking, the manifest's `runAsUser`).
+- **New scope, found during planning: the Infrastructure spec template has no field
+  today for "this spec declares a private registry."** `smaqit.infrastructure-repo-config`
+  Step 5 already says to sync a registry credential "if the spec names a private
+  registry," but nothing makes that condition checkable. Add a conditional Constraints
+  row (`Container Registry`, `existing-k3s` only, combining registry host + visibility,
+  e.g. `ghcr.io, private`) to `templates/specs/infrastructure.template.md` plus a MUST
+  rule in `agents/infrastructure.md`, mirroring task 120's precedent for other
+  existing-k3s fields — one fact per row, no inference.
+- **No new test harness invented for `manifest-lint.sh`.** No skill-bundled script in
+  this repo has automated tests today; verify the new `runAsUser` check with throwaway
+  fixture manifests (pod-level-only, container-level-only, missing entirely, and the
+  pre-existing passing case) rather than introducing a test framework for one script.
 
 ## Implementation Steps
 
-1. Read the downstream project's task 005 file and its synthesized skill in full (see
-   Description) before writing anything — this task generalizes proven content, it does
-   not re-derive it from scratch.
-2. Reconcile the image-build-push skill into `skills/` (Finding 1), including its
-   Dockerfile-authoring guidance, the lowercase-tag fix baked into the generated build
-   step (Finding 2), and a `.smaqit/definitions/skills/` provenance file matching the
-   existing convention (see `smaqit.infrastructure-deploy-k3s-app`'s own definition file
-   for the shape).
-3. Extend `smaqit.infrastructure-cicd-generate`'s `k3s`-mode template/generation logic so
-   a generated `deploy.yml` includes the build-and-push job by default (or via a clearly
-   documented opt-in, if a case exists for a k3s app that doesn't need one) — do not
-   leave this as a separate, easy-to-forget manual step for the operator to remember to
-   add.
-4. Extend `manifest-lint.sh` for Finding 3: fail with a named-field error (matching the
-   script's existing error style) when the effective `runAsNonRoot` is `true` and no
-   effective numeric `runAsUser` is set at either pod or container level.
-5. Add the `organizations/<org-slug>/github-package-read` path to
-   `smaqit.infrastructure-vault-loader`'s documented path table and prompt flow
-   (Finding 4); extend `smaqit.infrastructure-repo-config`'s `existing-k3s` branch to
-   sync it to `REGISTRY_USERNAME`/`REGISTRY_TOKEN` per environment when a private
-   registry is declared.
-6. Add Finding 5's and Finding 6's explanations to `smaqit.infrastructure-cicd-generate`'s
-   own Gotchas section, and cross-reference both from `smaqit.new-greenfield-project`'s
-   k3s Phase 4/5 sequence text.
-7. Reframe `smaqit.infrastructure-deploy-k3s-app`'s Examples/Steps per Finding 7:
-   `workflow_dispatch` first, local invocation kept as a documented fallback.
-8. Rebuild and reinstall (`cd installer && make build && ./dist/smaqit-dev --install-global`)
-   and verify the new skill and lint behavior are live.
+**Phase A — Reconcile the skill (Finding 1), via `smaqit.create-skill`**
+1. Invoke `smaqit.create-skill` for `smaqit.infrastructure-image-build-push-static`,
+   feeding it the proven downstream content (Dockerfile on
+   `nginxinc/nginx-unprivileged:1-alpine`, the `USER root`→`USER nginx` ordering for
+   baking `health.json`, `deployment.yaml`/`service.yaml` with explicit
+   `runAsUser: 101`, Gotchas/Failure Handling) as the specification input — excluding
+   the CI-wiring steps that move to Phase B.
+2. Fidelity check the compiled SKILL.md against the downstream source (see Design
+   Decisions), and manually correct the Provenance frontmatter fields the compiler
+   cannot infer.
+
+**Phase B — Mechanize build-and-push into the template (Findings 1, 2)**
+3. Add a `build` job to `skills/smaqit.infrastructure-cicd-generate/assets/deploy.yml.k3s.template`,
+   preceding `deploy` (`needs: build`): `docker/login-action@v3` against `ghcr.io`
+   (`GITHUB_TOKEN`, `permissions: packages: write`), lowercase the repo
+   (`tr '[:upper:]' '[:lower:]'`) before tagging by `github.sha`, output the image
+   reference.
+4. Extend the existing "Stamp manifest" step to also substitute `__IMAGE__` in
+   `deployment.yaml` using the `build` job's output.
+5. Update `skills/smaqit.infrastructure-cicd-generate/SKILL.md`'s Steps/Output/Gotchas
+   to document the `build` job as always-generated for `k3s` mode; bump
+   `metadata.version`.
+
+**Phase C — `runAsUser` lint check (Finding 3)**
+6. Extend `check_container_security_context` in
+   `skills/smaqit.infrastructure-deploy-k3s-app/scripts/manifest-lint.sh`: mirror the
+   existing `runAsNonRoot`/`seccompProfile` effective-value pattern — when effective
+   `runAsNonRoot` is `true` and no effective numeric `runAsUser` is set at either level,
+   fail with a named-field message.
+7. Verify manually with throwaway fixture manifests (see Design Decisions); record the
+   verification transcript under this task's own Findings.
+
+**Phase D — Shared registry-credential convention (Finding 4)**
+8. Add the `Container Registry` Constraints row to `templates/specs/infrastructure.template.md`
+   and a MUST rule to `agents/infrastructure.md` (see Design Decisions — new scope).
+9. Add `secret/organizations/<org-slug>/github-package-read` to the Vault path table in
+   `skills/smaqit.infrastructure-vault-loader/SKILL.md` (a new `organizations/`
+   namespace, sibling to `apps/`/`machines/`, populated manually — org-scoped, not
+   per-app, so it does not go through `load-credentials.sh`'s per-app prompt flow).
+10. Extend `skills/smaqit.infrastructure-repo-config/SKILL.md` Step 5 to sync
+    `REGISTRY_USERNAME`/`REGISTRY_TOKEN` per environment from that specific Vault path
+    when the new Constraints row declares a private registry.
+
+**Phase E — Documentation (Findings 5, 6, 7)**
+11. Add two Gotchas to `smaqit.infrastructure-cicd-generate/SKILL.md` (Ingress-must-
+    render-first; `workflow_dispatch` default-branch requirement); cross-reference both
+    from `smaqit.new-greenfield-project/SKILL.md`'s k3s Phase 4/5 text.
+12. Reorder `smaqit.infrastructure-deploy-k3s-app/SKILL.md`'s Examples so the generated-
+    `deploy.yml`/`workflow_dispatch` example comes first, local invocation second as a
+    documented fallback.
+
+**Phase F — Verify**
+13. Rebuild and reinstall (`cd installer && make build && ./dist/smaqit-dev --install-global`);
+    confirm the new skill and the updated `manifest-lint.sh`/templates are live under
+    `~/.claude/skills/`.
 
 ## Known Issues Triage
+**Triaged:** 2026-09-15
+**Tools searched:** k3s (k3s-io/k3s), Docker (moby/moby), HashiCorp Vault (hashicorp/vault)
+**Result:** Historical
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+- None.
+
+### Advisory Issues
+- None.
+
+### Historical (Closed)
+- [#36080 docker: invalid reference format: repository name must be lowercase](https://github.com/moby/moby/issues/36080) — `moby/moby` — closed 2018-02-26 (`kind/question`). Confirms Finding 2's lowercase-tag requirement is long-standing, documented Docker behavior, not a regression — closed as a question rather than a bug, consistent with the task's own fix being a one-line `tr` normalization rather than a workaround for a Docker defect.
+
+### Unresolvable Tools
+- GitHub Container Registry — resolve helper returned `stacksimplify/docker-hub-to-github-container-registry` (an unrelated third-party tutorial repo, not an official GHCR issue tracker); GHCR is a hosted GitHub product feature with no dedicated open-source repository of its own.
+- GitHub Actions — resolve helper returned `actions/starter-workflows` (community workflow templates, not a GitHub Actions bug tracker); same exclusion this project's own downstream precedent (magnificah task 005) already applied.
+
+### Omitted Tools
+- None — three repositories searched, within the five-repository limit.
+
+### Search Warnings
+- None.
 
 ## Acceptance Criteria
 
 - [ ] A canonical `smaqit.infrastructure-image-build-push-static` (or generalized name,
       per Design Decisions) skill exists under `skills/`, with a matching
       `.smaqit/definitions/skills/` provenance file
-- [ ] The k3s-mode CI generation produces a build-and-push job by default, with the
+- [ ] The k3s-mode CI generation produces a build-and-push job by default (baked into
+      `assets/deploy.yml.k3s.template` itself, not the reconciled skill), with the
       image reference lowercased before use — verified by generating it fresh for a
       throwaway project slug and inspecting the output, not just reading the template
 - [ ] `manifest-lint.sh` rejects a manifest with `runAsNonRoot: true` and no effective
       `runAsUser`, at both pod-level-only and container-level-only test cases, and still
       passes every existing case unchanged
+- [ ] `templates/specs/infrastructure.template.md` declares a `Container Registry`
+      Constraints row (`existing-k3s` only) naming registry host + visibility
 - [ ] `smaqit.infrastructure-vault-loader`'s path table documents
       `organizations/<org-slug>/github-package-read`; `smaqit.infrastructure-repo-config`'s
-      `existing-k3s` branch syncs it to `REGISTRY_USERNAME`/`REGISTRY_TOKEN` when a
-      private registry is declared
+      `existing-k3s` branch syncs it to `REGISTRY_USERNAME`/`REGISTRY_TOKEN` when the new
+      Constraints row declares a private registry
 - [ ] `smaqit.infrastructure-cicd-generate`'s Gotchas section explains both the
       Ingress-must-be-rendered-first precondition and the `workflow_dispatch`
       default-branch requirement; `smaqit.new-greenfield-project`'s k3s sequence
@@ -229,6 +311,7 @@ invocation kept only as a documented fallback for environments with no CI at all
 | `skills/smaqit.infrastructure-vault-loader/SKILL.md` | Modify |
 | `skills/smaqit.infrastructure-repo-config/SKILL.md` | Modify |
 | `skills/smaqit.new-greenfield-project/SKILL.md` | Modify |
+| `templates/specs/infrastructure.template.md`, `agents/infrastructure.md` | Modify |
 
 ## Notes
 

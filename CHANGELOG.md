@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing to add.
+- **Harden the k3s app-deployment skill family** (pending v3.6.0 · PR #91) — reconciles a new
+  `smaqit.infrastructure-image-build-push-static` skill, mechanizes a build-and-push CI job into
+  the generated k3s `deploy.yml`, adds a `runAsUser` admission-failure lint check, and documents
+  a shared org-scoped GHCR pull-credential Vault convention.
 
 ### Changed
 - Nothing to add.

@@ -7,6 +7,14 @@
 # do not remove or weaken any of the securityContext fields below — manifest-lint.sh rejects a
 # manifest missing any of them before any kubectl apply runs.
 #
+# NOT shown below: runAsUser. It is deliberately not a token here — its correct value is the
+# base image's own real numeric UID, which varies per image and is not this template's to guess.
+# manifest-lint.sh requires an explicit numeric runAsUser (pod- or container-level) wherever
+# runAsNonRoot is true; add it explicitly when authoring the concrete manifest (see
+# smaqit.infrastructure-image-build-push-static for the static-site case, or confirm the base
+# image's UID directly with `docker run --rm <image> id`). Omitting it here is not a template gap
+# to fix — it is the one field every app-specific manifest-authoring step must still add itself.
+#
 # Tokens:
 #   __APP_SLUG__   — the app slug; the Namespace is always app-__APP_SLUG__
 #   __IMAGE__      — the app's container image reference

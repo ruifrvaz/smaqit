@@ -10,8 +10,12 @@
 #   1. Pod Security "restricted" fields: runAsNonRoot, allowPrivilegeEscalation: false,
 #      capabilities.drop: [ALL], seccompProfile.type: RuntimeDefault; no privileged: true, no
 #      hostPath volumes, no hostNetwork/hostPID/hostIPC.
-#   2. Explicit CPU/memory requests AND limits on every container.
-#   3. No cluster-scoped `kind` anywhere in the manifest set.
+#   2. A numeric runAsUser wherever runAsNonRoot is true — a base image whose own USER directive
+#      names a user (not a numeric UID) otherwise passes this lint but fails at admission time
+#      with CreateContainerConfigError, since the kubelet cannot resolve a named user to verify
+#      non-root itself (docker run never surfaces this — it is Kubernetes-only).
+#   3. Explicit CPU/memory requests AND limits on every container.
+#   4. No cluster-scoped `kind` anywhere in the manifest set.
 #
 # Usage: manifest-lint.sh <manifest.yaml> [<manifest.yaml> ...]
 #   Exit 0 — every check passes across every given manifest.
@@ -67,6 +71,15 @@ def check_container_security_context(pod_sc, csc, label, path, doc_index, kind, 
     effective_run_as_non_root = csc.get("runAsNonRoot", pod_sc.get("runAsNonRoot"))
     if effective_run_as_non_root is not True:
         fail(path, doc_index, kind, name, f"{label}: runAsNonRoot must be true (pod- or container-level)")
+    else:
+        effective_run_as_user = csc.get("runAsUser", pod_sc.get("runAsUser"))
+        if not isinstance(effective_run_as_user, int) or isinstance(effective_run_as_user, bool):
+            fail(
+                path, doc_index, kind, name,
+                f"{label}: runAsNonRoot is true but no numeric runAsUser is set (pod- or "
+                "container-level) — a base image whose own USER directive names a user, not a "
+                "numeric UID, fails admission with CreateContainerConfigError",
+            )
 
     if csc.get("allowPrivilegeEscalation") is not False:
         fail(path, doc_index, kind, name, f"{label}: allowPrivilegeEscalation must be false")

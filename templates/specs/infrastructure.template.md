@@ -130,6 +130,7 @@ created: [TIMESTAMP]
 | Ingress Class | [the cluster's ingress class name — `existing-k3s` only, omit otherwise; sourced from the platform team's own onboarding documentation, never invented] | [`smaqit.infrastructure-deploy-k3s-app`'s generated Ingress manifest must reference this class] |
 | ClusterIssuer | [the cluster's cert-manager `ClusterIssuer` name — `existing-k3s` only, omit otherwise; sourced from the platform team's own onboarding documentation, never invented] | [the deploy skill's Ingress annotation/TLS request must reference this issuer] |
 | Namespace Quota | [the onboarded Namespace's `ResourceQuota`/`LimitRange` numbers — `existing-k3s` only, omit otherwise; sourced from the platform team's own onboarding documentation, never invented] | [application resource requests/limits declared elsewhere in this spec must fit within this ceiling] |
+| Container Registry | [registry host and visibility, e.g. "ghcr.io, private" — `existing-k3s` only, omit otherwise; a per-project decision, not sourced from the platform team] | [`smaqit.infrastructure-cicd-generate`'s `build` job pushes here; if private, `smaqit.infrastructure-repo-config` syncs a pull credential and the manifest needs `imagePullSecrets`] |
 
 ## Acceptance Criteria
 

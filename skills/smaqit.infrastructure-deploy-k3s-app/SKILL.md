@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-deploy-k3s-app
 description: Use when deploying an application into a Namespace-scoped Kubernetes cluster (k3s or any cluster that issues a scoped kubeconfig per application/environment). Given a kubeconfig restricted to the app's own Namespace, lints manifests against the platform's Pod Security `restricted` and quota guardrails, applies them, waits for rollout, stamps the Deployment with the commit SHA as pod environment, waits for the Ingress host's `Certificate` to become `Ready`, and verifies externally over HTTPS. Used in Phase 4 of `smaqit.new-greenfield-project` for `provisioning_mode: existing-k3s`, and again from the generated `deploy.yml` in Phase 5. Also usable as a manual fallback for direct deployment into an already-onboarded Namespace. Never touches anything cluster-scoped and never reads pod logs.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Deploy Application to a Kubernetes Namespace
@@ -85,13 +85,16 @@ metadata:
    ```bash
    scripts/manifest-lint.sh deployment.yaml service.yaml ingress.rendered.yaml
    ```
-   Checks the Pod Security `restricted` fields (`runAsNonRoot: true`,
-   `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`, `seccompProfile.type:
-   RuntimeDefault`, no `privileged: true`, no `hostPath` volumes, no `hostNetwork`/`hostPID`/
-   `hostIPC`), explicit CPU/memory `requests`/`limits` on every container, and the absence of any
-   cluster-scoped `kind` in the manifest set. A rejected manifest exits non-zero and names the
-   offending field — fix the manifest, not the check. The admission rejection this prevents is
-   terse and this skill's credential cannot read logs to diagnose it after the fact.
+   Checks the Pod Security `restricted` fields (`runAsNonRoot: true`, an explicit numeric
+   `runAsUser` wherever `runAsNonRoot` is true, `allowPrivilegeEscalation: false`,
+   `capabilities.drop: [ALL]`, `seccompProfile.type: RuntimeDefault`, no `privileged: true`, no
+   `hostPath` volumes, no `hostNetwork`/`hostPID`/`hostIPC`), explicit CPU/memory
+   `requests`/`limits` on every container, and the absence of any cluster-scoped `kind` in the
+   manifest set. A rejected manifest exits non-zero and names the offending field — fix the
+   manifest, not the check. The admission rejection this prevents is terse and this skill's
+   credential cannot read logs to diagnose it after the fact; a base image whose own `USER`
+   directive names a user rather than a numeric UID is the most common way `runAsNonRoot` alone
+   still fails admission with `CreateContainerConfigError`.
 
 7. **Apply into the app's own Namespace only:**
    ```bash
@@ -140,19 +143,24 @@ PASS on health, SHA, and SPA root over HTTPS.
 
 ## Examples
 
-**Input:** `provisioning_mode: existing-k3s` project's Phase 4 dev sweep invokes this skill.
+**Input:** Generated `deploy.yml` (k3s mode) runs from GitHub Actions on push to `main` — the
+default, recommended path for every deploy, including the very first one to a new environment
+(see Gotchas: a manual local first deploy exercises a different code path than production and
+has hidden real defects, e.g. an image-tag casing bug, in past live use).
+
+**Output:** `KUBECONFIG` written from the `prod` Environment secret; the `build` job's pushed
+image reference and this same guard → lint → apply → rollout → `Certificate` → verify sequence
+run against `app-<app-slug>` in the `prod` Namespace; `deploy-verify` reports PASS over
+`https://<prod-host>`.
+
+**Input:** `provisioning_mode: existing-k3s` project's Phase 4 dev sweep invokes this skill
+directly (local fallback — no CI configured yet, or a first pass before wiring one up).
 
 **Output:** Kubeconfig loaded from `secret/apps/<app-slug>/<test-machine-slug>/kubeconfig`
 (`value` field); `namespace-guard.sh` confirms the Namespace is `app-<app-slug>` with no
 cluster-scoped verb permitted; `manifest-lint.sh` passes; Deployment/Service/rendered Ingress
 applied into `app-<app-slug>`; rollout completes; `Certificate` reaches `Ready`; `deploy-verify`
 reports PASS on health, SHA, and the SPA root over `https://<test-host>`.
-
-**Input:** Generated `deploy.yml` (k3s mode) runs from GitHub Actions on push to `main`.
-
-**Output:** `KUBECONFIG` written from the `prod` Environment secret; same guard → lint → apply →
-rollout → `Certificate` → verify sequence runs against `app-<app-slug>` in the `prod` Namespace;
-`deploy-verify` reports PASS over `https://<prod-host>`.
 
 ## Gotchas
 
@@ -173,6 +181,12 @@ rollout → `Certificate` → verify sequence runs against `app-<app-slug>` in t
   `smaqit.infrastructure-vault-loader`'s `rotate-credential.sh` support for
   `apps/<app-slug>/<machine-slug>/kubeconfig`, which re-prompts for a freshly reissued value
   instead.
+- **Prefer the generated CI workflow over a manual local invocation, even for the first deploy to
+  a brand-new environment.** A manual local run exercises a different code path (this skill's own
+  shell commands) than what actually runs in production (the generated `deploy.yml`) — in past
+  live use, that difference hid a real defect (an image-tag casing bug that a local shell would
+  never have hit) until the workflow path was used instead. Local invocation remains a valid
+  fallback when no CI is configured yet, not something to reach for by default when it is.
 
 ## Completion
 

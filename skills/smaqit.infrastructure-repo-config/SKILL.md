@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-repo-config
 description: Use when configuring a GitHub repository with the secrets and variables required for CI/CD workflows. Covers Actions secrets (VM_SSH_KEY, Terraform backend credentials, cloud provider credentials, GH_TERRAFORM_TOKEN), Actions variables (VM_HOST, DEMO_MODE), and, for `provisioning_mode: existing-k3s` targets, the environment-scoped `KUBECONFIG` secret and `APP_HOST` variable plus an optional registry credential. Uses the `gh` CLI. Prevents GITHUB_TOKEN reserved-name collisions and SSH key trailing-newline drift. Also use when setting up a new deployment repository, rotating CI/CD credentials, or verifying that all required repository secrets and variables are present.
 metadata:
-  version: "1.5.0"
+  version: "1.6.0"
 ---
 
 # Configure GitHub Repository Secrets and Variables
@@ -81,15 +81,25 @@ metadata:
    `existing-k3s`'s analog of `VM_HOST`: a **variable** (not a secret) holding the environment's
    Ingress hostname, read directly by `smaqit.infrastructure-deploy-k3s-app`'s verify step. No
    `ssh`/`tfstate`/`cyso`-derived secret is ever synced for this mode, and `VM_HOST` is never
-   set. If the spec names a private registry, also sync the declared registry credential (e.g.
-   `REGISTRY_USERNAME`/`REGISTRY_TOKEN`) the same way — per environment, as GitHub Environment
-   secrets, never a platform-owned credential.
+   set. If the spec's `Container Registry` Constraints row declares a private registry, also sync
+   `REGISTRY_USERNAME`/`REGISTRY_TOKEN` the same way — per environment, as GitHub Environment
+   secrets:
+   ```bash
+   gh secret set REGISTRY_USERNAME --env test -R <owner>/<repo> --body "$(vault kv get -field=username secret/organizations/<org-slug>/github-package-read)"
+   gh secret set REGISTRY_TOKEN --env test -R <owner>/<repo> --body "$(vault kv get -field=token secret/organizations/<org-slug>/github-package-read)"
+   gh secret set REGISTRY_USERNAME --env prod -R <owner>/<repo> --body "$(vault kv get -field=username secret/organizations/<org-slug>/github-package-read)"
+   gh secret set REGISTRY_TOKEN --env prod -R <owner>/<repo> --body "$(vault kv get -field=token secret/organizations/<org-slug>/github-package-read)"
+   ```
+   Sourced from `secret/organizations/<org-slug>/github-package-read`
+   (`smaqit.infrastructure-vault-loader`'s org-scoped, not app-scoped, path) — the same shared,
+   read-only credential syncs to every app/environment declaring a private registry in this org;
+   never a platform-owned credential, and never a per-app Vault path invented for this purpose.
 
 ## Output
 
 - **`provision` / `existing-owned`:** GitHub repository configured with 7 secrets (VM_SSH_KEY, VM_SSH_PUBLIC_KEY, TF_BACKEND_ACCESS_KEY, TF_BACKEND_SECRET_KEY, OS_APPLICATION_CREDENTIAL_ID, OS_APPLICATION_CREDENTIAL_SECRET, GH_TERRAFORM_TOKEN) plus the VM_HOST variable
 - **`existing-shared` / `existing-unmanaged`:** 3 secrets only (VM_SSH_KEY, VM_SSH_PUBLIC_KEY, GH_TERRAFORM_TOKEN) plus the VM_HOST variable (set manually, not derived from Terraform) — identical set for both modes; only the reason there's no Terraform output differs (another project's Terraform vs. no Terraform at all)
-- **`existing-k3s`:** a `KUBECONFIG` secret on each of the `test` and `prod` GitHub Environments (never a repository-level secret), plus an `APP_HOST` variable on each Environment; an optional per-environment registry credential when the spec names a private registry. No `VM_HOST`, no `VM_SSH_KEY`, no Terraform-derived secret at all.
+- **`existing-k3s`:** a `KUBECONFIG` secret on each of the `test` and `prod` GitHub Environments (never a repository-level secret), plus an `APP_HOST` variable on each Environment; if the spec's `Container Registry` row declares a private registry, also `REGISTRY_USERNAME`/`REGISTRY_TOKEN` on each Environment, sourced from the shared `secret/organizations/<org-slug>/github-package-read`. No `VM_HOST`, no `VM_SSH_KEY`, no Terraform-derived secret at all.
 - All values sourced from Vault; no credentials typed or stored locally outside Vault
 - Verification output confirming presence of each name; absent `tfstate`/`cyso`-derived secrets are reported as skipped, not missing
 
@@ -131,7 +141,7 @@ metadata:
 - [ ] TF_BACKEND_ACCESS_KEY and TF_BACKEND_SECRET_KEY set (from Vault), or cleanly skipped if `secret/<slug>/tfstate` is absent
 - [ ] OS_APPLICATION_CREDENTIAL_ID and OS_APPLICATION_CREDENTIAL_SECRET set (from Vault), or cleanly skipped if `secret/<slug>/cyso` is absent
 - [ ] GH_TERRAFORM_TOKEN set (from Vault; fine-grained PAT, `variables:write` scope)
-- [ ] `existing-k3s` only: `KUBECONFIG` secret and `APP_HOST` variable set on both the `test` and `prod` GitHub Environments; optional registry credential synced per environment if a private registry is declared
+- [ ] `existing-k3s` only: `KUBECONFIG` secret and `APP_HOST` variable set on both the `test` and `prod` GitHub Environments; `REGISTRY_USERNAME`/`REGISTRY_TOKEN` synced per environment from `secret/organizations/<org-slug>/github-package-read` if the spec's `Container Registry` row declares a private registry
 - [ ] `gh secret list` and `gh variable list` verified — all expected names present for the active `provisioning_mode` (pass `--env test`/`--env prod` for `existing-k3s`)
 
 ## Failure Handling
@@ -150,3 +160,4 @@ metadata:
 | `gh variable set` returns 403 | Verify the PAT used for `gh auth login` has `write:variables` scope |
 | `existing-k3s`: `secret/apps/<app-slug>/<machine-slug>/kubeconfig` absent for the target environment's registered machine-slug | Stop. This is `smaqit.infrastructure-vault-loader`'s job — populate it there (out-of-band paste from the platform's onboarding hand-off) before retrying; do not fabricate a placeholder |
 | `existing-k3s`: `gh secret set ... --env <name>` fails because the Environment doesn't exist yet | Create the `test`/`prod` GitHub Environments first (`gh api repos/<owner>/<repo>/environments/<name> -X PUT` or via the repository UI), then retry |
+| `existing-k3s`: spec's `Container Registry` row declares a private registry but `secret/organizations/<org-slug>/github-package-read` is absent | Stop. This is an operator-populated, org-scoped path (`smaqit.infrastructure-vault-loader`) — not something `load-credentials.sh`'s per-app flow ever creates; populate it there before retrying |

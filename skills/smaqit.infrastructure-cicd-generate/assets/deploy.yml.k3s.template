@@ -11,7 +11,44 @@ on:
 # named KUBECONFIG (see smaqit.infrastructure-repo-config) — never a repository-level secret,
 # since test and prod each need their own distinct value.
 jobs:
+  # Builds and pushes the application's container image before the deploy job applies it.
+  # smaqit.infrastructure-cicd-generate has no build-time knowledge of the app's own stack — the
+  # Dockerfile itself is authored by the matched/synthesized image-build skill (e.g.
+  # smaqit.infrastructure-image-build-push-static) or hand-authored; this job only builds and
+  # pushes whatever Dockerfile already exists at the repository root.
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN already carries packages: write on this job (see permissions above) —
+          # no separate registry credential is needed to push.
+
+      # github.repository preserves the real org/repo casing (e.g. "Org/repo"); Docker rejects
+      # a mixed-case image reference outright with "repository name must be lowercase" — lowercase
+      # it before constructing the tag. Live-verified failure mode, not a hypothetical.
+      - name: Build and push image
+        id: image
+        run: |
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${REPO_LC}:${{ github.sha }}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     # "prod" GitHub Environment — this workflow triggers on push to main, i.e. the production
     # deploy path. Its KUBECONFIG secret and APP_HOST variable are scoped to this Environment,
@@ -70,12 +107,15 @@ jobs:
 
       # printf '%s', not echo — echo appends a newline the health endpoint would then include.
       # DEPLOY_SHA/DEPLOY_TIME are set as pod environment, not a file — this credential has no
-      # host filesystem to write to.
-      - name: Stamp manifest with deploy SHA and time
+      # host filesystem to write to. __IMAGE__ is substituted here too, from the build job's
+      # pushed image reference — deployment.yaml's own image: __IMAGE__ token is otherwise never
+      # filled in, and kubectl apply would try to schedule a literal, unpullable "__IMAGE__" tag.
+      - name: Stamp manifest with deploy SHA, time, and image
         run: |
           DEPLOY_SHA="${{ github.sha }}"
           DEPLOY_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          sed -i "s/__DEPLOY_SHA__/${DEPLOY_SHA}/g; s/__DEPLOY_TIME__/${DEPLOY_TIME}/g" deployment/k3s/deployment.yaml
+          IMAGE="${{ needs.build.outputs.image }}"
+          sed -i "s/__DEPLOY_SHA__/${DEPLOY_SHA}/g; s/__DEPLOY_TIME__/${DEPLOY_TIME}/g; s|__IMAGE__|${IMAGE}|g" deployment/k3s/deployment.yaml
 
       - name: Apply manifests
         run: |

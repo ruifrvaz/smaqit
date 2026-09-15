@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-vault-loader
 description: Use before any local deployment or credential operation that requires secrets from a local HashiCorp Vault instance. Verifies Vault is running, unsealed, and authenticated on 127.0.0.1:8200. Also runs an interactive credential loader script that prompts for all project secrets and writes them to Vault. Use for first-time setup, adding a new project's credentials, or when a Vault path is missing. Also use when setting up Vault for the first time on a new machine, or when a caller cannot reach Vault and needs troubleshooting guidance.
 metadata:
-  version: "3.5.0"
+  version: "3.6.0"
 ---
 
 # Vault Loader
@@ -48,6 +48,10 @@ secret/apps/<app-slug>/<machine-slug>/kubeconfig — value (a full scoped kubeco
 secret/apps/<app-slug>/platform-repo — token (PR-create rights only — contents:write +
                                      pull_requests:write — on the platform-owned infrastructure
                                      repo; provisioning_mode: existing-k3s only)
+
+secret/organizations/<org-slug>/github-package-read — username, token (a classic PAT scoped to
+                                     exactly read:packages; provisioning_mode: existing-k3s with a
+                                     private Container Registry only)
 ```
 
 `cyso` and `tfstate` are machine-scoped: provisioning a VM is a property of the machine, not of
@@ -91,6 +95,26 @@ there — convergence remains the platform team's own concern, triggered by thei
 to the merge. Unlike `kubeconfig`, `platform-repo` follows the standard delete-and-repopulate
 rotation shape (see "Rotating a credential" below), since it's a smaqit-managed PAT the operator
 can freely regenerate, not a platform-issued artifact.
+
+`organizations/<org-slug>/github-package-read` is a fourth `existing-k3s` field, but in a
+namespace of its own — sibling to `apps/`and `machines/`, never nested under either. It exists
+only when a project's declared Container Registry (Infrastructure spec Constraints table) is
+private: GHCR packages pushed from a private repository default to private visibility with no
+opt-in step, so the cluster needs a pull credential to avoid `ImagePullBackOff`. Unlike every
+other credential in this table, it is **org-scoped, not app-scoped** — one classic PAT (scoped to
+exactly `read:packages`; fine-grained PATs have unreliable Packages API support), shared read-only
+across every app on every machine in the org, never minted per app. `<org-slug>` is the GitHub
+organization or user account that owns the repositories, not any one project's own slug. Because
+it is shared rather than tied to a single app's lifecycle, `load-credentials.sh`'s per-app
+`existing-k3s` prompt flow does not populate it — an operator sets it once, directly
+(`vault kv put secret/organizations/<org-slug>/github-package-read username=... token=...`), the
+same way a machine's `cyso`/`tfstate` credentials are populated once at machine registration
+rather than per app per session. It is likewise **not** one of `rotate-credential.sh`'s supported
+paths (org-scoped credentials sit outside that script's per-app/per-machine case matching) —
+rotating it is the same manual `vault kv put`/`delete` an operator used to populate it, not a
+scripted flow. `smaqit.infrastructure-repo-config` reads it to sync
+`REGISTRY_USERNAME`/`REGISTRY_TOKEN` onto each GitHub Environment that declares a private
+registry (see that skill's own Step 5).
 
 **Legacy scheme, still in use, not migrated by this skill:** projects predating this convention
 store everything flat under `secret/<project-slug>/{cyso,ssh,tfstate,github}`, with Terraform

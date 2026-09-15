@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 91
 created: "2026-09-15"
 mode: Assisted
 started: "2026-09-15"
@@ -259,46 +260,55 @@ invocation kept only as a documented fallback for environments with no CI at all
 
 ## Acceptance Criteria
 
-- [ ] A canonical `smaqit.infrastructure-image-build-push-static` (or generalized name,
+- [x] A canonical `smaqit.infrastructure-image-build-push-static` (or generalized name,
       per Design Decisions) skill exists under `skills/`, with a matching
       `.smaqit/definitions/skills/` provenance file
-- [ ] The k3s-mode CI generation produces a build-and-push job by default (baked into
+- [x] The k3s-mode CI generation produces a build-and-push job by default (baked into
       `assets/deploy.yml.k3s.template` itself, not the reconciled skill), with the
       image reference lowercased before use — verified by generating it fresh for a
       throwaway project slug and inspecting the output, not just reading the template
-- [ ] `manifest-lint.sh` rejects a manifest with `runAsNonRoot: true` and no effective
+- [x] `manifest-lint.sh` rejects a manifest with `runAsNonRoot: true` and no effective
       `runAsUser`, at both pod-level-only and container-level-only test cases, and still
       passes every existing case unchanged
-- [ ] `templates/specs/infrastructure.template.md` declares a `Container Registry`
+- [x] `templates/specs/infrastructure.template.md` declares a `Container Registry`
       Constraints row (`existing-k3s` only) naming registry host + visibility
-- [ ] `smaqit.infrastructure-vault-loader`'s path table documents
+- [x] `smaqit.infrastructure-vault-loader`'s path table documents
       `organizations/<org-slug>/github-package-read`; `smaqit.infrastructure-repo-config`'s
       `existing-k3s` branch syncs it to `REGISTRY_USERNAME`/`REGISTRY_TOKEN` when the new
       Constraints row declares a private registry
-- [ ] `smaqit.infrastructure-cicd-generate`'s Gotchas section explains both the
+- [x] `smaqit.infrastructure-cicd-generate`'s Gotchas section explains both the
       Ingress-must-be-rendered-first precondition and the `workflow_dispatch`
       default-branch requirement; `smaqit.new-greenfield-project`'s k3s sequence
       cross-references both
-- [ ] `smaqit.infrastructure-deploy-k3s-app`'s Examples present `workflow_dispatch` as
+- [x] `smaqit.infrastructure-deploy-k3s-app`'s Examples present `workflow_dispatch` as
       the default first-deploy path, local invocation retained only as a documented
       fallback
-- [ ] Rebuilt and reinstalled; `~/.claude/skills/` reflects every change live
+- [x] Rebuilt and reinstalled; `~/.claude/skills/` reflects every change live
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Phase A: reconciled the skill via `smaqit.create-skill` → `smaqit.L2` (definition file → compiled SKILL.md) rather than hand-authoring either file, per the plan's adjustment; verified fidelity against the downstream source and manually corrected the Provenance frontmatter afterward.
+- Phase B: added a `build` job to `deploy.yml.k3s.template` (GHCR login, lowercase-tag fix, push by SHA) and extended the existing stamp step to substitute `__IMAGE__`; validated with `actionlint`/`shellcheck` and a fresh throwaway-slug generation, confirmed correct token substitution.
+- Phase C: extended `manifest-lint.sh`'s `check_container_security_context` to require an effective numeric `runAsUser` wherever effective `runAsNonRoot` is true, mirroring the function's existing pod/container inheritance pattern; verified with 5 fixture manifests (pod-level, container-level, missing, boolean-guard, non-pod regression).
+- Phase D: added the `Container Registry` Constraints row and MUST rule, documented the org-scoped Vault path, and sharpened `repo-config`'s sync step to name that exact path.
+- Phase E: added the two Gotchas to `cicd-generate`, cross-referenced them plus the new image-build skill from `new-greenfield-project`'s k3s sequence, and reordered `deploy-k3s-app`'s Examples to CI-first.
+- Phase F: bumped two hardcoded skill-count assertions in `installer/main_test.go` (29→30) after `make prepare` regenerated the embed with the new skill; `go test`/`go vet` pass; rebuilt and ran `--install-global`, verified all four changes live under `~/.claude/skills/`.
 
 **Decisions made:**
-- TBD
+- Kept the skill name `-static`-suffixed (no second real non-static example to generalize from yet).
+- Build-and-push CI wiring lives in the generic template, not the skill — discovered during planning: `assets/deployment.yaml.template` already carried an unfilled `__IMAGE__` token, confirming the gap was template-level, not skill-level.
+- Added an Infrastructure-spec `Container Registry` Constraints row (new scope, not in the original task text) since `repo-config`'s existing "if the spec names a private registry" condition had no field to key off.
+- No new test harness for `manifest-lint.sh` — verified via throwaway fixtures, consistent with no skill script in this repo having automated tests today.
+- `organizations/<org-slug>/github-package-read` is deliberately excluded from `rotate-credential.sh`'s supported paths (org-scoped, not app/machine-scoped) — rotation is the same manual `vault kv put`/`delete` used to populate it.
 
 **Blockers encountered:**
-- TBD
+- `smaqit.create-skill`'s documented output paths (`.agents/skills/`, `.claude/skills/`) are the convention for a downstream consumer project, not this repo — this repo has neither directory and its own canonical skill source is `skills/<name>/SKILL.md`. Resolved by invoking `smaqit.L2` directly against a definition file placed at this repo's own convention instead of following `smaqit.create-skill`'s literal output-path instructions.
+- The generic `smaqit.create-skill` validator (`validate-skill.go`) flagged a "Use when..." description opening as an anti-pattern; confirmed two sibling canonical skills already fail the same rule, so kept the description consistent with its siblings rather than making it an outlier.
 
 **Follow-up identified:**
-- TBD
+- Whether to broaden `smaqit.infrastructure-image-build-push-static` beyond a static site with no build step of its own remains open, per the task's own Notes — resolve once a second real (non-static) use case exists.
+- `rotate-credential.sh` does not support `organizations/<org-slug>/github-package-read` — acceptable today since rotation is rare and manual, but worth adding if this credential type starts needing frequent rotation.
 
 ## Files to Create / Modify
 

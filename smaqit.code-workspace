@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/121-harden-the-k3s-app-deployment-skill-family-image-build-push-lint-and-vault-conventions",
+      "path": "../smaqit-wt-task-121-harden-the-k3s-app-deployment-skill-family-image-build-push-lint-and-vault-conventions"
     }
   ],
   "settings": {

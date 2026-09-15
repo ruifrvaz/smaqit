@@ -141,6 +141,11 @@ These rules are specific to the Infrastructure layer and must be followed when p
   `ClusterIssuer`, and `Namespace Quota` rows — every value must come from the platform team's own
   onboarding documentation for that cluster; never invent, infer, or default one. If the operator
   cannot supply a required value, flag it as a gap under Untestable Criteria rather than guessing
+- For that same `existing-k3s` target, also populate the Constraints table's `Container Registry`
+  row (registry host and public/private visibility) — unlike the platform-sourced fields above,
+  this is a per-project decision the operator makes, not a fact to source from the platform
+  team's documentation; still never default it silently (e.g. assuming GHCR or assuming public)
+  without an explicit operator answer
 
 ### MUST NOT
 

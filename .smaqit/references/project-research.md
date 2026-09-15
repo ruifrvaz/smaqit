@@ -126,3 +126,24 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Kubernetes | Resource Quotas | https://kubernetes.io/docs/concepts/policy/resource-quotas/ |
 | Kubernetes | Limit Ranges | https://kubernetes.io/docs/concepts/policy/limit-range/ |
 | cert-manager | Documentation | https://cert-manager.io/docs/ |
+
+## Task 121 — Harden the k3s App-Deployment Skill Family: Image Build-Push, Lint, and Vault Conventions
+
+**Context fingerprint:** sha256:83769f1bec4a454aba9ccebb413e92276348759089fb6fcb77d1af8fcbb63573
+**Refreshed:** 2026-09-15
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Docker | Dockerfile reference | https://docs.docker.com/reference/dockerfile/ |
+| Docker | docker build CLI reference | https://docs.docker.com/reference/cli/docker/buildx/build/ |
+| Docker | docker push CLI reference | https://docs.docker.com/reference/cli/docker/image/push/ |
+| Kubernetes | Pod Security Admission | https://kubernetes.io/docs/concepts/security/pod-security-admission/ |
+| Kubernetes | Resource Quotas | https://kubernetes.io/docs/concepts/policy/resource-quotas/ |
+| Kubernetes | Limit Ranges | https://kubernetes.io/docs/concepts/policy/limit-range/ |
+| k3s | Documentation | https://docs.k3s.io/ |
+| GitHub Container Registry | Working with the Container registry | https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry |
+| GitHub Packages | Configuring package access control and visibility | https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility |
+| GitHub Actions | Manually running a workflow (workflow_dispatch) | https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow |
+| GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
+| HashiCorp Vault | KV Secrets Engine v2 | https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2 |
+| HashiCorp Vault | CLI: vault kv | https://developer.hashicorp.com/vault/docs/commands/kv |

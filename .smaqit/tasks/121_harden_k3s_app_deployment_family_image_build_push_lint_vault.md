@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 91
+status: Completed
 created: "2026-09-15"
 mode: Assisted
 started: "2026-09-15"
+completed: "2026-09-15"
 ---
 
 # Harden the k3s App-Deployment Skill Family: Image Build-Push, Lint, and Vault Conventions

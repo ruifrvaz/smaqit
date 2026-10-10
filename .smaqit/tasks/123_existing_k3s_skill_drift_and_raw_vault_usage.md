@@ -89,3 +89,4 @@ modelled on, inconsistent with each other, and telling users to run raw `vault` 
 ## Notes
 
 - Source: a downstream platform's consistency audit, 2026-10-06.
+- **Re-scoped by task 125 (2026-10-11):** "Vault access goes through a named script interface the project provides" becomes the `credentials` slot contract; skills reach Vault only through the filler bound to that slot.

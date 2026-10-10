@@ -87,3 +87,4 @@ Clarify agent taxonomy in phase-orchestrator model:
 - Low priority because the principle itself remains philosophically valid
 - Main change: update agent taxonomy to match phase-orchestrator reality
 - Can be deferred if higher-priority implementation work takes precedence
+- **Related to task 125 (2026-10-11):** 125 extends "Extensible Through Templates" to variation points (deployment slots); align this task's revised wording with it.

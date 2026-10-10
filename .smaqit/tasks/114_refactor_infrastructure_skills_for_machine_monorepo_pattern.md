@@ -221,3 +221,4 @@ Source material: a downstream project's infrastructure repo task file
 `.smaqit/reports/provisioning-evidence-2026-08-24.md` in that repo. Sibling: task 115 (new
 machine-monorepo skills). Related: task 110 / PR #85 (vault-loader slug derivation — in flight,
 complementary, not duplicated here).
+- **Re-scoped by task 125 (2026-10-11):** Finding 5's open decision is resolved there — machine contexts run as a mode of `smaqit-deployment` through deployment slots, not a distinct agent. Findings 2–3 (machine registration, machine-scoped Environments) become requirements on the `credentials` and `environment-config` slot contracts; a platform repository may fill those slots with its own skills.

@@ -175,3 +175,4 @@ workflows) and its `.smaqit/reports/provisioning-evidence-2026-08-24.md`. Togeth
 this is the "smaqit framework update for the machine-repo pattern" that infrastructure task 001
 deferred to this repository. Task 114 should land first (this task consumes its corrected facts
 and registration/config flows).
+- **Re-scoped by task 125 (2026-10-11):** with deployment slots, a platform repository owns its machine fillers (provision, verify, host baseline, replace). These four skills become optional canonical default fillers and the slot contracts they must meet, not mandatory canonical machine skills.

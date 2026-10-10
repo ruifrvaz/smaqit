@@ -106,3 +106,4 @@ installed skills against that platform (2026-10-06):
 ## Notes
 
 - Source: a downstream platform's consistency audit, 2026-10-06 (its `.smaqit/reports/consistency-audit-2026-10-06.md`, B8-B12).
+- **Re-scoped by task 125 (2026-10-11):** the per-environment reachability class and Ingress modes become slot parameters (`verify`, `tls`, `ci-generate`, `app-deploy`) instead of new branches on the closed `provisioning_mode` enum. Rebase this task on 125.

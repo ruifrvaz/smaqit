@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestParseDesignRejectsProseAndUnsafeIncludes(t *testing.T) {
@@ -225,6 +226,30 @@ func TestMaterializeDesignToolsIsConcurrentSafe(t *testing.T) {
 	}
 	if err := validateMaterializedDesignTools(designRuntimePath(root)); err != nil {
 		t.Fatalf("concurrent materialization did not leave a valid bundle: %v", err)
+	}
+}
+
+func TestMaterializeDesignToolsIgnoresLockWhenBundleIsValid(t *testing.T) {
+	root := designTestProject(t)
+	if _, err := materializeDesignTools(root); err != nil {
+		t.Fatal(err)
+	}
+	// A fresh lock left behind by a process killed mid-start must not delay a start whose
+	// bundle is already valid.
+	toolsRoot := filepath.Join(root, ".smaqit", "tools", "plantuml")
+	if err := os.Mkdir(filepath.Join(toolsRoot, "."+designBundleVersion+".lock"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now()
+	runtimeDir, err := materializeDesignTools(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Fatalf("valid bundle waited %s on a leftover lock", elapsed)
+	}
+	if runtimeDir != designRuntimePath(root) {
+		t.Fatalf("unexpected runtime dir %q", runtimeDir)
 	}
 }
 

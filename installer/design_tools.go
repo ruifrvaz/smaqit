@@ -99,6 +99,16 @@ func materializeDesignTools(projectRoot string) (string, error) {
 		return "", err
 	}
 	toolsRoot := filepath.Join(projectRoot, ".smaqit", "tools", "plantuml")
+	destination := filepath.Join(toolsRoot, designBundleVersion)
+	// Fast path, without the lock: an already-materialized, valid bundle needs no installation.
+	// The destination is only ever replaced by an atomic rename, so a concurrent installer leaves
+	// it either absent, the old (invalid) bundle, or the complete new one, never half-written.
+	// Taking the lock on every start made each MCP server launch wait on it; a lock left by a
+	// process killed mid-start (e.g. an editor reload) then blocked every launch for up to
+	// designToolLockStale, far beyond an MCP client's connect timeout.
+	if validateMaterializedDesignTools(destination) == nil {
+		return destination, nil
+	}
 	if err := os.MkdirAll(toolsRoot, 0o755); err != nil {
 		return "", err
 	}
@@ -108,7 +118,7 @@ func materializeDesignTools(projectRoot string) (string, error) {
 	}
 	defer release()
 
-	destination := filepath.Join(toolsRoot, designBundleVersion)
+	// Re-check under the lock: another process may have installed it while this one waited.
 	if validateMaterializedDesignTools(destination) == nil {
 		return destination, nil
 	}

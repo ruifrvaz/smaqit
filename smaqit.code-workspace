@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/131-claude-code-agents-can-t-invoke-their-input-skills-or-ask-the-user-questions",
+      "path": "../smaqit-wt-task-131-claude-code-agents-can-t-invoke-their-input-skills-or-ask-the-user-questions"
     }
   ],
   "settings": {

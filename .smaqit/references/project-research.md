@@ -224,3 +224,20 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Terraform | destroy command | https://developer.hashicorp.com/terraform/cli/commands/destroy |
 | Kubernetes | Deployments | https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ |
 | k3s | Documentation | https://docs.k3s.io/ |
+
+## Task 131 — Claude Code Agents Can't Invoke Their Input Skills or Ask the User Questions
+
+**Context fingerprint:** sha256:0baced4c6086fffc935e8d512fcdef14f0b15cfde79df99fcbd675505c8b2731
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Claude Code | Subagents (skills preload, resume) | https://code.claude.com/docs/en/sub-agents |
+| Claude Code | Agent Skills | https://code.claude.com/docs/en/skills |
+| Claude Code | Slash commands | https://code.claude.com/docs/en/slash-commands |
+| Claude Code | Tools reference | https://code.claude.com/docs/en/tools-reference |
+| GitHub Copilot | VS Code custom agents | https://code.visualstudio.com/docs/agent-customization/custom-agents |
+| GitHub Copilot | Agent skills | https://docs.github.com/en/copilot/concepts/agents/about-agent-skills |
+| Codex CLI | Repository | https://github.com/openai/codex |
+| Codex CLI | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
+| Codex CLI | Skills | https://learn.chatgpt.com/docs/build-skills |

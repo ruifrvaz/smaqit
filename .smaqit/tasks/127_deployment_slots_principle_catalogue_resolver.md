@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-11"
 created: "2026-10-11"
 parent: "125"
 ---
@@ -26,6 +28,7 @@ rationale.
 ## Design Decisions
 
 - Inherits all of task 125's Design Decisions (revised catalogue, `provisioning_mode` as default-profile selector, CLI resolution, direct principle edits, informational AGENTS.md pointer, `existing-cicd-pr` refusals, `teardown` default only for `provision`, uninstall preserves `slots.yml`).
+- **`metadata.smaqit-slots` is a single string** (2026-10-11, from triage of agentskills#514): the Agent Skills spec defines `metadata` as string→string, so slots are encoded as comma-separated `slot=operation` pairs, e.g. `smaqit-slots: "app-deploy=deploy, verify=verify"`, not a nested map. The resolver parses this format and rejects malformed pairs or unknown slot names.
 - **Catalogue as code + docs:** the Go table in `installer/slots.go` is the machine source; `docs/wiki/workflows/deployment-slots.md` is the human explanation; a Go test guards that every default filler named in the table declares its slot.
 
 ## Implementation Steps
@@ -38,8 +41,20 @@ rationale.
 6. **Tests** — resolver cases (bound, profile default, `none`, undeclared, missing skill, unknown slot, schema errors, path refusals); skeleton helper (create / preserve / re-init); uninstall preserves; default-filler declaration guard over the `skills-shared` embed. Smoke test asserts the skeleton and a preserving re-init.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-11
+**Tools searched:** gopkg.in/yaml.v3 (`go-yaml/yaml`), Agent Skills (`agentskills/agentskills`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#514 metadata is specified as string values, but a shipping runtime stores nested maps and booleans there](https://github.com/agentskills/agentskills/issues/514) — `agentskills/agentskills` — opened 2026-08 — no labels. The spec defines `metadata` as a map from string keys to **string values**; a nested `smaqit-slots` map would violate it. Drove the string-encoding Design Decision below.
+- [#769 Can't Unmarshal to `map[string]*yaml.Node`](https://github.com/go-yaml/yaml/issues/769) — `go-yaml/yaml` — opened 2021-07-29 — no labels. Walk `yaml.Node` mappings directly instead of decoding into `map[string]*yaml.Node`.
+
+### Historical (Closed)
+- [#784 parse error when strings containing colon-space](https://github.com/go-yaml/yaml/issues/784) — `go-yaml/yaml` — closed 2024-09-23. Expected YAML behaviour; the root cause of the three invalid SKILL.md descriptions this task quotes.
+- [#562 DOS-style newlines not allowed in v3](https://github.com/go-yaml/yaml/issues/562) — `go-yaml/yaml` — closed 2020-01-21. Normalize CRLF before parsing (as `parseDesign` already does).
+
+### Omitted Tools
+- Go — standard library only (`flag`, `embed`)
 
 ## Acceptance Criteria
 

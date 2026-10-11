@@ -7,7 +7,7 @@
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 129 | Deployment Slots C: Route new-greenfield-project Phases 4–6 Through the Deployment Agent (child of 125) | Not Started | High |
 | 128 | Deployment Slots B: Deployment Agent Executes the Slot Plan; feature-new Routed Through It (child of 125) | Not Started | High |
-| 127 | Deployment Slots A: Principle, Catalogue, Schema, and `smaqit slots plan` Resolver (child of 125) | Not Started | High |
+| 127 | Deployment Slots A: Principle, Catalogue, Schema, and `smaqit slots plan` Resolver (child of 125) | In Progress | High |
 | 125 | Deployment Variation Points: Slot-Driven Deployment Orchestration With Project-Bound Fillers | In Progress | High |
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch | new | Medium |
 | 122 | existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones | new | High |

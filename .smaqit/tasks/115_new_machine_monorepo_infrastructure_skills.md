@@ -176,3 +176,4 @@ this is the "smaqit framework update for the machine-repo pattern" that infrastr
 deferred to this repository. Task 114 should land first (this task consumes its corrected facts
 and registration/config flows).
 - **Re-scoped by task 125 (2026-10-11):** with deployment slots, a platform repository owns its machine fillers (provision, verify, host baseline, replace). These four skills become optional canonical default fillers and the slot contracts they must meet, not mandatory canonical machine skills.
+- **Refreshed after task 125 implementation (2026-10-11):** the shipped slots for these four skills are `provision`, `verify`, `host-bootstrap` ("host baseline"), and the day-two `replace`; any default filler added here must declare them in `metadata.smaqit-slots` and be added to the catalogue in `installer/slots.go` (a Go test enforces the declaration).

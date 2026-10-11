@@ -88,3 +88,4 @@ Clarify agent taxonomy in phase-orchestrator model:
 - Main change: update agent taxonomy to match phase-orchestrator reality
 - Can be deferred if higher-priority implementation work takes precedence
 - **Related to task 125 (2026-10-11):** 125 extends "Extensible Through Templates" to variation points (deployment slots); align this task's revised wording with it.
+- **Refreshed after task 125 implementation (2026-10-11):** the shipped wording is the paragraph added under "Extensible Through Templates" in `framework/SMAQIT.md` (extension at declared variation points under the phase's invariants); revise this task's wording around it rather than replacing it.

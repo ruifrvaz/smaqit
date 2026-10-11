@@ -90,3 +90,4 @@ modelled on, inconsistent with each other, and telling users to run raw `vault` 
 
 - Source: a downstream platform's consistency audit, 2026-10-06.
 - **Re-scoped by task 125 (2026-10-11):** "Vault access goes through a named script interface the project provides" becomes the `credentials` slot contract; skills reach Vault only through the filler bound to that slot.
+- **Refreshed after task 125 implementation (2026-10-11):** the shipped credential slots are `access-credentials` (before onboarding; vault-loader `CREDENTIAL_SCOPE=access` for k3s) and `target-credentials` (kubeconfig / per-app key). task 125 also fixed `input-deployment`'s k3s step ordering only insofar as the agent now loads the kubeconfig after onboarding; the drift items listed above remain open.

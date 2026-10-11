@@ -191,3 +191,20 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | gopkg.in/yaml.v3 | Package reference | https://pkg.go.dev/gopkg.in/yaml.v3 |
 | gopkg.in/yaml.v3 | Node API | https://pkg.go.dev/gopkg.in/yaml.v3#Node |
 | Agent Skills | Specification | https://agentskills.io/specification |
+
+## Task 128 — Deployment Slots B: Deployment Agent Executes the Slot Plan; feature-new Routed Through It
+
+**Context fingerprint:** sha256:e113ce6defa27f412c550542c23ce111714b92ced41a8d1011c31a44b4ed6156
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Claude Code | Subagents | https://code.claude.com/docs/en/sub-agents |
+| Claude Code | Agent Skills | https://code.claude.com/docs/en/skills |
+| GitHub Copilot | Custom agents | https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/create-custom-agents |
+| GitHub Copilot | VS Code custom agents | https://code.visualstudio.com/docs/agent-customization/custom-agents |
+| GitHub Copilot | Agent skills | https://docs.github.com/en/copilot/concepts/agents/about-agent-skills |
+| Codex CLI | Repository | https://github.com/openai/codex |
+| Codex CLI | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
+| Codex CLI | Skills | https://learn.chatgpt.com/docs/build-skills |
+| Agent Skills | Specification | https://agentskills.io/specification |

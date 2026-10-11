@@ -194,6 +194,35 @@ def design_metadata(metadata: dict, platform: str, role: str | None) -> dict:
     return metadata
 
 
+INPUT_SKILL_REF = re.compile(r"smaqit\.input-[a-z]+(?:-[a-z]+)*")
+
+
+def check_input_skill_reachability(name: str, body: str, claude_metadata: dict) -> None:
+    """Fail when the agent body applies an input skill its Claude Code metadata cannot reach.
+
+    A Claude Code subagent whose `tools:` list omits `Skill` cannot invoke skills at all, so
+    every `smaqit.input-*` skill the body names must be preloaded through `skills:`.
+    """
+    preloaded = claude_metadata.get("skills") or []
+    if not isinstance(preloaded, list):
+        raise ValueError(f"{name}: claude `skills:` must be a list of skill names")
+    for skill in preloaded:
+        if not (SKILLS_SRC_DIR / skill / "SKILL.md").is_file():
+            raise ValueError(f"{name}: claude `skills:` lists '{skill}', which has no skills/{skill}/SKILL.md")
+    tools = claude_metadata.get("tools") or []
+    if isinstance(tools, str):
+        tools = [tool.strip() for tool in tools.split(",")]
+    if "Skill" in tools:
+        return
+    unreachable = sorted(set(INPUT_SKILL_REF.findall(body)) - set(preloaded))
+    if unreachable:
+        raise ValueError(
+            f"{name}: agents/{name}.md applies {', '.join(unreachable)}, but "
+            f".smaqit/definitions/agents/{name}.frontmatter.yaml neither preloads it under "
+            "claude `skills:` nor allows the `Skill` tool"
+        )
+
+
 def generate_agent(name: str) -> None:
     body_path = AGENTS_BODY_SRC_DIR / f"{name}.md"
     fm_path = AGENTS_METADATA_SRC_DIR / f"{name}.frontmatter.yaml"
@@ -205,6 +234,7 @@ def generate_agent(name: str) -> None:
     missing_platforms = [platform for platform in PLATFORMS if platform not in manifest]
     if missing_platforms:
         raise ValueError(f"{name}: metadata missing for: {', '.join(missing_platforms)}")
+    check_input_skill_reachability(name, body, manifest["claude"])
 
     for platform in PLATFORMS:
         out_dir = AGENTS_OUT_DIR_BY_PLATFORM[platform]

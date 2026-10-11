@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: Completed
+completed: "2026-10-11"
 mode: Assisted
 started: "2026-10-11"
 created: "2026-10-11"
@@ -58,27 +59,36 @@ rationale.
 
 ## Acceptance Criteria
 
-- [ ] `framework/AGENTS.md`, `framework/SKILLS.md`, `framework/SMAQIT.md` carry the slot-sequence principle, `metadata.smaqit-slots`, and variation points respectively
-- [ ] The revised catalogue exists as a Go table and a wiki page with every slot's purpose, inputs, handoff, completion signal, and per-mode default filler; a Go test asserts every default filler declares its slot
-- [ ] `smaqit init` creates `.smaqit/slots.yml` when absent and preserves it on re-init/update; `smaqit uninstall` preserves it; `smaqit validate` checks it; the AGENTS.md template points to it
-- [ ] `smaqit slots plan` resolves deterministically and refuses with `SLOTS-*` diagnostics; with no `slots.yml`, each mode's resolved sequence matches current behaviour
-- [ ] Every `skills/*/SKILL.md` frontmatter parses as YAML; `make -C installer test` and `make -C installer smoke-test` pass
+- [x] `framework/AGENTS.md`, `framework/SKILLS.md`, `framework/SMAQIT.md` carry the slot-sequence principle, `metadata.smaqit-slots`, and variation points respectively
+- [x] The revised catalogue exists as a Go table and a wiki page with every slot's purpose, inputs, handoff, completion signal, and per-mode default filler; a Go test asserts every default filler declares its slot
+- [x] `smaqit init` creates `.smaqit/slots.yml` when absent and preserves it on re-init/update; `smaqit uninstall` preserves it; `smaqit validate` checks it; the AGENTS.md template points to it
+- [x] `smaqit slots plan` resolves deterministically and refuses with `SLOTS-*` diagnostics; with no `slots.yml`, each mode's resolved sequence matches current behaviour
+- [x] Every `skills/*/SKILL.md` frontmatter parses as YAML; `make -C installer test` and `make -C installer smoke-test` pass
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- `installer/slots.go` holds the catalogue (`deploySlots`, per-mode defaults, `deploymentPathRules`), the strict `slots.yml` parser, skill lookup (project-local, then global shared, then Claude), and `smaqit slots plan|validate`; errors are aggregated, not fail-fast
+- Default fillers are skills, stack-selected families (`deploy-rsync*`, `deploy-k3s-app*`, `image-build-push*`, listed as candidates), or agent builtins (`generate-iac`, `iac-destroy`)
+- `cmdInit` writes the skeleton create-if-absent; `cmdUninstall` restores `slots.yml` after removing `.smaqit/`; `cmdValidate` checks it when present
+- Principle added as an "Implementation Variation Points (Slots)" block in `framework/AGENTS.md`, a "Filler Skills" section in `framework/SKILLS.md`, and a paragraph under "Extensible Through Templates"; edited directly, not via `smaqit.new-principle`
+- 13 Go tests, including a per-mode equivalence test against current greenfield wiring and a guard that every default filler ships with its slot declaration; smoke test covers skeleton, re-init preservation, and uninstall preservation
 
 **Decisions made:**
-- TBD
+- `metadata.smaqit-slots` is one string of `slot=operation` pairs, because the Agent Skills spec limits `metadata` values to strings (agentskills#514)
+- Operation names: vault-loader `access`/`target`, onboarding `request`, image-build `build`, cicd-generate `generate`, provision-cyso `apply`, vm-bootstrap `bootstrap`, repo-config `sync`, deploy families `deploy`, deploy-verify `verify`, domain-tls `issue`
+- Added opt-in `CREDENTIAL_SCOPE=access` to the k3s branch of `load-credentials.sh` so access credentials load before onboarding issues a kubeconfig; unset keeps single-pass behaviour
+- `standard` path defaults `environment-config` and `tls` to none (greenfield dev sweep runs neither); a single-slot run ignores a path's default-none but never its refusals
+- `target-credentials` defaults to none for `provision`/`existing-owned`, matching the current single vault-loader step
+- A refused binding is reported as refused only; its skill is not resolved
 
 **Blockers encountered:**
-- TBD
+- Issue triage for parent 125 hit the unauthenticated GitHub search rate limit (403); recorded as warnings
+- Three SKILL.md descriptions were invalid YAML (unquoted `provisioning_mode: existing-k3s`); quoted as part of this task
 
 **Follow-up identified:**
-- TBD
+- Child 128 must make the deployment agent and `smaqit.input-deployment` consume `smaqit slots plan` and document filler operations it relies on
+- The triage helper has no token support, so triage degrades to warnings under rate limiting
 
 ## Files to Create / Modify
 

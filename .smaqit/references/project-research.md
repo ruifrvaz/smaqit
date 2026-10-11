@@ -270,3 +270,22 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | OpenStack | CLI: volume set (retype) | https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/volume/v3/index.html |
 | OpenStack | Cinder volume retype | https://docs.openstack.org/cinder/latest/admin/volume-migration.html |
 | OpenStack | CLI: volume type | https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/volume/v3/index.html |
+
+## Task 130 — Make smaqit Self-Invoking: Directive Instructions, Block Refresh, Trigger-Form Descriptions
+
+**Context fingerprint:** sha256:717c2b031595e4e46835a069aab2bf9ae7726c0671bae8a038e6fe0262f131f8
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Go | Package testing | https://pkg.go.dev/testing |
+| Go | Package strings | https://pkg.go.dev/strings |
+| Python | Documentation | https://docs.python.org/3/ |
+| Python | re module | https://docs.python.org/3/library/re.html |
+| PyYAML | Documentation | https://pyyaml.org/wiki/PyYAMLDocumentation |
+| PyYAML | Package reference | https://pypi.org/project/PyYAML/ |
+| Claude Code | Agent Skills (description budget, when_to_use) | https://code.claude.com/docs/en/skills |
+| Claude Code | Subagents (proactive delegation) | https://code.claude.com/docs/en/sub-agents |
+| Claude Code | Memory (CLAUDE.md imports, AGENTS.md) | https://code.claude.com/docs/en/memory |
+| Claude Code | Settings (skill listing budget) | https://code.claude.com/docs/en/settings |
+| Claude Code | Features overview (context cost) | https://code.claude.com/docs/en/features-overview |

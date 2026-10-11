@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-11"
 created: "2026-10-11"
 ---
 
@@ -118,8 +120,29 @@ Claude sessions in projects that use smaqit for development, deployment and vali
     - Record the result as behavior evidence, not pass/fail.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-11
+**Tools searched:** Claude Code, PyYAML, Go
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#85027 VS Code agent host drops user skill descriptions, so skills never auto-activate](https://github.com/anthropics/claude-code/issues/85027) — `anthropics/claude-code` — opened 2026-08-08 — area:ide, area:skills. Directly relevant: the user runs the VS Code extension. If this still reproduces, trimming descriptions won't make skills auto-activate in VS Code. The AGENTS.md directive (loaded through CLAUDE.md, not the skill listing) is the lever that doesn't depend on it. Re-check during the live check.
+- [#81081 [BUG] Session-start skill listing silently truncates most skill descriptions under a size budget](https://github.com/anthropics/claude-code/issues/81081) — `anthropics/claude-code` — opened 2026-07-25 — bug, documentation, reproduced. Downgraded from Blocking: the skills docs (research map) describe the listing budget and dropped descriptions as intended behavior. This is the mechanism the 400-character cap works around.
+- [#95582 Skill catalog descriptions intermittently missing from system prompt (frontmatter on disk is correct)](https://github.com/anthropics/claude-code/issues/95582) — `anthropics/claude-code` — opened 2026-09-19 — bug, platform:windows, area:skills
+- [#93044 Project skills beyond a session-level cap return "Unknown skill" from the Skill tool despite valid SKILL.md files](https://github.com/anthropics/claude-code/issues/93044) — `anthropics/claude-code` — opened 2026-09-09 — bug, has repro, platform:web, area:skills
+- [#88058 Feature request: per-skill display description separate from the routing description (SKILL.md)](https://github.com/anthropics/claude-code/issues/88058) — `anthropics/claude-code` — opened 2026-08-19 — enhancement, area:skills
+
+### Historical (Closed)
+- [#68135 [Bug] Skill listing truncated with descriptions dropped due to context budget constraints](https://github.com/anthropics/claude-code/issues/68135) — `anthropics/claude-code` — closed 2026-08-19
+- [#86703 [Bug] Skill descriptions not loaded into context window](https://github.com/anthropics/claude-code/issues/86703) — `anthropics/claude-code` — closed 2026-08-14
+- [#98674 [Bug] Agent ignores custom skills and performs unrelated tasks instead](https://github.com/anthropics/claude-code/issues/98674) — `anthropics/claude-code` — closed 2026-10-08
+- [#95367 [BUG] No disk-sourced skills load in 2.1.271 — user skills and enabled-plugin skills both absent](https://github.com/anthropics/claude-code/issues/95367) — `anthropics/claude-code` — closed 2026-10-04
+- [#318 Valid .yaml generates error "yaml.scanner.ScannerError: mapping values are not allowed here"](https://github.com/yaml/pyyaml/issues/318) — `yaml/pyyaml` — closed 2019-07-03. The same error class the three k3s-family descriptions hit before v3.7.0; it's expected YAML behavior for an unquoted `key: value` in a plain scalar.
+
+### Unresolvable Tools
+- Python — the helper resolved an unrelated repository (`TheAlgorithms/Python`); not searched
+
+### Search Warnings
+- `golang/go` open/closed searches — no results matched the task's feature dimension (the search terms were too generic for a language repository); not evidence of absence
 
 ## Acceptance Criteria
 

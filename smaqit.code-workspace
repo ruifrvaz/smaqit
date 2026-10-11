@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/125-deployment-variation-points-slot-driven-deployment-orchestration-with-project-bound-fillers",
-      "path": "../smaqit-wt-task-125-deployment-variation-points-slot-driven-deployment-orchestration-with-project-bound-fillers"
     }
   ],
   "settings": {

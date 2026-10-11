@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-11"
 created: "2026-10-11"
 ---
 
@@ -140,8 +142,29 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
 17. CHANGELOG entry and a `Prepare release vX.Y.Z` PR, with the version chosen at merge.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-11
+**Tools searched:** Claude Code (`anthropics/claude-code`), GitHub Copilot (`github/copilot-docs`), Codex CLI (`openai/codex`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#100813 Claude can't see your skills: `/skills` says they're loaded, but the listing reaches the model late or never (2.1.295)](https://github.com/anthropics/claude-code/issues/100813) — `anthropics/claude-code` — opened 2026-10-09 — bug, platform:macos, area:skills. Affects the main-thread skill listing, not `skills:` preload. Still relevant: the command bodies run the phase input skills in the main conversation.
+- [#93171 Custom subagent silently missing from Agent tool's available list despite valid, sibling-identical frontmatter](https://github.com/anthropics/claude-code/issues/93171) — `anthropics/claude-code` — opened 2026-09-09 — bug, platform:windows, platform:vscode, area:agents. A spec or phase subagent that isn't listed can't be invoked; frontmatter edits must stay valid.
+- [#97849 AskUserQuestion invoked with placeholder content while waiting on background agent](https://github.com/anthropics/claude-code/issues/97849) — `anthropics/claude-code` — opened 2026-09-28 — bug, platform:windows, area:agents. Relevant to the main-conversation ask-and-resume loop. The loop should ask only after the subagent's result has arrived.
+- [#96561 Cloud session: AskUserQuestion asked right after SendUserMessage is dropped on worker resume, so a late answer is silently lost](https://github.com/anthropics/claude-code/issues/96561) — `anthropics/claude-code` — opened 2026-09-24 — bug, has repro, area:core, area:cowork. Cloud sessions only.
+- [#89835 Plan mode's subagent reminder tells background subagents to write a plan and call AskUserQuestion, which they cannot do](https://github.com/anthropics/claude-code/issues/89835) — `anthropics/claude-code` — opened 2026-08-26 — no labels. Corroborates that subagents can't ask.
+- [#93477 Feature request: suppress skill_listing/agent_listing_delta for a subagent spawn whose declared tools don't include Skill/Agent](https://github.com/anthropics/claude-code/issues/93477) — `anthropics/claude-code` — opened 2026-09-10 — enhancement, area:cost, area:agents
+- [#51685 Add a per-skill main-agent-only scope that excludes ordinary subagents](https://github.com/openai/codex/issues/51685) — `openai/codex` — opened 2026-10-07 — enhancement, app, skills, subagent
+- [#16475 Subagents do not inherit parent session's registered MCP tools](https://github.com/openai/codex/issues/16475) — `openai/codex` — opened 2026-04-01 — bug, mcp, subagent. Concerns Codex, which is out of scope here.
+
+### Historical (Closed)
+- [#80489 Messaging a running subagent re-injects its full frontmatter skills: bodies and re-fires SubagentStart hooks — undocumented and token-costly](https://github.com/anthropics/claude-code/issues/80489) — `anthropics/claude-code` — closed 2026-10-10 (stale). Directly relevant: resuming a phase agent with `SendMessage` may re-inject its preloaded input skill. Preload only the agent's own input skill to keep that cost small.
+- [#67251 Agent skills: frontmatter field does not inject skill content at startup](https://github.com/anthropics/claude-code/issues/67251) — `anthropics/claude-code` — closed 2026-07-20 (stale). Verify during the live check that `skills:` preload actually injects content.
+- [#87536 disable-model-invocation: true still hides skills from model entirely (regression from #43660)](https://github.com/anthropics/claude-code/issues/87536) — `anthropics/claude-code` — closed 2026-08-19. Bears on task 130's decision to keep model invocation enabled.
+- [#101169 ${CLAUDE_EFFORT} in a skill preloaded into a subagent expands to the session effort, not the subagent's effort](https://github.com/anthropics/claude-code/issues/101169) — `anthropics/claude-code` — closed 2026-10-11
+- [#82240 context: fork skills dispatch to background agent with no task/instructions](https://github.com/anthropics/claude-code/issues/82240) — `anthropics/claude-code` — closed 2026-10-08
+
+### Search Warnings
+- `github/copilot-docs` open/closed searches returned no items. The helper resolved GitHub Copilot to a documentation repository rather than to the VS Code custom-agent tracker, so Copilot coverage is limited. This is not a Clear result.
 
 ## Acceptance Criteria
 

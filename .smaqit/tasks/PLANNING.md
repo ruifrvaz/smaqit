@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 131 | Claude Code Agents Can't Invoke Their Input Skills or Ask the User Questions | Not Started | High |
+| 131 | Claude Code Agents Can't Invoke Their Input Skills or Ask the User Questions | In Progress | High |
 | 130 | Make smaqit Self-Invoking: Directive Instructions, Block Refresh, Trigger-Form Descriptions | Not Started | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch | new | Medium |

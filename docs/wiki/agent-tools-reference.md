@@ -142,12 +142,32 @@ Agent tool lists live in `.smaqit/definitions/agents/<name>.frontmatter.yaml` (t
 | `todo` | `TodoWrite` |
 | `changes`, `activePullRequest`, `githubRepo`, `search/changes` | `Bash` (shell out to `git`/`gh` — no native equivalent) |
 | `search/searchSubagent` | `Task` |
-| `vscode/memory`, `vscode/askQuestions`, `edit/createJupyterNotebook`, `edit/editNotebook` | dropped — no Claude Code equivalent |
+| `vscode/askQuestions` | none inside a subagent: Claude Code removes `AskUserQuestion` from every subagent. smaqit agents return `NEEDS-INPUT` instead (see Asking the User) |
+| `vscode/memory`, `edit/createJupyterNotebook`, `edit/editNotebook` | dropped — no Claude Code equivalent |
 
 There is no Claude Code equivalent of `user-invocable: false`. The same effect — an agent reachable only via delegation, never as a direct user command — is reproduced by simply not creating a `commands/<name>.md` for that agent, so no `.claude/commands/` entry exists for it (see the five specification agents: business, functional, stack, infrastructure, coverage).
 
+**Skills:** a Claude Code subagent whose `tools:` list omits `Skill` cannot invoke skills at all. Each smaqit agent therefore preloads its own input skill through `skills:` in its `claude:` metadata, which injects the skill's full content at startup. `scripts/generate-agents.py` fails `make prepare` when an agent body names a `smaqit.input-*` skill that its Claude metadata neither preloads nor can invoke.
+
+## Asking the User: Return Signals
+
+Agents usually run as subagents, and a subagent often cannot ask the user anything. Questions and review requests therefore travel up to whichever caller can reach the user (`framework/AGENTS.md`, User Interaction):
+
+| Signal | Returned by | Meaning |
+|---|---|---|
+| `NEEDS-INPUT` | An input skill or agent that found a gap it cannot ask about | Lists every open question, each with an id and why it's needed. Nothing was written |
+| `REVIEW-REQUESTED` | A phase agent in Assisted mode, after a specification layer | Lists the produced spec and design paths, the iteration count, and the specs approved so far |
+
+Callers pass phase agents an explicit `PHASE-PARAMETERS` block (`mode`, `specification_mode`, `spec_paths`, `approved_spec_paths`, deployment parameters, and `answers` on resume), produced by the phase input skill.
+
+| Platform | Who asks the user | How the run continues |
+|---|---|---|
+| Claude Code | The main conversation: the `/smaqit.<phase>` command body, or an orchestrating skill such as `smaqit.feature-new` | The main conversation resumes the same subagent by sending its agent ID the `answers` (SendMessage). It falls back to invoking the agent again with `answers` and `approved_spec_paths` |
+| GitHub Copilot | Any smaqit agent with `vscode/askQuestions` (all eight non-QA agents); a `runSubagent` child that cannot ask returns the signal to its parent | The parent agent asks, then invokes the child again with `answers` |
+| Codex | The session that spawned the agent | The spawning session invokes the agent again with `answers` |
+
 ## Codex Agent Metadata
 
-Codex project custom agents are generated into `.codex/agents/*.toml`. Each file contains `name`, `description`, and `developer_instructions`. The five design-authoring specification agents also enable `tools.view_image` and declare the required `smaqit-plantuml` MCP tools. Host registration is separate: `smaqit init` manages `[mcp_servers.smaqit-plantuml]` in trusted `.codex/config.toml`, while Claude Code uses root `.mcp.json` and VS Code uses `.vscode/mcp.json`. Implementation agents receive neither capability and consume validated PlantUML source after the automatic plan gate. Other capabilities continue to use the tools and sandbox permissions available in the active Codex session.
+Codex custom agents are generated into `installer/agents-codex/*.toml` and installed once per user to `~/.codex/agents/` (or `$CODEX_HOME/agents/`). Each file contains `name`, `description`, and `developer_instructions`. The five design-authoring specification agents also enable `tools.view_image` and declare the required `smaqit-plantuml` MCP tools. Host registration is separate: `smaqit init` manages `[mcp_servers.smaqit-plantuml]` in trusted `.codex/config.toml`, while Claude Code uses root `.mcp.json` and VS Code uses `.vscode/mcp.json`. Implementation agents receive neither capability and consume validated PlantUML source after the automatic plan gate. Other capabilities continue to use the tools and sandbox permissions available in the active Codex session.
 
-All nine smaqit agents are installed as named Codex project agents. Phase agents refer to specification agents by name and ask Codex to spawn them. The same 26 shared skills are installed under `.agents/skills/`, where Codex can discover them through `/skills` or `$` mentions.
+All nine smaqit agents are installed as named Codex user-level agents. Phase agents refer to specification agents by name and ask Codex to spawn them. The shared skills are installed once per user under `~/.agents/skills/`, where Codex can discover them through `/skills` or `$` mentions.

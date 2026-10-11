@@ -4,6 +4,7 @@ copilot:
   description: Specification agent for the Stack layer.
   user-invocable: false
   tools:
+  - vscode/askQuestions
   - execute/getTerminalOutput
   - execute/awaitTerminal
   - execute/runInTerminal
@@ -29,6 +30,8 @@ claude:
   name: smaqit-stack
   description: Specification agent for the Stack layer. Invoked via Task by the smaqit-development phase agent to select and justify the technology stack; not a direct user entry point.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+  skills:
+  - smaqit.input-stack
 
 codex:
   name: smaqit.stack

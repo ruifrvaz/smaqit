@@ -10,7 +10,7 @@ description: >-
   from zero to prod", "run the full smaqit pipeline", "deploy a new project end-to-end", or when
   starting implementation on a freshly initialized repository.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # Project: Zero to Production
@@ -49,6 +49,14 @@ Applicability below depends on `provisioning_mode` (resolved by `smaqit.input-de
 
 ---
 
+### Agent Invocation and Return Signals (applies to every phase)
+
+Invoke smaqit agents by name: through the Task tool on Claude Code, `runSubagent` on GitHub Copilot, or by spawning the named subagent on Codex. A phase agent's slash command (`/smaqit.development`, `/smaqit.deployment`, `/smaqit.validation`) is equivalent where it exists. Specification agents have no slash command on Claude Code.
+
+Pass every phase agent an explicit parameter block. It holds `mode` (the Phase 0 execution mode), `specification_mode`, `spec_paths`, and any deployment parameters, because a subagent does not see this conversation. Specifications the user approved in Phase 2 are always handed on as `specification_mode: prevalidated` with exact `spec_paths`; otherwise the phase agent would find them still `draft` and generate them again.
+
+When an agent returns `NEEDS-INPUT` or `REVIEW-REQUESTED`, ask the user what it lists. Then resume that agent with the answers as `answers`, or invoke it again with the same parameters plus `answers` and the signal's `approved_spec_paths`. Repeat until it returns a final result. Never answer a signal on the user's behalf.
+
 ### Phase 0 — Task Creation (Entry Point)
 
 The operator triggers this phase manually and sets execution mode before any work begins.
@@ -69,22 +77,22 @@ The operator triggers this phase manually and sets execution mode before any wor
 
 ### Phase 2 — Specification
 
-Run each spec agent sequentially. Each agent reads the previous layer's output and invokes its own input skill internally.
+Run each specification agent sequentially. Each agent reads the previous layer's output and applies its own input skill. An agent that cannot ask the user returns `NEEDS-INPUT` instead of writing anything; handle it as described in Agent Invocation and Return Signals.
 
 1. Invoke `smaqit.task-start` for the Phase 2 task.
-2. Invoke `/smaqit.business` agent.
-3. Invoke `/smaqit.functional` agent.
-4. Invoke `/smaqit.stack` agent.
-5. Invoke `/smaqit.infrastructure` agent.
-6. Invoke `/smaqit.coverage` agent.
+2. Invoke the `smaqit.business` specification agent.
+3. Invoke the `smaqit.functional` specification agent.
+4. Invoke the `smaqit.stack` specification agent.
+5. Invoke the `smaqit.infrastructure` specification agent.
+6. Invoke the `smaqit.coverage` specification agent.
 7. Invoke `smaqit.design-validate` for every generated pair. Confirm `smaqit design validate` passes and the active agent has opened each PNG; PlantUML-source reading is not a visual-review fallback.
-8. **Gate:** All specs have `status: draft`, acceptance criteria written, and current visually approved same-layer design pairs. User reviews and approves the full spec/design set.
+8. **Gate:** All specs have `status: draft`, acceptance criteria written, and current visually approved same-layer design pairs. User reviews and approves the full spec/design set. Record the approved specification paths per layer: they are the **Phase 2 spec set** that later phases hand on as `spec_paths`.
 9. Invoke `smaqit.task-complete` for the Phase 2 task.
 
 ### Phase 3 — Development
 
 1. Invoke `smaqit.task-start` for the Phase 3 task.
-2. Invoke `/smaqit.development` agent to implement all specs with `status: draft`.
+2. Invoke the `smaqit.development` agent with `mode` from Phase 0, `specification_mode: prevalidated`, and the Phase 2 Business, Functional, and Stack specs as `spec_paths`. It implements them without invoking the specification agents again.
 3. If any spec requires amendment to proceed: amend the spec in-place with an `amendment:` annotation and continue. Structural divergences that change architecture must be paused for operator approval before continuing.
 4. **Gate:** Build passes (backend and frontend). All MVP acceptance criteria met. Development agent sets specs and their linked designs to `status: implemented`, respecting the least-advanced linked-spec rule, and reruns `smaqit design validate`.
 5. Invoke `smaqit.task-complete` for the Phase 3 task, ensuring any amendments are captured under `Decisions made`.
@@ -108,7 +116,7 @@ Validates the full infrastructure and deployment approach on a dedicated dev tar
 1. Invoke `smaqit.task-start` for the Phase 4 task.
 2. Invoke `smaqit.input-deployment` with the dev environment name (`dev`; for `existing-k3s`, the test environment whose machine-slug the Infrastructure spec declares) and `deployment_path: standard`. It resolves `provisioning_mode` and the slot plan. Stop on any `SLOTS-*` failure — fix `.smaqit/slots.yml` or the bound skill first.
 3. If the plan warns that a family slot (`app-deploy`, or `artifact-build` for `existing-k3s`) has no installed candidate matching the declared stack, run **Family filler synthesis** (below) for that family, then re-resolve the plan.
-4. Invoke `/smaqit.deployment` with `deployment_path: standard`, the resolved `slot_plan`, the dev environment, and — as caller context for the `iac-generate` builtin — Terraform state key `dev/terraform.tfstate`. The agent walks the plan locally, slot by slot, reading each filler's `SKILL.md`. With no project bindings, the defaults reproduce the dev sweep per mode:
+4. Invoke `/smaqit.deployment` with the step 2 parameter block (`deployment_path: standard`, the resolved `slot_plan`, the dev environment) plus `mode` from Phase 0 and `specification_mode: prevalidated` with the Phase 2 Infrastructure and Stack specs as `spec_paths`, and — as caller context for the `iac-generate` builtin — Terraform state key `dev/terraform.tfstate`. The agent walks the plan locally, slot by slot, reading each filler's `SKILL.md`. With no project bindings, the defaults reproduce the dev sweep per mode:
    - **`provision`/`existing-owned`:** `access-credentials` (vault-loader for the mode and the project's credential scheme) → `iac-generate` (Terraform in `deployment/terraform/`, state key `dev/terraform.tfstate`) → `ci-generate` (`smaqit.infrastructure-cicd-generate`, full mode) → `provision` (`smaqit.infrastructure-provision-cyso`; note the `fixed_ip` output; for `existing-owned` the guarded apply is expected to no-op) → `host-bootstrap` (`smaqit.infrastructure-vm-bootstrap` on the `fixed_ip`) → `app-deploy` (`smaqit.infrastructure-deploy-rsync*`) → `verify`.
    - **`existing-shared`/`existing-unmanaged`:** `access-credentials` (only `secret/apps/<app-slug>/github`) → `target-credentials` (`bootstrap-app-to-machine.sh <app-slug> <machine-slug>`; for `existing-shared` against the machine's already-registered `base-ssh`; for `existing-unmanaged` typically its fresh-registration branch, using this project's own slug as `owner_project`) → `ci-generate` (`deploy-only` mode: no Terraform, no `provision.yml`) → `host-bootstrap` (on the target's known fixed IP, not a Terraform output) → `app-deploy` → `verify`. No `provision` slot: this project never runs Terraform for a VM it doesn't own or nobody manages.
    - **`existing-k3s`:** `access-credentials` (`github` + `platform-repo`, no kubeconfig yet) → `platform-onboarding` (`smaqit.infrastructure-request-k3s-onboarding` for the test machine-slug, gated on its PR merging) → `target-credentials` (the test machine-slug's kubeconfig, pasted from the platform's onboarding hand-off) → `artifact-build` (a matched `smaqit.infrastructure-image-build-push*` skill authors the `Dockerfile` and manifests) → `ci-generate` (`k3s` mode: a `build` job then a kubectl-driven `deploy` job reading `KUBECONFIG` from a GitHub Environment secret) → `app-deploy` (`smaqit.infrastructure-deploy-k3s-app*` against the test Namespace) → `verify` (`https://<test-host>`). No `provision`, `host-bootstrap`, nginx, or `VM_HOST` anywhere.
@@ -119,7 +127,7 @@ Validates the full infrastructure and deployment approach on a dedicated dev tar
 6. Commit the generated artifacts: `git add deployment/ .github/workflows/ && git commit -m "ci: add infrastructure and CI/CD workflows"`. Without an `iac-generate` slot (`existing-shared`/`existing-unmanaged`/`existing-k3s`) there is no `deployment/terraform/`; commit `.github/workflows/` (and, for `existing-k3s`, the Kubernetes manifests under `deployment/`).
 7. **Gate:** Every slot in the plan completed or was skipped as planned; `verify` reports all checks PASS on the dev target; artifacts committed.
 8. Invoke `smaqit.task-complete` for the Phase 4 task, ensuring any amendments are captured under `Decisions made`.
-9. *(Optional)* Tear down the dev target with a single-slot run: resolve `smaqit slots plan --phase=deploy --mode=<mode> --env=dev --slot=teardown`, then invoke `/smaqit.deployment` with that plan. The default destroys only under `provision` (guarded destroy of the dev state). Every other mode defaults to none: `existing-owned` keeps a VM this project intends to retain, `existing-shared`/`existing-unmanaged` have no Terraform state of their own, and an `existing-k3s` test slug is offboarded through the platform's own process.
+9. *(Optional)* Tear down the dev target with a single-slot run: resolve `smaqit slots plan --phase=deploy --mode=<mode> --env=dev --slot=teardown`, then invoke `/smaqit.deployment` with that plan and `specification_mode: prevalidated` with the Phase 2 Infrastructure and Stack specs as `spec_paths`. The default destroys only under `provision` (guarded destroy of the dev state). Every other mode defaults to none: `existing-owned` keeps a VM this project intends to retain, `existing-shared`/`existing-unmanaged` have no Terraform state of their own, and an `existing-k3s` test slug is offboarded through the platform's own process.
 
 **Family filler synthesis** (Phase 4 Step 3) — for a family slot with no installed candidate:
 
@@ -139,7 +147,7 @@ Uses the workflows committed in Phase 4. Configures production credentials, push
 
 1. Invoke `smaqit.task-start` for the Phase 5 task.
 2. Invoke `smaqit.input-deployment` with environment `prod` (for `existing-k3s`, the prod machine-slug's environment) and `deployment_path: ci-push`. Stop on any `SLOTS-*` failure.
-3. Invoke `/smaqit.deployment` with `deployment_path: ci-push` and the resolved `slot_plan`. The agent runs the local slots, then pushes and monitors:
+3. Invoke `/smaqit.deployment` with `deployment_path: ci-push`, the resolved `slot_plan`, `mode` from Phase 0, and `specification_mode: prevalidated` with the Phase 2 Infrastructure and Stack specs as `spec_paths`. The agent runs the local slots, then pushes and monitors:
    - **Local slots:** `access-credentials`; for `existing-k3s`, `platform-onboarding` for the prod machine-slug (gated on merge — the platform hands off the prod kubeconfig only once that PR is approved; **pending** stops this task until it merges); `target-credentials` (`existing-shared`/`existing-unmanaged`: per-app SSH key; `existing-k3s`: prod kubeconfig); `environment-config` (`smaqit.infrastructure-repo-config`: full secret sync for `provision`/`existing-owned`; restricted sync plus `gh variable set VM_HOST` for `existing-shared`/`existing-unmanaged`; for `existing-k3s`, `KUBECONFIG` on the `prod` GitHub Environment plus `REGISTRY_USERNAME`/`REGISTRY_TOKEN` when the spec's `Container Registry` row declares a private registry — never `VM_HOST`).
    - **CI slots:** the agent pushes `main`, selects the `deploy.yml` `push` run whose `headSha` matches the pushed commit, and watches that run. The pipeline performs `provision` (full mode's `provision` job, `provision`/`existing-owned` only), `artifact-build` (`existing-k3s` `build` job), and `app-deploy` (`deploy` job).
    - **`verify`:** `smaqit.infrastructure-deploy-verify --expected-sha <deploy-run-headSha>` against production (`https://<prod-host>` for `existing-k3s`).
@@ -154,7 +162,7 @@ Execute only if the domain and DNS pre-conditions are met.
 
 1. Invoke `smaqit.task-start` for the Phase 6 task.
 2. Resolve a single-slot plan: `smaqit slots plan --phase=deploy --mode=<mode> --env=prod --slot=tls --json`. For VM modes the default filler is `smaqit.infrastructure-domain-tls`; for `existing-k3s` it is `none` — the Ingress certificate was already issued and verified inside `app-deploy`, so record that and skip to the gate.
-3. Invoke `/smaqit.deployment` with that single-slot plan.
+3. Invoke `/smaqit.deployment` with that single-slot plan and `specification_mode: prevalidated` with the Phase 2 Infrastructure and Stack specs as `spec_paths`.
 4. **Gate:** HTTPS accessible, HTTP redirects to HTTPS, auto-renewal dry-run passes (VM modes) or the Ingress `Certificate` is `Ready` (`existing-k3s`).
 5. Invoke `smaqit.task-complete` for the Phase 6 task.
 
@@ -163,7 +171,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 ### Phase 7 — Validation
 
 1. Invoke `smaqit.task-start` for the Phase 7 task.
-2. Invoke `/smaqit.validation` agent.
+2. Invoke the `smaqit.validation` agent with `mode` from Phase 0, `specification_mode: prevalidated`, and the Phase 2 Coverage specs as `spec_paths`.
 3. If any spec is found inconsistent with the live system: amend in-place with an `amendment:` annotation.
 4. **Gate:** All validation checks pass. User signs off.
 5. Invoke `smaqit.task-complete` for the Phase 7 task, ensuring any amendments are captured under `Decisions made`.
@@ -196,7 +204,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 ## Gotchas
 
 - **Spec amendment protocol** — when an implementation phase must diverge from a spec (package mismatch, config change, structural adaptation): amend the spec in-place with an `amendment:` annotation describing what changed and why. Tactical divergences (versions, minor config) proceed autonomously. Structural divergences (data model, architecture) require operator approval before continuing. At `task-complete` time, the amendment is captured in `Decisions made`. Phase 8 runs `check-amendments.sh` to detect any open annotations; if none are found the review step is skipped.
-- **Source path contract** — both deploy skills (`smaqit.infrastructure-deploy-rsync` and `smaqit.infrastructure-deploy-rsync-python-nextjs`) and generated CI/CD workflows assume `backend/` and `frontend/` as local source directories, and `__APP_DIR__` as the remote deploy path. The `/smaqit.stack` agent (Phase 2) must declare these exact paths in the stack spec. If the declared stack matches no candidate the slot plan lists for `app-deploy`, the Family filler synthesis procedure under Phase 4 applies — it is not a "default and adapt" fallback.
+- **Source path contract** — both deploy skills (`smaqit.infrastructure-deploy-rsync` and `smaqit.infrastructure-deploy-rsync-python-nextjs`) and generated CI/CD workflows assume `backend/` and `frontend/` as local source directories, and `__APP_DIR__` as the remote deploy path. The `smaqit.stack` specification agent (Phase 2) must declare these exact paths in the stack spec. If the declared stack matches no candidate the slot plan lists for `app-deploy`, the Family filler synthesis procedure under Phase 4 applies — it is not a "default and adapt" fallback.
 - **Required-inherited-context for synthesized deploy skills** — any deploy skill synthesized under Phase 4's Family filler synthesis (via `smaqit.create-skill` or manual authoring) must inherit its **own family's** conventions rather than reinventing them, and never borrow the other family's:
   - **rsync family** (`smaqit.infrastructure-deploy-rsync*` — `provision`/`existing-owned`/`existing-shared`/`existing-unmanaged`): (1) the `__APP_DIR__` token convention for the remote deploy path; (2) delegating nginx vhost writing to the shared `smaqit.infrastructure-deploy-rsync/scripts/write-vhost.sh` — never a new `default_server`-vs-name-based implementation; (3) reusing `smaqit.infrastructure-hook-post-deploy-stamp`'s deploy-stamp pattern; (4) reusing `plan-guard.sh`/`ownership-guard.sh` for any Terraform-touching step, never a bare `terraform apply`.
   - **k3s family** (`smaqit.infrastructure-deploy-k3s-app*` — `existing-k3s`): (1) the `__APP_SLUG__` token convention — the Namespace is always `app-__APP_SLUG__`, never a free-form name; (2) delegating Ingress rendering to the shared `assets/ingress.yaml.template` — never a hand-written per-app Ingress; (3) delivering the deploy stamp as pod environment (`DEPLOY_SHA`/`DEPLOY_TIME`) set at apply time, never a file — there is no host filesystem this credential can write to; (4) reusing the bundled `namespace-guard.sh` pattern (refuse on any cluster-scoped permission or a Namespace mismatch) before any `manifest-lint.sh`/`kubectl apply`.

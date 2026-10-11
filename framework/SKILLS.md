@@ -107,7 +107,7 @@ Skills receive context from the invoking agent:
 - Input sources and their content
 - Detected conditions triggering invocation
 - Agent identity and current phase/layer
-- User interaction mode (direct vs autonomous)
+- Whether the invoking agent can reach the user directly
 
 Skills return results or recommendations:
 
@@ -115,6 +115,11 @@ Skills return results or recommendations:
 - Generated plans or proposals
 - User approvals or selections
 - Revised inputs or clarifications
+- A `NEEDS-INPUT` signal when the user must answer and cannot be reached
+
+**Reaching the user:** A skill that needs the user's answer (elicitation, confirmation, or approval) asks through the invoking agent's user-question capability when that agent has one. When it does not, for example because the agent runs as a subagent, the skill stops before producing output and returns `NEEDS-INPUT`. That signal lists every open question at once, so the caller can ask them all in one round trip (see `AGENTS.md`, User Interaction). A skill never answers its own question with a default unless that parameter's default is defined as always valid.
+
+**Reaching the skill:** An agent can apply only a skill it can reach. On Claude Code, an agent whose `tools:` list omits the skill tool cannot invoke skills at all, so each agent preloads its own input skill through the `skills:` field of its platform metadata. On GitHub Copilot and Codex, agents discover skills in the shared global skill directory.
 
 ## Filler Skills (Variation Points)
 
@@ -133,11 +138,11 @@ metadata:
 
 ## Handling Ambiguity
 
-Input skills (`smaqit.input-[layer]`) detect common issues before spec generation: insufficient requirements, conflicts with upstream specs, and internal contradictions. Any ambiguity that survives input validation is handled inline by the agent:
+Input skills (`smaqit.input-[layer]`) detect common issues before spec generation: insufficient requirements, conflicts with upstream specs, and internal contradictions. Phase input skills (`smaqit.input-[phase]`) resolve execution parameters and output them as the Phase Parameters block the caller passes to the phase agent. Any ambiguity that survives input validation is handled inline by the agent:
 
 - Surface the specific issue with enough detail for the user to act on it
 - State clearly what information is missing or contradictory
-- Request clarification before proceeding
+- Request clarification before proceeding, directly or through `NEEDS-INPUT`
 - Do not invent or silently resolve ambiguous requirements
 
 ## Future Skills

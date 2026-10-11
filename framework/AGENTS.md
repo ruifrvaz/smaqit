@@ -11,9 +11,9 @@ All smaqit agents—specification and implementation—share these foundational 
 Agents receive requirements from session context:
 
 - **Read session context**: Agents MUST read requirements from current session context (including context in compacted blocks) or open tasks
-- **Invoke input skill**: Specification agents MUST invoke their layer-specific `smaqit.input-[layer]` skill to validate requirements are sufficient before generating specifications; phase agents invoke their phase-specific `smaqit.input-[phase]` skill to confirm execution parameters before proceeding
+- **Apply input skill**: Specification agents MUST apply their layer-specific `smaqit.input-[layer]` skill as a gate that checks requirements are sufficient before generating specifications. Phase agents apply their phase-specific `smaqit.input-[phase]` skill to resolve any execution parameters the caller did not pass (see Phase Parameters). The input skill MUST be reachable by the agent through its platform's skill mechanism, preloaded or invocable. An instruction to apply a skill the agent cannot reach is a defect, not a step to improvise.
 - **Interpret free-style input**: Agents consume natural language requirements without rigid structure enforcement
-- **Validate sufficiency**: Agents MUST request clarification if session context is insufficient, using natural language guidance (e.g., "Please specify measurable success criteria" not "Missing: Success Metrics section")
+- **Validate sufficiency**: Agents MUST request clarification if session context is insufficient, directly when they can reach the user and through a `NEEDS-INPUT` return signal otherwise (see User Interaction). They use natural language guidance (e.g., "Please specify measurable success criteria", not "Missing: Success Metrics section")
 - **Equivalent outcomes**: Given equivalent session context across all layers, acceptance criteria should pass/fail consistently (acknowledging LLM variance in artifact style)
 
 ### Template-Constrained Output
@@ -27,7 +27,7 @@ Agents receive requirements from session context:
 - Agents MUST NOT produce output that cannot be traced to an input
 
 ### Fail-Fast on Ambiguity
-- Agents request clarification when input is ambiguous
+- Agents request clarification when input is ambiguous, directly or through `NEEDS-INPUT` (see User Interaction)
 - Agents do not invent requirements not present in input
 - Agents flag assumptions explicitly when clarification is unavailable
 - Agents surface the specific ambiguity, state what information is missing or contradictory, and request clarification before proceeding
@@ -36,6 +36,22 @@ Agents receive requirements from session context:
 - Agents MUST verify coherence across all input sources before producing output
 - Agents MUST stop and report when inputs contradict each other
 - Agents MUST NOT proceed with output while unresolved inconsistencies exist
+
+### User Interaction
+
+Agents often run as subagents that cannot address the user directly. Questions and review requests therefore travel as structured return signals, up to whichever caller can reach the user:
+
+- **Ask when reachable** — An agent that has a user-question capability on its platform asks the user directly
+- **Return when not** — An agent without one stops and returns a signal. It does not guess, silently default a blocking value, or produce partial output
+- **Write nothing on `NEEDS-INPUT`** — An agent that returns `NEEDS-INPUT` has created or modified no specification, design, or implementation artifact in that invocation, so invoking it again with the answers is always safe
+- **Pass signals up unchanged** — An orchestrating agent that receives a signal from an agent it invoked, and cannot reach the user itself, returns that signal to its own caller without answering it
+- **The caller owns the loop** — The caller that can reach the user asks, then resumes the returning agent with the answers. If its platform cannot resume a returned agent, it invokes the agent again with the same parameters plus `answers` and `approved_spec_paths`. It repeats until a final result arrives
+- **Self-describing signals** — Every signal ends with a one-line instruction to its receiver, so a caller that did not anticipate the signal still knows how to handle it
+
+| Signal | Returned when | Contents |
+|--------|---------------|----------|
+| `NEEDS-INPUT` | An input gate, or a blocking ambiguity, needs information only the user can give | Source agent or skill; layer or phase; numbered questions, each with an id, the question, and why it is needed; a statement that nothing was written |
+| `REVIEW-REQUESTED` | Assisted mode, after a specification layer completes | Layer; the specification and design paths produced; iteration `n/3` |
 
 ### Self-Validation Before Completion
 - Agents MUST validate their output against completion criteria before finishing
@@ -82,7 +98,9 @@ Agent extensions inherit these foundations and add specialized behaviors. The ba
 
 Agents invoke skills when detecting specific conditions requiring specialized handling. Skills are reusable capabilities providing structured workflows that multiple agent types share.
 
-Skills reside in the active platform's repository skill directory (`.github/skills/`, `.claude/skills/`, or `.agents/skills/`) and include input validation, conflict resolution, and other cross-cutting workflows. When agents detect ambiguity, contradictions, or complexity, they invoke the appropriate skill rather than implementing the workflow inline.
+Skills are installed once per user in the platform's global skill directory and include input validation, conflict resolution, and other cross-cutting workflows. When agents detect ambiguity, contradictions, or complexity, they apply the appropriate skill rather than implementing the workflow inline.
+
+An agent can follow only a skill it can reach. Each agent's platform metadata makes its own input skill available to it, for example by preloading the skill into the agent at startup. Build tooling verifies that every input skill an agent's instructions name is reachable from that agent.
 
 ## Naming Convention
 
@@ -135,7 +153,8 @@ Each specification agent's Role section MUST include:
 ### Input
 - **Session context**: Requirements from current session context (user input in chat, compacted context blocks, or open tasks)
 - **Context specifications**: Documents from previous layers for coherence and traceability (not requirements)
-- **Input skill**: Each specification agent invokes `smaqit.input-[layer]` as a validation gate before spec generation begins
+- **Input skill**: Each specification agent applies `smaqit.input-[layer]` as a validation gate before spec generation begins. When the gate finds gaps that the agent cannot resolve with the user directly, the agent returns `NEEDS-INPUT` and writes no specification
+- **Answers**: When invoked again with `answers` to its own `NEEDS-INPUT`, the agent treats them as session-context requirements and re-runs the gate before generating
 
 Each layer reads requirements from its session context. Upstream layers provide context for coherence, not requirements. When user requirements would create incoherence with existing specs, agents MUST flag the conflict rather than silently override.
 
@@ -219,7 +238,7 @@ Implementation agents orchestrate their entire phase including specification gen
 **Specification Generation Coordination:**
 
 Implementation agents always orchestrate specification generation as the primary first phase activity. Orchestration is not conditional on missing artifacts — it is the primary path:
-- **Orchestration-first** — Spec generation is always step 1; each layer is checked and generated if missing, draft, or failed
+- **Orchestration-first** — Spec generation is always step 1; each layer is checked and generated if missing, draft, or failed, unless its paths are listed in `approved_spec_paths`
 - **Deterministic routing** — The specification-agent invocation sequence is hardcoded per phase, not derived at runtime; status checks on spec files determine which layers to skip. Implementation steps that legitimately vary per project are variation points (slots), resolved deterministically as described below — never improvised at runtime
 - **Scoped context passing** — Each spec agent receives user requirements from session context plus content of upstream specs already generated in the current sequence; full accumulated phase context is not passed
 - **Dependency ordering** — Business → Functional → Stack for Development; Infrastructure for Deployment; Coverage for Validation
@@ -239,17 +258,34 @@ Where a phase's implementation steps legitimately differ between projects — an
 - **Single-slot runs** — Day-two operations run as single-slot invocations of the same agent under the same invariants; an execution path's full-sequence defaults do not apply to an explicitly requested slot, but its refusals do
 - **No split CI runs** — Slots a CI pipeline performs run as one pipeline run; resolution refuses a locally executed binding positioned between them
 
+**Phase Parameters:**
+
+A phase agent invoked as a subagent does not see its caller's conversation, so callers pass its execution parameters explicitly. The caller is a command, an orchestrating skill, or the user. It resolves the parameters by applying the phase input skill wherever it can reach the user:
+
+| Parameter | Phases | Meaning |
+|-----------|--------|---------|
+| `mode` | All | `autonomous` (default) or `assisted` |
+| `specification_mode` | All | `orchestrate` (default) or `prevalidated` |
+| `spec_paths` | All | Exact specification paths handed off under `prevalidated` |
+| `approved_spec_paths` | All | Specification paths the user already approved in this run; treated as current even while `draft` |
+| `deployment_path`, `provisioning_mode`, `environment`, `slot_plan` | Deploy | As resolved by `smaqit.input-deployment` |
+| `answers` | All | Answers to a returned `NEEDS-INPUT` or `REVIEW-REQUESTED`, keyed by question id |
+
+- **Defaults when absent** — A phase agent invoked without a parameter block applies the defaults its phase input skill defines. It returns `NEEDS-INPUT` only when a blocking parameter is ambiguous
+- **Passed means resolved** — A parameter the caller passed is never elicited or resolved again by the agent
+
 **Execution Modes:**
 
-Phase agents support two execution modes selected via the phase input skill at invocation:
+Phase agents support two execution modes, selected by the `mode` parameter:
 - **Autonomous** (default) — Proceed through all workflow steps without user breaks; spec agents invoked in sequence and implementation begins immediately after consolidation
-- **Assisted** (maker-checker) — Pause after each spec agent completes; spec agent (maker) produces output; user (checker) reviews and approves or provides feedback; loop repeats until approved or iteration cap reached (max 3 per layer); on cap, surface unresolved issues and proceed
+- **Assisted** (maker-checker) — After each spec agent (maker) completes, the user (checker) reviews its output. An agent that can reach the user presents the output directly; otherwise it returns `REVIEW-REQUESTED`. Approval adds the reviewed paths to `approved_spec_paths`, and the phase continues with the next layer. Feedback invokes the spec agent again with the feedback as `answers`. The loop repeats until the output is approved or the iteration cap is reached (max 3 per layer); on cap, surface unresolved issues and proceed
 
 **Multi-Agent Coordination:**
 
 Phase orchestration coordinates multiple agents within a single phase:
 - Agents invoked as needed based on artifact availability
 - Invoked agents produce outputs consumed by orchestrating agent  
+- Return signals from invoked agents are handled as described in User Interaction
 - Invocation sequence respects upstream dependencies
 - Each invocation tracked with context and outcome
 
@@ -474,7 +510,7 @@ Agents MUST verify these conditions before completing:
 Agents MUST stop iterating when:
 - All completion criteria are met, OR
 - A blocking issue prevents progress (flag and report), OR
-- Clarification is required from upstream (request and wait)
+- Clarification is required from upstream (request it directly or through `NEEDS-INPUT`, and wait for the answers)
 
 Agents MUST NOT:
 - Iterate indefinitely without progress

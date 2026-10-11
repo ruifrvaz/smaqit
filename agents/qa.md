@@ -113,4 +113,4 @@ Before declaring completion, verify:
 Stop iterating when:
 - All completion criteria met, OR
 - Blocking issue prevents progress (flag and report), OR
-- Clarification required from upstream (request and wait)
+- Clarification required from upstream (request it directly, or return the open question and stop)

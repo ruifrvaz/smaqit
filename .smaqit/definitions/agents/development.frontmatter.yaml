@@ -2,6 +2,7 @@ copilot:
   name: smaqit.development
   description: Implementation agent for the Development phase.
   tools:
+  - vscode/askQuestions
   - execute/getTerminalOutput
   - execute/sendToTerminal
   - execute/runInTerminal
@@ -23,6 +24,8 @@ claude:
   name: smaqit-development
   description: Implementation agent for the Development phase. Orchestrates the Business, Functional, and Stack spec agents via Task, then builds a working, tested application from the consolidated specs. Invoked via the /smaqit.development command.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+  skills:
+  - smaqit.input-development
 
 codex:
   name: smaqit.development

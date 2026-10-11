@@ -8,10 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing to add.
+- **Return signals for user questions and reviews.** Agents that cannot reach the user return `NEEDS-INPUT` (every open question at once, nothing written) or `REVIEW-REQUESTED` (Assisted mode, after each specification layer), and orchestrating agents pass both up unchanged. Callers pass phase agents an explicit `PHASE-PARAMETERS` block (`mode`, `specification_mode`, `spec_paths`, `approved_spec_paths`, deployment parameters, `answers`). Defined in `framework/AGENTS.md` (User Interaction, Phase Parameters) and `framework/SKILLS.md`.
+- **Ask-and-resume loop in the Claude Code phase commands.** `/smaqit.development`, `/smaqit.deployment` and `/smaqit.validation` apply the phase input skill in the main conversation, ask the user whatever a returned signal lists, and resume the same subagent with the answers, falling back to a fresh invocation with `answers` and `approved_spec_paths`.
+- **`mode` parameter** (`autonomous`/`assisted`) and an Output parameter block in `smaqit.input-development`, `smaqit.input-deployment` and `smaqit.input-validation`.
+- **Build-time reachability check:** `scripts/generate-agents.py` fails `make prepare`, naming the file, when an agent body names a `smaqit.input-*` skill that its Claude Code metadata neither preloads nor can invoke.
 
 ### Changed
-- Nothing to add.
+- Every smaqit agent's Claude Code metadata preloads its own input skill through `skills:`, and the five layer input skills return `NEEDS-INPUT` instead of guessing when they cannot ask.
+- GitHub Copilot development, deployment, validation, stack and infrastructure agents gain `vscode/askQuestions`.
+- `smaqit.new-greenfield-project` and `smaqit.feature-new` invoke specification agents by name rather than as `/smaqit.<layer>` commands (which don't exist on Claude Code), pass `mode` and explicit `spec_paths` into every phase agent, and handle returned signals.
 
 ### Deprecated
 - Nothing to add.
@@ -20,7 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing to add.
 
 ### Fixed
-- Nothing to add.
+- On Claude Code, specification and phase agents could not run their input skills (their `tools:` lists omit `Skill`), so the requirements gates never ran.
+- Phase-agent Assisted mode was unreachable on every platform: the agents said the mode was set by the phase input skill, but no input skill defined it.
+- `smaqit.new-greenfield-project` re-ran every specification agent after its own specification phase, because Phases 3–7 invoked phase agents without `specification_mode: prevalidated` while the approved specs were still `draft`.
 
 ### Security
 - Nothing to add.

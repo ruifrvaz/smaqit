@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: Completed
+completed: "2026-10-11"
 mode: Assisted
 started: "2026-10-11"
 created: "2026-10-11"
@@ -55,26 +56,32 @@ the part a waiting downstream platform repository needs to bind its own fillers.
 
 ## Acceptance Criteria
 
-- [ ] `smaqit.input-deployment` outputs the slot plan via the CLI, stops on `SLOTS-*`, and is invoked once per deployment
-- [ ] `agents/deployment.md` executes the slot plan in Steps 5–6, supports a single-slot day-2 run, records the resolution in the deployment report, and keeps the guard/out-of-band/credential invariants for every filler
-- [ ] The compiled Copilot deployment agent has a read-file tool
-- [ ] `feature-new` Phase 3 routes infrastructure steps through the slot plan; under `existing-cicd-pr`, bindings to `iac-generate`/`ci-generate`/`provision`/`host-bootstrap` are refused
+- [x] `smaqit.input-deployment` outputs the slot plan via the CLI, stops on `SLOTS-*`, and is invoked once per deployment
+- [x] `agents/deployment.md` executes the slot plan in Steps 5–6, supports a single-slot day-2 run, records the resolution in the deployment report, and keeps the guard/out-of-band/credential invariants for every filler
+- [x] The compiled Copilot deployment agent has a read-file tool
+- [x] `feature-new` Phase 3 routes infrastructure steps through the slot plan; under `existing-cicd-pr`, bindings to `iac-generate`/`ci-generate`/`provision`/`host-bootstrap` are refused
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- `agents/deployment.md` takes a `slot_plan` (or a single `slot`); Step 5 resolves or accepts the plan and stops on `SLOTS-*`; Step 6 walks it: local fillers are read from `skillPath` and followed, families pick a stack-matching candidate, builtins cover IaC generation and guarded destroy, `ci` executors are monitored
+- The `existing-cicd-pr` PR/merge/monitor/verify sequence is unchanged in substance and now starts at the first `ci`-executor slot; `verify` runs the plan's filler with `--expected-sha`
+- `smaqit.input-deployment` gained Environment and Deployment Path parameters and a Slot Plan step wrapping `smaqit slots plan --json`
+- `smaqit.feature-new` Phase 3 resolves the plan in preflight and passes it to the agent; its direct vault-loader and repo-config steps became the agent's credential and `environment-config` slots
+- Copilot deployment agent frontmatter gained `read/readFile`; regenerated agents for all three platforms carry the slot text
 
 **Decisions made:**
-- TBD
+- The agent pauses and hands the operator the exact command when a filler needs secret input, since credential slots now run inside the subagent; secrets never pass through chat
+- Family slots with no fitting candidate return to the caller, which keeps match-or-synthesize ownership in the orchestrating skill
+- `status: deployed` is not set by a day-two run that changes no deployed revision
+- The feature-new gotcha about `smaqit.input-deployment` now forbids changing its `provision` default rather than modifying the skill at all
 
 **Blockers encountered:**
-- TBD
+- None
 
 **Follow-up identified:**
-- TBD
+- Child 129 adds `deployment_path: ci-push` to the agent and routes greenfield Phases 4–6 through it
+- The deployment-slots bench (parent close-out) should cover that the agent reads the bound filler's SKILL.md rather than a paraphrase (claude-code#88987)
 
 ## Files to Create / Modify
 

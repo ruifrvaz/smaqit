@@ -9,7 +9,7 @@
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch | new | Medium |
 | 122 | existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones | new | High |
 | 115 | New Machine-Monorepo Infrastructure Skills: Provision, Verify, Day-2 Baseline, Tenant Reconcile | new | Medium |
-| 114 | Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from a Downstream Project's Infrastructure Task 001) | In Progress | High |
+| 114 | Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from a Downstream Project's Infrastructure Task 001) | PR Open (#96) | High |
 | 113 | Business Use-Case Diagrams: No Guardrail Against Generalization-Inheritance Misuse or PlantUML-Alias Collision With the Project's Own UC-ID Convention | new | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |

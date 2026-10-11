@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 96
 mode: Assisted
 started: "2026-10-11"
 created: "2026-08-24"
@@ -283,45 +284,60 @@ untagged as of this filing.)
 
 ## Acceptance Criteria
 
-- [ ] `cyso-reference.md` reflects every Finding 1 correction: no `/dev/vdb` claim, tier default
+- [x] `cyso-reference.md` reflects every Finding 1 correction: no `/dev/vdb` claim, tier default
       and lowercase type names, retype procedure, and PAT org-level requirement documented. No
       `bcdcd204` UUID anywhere in `skills/`; `cyso-deployment-setup.md` and `cyso-pricing.md`
       are corrected; `provider-cyso/SKILL.md` no longer claims a `docs/wiki/` mirror.
-- [ ] `register-machine.sh` exists, populates all four `secret/machines/<slug>/` paths
+- [x] `register-machine.sh` exists, populates all four `secret/machines/<slug>/` paths
       (base-ssh, cyso, tfstate, metadata) idempotently, takes the machine slug as a required
       argument (no cwd derivation), and passes the skill's no-ad-hoc-secret-reads static check.
       vault-loader declares it as `target-credentials=register`, and provision-cyso Step 7.5
       calls it instead of a raw `vault kv put`.
-- [ ] Findings record the user-run commands that backfill `secret/machines/<machine-slug>/metadata`
+- [x] Findings record the user-run commands that backfill `secret/machines/<machine-slug>/metadata`
       and check it, through the user's own Vault tooling. The implementing agent runs no `vault`
       command.
-- [ ] repo-config's `sync-machine` operation creates or verifies the machine-slug Environment and
+- [x] repo-config's `sync-machine` operation creates or verifies the machine-slug Environment and
       maps the six machine secrets and two variables. `check-pat-permissions.sh` maps the three
       diagnostic signatures and is used by both the machine and the k3s per-environment step.
-- [ ] `cicd-generate`'s Gotchas encode job-level backend credentials, and plan-guard plus
+- [x] `cicd-generate`'s Gotchas encode job-level backend credentials, and plan-guard plus
       `prevent_destroy` for gated applies against an existing machine.
-- [ ] `agents/deployment.md` mandates provider-knowledge routing for platform facts, states the
+- [x] `agents/deployment.md` mandates provider-knowledge routing for platform facts, states the
       isolated-worktree caveat, and states that non-app verification comes from the bound
       `verify` filler.
-- [ ] `make -C installer prepare test smoke-test` passes; Go tests cover both new operations; a
+- [x] `make -C installer prepare test smoke-test` passes; Go tests cover both new operations; a
       stub vault/gh harness proves idempotency and that no secret reaches stdout or argv.
-- [ ] The `deployment-slots.md` platform example, the compendium, and `CHANGELOG.md` are updated.
+- [x] The `deployment-slots.md` platform example, the compendium, and `CHANGELOG.md` are updated.
 
 ## Findings
 
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Corrected the Cyso facts in `cyso-reference.md` and its two sibling references: virtio-scsi `/dev/sdb` with both by-id shapes, lowercase volume types with the `tier-2` default warning and an explicit `volume_type` in the Terraform example, the detached retype procedure, one image UUID, and a GitHub-token section with the three PAT signatures. Header records the 2026-08-24 correction date rather than claiming a fresh full verification.
+- Added `register-machine.sh` (vault-loader, `target-credentials=register`): required slug with a URL-safe charset, keeps existing paths, terminal-only prompts, secrets handed to Vault on stdin (`field=-`), `--host`/`--provider`/`--owner-project` patch metadata. provision-cyso Step 7.5 now calls it.
+- Added repo-config `sync-machine` (`sync-machine-env.sh`) and the shared `check-pat-permissions.sh` (read-only probes, exit 2 for a missing Environment, 3 for a missing grant); the latter also gates the k3s per-environment step.
+- Added cicd-generate gotchas for workflows outside the templates, and deployment-agent directives for provider-knowledge routing, the isolated-worktree caveat, and filler-defined verification.
+- Tests: `TestSlotPlanPlatformRepositoryBindings` plus `installer/skill_scripts_test.go`, which runs the real scripts against file-backed stub `vault`/`gh` binaries, using `script(1)` for a terminal and `setsid` for the no-terminal case. A deliberate argv leak was injected to confirm the leak assertion fails.
+- `make -C installer test` and `make -C installer smoke-test` pass.
 
 **Decisions made:**
-- TBD
+- `sync-machine` treats `metadata.host` as optional: `environment-config` precedes `provision` in the slot order and CI needs the credentials before the gated apply, so the first run skips `FIXED_IP` with a notice and a single-slot re-run after the `--host` backfill sets it. This changes the planned behaviour, which required the host.
+- Secrets flow by stdin rather than argv, stricter than the existing vault-loader scripts, so they never appear in the process list.
+- No `docs/wiki/` copy of the Cyso reference exists; the skill's claim that its references mirror the wiki was replaced rather than creating a wiki page.
+- The isolated-worktree caveat is a deployment-agent MUST NOT here; the task-lifecycle half moved to smaqit-extensions task 042, together with Finding 6.
+- The provision-cyso image check was moved from `Ubuntu 22.04` to `Ubuntu 24.04` as part of the image-fact correction.
+- CHANGELOG is written by task completion, not by the implementer.
 
 **Blockers encountered:**
-- TBD
+- Issue triage resolved HashiCorp Vault to `hashicorp/vault-guides`, so Vault was not searched; recorded in the triage block.
+- The planned verification grep (`/dev/vdb` returns nothing) is too strict: the corrected references deliberately say "not `/dev/vdb`". Verified instead that every remaining match is such a warning.
 
 **Follow-up identified:**
-- TBD
+- User-run live backfill of the downstream machine's metadata, through the user's own Vault tooling: `~/projects/scripts/vault-add-credential machines/<machine-slug>/metadata`, then `~/projects/scripts/vault-add-credential --check machines/<machine-slug>/metadata`. The implementing agent ran no `vault` command.
+- Task 123: provision-cyso Step 2 still generates `base-ssh` with an inline raw `vault kv put`; replace it with `register-machine.sh <machine-slug>`. The remaining vault-loader scripts still pass secrets as arguments rather than stdin.
+- Task 115: machine workflow templates and default machine fillers for `provision`, `verify`, `host-bootstrap`, `replace` can now bind next to `register` and `sync-machine`.
+- smaqit-extensions task 042: release-workflow preflight and the task-lifecycle worktree caveat.
+- The triage helper's repository resolution for HashiCorp Vault returns the wrong repository.
 
 ## Files to Create / Modify
 

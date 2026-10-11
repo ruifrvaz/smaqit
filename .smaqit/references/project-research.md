@@ -4,7 +4,7 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit
-**Refreshed:** 2026-09-12
+**Refreshed:** 2026-10-11
 
 | Tool | Section | URL |
 |------|---------|-----|
@@ -16,12 +16,17 @@ version: "1.0.0"
 | hujson | Package reference | https://pkg.go.dev/github.com/tailscale/hujson |
 | YAML v3 | Package reference | https://pkg.go.dev/gopkg.in/yaml.v3 |
 | Node.js | Documentation | https://nodejs.org/docs/latest/api/ |
+| PlantUML MCP | Documentation | https://plantuml.com/ |
+| PlantUML MCP | Repository | https://github.com/plantuml/plantuml |
 | PlantUML MCP | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@plantuml/mcp-js |
+| Resvg WASM | Repository | https://github.com/thx/resvg-js |
 | Resvg WASM | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@resvg/resvg-wasm |
+| Noto Sans | Documentation | https://fontsource.org/fonts/noto-sans |
 | Noto Sans | Package reference | Unreachable (npmjs.com returns 403 to automated requests) — https://www.npmjs.com/package/@fontsource/noto-sans |
 | Git | Documentation | https://git-scm.com/doc |
 | GitHub Actions | Documentation | https://docs.github.com/en/actions |
 | VS Code | Documentation | https://code.visualstudio.com/docs |
+| Claude Code | MCP configuration | https://code.claude.com/docs/en/mcp |
 | github-copilot-sdk | Package reference | https://pypi.org/project/github-copilot-sdk/ |
 
 ## Task 107 — Merge Copilot/Codex Skills; Canonicalize AGENTS.md

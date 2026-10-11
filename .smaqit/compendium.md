@@ -46,9 +46,11 @@ The current runtime is materialized only in the checkout where `init` or `update
 
 ## Architecture
 
-**Why can `smaqit-plantuml` be absent from ToolSearch even when its project MCP registrations exist?**
+**Why can `smaqit-plantuml` be absent from ToolSearch, or fail to connect, even when its project MCP registrations exist?**
 
 `smaqit init` and `smaqit update` register the stdio server in `.vscode/mcp.json` (VS Code), root `.mcp.json` (Claude Code), and trusted `.codex/config.toml` (Codex). Registration is not host activation: load the project, trust and start the server, then refresh the agent session. A valid Codex registration can still be ignored by known host defects, so missing tools remain `DESIGN-TOOLCHAIN-UNAVAILABLE`; inspect the host MCP-server list and restart or refresh rather than treating configuration presence as proof that tools are reachable.
+
+A `CONNECT_TIMEOUT` on startup has a separate, local cause: the design-tools runtime install lock. It is a directory, `.smaqit/tools/plantuml/.<bundle-version>.lock`, and it stays behind if a `smaqit mcp plantuml` process is killed while holding it, for example by an editor reload. A start that needs the lock waits up to 60 s and treats it as stale only after 5 minutes, while Claude Code stops waiting after 30 s. A start whose bundle is already installed and valid validates it without taking the lock, so an orphaned lock blocks only starts that must install: a fresh worktree, or the first start after a bundle-version change. If the server times out and no `smaqit mcp plantuml` process is running for that project, delete the lock directory and reconnect (`/mcp` in Claude Code).
 
 ---
 
@@ -299,6 +301,8 @@ Yes, guaranteed by construction: each task's PR is built on whatever `origin/mai
 `post-merge-release.yml` triggers only on a `v*` tag push or a merged pull request to `main` — a plain branch push never fires it, regardless of what changed. Push the annotated release tag separately (`git push origin vX.Y.Z`) to trigger it. A newly triggered run can take a couple of minutes to appear in `gh run list` or the Actions UI; check via `gh api repos/<owner>/<repo>/actions/runs` (unfiltered by status) rather than assuming a run that isn't immediately visible never started.
 
 Under the per-task PR-gated release model, every task's own PR *is* its release: merging it is normally sufficient, with no separate manual tag or release step needed. The one hard requirement is the PR title — it must exactly match `Prepare release vX.Y.Z` (or `Release vX.Y.Z`), since the workflow matches on title and silently skips every job on a mismatch (e.g. extra words, wrong prefix, wrong casing).
+
+A PR merged under any other title (for example a `fix(...)` title) lands its code on `main` but publishes no tag, binaries, or GitHub Release, so `smaqit update` has nothing new to install. To ship such a change, cut a branch from `origin/main` that adds only that version's `## [X.Y.Z]` `CHANGELOG.md` section, and merge it as a `Prepare release vX.Y.Z` PR. The workflow extracts the release notes from that section. Branching from `origin/main` rather than local `main` keeps unpushed local task bookkeeping commits out of the release PR.
 
 ---
 

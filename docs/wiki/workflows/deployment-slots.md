@@ -81,6 +81,12 @@ Two rules hold on every path:
 schemaVersion: 1
 phase: deploy
 slots:
+  target-credentials:
+    skill: smaqit.infrastructure-vault-loader
+    operation: register
+  environment-config:
+    skill: smaqit.infrastructure-repo-config
+    operation: sync-machine
   provision:
     skill: platform.machine-provision
     operation: apply
@@ -89,6 +95,22 @@ slots:
     skill: platform.k3s-baseline
   tls: none
 ```
+
+This is a platform repository — one that owns machines rather than an app. It binds two shipped
+operations and two of its own skills:
+
+- **`target-credentials` → vault-loader `register`** runs `register-machine.sh <machine-slug>`:
+  it populates `secret/machines/<machine-slug>/{base-ssh,cyso,tfstate,metadata}` the first time
+  and keeps whatever already exists. After `provision` applies, the machine's address is
+  backfilled with `register-machine.sh <machine-slug> --host <ip>`.
+- **`environment-config` → repo-config `sync-machine`** runs `sync-machine-env.sh`: it creates a
+  GitHub Environment named after the machine slug, preflights the token, and syncs the machine's
+  credentials into it. It runs before `provision`, so on a new machine the `FIXED_IP` variable is
+  skipped; once the address is backfilled, re-run the slot alone
+  (`smaqit slots plan --phase=deploy --mode=provision --env=prod --slot=environment-config`) to set it.
+
+Both shipped skills declare two operations for their slot, so these bindings must name the
+operation; `smaqit slots plan` refuses a binding that leaves it out (`SLOTS-OPERATION-INVALID`).
 
 A bound skill must declare the slot in its own frontmatter:
 

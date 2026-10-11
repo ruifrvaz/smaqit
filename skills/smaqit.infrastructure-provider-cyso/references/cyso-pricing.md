@@ -53,12 +53,12 @@ Ephemeral storage (root disk) is included in the instance price.
 
 ## Storage
 
-| Type | Description | Price |
+| Type (`volume_type`) | Description | Price |
 |---|---|---|
-| Tier-1 | Standard persistent volume. Triple replication, 5 IOPS/GB, up to 25k IOPS. | € 0.095 /GB/month |
-| Tier-1m | Multi-attach (multiple hosts). Same performance as Tier-1. | € 0.145 /GB/month |
-| Tier-2 | High-performance persistent volume. Triple replication, 25 IOPS/GB, up to 25k IOPS. | € 0.250 /GB/month |
-| Tier-2m | Multi-attach, high-performance. | € 0.300 /GB/month |
+| `tier-1` | Standard persistent volume. Triple replication, 5 IOPS/GB, up to 25k IOPS. | € 0.095 /GB/month |
+| `tier-1m` | Multi-attach (multiple hosts). Same performance as `tier-1`. | € 0.145 /GB/month |
+| `tier-2` | High-performance persistent volume. Triple replication, 25 IOPS/GB, up to 25k IOPS. **Default when `volume_type` is omitted.** | € 0.250 /GB/month |
+| `tier-2m` | Multi-attach, high-performance. | € 0.300 /GB/month |
 | Image Storage | VM disk image storage. | € 0.080 /GB/month |
 | Snapshot Storage | Point-in-time volume snapshots. | € 0.080 /GB/month |
 | Volume Backup | Automated volume backup copies. | € 0.080 /GB/month |
@@ -73,7 +73,7 @@ Ephemeral storage (root disk) is included in the instance price.
 | Category A (PUT, LIST) | € 0.055 per 10,000 ops |
 | Category B (other) | € 0.004 per 10,000 ops |
 
-> **Typical usage:** 10 GB Tier-1 Cinder data volume (≈ € 0.95/month) + Object Storage bucket for Terraform state (negligible cost).
+> **Typical usage:** 10 GB `tier-1` Cinder data volume (≈ € 0.95/month, only with an explicit `volume_type = "tier-1"`) + Object Storage bucket for Terraform state (negligible cost).
 
 ---
 
@@ -110,7 +110,7 @@ Ephemeral storage (root disk) is included in the instance price.
 | Resource | Spec | Cost |
 |---|---|---|
 | VM instance | `s5.small` | € 17.50 |
-| Data volume | 10 GB Tier-1 | € 0.95 |
+| Data volume | 10 GB `tier-1` | € 0.95 |
 | Floating IP | 1× IPv4 | € 1.99 |
 | Object Storage | < 1 GB Terraform state | < € 0.10 |
 | **Total** | | **≈ € 20.54 / month** |

@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-cicd-generate
 description: 'Use when generating or updating GitHub Actions CI/CD workflows: the VM set (deploy.yml, provision.yml, post-merge-deploy.yml) for Node.js + React via Terraform and Docker Compose, or the k3s two-job deploy.yml + post-merge-deploy.yml, or when an operator invokes /cicd.generate. Inside smaqit.new-greenfield-project the deployment agent generates them itself. Never generates copilot-setup-steps.yml.'
 metadata:
-  version: "2.4.0"
+  version: "2.5.0"
   smaqit-slots: "ci-generate=generate"
 ---
 
@@ -145,6 +145,27 @@ generation.
   `deploy.yml` (and the vendored scripts) via a small, separate PR to the default branch before
   attempting to dispatch it, rather than assuming the branch that generated it can dispatch it
   directly.
+
+### Workflows outside these templates (machine repositories)
+
+A repository that owns machines rather than an app writes its own provisioning workflows — this
+skill has no template for them. Two mistakes each cost a failed live run there; any Terraform
+workflow, templated or not, must avoid them:
+
+- **Terraform S3-backend credentials belong in job-level `env:`**, never step-level `env:` on the
+  `terraform init` step alone. Steps do not inherit a sibling step's `env:`, and every `terraform`
+  command except `validate` reads the backend — `plan` and `apply` included. Step-scoped
+  credentials fail the first later step with `No valid credential sources found`. The app
+  templates here (`provision.yml.template`, `deploy.yml.full.template`) already set them at job
+  level. On a non-AWS S3 endpoint such as Cyso Object Storage, keep the backend's `skip_*`
+  settings as `smaqit.infrastructure-provider-cyso` documents them; Terraform has had regressions
+  with third-party S3 backends (hashicorp/terraform#37130).
+- **A gated apply against an existing machine needs a destroy guard, not only a human reading the
+  plan.** A `user_data`, `image_id`, or `key_pair` diff forces the instance to be destroyed and
+  recreated. Run `plan` through `plan-guard.sh` (vendored from
+  `smaqit.infrastructure-provision-cyso`) before `apply`, and set
+  `lifecycle { prevent_destroy = true }` on the instance and its data volumes, so that a
+  replacement fails the plan instead of running in CI.
 
 ## Completion
 

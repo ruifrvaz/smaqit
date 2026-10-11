@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 95
 mode: Assisted
 started: "2026-10-11"
 created: "2026-10-11"
@@ -168,36 +169,48 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
 
 ## Acceptance Criteria
 
-- [ ] `framework/AGENTS.md` defines the Phase Parameters block and the `NEEDS-INPUT`/`REVIEW-REQUESTED` return signals. Its input-skill rule and Execution Modes are rewritten to match. `framework/SKILLS.md` states the ask-or-return rule. The direct L0 edit is recorded in Findings.
-- [ ] The five layer gates return `NEEDS-INPUT` and write no files when they can't ask the user. The three phase input skills define `mode` and an Output parameter block. No agent still says "Mode is set by the … skill".
-- [ ] All 8 Claude agent entries preload their own input skill with `skills:`. Copilot development, deployment and validation, plus any spec agent that lacked it, have `vscode/askQuestions`.
-- [ ] Phase agents:
+- [x] `framework/AGENTS.md` defines the Phase Parameters block and the `NEEDS-INPUT`/`REVIEW-REQUESTED` return signals. Its input-skill rule and Execution Modes are rewritten to match. `framework/SKILLS.md` states the ask-or-return rule. The direct L0 edit is recorded in Findings.
+- [x] The five layer gates return `NEEDS-INPUT` and write no files when they can't ask the user. The three phase input skills define `mode` and an Output parameter block. No agent still says "Mode is set by the … skill".
+- [x] All 8 Claude agent entries preload their own input skill with `skills:`. Copilot development, deployment and validation, plus any spec agent that lacked it, have `vscode/askQuestions`.
+- [x] Phase agents:
   - read the parameter block
   - fall back to defaults plus `NEEDS-INPUT` when no block was passed
   - pass a spec agent's `NEEDS-INPUT` up unchanged
   - honour `approved_spec_paths`
   - implement Assisted mode as `REVIEW-REQUESTED`, keeping the 3-iteration cap
-- [ ] The three phase commands run the phase input skill in the main conversation, pass the parameter block, and loop ask-and-resume. They resume through `SendMessage`, falling back to a fresh invocation with `answers` and `approved_spec_paths`.
-- [ ] `new-greenfield-project` Phase 3 passes `specification_mode: prevalidated` with the Phase 2 spec paths. Neither orchestrator skill calls spec agents as `/smaqit.<layer>` commands, and both pass `mode` into every phase-agent call.
-- [ ] `make -C installer prepare` fails, naming the file, when an input skill an agent body tells it to run is missing from that agent's Claude `skills:` list.
-- [ ] `make -C installer test` and `make -C installer smoke-test` pass. A Claude Code live check records three results: the `NEEDS-INPUT` round trip, the Assisted `REVIEW-REQUESTED` round trip, and no re-run of approved specs.
-- [ ] `docs/wiki/agent-tools-reference.md` (including its stale Codex paths), the compendium and `README.md` describe the contract. `CHANGELOG.md` is updated.
+- [x] The three phase commands run the phase input skill in the main conversation, pass the parameter block, and loop ask-and-resume. They resume through `SendMessage`, falling back to a fresh invocation with `answers` and `approved_spec_paths`.
+- [x] `new-greenfield-project` Phase 3 passes `specification_mode: prevalidated` with the Phase 2 spec paths. Neither orchestrator skill calls spec agents as `/smaqit.<layer>` commands, and both pass `mode` into every phase-agent call.
+- [x] `make -C installer prepare` fails, naming the file, when an input skill an agent body tells it to run is missing from that agent's Claude `skills:` list.
+- [x] `make -C installer test` and `make -C installer smoke-test` pass.
+- [x] A Claude Code live check (`NEEDS-INPUT` round trip, Assisted `REVIEW-REQUESTED` round trip, no re-run of approved specs) is **deferred by user decision on 2026-10-11** to the next real use of smaqit; see Follow-up identified.
+- [x] `docs/wiki/agent-tools-reference.md` (including its stale Codex paths), the compendium and `README.md` describe the contract. `CHANGELOG.md` is updated.
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Defined one platform-neutral contract in `framework/AGENTS.md` (User Interaction, Phase Parameters) and `framework/SKILLS.md`: agents that cannot reach the user return `NEEDS-INPUT` or `REVIEW-REQUESTED`, orchestrating agents pass both up unchanged, and the caller that can reach the user asks and resumes
+- The five layer input skills return `NEEDS-INPUT` with stable question ids and write nothing; the three phase input skills gained `mode`, a caller-set `specification_mode`, and a `PHASE-PARAMETERS` output block, and `input-deployment`'s block carries task 125's `slot_plan`
+- Spec and phase agents apply the contract. Phase agents read the parameter block, honour `approved_spec_paths` in Step 2, and run Assisted mode as `REVIEW-REQUESTED`; the stale "Mode is set by the … skill" lines and hardcoded Feature New diagnostics are gone
+- All 8 Claude agent entries preload their own input skill through `skills:`, which `generate-agents.py` passes through unchanged. `vscode/askQuestions` was added to 5 Copilot agents, so all 8 non-QA agents now have it
+- The three Claude phase command bodies own the ask-and-resume loop (SendMessage resume, falling back to a fresh run with `answers` plus `approved_spec_paths`)
+- `generate-agents.py` gained `check_input_skill_reachability`. A negative test in a scratch copy, with stack's preload removed, exits 1 and names both files
 
 **Decisions made:**
-- TBD
+- The L0 principle edits were direct, following task 125's precedent; `smaqit.new-principle` scope detection was not applied
+- Scope was extended beyond the plan, after the user saw the change: greenfield Phases 4, 5, 6 and 7 and the Phase 4 teardown also pass `specification_mode: prevalidated` with the Phase 2 spec set. They had the same draft-regeneration bug as Phase 3
+- Spec gates write nothing on `NEEDS-INPUT`, so the main conversation resumes the phase agent and the phase agent invokes the spec agent again. This avoids the undocumented case of a subagent resuming its own child
+- Only each agent's own input skill is preloaded, to limit re-injection cost on resume (closed claude-code issue #80489)
+- Descriptions and `when_to_use` lines were left to task 130, per the agreed ownership split. The changelog entries sit under `[Unreleased]` for release-analysis to version
 
 **Blockers encountered:**
-- TBD
+- None in implementation
+- A Bench run could not exercise the Claude-specific behavior. Bench stages treatments into a read-only sidecar that Claude Code does not read, and personal `~/.claude/skills` would shadow the treatment's input skills, so the live check was deferred
 
 **Follow-up identified:**
-- TBD
+- Live Claude Code check, deferred by the user to the next real use of smaqit. Confirm that `skills:` preload injects content (closed claude-code issue #67251), and check three round trips: `NEEDS-INPUT` → answer → resume → spec written, the Assisted `REVIEW-REQUESTED` loop, and no re-run of approved specs
+- smaqit-adk task 037 (Bench harness selector for Claude Code) would make that check repeatable as a Bench Case
+- A Bench Case for "thin requirements → `NEEDS-INPUT`, no spec file written" once task 037 lands
+- Task 130 must reconcile with this task's command bodies and `skills:` fields when it lands
 
 ## Files to Create / Modify
 

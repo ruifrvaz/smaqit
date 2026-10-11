@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: Completed
+completed: "2026-10-11"
 mode: Assisted
 started: "2026-10-11"
 created: "2026-10-11"
@@ -55,26 +56,33 @@ the k3s credential ordering and the `existing-owned` teardown hazard on the way.
 
 ## Acceptance Criteria
 
-- [ ] Greenfield Phases 4–6 invoke the deployment agent (Phase 4 `standard`, Phase 5 `ci-push`, Phase 6 single-slot `tls`) instead of infrastructure skills directly
-- [ ] `agents/deployment.md` supports `deployment_path: ci-push`
-- [ ] k3s `target-credentials` runs after `platform-onboarding`; default `teardown` applies only to `provision`
-- [ ] With no `.smaqit/slots.yml`, the resolved sequence per mode matches current greenfield behaviour
+- [x] Greenfield Phases 4–6 invoke the deployment agent (Phase 4 `standard`, Phase 5 `ci-push`, Phase 6 single-slot `tls`) instead of infrastructure skills directly
+- [x] `agents/deployment.md` supports `deployment_path: ci-push`
+- [x] k3s `target-credentials` runs after `platform-onboarding`; default `teardown` applies only to `provision`
+- [x] With no `.smaqit/slots.yml`, the resolved sequence per mode matches current greenfield behaviour
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Greenfield Phase 4 resolves a `standard` plan for the dev environment and makes one Deployment-agent call; the per-mode callouts became a description of what each default profile executes
+- Phase 5 resolves a `ci-push` plan for prod and makes one agent call; the agent runs credential, onboarding, and environment-config slots locally, pushes, correlates the `deploy.yml` push run by `headSha`, and verifies with `--expected-sha`
+- Phase 6 is a single-slot `tls` run; optional Phase 4 teardown is a single-slot `teardown` run
+- The match-or-synthesize procedure moved into a "Family filler synthesis" subsection keyed off the plan's no-candidate warning; synthesized skills must declare their slot
+- `agents/deployment.md` gained the `ci-push` path; `smaqit.input-deployment` names it as greenfield's Phase 5 path
 
 **Decisions made:**
-- TBD
+- `ci-push` defaults `host-bootstrap` to none instead of a CI executor: the full CI template never bootstraps, cloud-init configures the production host, and current Phase 5 never ran `vm-bootstrap`
+- Greenfield bumped to 2.0.0 because orchestration ownership of every infrastructure step moved to the Deployment agent
+- k3s now loads the kubeconfig after onboarding in both phases (fixes the old Phase 4 ordering)
+- Phase structure and task bracketing unchanged; new Gotcha forbids direct infrastructure-skill calls in Phases 4–6
 
 **Blockers encountered:**
-- TBD
+- None
 
 **Follow-up identified:**
-- TBD
+- Whether a production VM should run `vm-bootstrap` at all is a pre-existing greenfield question, not introduced here
+- An existing `<!-- amendment: ... -->` comment in greenfield Pre-conditions may match Phase 8's amendment scan
+- `cicd-generate`'s "workflows generated during Phase 5" wording remains stale (task 123 drift list)
 
 ## Files to Create / Modify
 

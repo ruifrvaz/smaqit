@@ -8,13 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **"When to use smaqit" in project instructions.** The managed `AGENTS.md` section routes feature, build, deploy, test, and framework-question requests to the matching smaqit entry point. It puts specifications first (`smaqit status`, then the relevant `specs/`), prefers the phase commands, and lists the trivial changes that may skip the workflow. A return-signal rule requires the main conversation to put every `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user, never answer it itself, and resume the agent with `answers`.
-- **Build-time frontmatter check:** `scripts/generate-agents.py` fails `make prepare`, naming the file, when a skill or command's frontmatter isn't strict YAML or its description exceeds 400 characters.
+- Nothing to add.
 
 ### Changed
-- **Project instructions refresh on `init` and `update`.** smaqit's section in `AGENTS.md` and `CLAUDE.md` (between the `smaqit:instructions` markers) is replaced with the current template, so template changes reach existing projects. Content outside the markers is preserved byte for byte, an already-current section is not rewritten, CRLF files keep CRLF, and a section with malformed markers is left untouched with a warning.
-- **Trigger-form entry points for Claude Code.** `/smaqit.development`, `/smaqit.deployment`, `/smaqit.validation`, and `/smaqit.qa` have "Use when…" descriptions plus `when_to_use` trigger phrases, so Claude can invoke them itself. The matching subagents' descriptions say "Use proactively when…", ask for the user's full request plus any resolved `PHASE-PARAMETERS` block, and no longer say "Invoked via the /smaqit.X command". Command bodies are unchanged.
-- **Shorter skill descriptions.** The 17 skill descriptions longer than 400 characters now lead with the key use case and fit in 400, so they're less likely to be dropped when Claude Code's skill listing exceeds its budget.
+- Nothing to add.
 
 ### Deprecated
 - Nothing to add.
@@ -23,13 +20,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing to add.
 
 ### Fixed
-- Existing projects never received changes to the managed `AGENTS.md`/`CLAUDE.md` section, including v3.7.0's deployment-slots guidance: `smaqit init` and `smaqit update` skipped any file that already had the begin marker.
+- Nothing to add.
 
 ### Security
 - Nothing to add.
 
 ### Chore
 - Nothing to add.
+
+## [3.10.0] - 2026-10-11
+
+### Added
+- **"When to use smaqit" in project instructions.** The managed `AGENTS.md` section routes feature, build, deploy, test, and framework-question requests to the matching smaqit entry point. It puts specifications first (`smaqit status`, then the relevant `specs/`), prefers the phase commands, and lists the trivial changes that may skip the workflow. A return-signal rule requires the main conversation to put every `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user, never answer it itself, and resume the agent with `answers`.
+- **Build-time frontmatter check:** `scripts/generate-agents.py` fails `make prepare`, naming the file, when a skill or command's frontmatter isn't strict YAML or its description exceeds 400 characters.
+
+### Changed
+- **Project instructions refresh on `init` and `update`.** smaqit's section in `AGENTS.md` and `CLAUDE.md` (between the `smaqit:instructions` markers) is replaced with the current template, so template changes reach existing projects. Content outside the markers is preserved byte for byte, an already-current section is not rewritten, CRLF files keep CRLF, and a section with malformed markers is left untouched with a warning.
+- **Trigger-form entry points for Claude Code.** `/smaqit.development`, `/smaqit.deployment`, `/smaqit.validation`, and `/smaqit.qa` have "Use when…" descriptions plus `when_to_use` trigger phrases, so Claude can invoke them itself. The matching subagents' descriptions say "Use proactively when…", ask for the user's full request plus any resolved `PHASE-PARAMETERS` block, and no longer say "Invoked via the /smaqit.X command". Command bodies are unchanged.
+- **Shorter skill descriptions.** The 17 skill descriptions longer than 400 characters now lead with the key use case and fit in 400, so they're less likely to be dropped when Claude Code's skill listing exceeds its budget.
+
+### Fixed
+- Existing projects never received changes to the managed `AGENTS.md`/`CLAUDE.md` section, including v3.7.0's deployment-slots guidance: `smaqit init` and `smaqit update` skipped any file that already had the begin marker.
 
 ## [3.8.0] - 2026-10-11
 

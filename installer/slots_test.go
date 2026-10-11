@@ -310,6 +310,51 @@ func TestSlotPlanBindings(t *testing.T) {
 	}
 }
 
+// A platform repository binds the shipped machine operations. Both skills declare
+// a second operation for the slot, so the binding must name it; their defaults
+// keep resolving to the original operation.
+func TestSlotPlanPlatformRepositoryBindings(t *testing.T) {
+	root := slotsTestProject(t)
+	writeSlotsConfig(t, root, `  target-credentials:
+    skill: smaqit.infrastructure-vault-loader
+    operation: register
+  environment-config:
+    skill: smaqit.infrastructure-repo-config
+    operation: sync-machine
+`)
+	got := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "provision", Environment: "prod", Path: "standard"}))
+	if got["target-credentials"] != "bound smaqit.infrastructure-vault-loader:register @local" {
+		t.Errorf("target-credentials = %q", got["target-credentials"])
+	}
+	if got["environment-config"] != "bound smaqit.infrastructure-repo-config:sync-machine @local" {
+		t.Errorf("environment-config = %q", got["environment-config"])
+	}
+	if errs := validateSlotBindings(root); len(errs) > 0 {
+		t.Fatalf("validateSlotBindings: %v", errs)
+	}
+
+	defaults := slotsTestProject(t)
+	k3s := planSummary(mustResolve(t, defaults, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "ci-push"}))
+	if k3s["target-credentials"] != "profile smaqit.infrastructure-vault-loader:target @local" {
+		t.Errorf("default target-credentials = %q", k3s["target-credentials"])
+	}
+	if k3s["environment-config"] != "profile smaqit.infrastructure-repo-config:sync @local" {
+		t.Errorf("default environment-config = %q", k3s["environment-config"])
+	}
+
+	unnamed := slotsTestProject(t)
+	writeSlotsConfig(t, unnamed, `  target-credentials:
+    skill: smaqit.infrastructure-vault-loader
+  environment-config:
+    skill: smaqit.infrastructure-repo-config
+`)
+	_, errs := resolveSlotPlan(unnamed, slotPlanOptions{Mode: "provision", Environment: "prod", Path: "standard"})
+	requireSlotError(t, errs, "SLOTS-OPERATION-INVALID")
+	if len(errs) != 2 {
+		t.Fatalf("expected both unnamed bindings refused, got %d: %v", len(errs), errs)
+	}
+}
+
 func TestSlotPlanRefusesInvalidBindings(t *testing.T) {
 	root := slotsTestProject(t)
 	local := filepath.Join(root, ".agents", "skills")

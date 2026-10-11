@@ -279,6 +279,16 @@ Three app-scoped fields, all under `secret/apps/<app-slug>/*`, none with a `secr
 
 ---
 
+**How does a platform repository (one that owns machines, not an app) register a machine and configure its GitHub Environment?**
+
+Through two shipped slot operations, bound in the repository's `.smaqit/slots.yml`: `target-credentials: {skill: smaqit.infrastructure-vault-loader, operation: register}` and `environment-config: {skill: smaqit.infrastructure-repo-config, operation: sync-machine}`. Both skills also keep their original operation as the default (`target`, `sync`), so a binding to either must name the operation or `smaqit slots plan` refuses it with `SLOTS-OPERATION-INVALID`.
+
+`register` runs `register-machine.sh <machine-slug>`, the single entrypoint for first-time population of `secret/machines/<machine-slug>/{base-ssh,cyso,tfstate,metadata}`. The slug is a required argument, never derived from the working directory, and is restricted to lowercase letters, digits, and inner hyphens because it also names the GitHub Environment. It keeps every path that already exists, prompts on the terminal only for missing ones (secrets hidden, handed to Vault on stdin), and refuses empty answers. After apply, `register-machine.sh <machine-slug> --host <ip>` backfills `metadata.host`, which `rotate-credential.sh machines/<slug>/base-ssh` requires. `rotate-credential.sh` is rotation-only. `smaqit.infrastructure-provision-cyso` Step 7.5 uses the same script for an app-owned VM.
+
+`sync-machine` runs `sync-machine-env.sh <owner>/<repo> <machine-slug>`: it creates or verifies an Environment named after the machine slug, preflights the token with `check-pat-permissions.sh`, and pipes six secrets (`BASE_SSH_*`, `CYSO_APPLICATION_CREDENTIAL_*`, `CYSO_S3_*`) plus the variables `RECONCILE_SSH_USER` and `FIXED_IP` into it. Because `environment-config` precedes `provision` in the slot order, the first run happens before the machine has an address and skips `FIXED_IP`; re-run the slot alone after the `--host` backfill. A fine-grained PAT needs **organization-level** Secrets and Variables read/write for Environment writes — repository-level grants alone return 403. See also: how does a project bind its own skill to a deployment step?
+
+---
+
 ## Codex Support
 
 **How does smaqit provide first-class Codex compatibility?**

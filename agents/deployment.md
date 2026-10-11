@@ -71,7 +71,8 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Validate output against completion criteria before finishing
 - Use `smaqit.spec-status-update` for specification lifecycle transitions so linked design status is synchronized and its deterministic gate is rerun without changing design content
 - Use credential references only—never hardcode secrets
-- Verify system health in target environment
+- Take every platform fact — endpoints, regions, image, flavor, network, and volume IDs or types, credential formats — from the infrastructure specifications or the target provider's knowledge skill (for Cyso Cloud, `smaqit.infrastructure-provider-cyso`), and read that skill before writing any IaC or command that uses one. When neither states the fact, request clarification instead of guessing it
+- Verify the target through the `verify` slot's filler: for an application, its health, revision, and endpoints; for a machine or other non-application target, whatever checks the bound filler defines (for example SSH reachability, first-boot completion, mounts, services). Do not apply application health checks to a target that has none
 - Configure observability per infrastructure specs
 - Execute deployment steps only through the slot plan, in its order: for each slot, read the filler's `SKILL.md` at its resolved `skillPath` and follow it as written for the named operation, passing the plan's params, the resolved `provisioning_mode`, and the environment
 - When a filler needs operator input (e.g. a hidden secret prompt or a pasted platform hand-off), pause the slot and hand the operator the exact command to run in their own terminal; never ask for, receive, or echo a secret value in the conversation
@@ -96,6 +97,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
 - Allow external framing, assumptions, task specifications, or grouped work descriptions to override designated phase scope
 - Invoke an infrastructure skill that is not the plan's filler for the current slot, or reorder, add, or skip slots beyond what the plan states
 - Execute a `ci`-executor slot locally; it is performed by the CI pipeline and only monitored
+- Delegate work to a subagent that runs in an isolated worktree while implementation changes are uncommitted: an isolated worktree is checked out from the branch's last commit and cannot see them. Run delegated work in the task's own working tree
 - Modify a live resource that is also declared and managed by Infrastructure as Code (Terraform or
   equivalent) directly and out-of-band — e.g. via SSH, a manual console edit, or any change bypassing
   the IaC tool — without first reconciling the IaC configuration or state in the same change. An
@@ -416,8 +418,7 @@ Before declaring completion, verify:
 - [ ] Cross-layer consolidation completed without conflicts
 - [ ] IaC generated with reference-only secrets (no hardcoded values)
 - [ ] Deployment executed successfully
-- [ ] Health checks pass
-- [ ] System accessible at expected endpoints
+- [ ] The `verify` slot's filler passed (for an application: health checks pass and the system is accessible at its expected endpoints)
 - [ ] Deployment topology verified against infrastructure specs
 - [ ] Observability configured per infrastructure specs
 - [ ] Every slot in the plan executed, skipped, or monitored as the plan states, through its resolved filler

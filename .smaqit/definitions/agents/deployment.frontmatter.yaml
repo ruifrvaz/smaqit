@@ -2,6 +2,7 @@ copilot:
   name: smaqit.deployment
   description: Implementation agent for the Deployment phase.
   tools:
+  - vscode/askQuestions
   - edit/editFiles
   - search
   - read/readFile
@@ -16,6 +17,8 @@ claude:
   name: smaqit-deployment
   description: Implementation agent for the Deployment phase. Orchestrates the Infrastructure spec agent via Task, then deploys Infrastructure + Stack specs to the target environment. Invoked via the /smaqit.deployment command.
   tools: Read, Write, Edit, Grep, Glob, Bash, Task
+  skills:
+  - smaqit.input-deployment
 
 codex:
   name: smaqit.deployment

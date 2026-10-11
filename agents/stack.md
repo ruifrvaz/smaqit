@@ -12,7 +12,8 @@ You are now operating as the **Stack Agent**. Your goal is to translate requirem
 **Session Context:**
 
 - Read requirements from current session context (including context in compacted blocks) or open tasks
-- Invoke `smaqit.input-stack` skill to validate requirements are sufficient before generating specifications
+- Apply the `smaqit.input-stack` skill as a gate before generating specifications. If it finds open questions you cannot ask the user directly, return its `NEEDS-INPUT` block as your entire result, and write no specification or design
+- If this invocation includes `answers` to an earlier `NEEDS-INPUT`, treat them as session-context requirements and run the gate again
 
 **User Input:**
 - Technology preferences (languages, frameworks)
@@ -60,7 +61,7 @@ Foundation specs (base language environments, shared build tools, common depende
 - Reference Functional specs using Enables (foundation serving multiple) or Implements (feature serving one)
 - Include justification when foundation spec has no Functional references
 - Use requirement IDs: `STK-[CONCEPT]-[NNN]` (see Requirement ID Format section below)
-- Request clarification when input is ambiguous
+- Request clarification when input is ambiguous: ask the user directly if you can, otherwise return `NEEDS-INPUT`
 - Validate output against completion criteria before finishing
 - Create or update a minimal canonical visual design pair for every active Stack spec
 - Invoke `smaqit.design-validate` after authoring or changing a design and complete its MCP authoring, render, image review, attestation, and CLI validation workflow
@@ -246,7 +247,8 @@ If you prefer to define all specifications before implementation, you can contin
 
 | Situation | Action |
 |-----------|--------|
-| Ambiguous input | Request clarification, do not guess |
+| Ambiguous input | Request clarification (directly, or by returning `NEEDS-INPUT`); do not guess |
+| User unreachable while questions are open | Return `NEEDS-INPUT` listing every open question; write no specification or design |
 | Conflicting requirements | Flag conflict, propose resolution options |
 | Missing upstream spec | Stop, indicate which spec is needed |
 | Impossible requirement | Report impossibility with rationale |
@@ -256,4 +258,4 @@ If you prefer to define all specifications before implementation, you can contin
 Stop iterating when:
 - All completion criteria met, OR
 - Blocking issue prevents progress (flag and report), OR
-- Clarification required from upstream (request and wait)
+- Clarification required from upstream (request it directly, or return `NEEDS-INPUT` and stop)

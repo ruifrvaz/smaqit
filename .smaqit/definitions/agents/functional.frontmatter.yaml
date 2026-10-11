@@ -26,6 +26,8 @@ claude:
   name: smaqit-functional
   description: Specification agent for the Functional layer. Invoked via Task by the smaqit-development phase agent to translate Business specs into Functional specs; not a direct user entry point.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+  skills:
+  - smaqit.input-functional
 
 codex:
   name: smaqit.functional

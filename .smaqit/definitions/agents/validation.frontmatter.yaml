@@ -2,6 +2,7 @@ copilot:
   name: smaqit.validation
   description: Implementation agent for the Validation phase.
   tools:
+  - vscode/askQuestions
   - execute/getTerminalOutput
   - execute/sendToTerminal
   - execute/runInTerminal
@@ -23,6 +24,8 @@ claude:
   name: smaqit-validation
   description: Implementation agent for the Validation phase. Orchestrates the Coverage spec agent via Task, then generates and executes test artifacts against the deployed system. Invoked via the /smaqit.validation command.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
+  skills:
+  - smaqit.input-validation
 
 codex:
   name: smaqit.validation

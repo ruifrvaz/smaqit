@@ -10,7 +10,6 @@
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch | new | Medium |
 | 122 | existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones | new | High |
 | 115 | New Machine-Monorepo Infrastructure Skills: Provision, Verify, Day-2 Baseline, Tenant Reconcile | new | Medium |
-| 114 | Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from a Downstream Project's Infrastructure Task 001) | PR Open (#96) | High |
 | 113 | Business Use-Case Diagrams: No Guardrail Against Generalization-Inheritance Misuse or PlantUML-Alias Collision With the Project's Own UC-ID Convention | new | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |
@@ -21,6 +20,7 @@
 
 | ID | Title |
 |----|-------|
+| 114 | Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from a Downstream Project's Infrastructure Task 001) |
 | 131 | Claude Code Agents Can't Invoke Their Input Skills or Ask the User Questions |
 | 125 | Deployment Variation Points: Slot-Driven Deployment Orchestration With Project-Bound Fillers |
 | 129 | Deployment Slots C: Route new-greenfield-project Phases 4–6 Through the Deployment Agent (child of 125) |

@@ -18,19 +18,19 @@ One environment run walks these slots in order. Day-two slots never run as part 
 | 2 | `access-credentials` | Credentials to reach the provider, platform, and repository | Vault paths for the mode | Credentials in Vault (never in artifacts) | Required paths populated |
 | 3 | `platform-onboarding` | Request tenancy on a platform-owned target and gate on approval | Platform repo, registry file, environment | Approved onboarding (merged request) | Request merged; stop while pending |
 | 4 | `target-credentials` | Credentials the target issues or authorizes for this app | Onboarding result or machine registration | Target credential in Vault (kubeconfig, per-app SSH key) | Credential populated and usable |
-| 5 | `artifact-build` | Author and build deployable artifacts | Stack spec, source tree | Image and manifests | Image built (and pushed when required) |
-| 6 | `iac-generate` | Generate Infrastructure as Code from consolidated specs | Infrastructure and Stack specs | IaC configuration with credential references | IaC written and structurally valid |
-| 7 | `ci-generate` | Generate or update the deploying CI/CD workflows | Mode, Infrastructure spec | Workflow files | Workflows written and linted |
-| 8 | `provision` | Provision or reconcile the target through the guarded IaC tool | IaC configuration, credentials | Provisioned target (host, fixed IP) | Guarded plan/apply succeeds |
-| 9 | `host-bootstrap` | Bootstrap the host OS and runtime | Target host, credentials | Host ready for deploys | Bootstrap checks pass |
-| 10 | `environment-config` | Configure repository/environment secrets and variables for CI/CD | Credentials, target facts | Repository and environment configuration | Expected names present |
+| 5 | `environment-config` | Configure repository/environment secrets and variables for CI/CD | Credentials, target facts | Repository and environment configuration | Expected names present |
+| 6 | `artifact-build` | Author and build deployable artifacts | Stack spec, source tree | Image and manifests | Image built (and pushed when required) |
+| 7 | `iac-generate` | Generate Infrastructure as Code from consolidated specs | Infrastructure and Stack specs | IaC configuration with credential references | IaC written and structurally valid |
+| 8 | `ci-generate` | Generate or update the deploying CI/CD workflows | Mode, Infrastructure spec | Workflow files | Workflows written and linted |
+| 9 | `provision` | Provision or reconcile the target through the guarded IaC tool | IaC configuration, credentials | Provisioned target (host, fixed IP) | Guarded plan/apply succeeds |
+| 10 | `host-bootstrap` | Bootstrap the host OS and runtime | Target host, credentials | Host ready for deploys | Bootstrap checks pass |
 | 11 | `app-deploy` | Deploy the application | Artifacts, target, credentials | Running revision | Deploy completes |
 | 12 | `verify` | Verify the deployed revision is healthy and serving | Target URL, expected revision | Verification report | All checks pass |
 | 13 | `tls` | Issue and install TLS for a declared custom domain | Domain, DNS, target | Certificate in place | HTTPS smoke test passes |
 | — | `replace` | Replace a target in place (day two) | Target identity | Replacement target | Replacement verified |
 | — | `teardown` | Destroy the target through the guarded IaC tool (day two) | IaC state | Removed target | Guarded destroy succeeds |
 
-`tls` runs only when the Infrastructure specification declares a custom domain.
+`tls` defaults to none in every full sequence; it runs as a single-slot run (greenfield's conditional Phase 6) or when bound, and its filler requires a custom domain declared in the Infrastructure specification.
 
 ## Default Fillers by Provisioning Mode
 
@@ -42,18 +42,19 @@ One environment run walks these slots in order. Day-two slots never run as part 
 | `access-credentials` | vault-loader `access` | vault-loader `access` | vault-loader `access` |
 | `platform-onboarding` | none | none | request-k3s-onboarding `request` |
 | `target-credentials` | none | vault-loader `target` | vault-loader `target` |
+| `environment-config` | repo-config `sync` | repo-config `sync` | repo-config `sync` |
 | `artifact-build` | none | none | `image-build-push*` family `build` |
 | `iac-generate` | agent builtin | none | none |
 | `ci-generate` | cicd-generate `generate` | cicd-generate `generate` | cicd-generate `generate` |
 | `provision` | provision-cyso `apply` | none | none |
 | `host-bootstrap` | vm-bootstrap `bootstrap` | vm-bootstrap `bootstrap` | none |
-| `environment-config` | repo-config `sync` | repo-config `sync` | repo-config `sync` |
 | `app-deploy` | `deploy-rsync*` family `deploy` | `deploy-rsync*` family `deploy` | `deploy-k3s-app*` family `deploy` |
 | `verify` | deploy-verify `verify` | deploy-verify `verify` | deploy-verify `verify` |
 | `tls` | domain-tls `issue` | domain-tls `issue` | none (handled inside `app-deploy`) |
+| `replace` | none | none | none |
 | `teardown` | agent builtin destroy (`provision` only) | none | none |
 
-A **family** default (e.g. `deploy-rsync*`) lists every installed skill with that name prefix that declares the slot; the orchestrator picks one by the declared stack, or synthesizes one when none matches, exactly as before.
+A **family** default (e.g. `deploy-rsync*`) lists every installed skill with that name prefix that declares the slot; the orchestrator picks one by the declared stack, or synthesizes one when none matches. A family member whose `metadata.smaqit-slots` cannot be read is skipped with a plan warning rather than an error.
 
 Skill names above drop the `smaqit.infrastructure-` prefix for brevity.
 
@@ -63,9 +64,14 @@ The deployment path adjusts the profile:
 
 | Path | Used by | Effect |
 |------|---------|--------|
-| `standard` | Local runs (greenfield dev sweep) | Every slot executes locally; `environment-config` defaults to none |
+| `standard` | Local runs (greenfield dev sweep) | Every slot executes locally; `environment-config` and `tls` default to none |
 | `existing-cicd-pr` | `smaqit.feature-new` | `iac-generate`, `ci-generate`, `provision`, `host-bootstrap` are **refused** (the PR path never regenerates workflows or provisions directly); `platform-onboarding` and `tls` default to none; `artifact-build` and `app-deploy` are executed by CI and monitored |
-| `ci-push` | Greenfield production | `iac-generate`, `ci-generate`, `host-bootstrap`, `tls` default to none (workflows were committed in the dev sweep; the production host is configured by provisioning); `artifact-build`, `provision`, `app-deploy` are executed by CI and monitored |
+| `ci-push` | Greenfield production | `iac-generate`, `ci-generate`, `host-bootstrap`, `tls` default to none (workflows were committed in the dev sweep; under `provision`/`existing-owned` cloud-init configures the production host, and under `existing-shared`/`existing-unmanaged` the host is already bootstrapped); `artifact-build`, `provision`, `app-deploy` are executed by CI and monitored |
+
+Two rules hold on every path:
+
+- **Single-slot runs** (`--slot=<slot>`) ignore the path's full-sequence defaults — that is how `tls` and `teardown` run on demand — but never its refusals.
+- **No split CI runs:** the slots a pipeline performs run as one pipeline run, so every locally executed slot must come before the first CI-executed slot (or be `verify`, which runs after). A local binding that would land between CI-executed slots — e.g. a bound `host-bootstrap` between CI `provision` and CI `app-deploy` under `ci-push` — is refused with `SLOTS-BINDING-REFUSED`.
 
 ## Configuring Slots
 
@@ -118,7 +124,7 @@ smaqit slots validate
 
 ## Invariants
 
-Every filler — default or project-owned — runs under the deployment phase's invariants: IaC plan/apply only through the project's guard script, no out-of-band changes to IaC-managed resources, and credential references only. A filler that cannot honour them is refused at plan time.
+Every filler — default or project-owned — runs under the deployment phase's invariants: IaC plan/apply only through the project's guard script, no out-of-band changes to IaC-managed resources, and credential references only. When a filler's instructions would break one, the deployment agent stops and reports the conflict instead of following them.
 
 ## Further Reading
 

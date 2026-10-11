@@ -336,6 +336,39 @@ func TestSlotPlanRefusesInvalidBindings(t *testing.T) {
 	requireSlotError(t, validateSlotBindings(root), "SLOTS-SLOT-UNDECLARED")
 }
 
+func TestSlotPlanRefusesLocalSlotInsideCIRun(t *testing.T) {
+	root := slotsTestProject(t)
+	local := filepath.Join(root, ".agents", "skills")
+	writeTestSkill(t, local, "platform.baseline", "metadata:\n  smaqit-slots: \"host-bootstrap=bootstrap\"\n")
+	writeSlotsConfig(t, root, "  host-bootstrap:\n    skill: platform.baseline\n")
+	// provision (ci) → host-bootstrap (local) → app-deploy (ci) would split the run.
+	_, errs := resolveSlotPlan(root, slotPlanOptions{Mode: "provision", Environment: "prod", Path: "ci-push"})
+	requireSlotError(t, errs, "SLOTS-BINDING-REFUSED")
+	// Without CI provisioning, the local slot precedes every CI slot and is allowed.
+	got := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "existing-shared", Environment: "prod", Path: "ci-push"}))
+	if got["host-bootstrap"] != "bound platform.baseline:bootstrap @local" {
+		t.Fatalf("shared ci-push host-bootstrap = %q", got["host-bootstrap"])
+	}
+}
+
+// On CI paths every local preparation slot precedes the first CI slot.
+func TestSlotPlanLocalSlotsPrecedeCI(t *testing.T) {
+	root := slotsTestProject(t)
+	for _, mode := range provisioningModes {
+		for _, path := range []string{"existing-cicd-pr", "ci-push"} {
+			plan := mustResolve(t, root, slotPlanOptions{Mode: mode, Environment: "prod", Path: path})
+			seenCI := false
+			for _, entry := range plan.Slots {
+				if entry.Executor == "ci" {
+					seenCI = true
+				} else if entry.Executor == "local" && seenCI && entry.Slot != "verify" {
+					t.Errorf("%s/%s: local slot %s runs after CI started", mode, path, entry.Slot)
+				}
+			}
+		}
+	}
+}
+
 func TestParseSlotsConfigRejectsSchemaViolations(t *testing.T) {
 	cases := map[string]struct {
 		content string

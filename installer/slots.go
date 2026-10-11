@@ -114,6 +114,11 @@ var deploySlots = []slotDef{
 		}),
 	},
 	{
+		Name:     "environment-config",
+		Purpose:  "Configure repository and environment secrets and variables for CI/CD",
+		Defaults: byMode(skillFiller(skillRepoConfig, "sync"), nil),
+	},
+	{
 		Name:     "artifact-build",
 		Purpose:  "Author and build deployable artifacts (container image, manifests)",
 		Defaults: byMode(noFiller(), map[string]slotFiller{"existing-k3s": familyFiller(familyImageBuild, "build")}),
@@ -141,11 +146,6 @@ var deploySlots = []slotDef{
 		Name:     "host-bootstrap",
 		Purpose:  "Bootstrap the host operating system and runtime the app deploys onto",
 		Defaults: byMode(noFiller(), vmModes(skillFiller(skillVMBootstrap, "bootstrap"))),
-	},
-	{
-		Name:     "environment-config",
-		Purpose:  "Configure repository and environment secrets and variables for CI/CD",
-		Defaults: byMode(skillFiller(skillRepoConfig, "sync"), nil),
 	},
 	{
 		Name:    "app-deploy",
@@ -203,8 +203,10 @@ var deploymentPathRules = map[string]pathRule{
 		CIExecuted:  slotSet("artifact-build", "app-deploy"),
 	},
 	// ci-push mirrors greenfield production: workflows were generated and
-	// committed in the dev sweep, the pipeline provisions and deploys, and the
-	// production host is configured by provisioning (cloud-init), not bootstrap.
+	// committed in the dev sweep and the pipeline provisions and deploys. No
+	// default bootstraps the production host: under provision/existing-owned
+	// cloud-init configures it; under existing-shared/existing-unmanaged the host
+	// is already bootstrapped (dev sweep or its owner).
 	"ci-push": {
 		DefaultNone: slotSet("iac-generate", "ci-generate", "host-bootstrap", "tls"),
 		CIExecuted:  slotSet("artifact-build", "provision", "app-deploy"),
@@ -447,8 +449,9 @@ func (idx *skillIndex) find(name string) (*installedSkill, error) {
 	return found, findErr
 }
 
-// family returns installed skills named prefix or prefix-*, sorted by name.
-func (idx *skillIndex) family(prefix string) []*installedSkill {
+// family returns installed skills named prefix or prefix-*, sorted by name,
+// plus a warning for each member whose slot declaration cannot be read.
+func (idx *skillIndex) family(prefix string) ([]*installedSkill, []string) {
 	seen := map[string]bool{}
 	var names []string
 	for _, dir := range idx.dirs {
@@ -467,12 +470,18 @@ func (idx *skillIndex) family(prefix string) []*installedSkill {
 	}
 	sort.Strings(names)
 	var skills []*installedSkill
+	var warnings []string
 	for _, name := range names {
-		if skill, err := idx.find(name); skill != nil && err == nil {
+		skill, err := idx.find(name)
+		if err != nil {
+			warnings = append(warnings, fmt.Sprintf("family member %s skipped: %v", name, err))
+			continue
+		}
+		if skill != nil {
 			skills = append(skills, skill)
 		}
 	}
-	return skills
+	return skills, warnings
 }
 
 // readSkillSlots parses metadata.smaqit-slots from a SKILL.md frontmatter.
@@ -655,13 +664,11 @@ func resolveSlotPlan(root string, opts slotPlanOptions) (*slotPlan, []error) {
 			if filler.Kind == fillerNone {
 				entry.Source = "none"
 			}
-			warning, err := resolveProfileEntry(idx, def.Name, filler, &entry)
+			warnings, err := resolveProfileEntry(idx, def.Name, filler, &entry)
 			if err != nil {
 				errs = append(errs, err)
 			}
-			if warning != "" {
-				plan.Warnings = append(plan.Warnings, warning)
-			}
+			plan.Warnings = append(plan.Warnings, warnings...)
 		}
 		if entry.Kind != fillerNone {
 			entry.Executor = "local"
@@ -671,10 +678,33 @@ func resolveSlotPlan(root string, opts slotPlanOptions) (*slotPlan, []error) {
 		}
 		plan.Slots = append(plan.Slots, entry)
 	}
+	errs = append(errs, refuseSplitCIRun(plan)...)
 	if len(errs) > 0 {
 		return nil, errs
 	}
 	return plan, nil
+}
+
+// refuseSplitCIRun rejects a locally executed slot between two CI-executed
+// slots: the pipeline performs its slots in one run, so a local step cannot be
+// interleaved with them.
+func refuseSplitCIRun(plan *slotPlan) []error {
+	first, last := -1, -1
+	for i, entry := range plan.Slots {
+		if entry.Executor == "ci" {
+			if first < 0 {
+				first = i
+			}
+			last = i
+		}
+	}
+	var errs []error
+	for i := first + 1; first >= 0 && i < last; i++ {
+		if entry := plan.Slots[i]; entry.Executor == "local" {
+			errs = append(errs, fmt.Errorf("SLOTS-BINDING-REFUSED: slot %q would run locally between CI-executed slots %q and %q under deployment path %q; the pipeline performs those in one run", entry.Slot, plan.Slots[first].Slot, plan.Slots[last].Slot, plan.Path))
+		}
+	}
+	return errs
 }
 
 func resolveBoundEntry(idx *skillIndex, slot string, binding slotBinding, entry *slotPlanEntry) error {
@@ -695,7 +725,7 @@ func resolveBoundEntry(idx *skillIndex, slot string, binding slotBinding, entry 
 	return nil
 }
 
-func resolveProfileEntry(idx *skillIndex, slot string, filler slotFiller, entry *slotPlanEntry) (string, error) {
+func resolveProfileEntry(idx *skillIndex, slot string, filler slotFiller, entry *slotPlanEntry) ([]string, error) {
 	entry.Kind = filler.Kind
 	switch filler.Kind {
 	case fillerBuiltin:
@@ -704,29 +734,31 @@ func resolveProfileEntry(idx *skillIndex, slot string, filler slotFiller, entry 
 		entry.Skill = filler.Name
 		skill, err := idx.find(filler.Name)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		if skill == nil {
-			return "", fmt.Errorf("SLOTS-SKILL-MISSING: default filler %q for slot %q is not installed; reinstall smaqit's global payload", filler.Name, slot)
+			return nil, fmt.Errorf("SLOTS-SKILL-MISSING: default filler %q for slot %q is not installed; reinstall smaqit's global payload", filler.Name, slot)
 		}
 		entry.SkillPath = skill.Path
 		operation, err := selectOperation(slot, skill, filler.Operation)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		entry.Operation = operation
 	case fillerFamily:
 		entry.Family, entry.Operation = filler.Name, filler.Operation
-		for _, skill := range idx.family(filler.Name) {
+		members, warnings := idx.family(filler.Name)
+		for _, skill := range members {
 			if containsString(skill.Slots[slot], filler.Operation) {
 				entry.Candidates = append(entry.Candidates, familyCandidate{Skill: skill.Name, SkillPath: skill.Path})
 			}
 		}
 		if len(entry.Candidates) == 0 {
-			return fmt.Sprintf("slot %q: no installed %s* skill declares %s=%s; the orchestrator must match or synthesize one", slot, filler.Name, slot, filler.Operation), nil
+			warnings = append(warnings, fmt.Sprintf("slot %q: no installed %s* skill declares %s=%s; the orchestrator must match or synthesize one", slot, filler.Name, slot, filler.Operation))
 		}
+		return warnings, nil
 	}
-	return "", nil
+	return nil, nil
 }
 
 // selectOperation checks the skill declares the slot and picks the operation.

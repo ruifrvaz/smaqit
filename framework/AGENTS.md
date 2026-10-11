@@ -235,8 +235,9 @@ Where a phase's implementation steps legitimately differ between projects — an
 - **Deterministic resolution** — Bindings are resolved and validated by deterministic tooling before execution, not by agent judgment: a binding to a skill that is missing or does not declare the slot is refused
 - **Path refusals** — An execution path may refuse bindings for slots it must not perform, preserving that path's prohibitions
 - **Recorded resolution** — The resolved plan (slot, source, filler, operation, executor) is recorded in the phase report
-- **Invariants bind every filler** — Phase invariants (guarded IaC plan/apply, no out-of-band changes to IaC-managed resources, credential references only) apply to every filler, default or project-owned; a filler that cannot honour them is refused at plan time, not tolerated
-- **Single-slot runs** — Day-two operations run as single-slot invocations of the same agent under the same invariants
+- **Invariants bind every filler** — Phase invariants (guarded IaC plan/apply, no out-of-band changes to IaC-managed resources, credential references only) apply to every filler, default or project-owned; the executing agent stops and reports when a filler's instructions would break one, rather than following them
+- **Single-slot runs** — Day-two operations run as single-slot invocations of the same agent under the same invariants; an execution path's full-sequence defaults do not apply to an explicitly requested slot, but its refusals do
+- **No split CI runs** — Slots a CI pipeline performs run as one pipeline run; resolution refuses a locally executed binding positioned between them
 
 **Execution Modes:**
 

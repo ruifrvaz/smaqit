@@ -1,0 +1,116 @@
+schemaVersion: 2
+name: smaqit-deployment-slots
+# Dogfood suite for agents/deployment.md + skills/smaqit.input-deployment
+# executing a deployment slot plan (task 125).
+#
+# The smaqit CLI is a stub (fixtures/slot-project/.bench/) that serves a fixed
+# plan or a fixed refusal, so the Case needs no real global install, Vault, or
+# cloud. Resolver determinism (bound, profile default, none, undeclared,
+# path refusals) is covered by installer/slots_test.go; this suite covers the
+# agent's side: it executes exactly the plan's fillers, in plan order, skips
+# `none`, ignores installed skills the plan does not name, records the
+# resolution, and stops on a SLOTS-* refusal before running any filler.
+#
+# Stub skills live in fixtures/slot-project/stub-skills/ and are moved into
+# project/.agents/skills/ by prepare: task worktrees sparse-exclude any
+# `.agents/skills/` path, so the fixture cannot store them there directly.
+#
+# With-artifact only, deliberately: without the agent definition and input
+# skill there is no slot behaviour to compare against (README: "when to skip it").
+cases:
+  - id: execute-plan-bound-profile-none
+    fixture:
+      source: fixtures/slot-project
+      destination: project
+    prepare:
+      - executable: sh
+        arguments:
+          - -c
+          - "cd project && mkdir -p .agents bin && mv stub-skills .agents/skills && cp .bench/smaqit-ok bin/smaqit && chmod +x bin/smaqit"
+    given:
+      prompt:
+        file: prompts/common.md
+    expect:
+      - id: profile-and-bound-fillers-ran-in-plan-order
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "printf 'access-credentials\\nprovision\\nverify\\n' | cmp -s - project/markers/order.log"]
+      - id: bound-filler-ran
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -qx bound project/markers/provision.txt"]
+      - id: none-slot-skipped-and-unplanned-filler-untouched
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "test ! -e project/markers/tls.txt && test ! -e project/markers/app-deploy.txt"]
+      - id: report-records-slot-resolution
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -l 'bench.stub-provision' project/.smaqit/reports/deployment-phase-report-*.md >/dev/null"]
+      - id: outcome-completed
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -q '^COMPLETED' project/deployment-outcome.txt"]
+  - id: stop-on-undeclared-slot
+    fixture:
+      source: fixtures/slot-project
+      destination: project
+    prepare:
+      - executable: sh
+        arguments:
+          - -c
+          - "cd project && mkdir -p .agents bin && mv stub-skills .agents/skills && cp .bench/smaqit-undeclared bin/smaqit && chmod +x bin/smaqit"
+    given:
+      prompt:
+        file: prompts/common.md
+    expect:
+      - id: stopped-with-the-resolver-diagnostic
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -q 'STOPPED: .*SLOTS-SLOT-UNDECLARED' project/deployment-outcome.txt"]
+      - id: no-filler-ran
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "test ! -e project/markers/order.log && ! ls project/markers/*.txt >/dev/null 2>&1"]
+variants:
+  - id: with-artifact
+    adapter: process
+    treatment:
+      - id: deployment-agent
+        source: ../../../../agents/deployment.md
+      - id: input-deployment
+        source: ../../../../skills/smaqit.input-deployment
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{briefFile}"
+      inputMode: argument
+    intendedDifferences:
+      - Exposes the Deployment agent definition and the smaqit.input-deployment skill as the variant treatment.
+execution:
+  repetitions: 1
+  timeoutSeconds: 600
+comparison:
+  minimumRequiredPassRate: 1
+output:
+  directory: ../../runs/agents-deployment

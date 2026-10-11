@@ -7,8 +7,8 @@
 #
 # Slot order (per environment run):
 #   platform-prereqs, access-credentials, platform-onboarding, target-credentials,
-#   artifact-build, iac-generate, ci-generate, provision, host-bootstrap,
-#   environment-config, app-deploy, verify, tls
+#   environment-config, artifact-build, iac-generate, ci-generate, provision,
+#   host-bootstrap, app-deploy, verify, tls
 # Day-two slots (run one at a time): replace, teardown
 #
 # Each binding is one of:

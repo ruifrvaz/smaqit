@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 94
 mode: Assisted
 started: "2026-10-11"
 created: "2026-10-11"
@@ -202,33 +203,43 @@ No issue findings could be retrieved: every search failed (see Search Warnings),
 
 ## Acceptance Criteria
 
-- [ ] `framework/AGENTS.md` Phase Orchestration states the slot-sequence principle (binding resolution, default profile fallback, recorded resolution, invariants for every filler); `framework/SKILLS.md` defines `metadata.smaqit-slots`; `framework/SMAQIT.md` mentions variation points; the direct-edit decision is recorded in Findings
-- [ ] The revised deploy-phase slot catalogue (per-environment order + day-2 `replace`/`teardown`) documents every slot's purpose, inputs, handoff, completion signal and per-`provisioning_mode` default filler, as a Go table and a wiki page; a Go test asserts every default filler declares its slot in `metadata.smaqit-slots`
-- [ ] `.smaqit/slots.yml` schema/template exists; `smaqit init` creates a commented skeleton when absent and preserves it on re-init/update; `smaqit uninstall` preserves it; `smaqit validate` checks it when present; the AGENTS.md template points to it
-- [ ] `smaqit slots plan` resolves a deterministic plan (project-local then global skill lookup; `default`/`none` honoured) and refuses with `SLOTS-*` diagnostics on missing skill, undeclared slot, unknown slot, schema violation, or a binding refused by the deployment path; every `skills/*/SKILL.md` frontmatter parses as YAML
-- [ ] `smaqit.input-deployment` outputs the slot plan via the CLI and is invoked once per deployment (not re-invoked when a plan is passed in)
-- [ ] `agents/deployment.md` executes the slot plan in Steps 5–6 (reading each filler's SKILL.md from its resolved path; `ci` executors monitored, not run), supports a single-slot day-2 run, records the resolution in the deployment report, and keeps the guard/out-of-band/credential invariants for every filler; the Copilot deployment agent has a read-file tool
-- [ ] `feature-new` Phase 3 routes infrastructure steps through the slot plan; under `existing-cicd-pr`, bindings to `iac-generate`/`ci-generate`/`provision`/`host-bootstrap` are refused
-- [ ] `new-greenfield-project` Phases 4–6 route through the agent (Phase 4 `standard`, Phase 5 `ci-push`, Phase 6 single-slot `tls`); k3s `target-credentials` runs after `platform-onboarding`; default `teardown` applies only to `provision`; with no `.smaqit/slots.yml`, the resolved sequence per mode matches current behaviour
-- [ ] `make -C installer test` and `make -C installer smoke-test` pass; bench cases (bound, unbound, none, undeclared) pass
-- [ ] Tasks 114, 115, 122, 123 and 074 carry refreshed re-scope notes; no downstream project is named in shipped artifacts
-- [ ] `smaqit.qa` review passes; released as 3.7.0
+- [x] `framework/AGENTS.md` Phase Orchestration states the slot-sequence principle (binding resolution, default profile fallback, recorded resolution, invariants for every filler); `framework/SKILLS.md` defines `metadata.smaqit-slots`; `framework/SMAQIT.md` mentions variation points; the direct-edit decision is recorded in Findings
+- [x] The revised deploy-phase slot catalogue (per-environment order + day-2 `replace`/`teardown`) documents every slot's purpose, inputs, handoff, completion signal and per-`provisioning_mode` default filler, as a Go table and a wiki page; a Go test asserts every default filler declares its slot in `metadata.smaqit-slots`
+- [x] `.smaqit/slots.yml` schema/template exists; `smaqit init` creates a commented skeleton when absent and preserves it on re-init/update; `smaqit uninstall` preserves it; `smaqit validate` checks it when present; the AGENTS.md template points to it
+- [x] `smaqit slots plan` resolves a deterministic plan (project-local then global skill lookup; `default`/`none` honoured) and refuses with `SLOTS-*` diagnostics on missing skill, undeclared slot, unknown slot, schema violation, or a binding refused by the deployment path; every `skills/*/SKILL.md` frontmatter parses as YAML
+- [x] `smaqit.input-deployment` outputs the slot plan via the CLI and is invoked once per deployment (not re-invoked when a plan is passed in)
+- [x] `agents/deployment.md` executes the slot plan in Steps 5–6 (reading each filler's SKILL.md from its resolved path; `ci` executors monitored, not run), supports a single-slot day-2 run, records the resolution in the deployment report, and keeps the guard/out-of-band/credential invariants for every filler; the Copilot deployment agent has a read-file tool
+- [x] `feature-new` Phase 3 routes infrastructure steps through the slot plan; under `existing-cicd-pr`, bindings to `iac-generate`/`ci-generate`/`provision`/`host-bootstrap` are refused
+- [x] `new-greenfield-project` Phases 4–6 route through the agent (Phase 4 `standard`, Phase 5 `ci-push`, Phase 6 single-slot `tls`); k3s `target-credentials` runs after `platform-onboarding`; default `teardown` applies only to `provision`; with no `.smaqit/slots.yml`, the resolved sequence per mode matches current behaviour
+- [x] `make -C installer test` and `make -C installer smoke-test` pass; bench cases (bound, unbound, none, undeclared) pass
+- [x] Tasks 114, 115, 122, 123 and 074 carry refreshed re-scope notes; no downstream project is named in shipped artifacts
+- [x] `smaqit.qa` review passes; released as 3.7.0
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Delivered as parent + three children on one branch: 127 (principle, catalogue, `slots.yml`, `smaqit slots` resolver, filler declarations), 128 (Deployment agent executes the plan; feature-new routed), 129 (greenfield Phases 4–6 routed; `ci-push` path)
+- `installer/slots.go` is the machine source of the catalogue, per-mode defaults, and path rules; `docs/wiki/workflows/deployment-slots.md` is the human reference; a Go test keeps shipped filler declarations and the table in sync
+- Close-out: `.smaqit/bench/agents/smaqit.deployment/` with a stub CLI and stub fillers; live run passed both Cases (plan executed in order with none/unplanned fillers untouched and resolution recorded; `SLOTS-SLOT-UNDECLARED` stopped the agent before any filler)
+- `smaqit.qa` review found 3 contradictions and 7 inaccuracies; all fixed before completion
 
 **Decisions made:**
-- TBD
+- Principle edits were made directly in `framework/*.md`, not via `smaqit.new-principle`: matches feature-work practice, and the smaqit-adk base/extension migration was deliberately not done
+- Catalogue revised from the original 13-slot list after discovery, then `environment-config` moved ahead of `artifact-build` after the qa review so CI never starts before its secrets are synced
+- Resolver refuses a local binding positioned between CI-executed slots (no split CI runs)
+- `metadata.smaqit-slots` is a string of `slot=operation` pairs (Agent Skills spec: string metadata values)
+- `ci-push` defaults `host-bootstrap` to none, matching current greenfield Phase 5
+- The bench serves a fixed plan from a stub CLI; resolver determinism stays covered by Go tests
 
 **Blockers encountered:**
-- TBD
+- Parent issue triage degraded to warnings: the unauthenticated GitHub search API rate-limited and the triage helper has no token support
+- Task worktree sparse patterns exclude any `.agents/skills/` path, so bench stub skills are stored as `stub-skills/` and moved into place by the Case's `prepare`
 
 **Follow-up identified:**
-- TBD
+- Tasks 114, 115, 122, 123 now build on slots (refreshed notes in each); 122's private-mesh support is a `platform-prereqs` filler plus binding params
+- Pre-existing greenfield questions: whether production VMs should run `vm-bootstrap`; an old `<!-- amendment: -->` comment may match Phase 8's scan
+- The triage helper should accept a GitHub token to avoid search rate limits (smaqit-extensions)
+- Worktree sparse patterns are unanchored (`!.agents/skills/` matches at any depth), which can hide nested fixture paths (smaqit-extensions)
 
 ## Files to Create / Modify
 

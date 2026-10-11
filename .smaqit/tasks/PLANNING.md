@@ -7,7 +7,7 @@
 | 131 | Claude Code Agents Can't Invoke Their Input Skills or Ask the User Questions | Not Started | High |
 | 130 | Make smaqit Self-Invoking: Directive Instructions, Block Refresh, Trigger-Form Descriptions | Not Started | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
-| 125 | Deployment Variation Points: Slot-Driven Deployment Orchestration With Project-Bound Fillers | In Progress | High |
+| 125 | Deployment Variation Points: Slot-Driven Deployment Orchestration With Project-Bound Fillers | PR Open | High |
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch | new | Medium |
 | 122 | existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones | new | High |
 | 115 | New Machine-Monorepo Infrastructure Skills: Provision, Verify, Day-2 Baseline, Tenant Reconcile | new | Medium |

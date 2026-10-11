@@ -2,8 +2,8 @@
 name: smaqit.infrastructure-vault-loader
 description: Use before any local deployment or credential operation that requires secrets from a local HashiCorp Vault instance. Verifies Vault is running, unsealed, and authenticated on 127.0.0.1:8200. Also runs an interactive credential loader script that prompts for all project secrets and writes them to Vault. Use for first-time setup, adding a new project's credentials, or when a Vault path is missing. Also use when setting up Vault for the first time on a new machine, or when a caller cannot reach Vault and needs troubleshooting guidance.
 metadata:
-  version: "3.7.0"
-  smaqit-slots: "access-credentials=access, target-credentials=target"
+  version: "3.8.0"
+  smaqit-slots: "access-credentials=access, target-credentials=target, target-credentials=register"
 ---
 
 # Vault Loader
@@ -23,8 +23,9 @@ Pre-step for `smaqit.infrastructure-provision-cyso`, `smaqit.infrastructure-depl
 | `scripts/install-vault.sh` | Install the Vault binary (Ubuntu/Debian). Run once per machine. |
 | `scripts/setup-vault.sh` | Create config, start server, run `vault operator init`, enable kv-v2. Run once per machine. |
 | `scripts/load-credentials.sh` | Start + unseal + authenticate + load all credential paths. Run every session. |
+| `scripts/register-machine.sh <machine-slug> [--host <ip>]` | Populate a machine's `base-ssh`, `cyso`, `tfstate`, and `metadata` the first time; `--host` backfills the address after apply. Idempotent. |
 | `scripts/bootstrap-app-to-machine.sh <app-slug> <machine-slug>` | Give an app its own distinct SSH keypair, authorized on the named machine. Run once per app-to-machine pairing. |
-| `scripts/rotate-credential.sh <path>` | Delete and re-populate a single credential path (e.g. `cyso`, `apps/<app-slug>/ssh`, `machines/<machine-slug>/base-ssh`). |
+| `scripts/rotate-credential.sh <path>` | Rotation only: delete and re-populate a single existing credential path (e.g. `cyso`, `apps/<app-slug>/ssh`, `machines/<machine-slug>/base-ssh`). |
 
 Config template used by `setup-vault.sh`: `assets/vault.hcl.template`
 
@@ -189,7 +190,7 @@ bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credent
   `bootstrap-app-to-machine.sh`, since populating it requires the machine's `base-ssh` credential to
   authorize the new key. `cyso`/`tfstate` are never prompted for — those live at
   `secret/machines/<machine-slug>/*`, populated once at machine registration
-  (`smaqit.infrastructure-provision-cyso`'s post-apply step), not per app per session.
+  (`register-machine.sh`, see "Registering a machine"), not per app per session.
 - Otherwise, it falls back to **legacy flat-scheme mode**, unchanged: all four paths under
   `secret/<project-slug>/{cyso,ssh,tfstate,github}` are checked/populated exactly as before,
   including the `PROVISIONING_MODE`-aware `existing-shared`/`existing-unmanaged` behavior
@@ -231,6 +232,46 @@ different points of one environment run:
   scheme: `bootstrap-app-to-machine.sh <app-slug> <machine-slug>` (below); on the legacy flat scheme,
   nothing further — the access load already populated `ssh`. Not part of the `provision` or
   `existing-owned` default sequence.
+- **`target-credentials=register`** — machine registration for a repository that owns machines
+  (a platform repository): `register-machine.sh <machine-slug>` (below). Never a default; a
+  project selects it by binding `target-credentials: {skill: smaqit.infrastructure-vault-loader,
+  operation: register}` in `.smaqit/slots.yml`. Because this skill declares two operations for
+  `target-credentials`, a binding must name the operation.
+
+---
+
+## Registering a machine
+
+The single entrypoint for populating a machine's own credentials the first time — whether the
+machine is provisioned by an app project's Terraform (`smaqit.infrastructure-provision-cyso`) or
+by a platform repository that owns machines:
+
+```
+# Before provisioning — generates base-ssh, prompts for cyso and tfstate, writes metadata:
+bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/register-machine.sh <machine-slug>
+
+# After apply — backfill the machine's address:
+bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/register-machine.sh <machine-slug> --host <fixed_ip>
+```
+
+- **The machine slug is a required argument.** It is never derived from the working directory, so
+  running the script from an unrelated directory can't write to the wrong path. It must be
+  lowercase letters, digits, and inner hyphens, because it also names the machine's GitHub
+  Environment (`smaqit.infrastructure-repo-config` `sync-machine`).
+- **Idempotent.** Every path that already exists is kept. Re-running fills only missing paths;
+  `--host`, `--provider`, and `--owner-project` patch those `metadata` fields in place.
+- `base-ssh` is generated only when missing. It is bootstrap-only: Terraform's keypair resource
+  installs its public half at apply time; for a machine no Terraform manages, install it in
+  `authorized_keys` yourself.
+- `cyso` (`app_credential_id`, `app_credential_secret`) and `tfstate` (`access_key`, `secret_key`)
+  are prompted for only when missing. Secrets are read hidden from the terminal and passed to Vault
+  on stdin; an empty answer stops the script instead of writing a placeholder.
+- `metadata` holds `provider` (default `cyso`), `owner_project` (the repository whose Terraform
+  state owns the machine; defaults to this repository's slug), and `host`. **`host` is required by
+  `rotate-credential.sh machines/<slug>/base-ssh`** — backfill it with `--host` right after apply.
+
+`rotate-credential.sh` is rotation-only: it replaces paths that already exist and is never the way
+to populate a machine for the first time.
 
 ---
 
@@ -247,8 +288,9 @@ Idempotent: if `secret/apps/<app-slug>/ssh` is already populated *and* still aut
 (checked live, not just presence in Vault), the script no-ops.
 
 1. If `secret/machines/<machine-slug>/base-ssh` doesn't exist yet, this is a fresh machine — the
-   script generates and stores the base keypair (plus `cyso`/`tfstate`/`metadata`, when provided)
-   before continuing. This is the branch `provisioning_mode: existing-unmanaged` always exercises —
+   script generates and stores the base keypair and prompts for `metadata` (host, provider, owner
+   project), then stops so the base key can be installed on the host. It does **not** prompt for
+   `cyso` or `tfstate`; a machine that needs them is registered with `register-machine.sh` first. This is the branch `provisioning_mode: existing-unmanaged` always exercises —
    an out-of-band-provisioned VM has typically never been registered by any smaqit-managed project
    before. When prompted for the owner project slug, use the *requesting* project's own slug: unlike
    `existing-shared` (where `owner_project` names whichever project's Terraform state provisions the
@@ -269,7 +311,10 @@ Run `scripts/rotate-credential.sh <path>` where `<path>` is one of `cyso`, `ssh`
 `github` (legacy flat scheme, under `secret/<project-slug>/*`), or `apps/<app-slug>/ssh`,
 `apps/<app-slug>/github`, `apps/<app-slug>/platform-repo`,
 `apps/<app-slug>/<machine-slug>/kubeconfig`,
-`machines/<machine-slug>/{base-ssh,cyso,tfstate}` (new scheme). For
+`machines/<machine-slug>/{base-ssh,cyso,tfstate}` (new scheme). Rotation replaces paths that already
+exist; first-time population of a machine is `register-machine.sh`. Rotating
+`machines/<machine-slug>/base-ssh` requires `metadata.host` (backfill it with
+`register-machine.sh <machine-slug> --host <ip>`). For
 `ssh`/`github`/`platform-repo`/`cyso`/`tfstate` (both schemes), the script deletes the path and re-populates it —
 via `load-credentials.sh` for the legacy scheme, or directly for the new scheme, since the new
 scheme's `load-credentials.sh` never writes `ssh` itself. `base-ssh` is different: rotating it

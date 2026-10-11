@@ -2,7 +2,9 @@
 
 Authoritative reference for Cyso Cloud (OpenStack, region `ams2`) infrastructure facts, applicable
 to any project deployed there.
-All facts verified against live documentation as of **2026-04-05**.
+All facts verified against live documentation as of **2026-04-05**. Volume attachment, volume
+types, retype, image ID, and GitHub token permissions were corrected from live provisioning on
+**2026-08-24**.
 
 ---
 
@@ -205,27 +207,58 @@ Access
 
 ### Volume types
 
-| Type | IOPS/GB | Max IOPS | Multi-attach | Price |
+| Type (`volume_type` value) | IOPS/GB | Max IOPS | Multi-attach | Price |
 |---|---|---|---|---|
-| **Tier-1** | 5 | 25k | No | € 0.095 /GB/month |
-| Tier-1m | 5 | 25k | Yes | € 0.145 /GB/month |
-| Tier-2 | 25 | 25k | No | € 0.250 /GB/month |
-| Tier-2m | 25 | 25k | Yes | € 0.300 /GB/month |
+| **`tier-1`** | 5 | 25k | No | € 0.095 /GB/month |
+| `tier-1m` | 5 | 25k | Yes | € 0.145 /GB/month |
+| `tier-2` | 25 | 25k | No | € 0.250 /GB/month |
+| `tier-2m` | 25 | 25k | Yes | € 0.300 /GB/month |
 
-**Tier-1 is a proven baseline** (10 GB ≈ € 0.95/month) for a SQLite data volume.
+The selectable names are lowercase exactly as above (`openstack volume type list`).
+
+**Always set `volume_type` explicitly.** A volume created without one resolves to **`tier-2`**,
+about 2.6× the cost of `tier-1`, not to the cheaper type. `tier-1` is a proven baseline
+(10 GB ≈ € 0.95/month) for a SQLite data volume, but only when requested.
+
+### Changing the type of an existing volume (retype)
+
+Retyping an **attached** volume is refused (HTTP 400, even though the error text suggests an
+in-use volume is acceptable). Retype it detached:
+
+1. On the host: stop services using the mount, then `sudo umount /data`.
+2. Detach: `openstack server remove volume <server> <volume>`.
+3. Retype: `openstack volume set --type tier-1 <volume>`. If the two types live on different
+   storage backends and the retype is refused, add `--retype-policy on-demand` to allow migration.
+4. Reattach: `openstack server add volume <server> <volume>`.
+5. On the host: `sudo mount -a` and confirm the mount.
+
+When Terraform manages the volume, set `volume_type` in its configuration to the new value
+afterwards, so the next plan shows no diff.
 
 ### Volume attachment
 
-Data volumes attach at `/dev/vdb` (first non-boot Cinder volume). Format and mount on first attach:
+Cinder volumes attach over **virtio-scsi**, not virtio-blk: the first data volume appears as
+`/dev/sdb`, **not** `/dev/vdb`. Kernel names can change between boots, so address the volume by
+its stable udev symlink, which embeds the full volume ID:
+
+- `/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_<full-volume-id>`
+- a `scsi-S…` variant of the same link
+
+The virtio-blk convention (`/dev/disk/by-id/virtio-<first-20-chars-of-id>`) does **not** exist on
+Cyso hosts; a first-boot script written against it fails.
+
+Format and mount on first attach, by ID:
 
 ```bash
-sudo mkfs.ext4 /dev/vdb
+DEV=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_<full-volume-id>
+sudo blkid "$DEV" || sudo mkfs.ext4 "$DEV"   # format only if empty
 sudo mkdir -p /data
-sudo mount /dev/vdb /data
-echo '/dev/vdb /data ext4 defaults,nofail 0 2' | sudo tee -a /etc/fstab
+echo "$DEV /data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
+sudo mount /data
 ```
 
-The `nofail` option prevents boot failure if the volume is temporarily unavailable.
+The `nofail` option prevents boot failure if the volume is temporarily unavailable. A first-boot
+script should fail loudly when the by-id link is absent rather than fall back to a kernel name.
 
 ### Terraform Cinder resources
 
@@ -240,10 +273,11 @@ block_device {
   delete_on_termination = true
 }
 
-# Separate data volume
+# Separate data volume — always set volume_type (the default is tier-2)
 resource "openstack_blockstorage_volume_v3" "data" {
-  name = "<project-slug>-data"
-  size = 10
+  name        = "<project-slug>-data"
+  size        = 10
+  volume_type = "tier-1"
 }
 
 resource "openstack_compute_volume_attach_v2" "data" {
@@ -408,7 +442,7 @@ resource "openstack_compute_instance_v2" "app" {
   security_groups = [openstack_networking_secgroup_v2.app.name]
 
   block_device {
-    uuid                  = "bcdcd204-65b6-440c-afd0-b91ac812d43c"  # Ubuntu 24.04 LTS
+    uuid                  = "fd91e198-f162-4b6b-a23e-123304fb408a"  # Ubuntu 24.04 LTS (see Confirmed images)
     source_type           = "image"
     volume_size           = 20
     boot_index            = 0
@@ -516,6 +550,25 @@ openstack volume list
 # Check floating IPs
 openstack floating ip list
 ```
+
+---
+
+## GitHub automation credentials (fine-grained PAT)
+
+Automation that writes a **GitHub Environment's** secrets or variables (for example
+machine-scoped Environments holding Cyso credentials) needs more than repository-level grants on a
+fine-grained personal access token. Repository Environments + Secrets + Variables read/write is
+**not sufficient**: writes return 403 until **organization-level Secrets and Variables read/write**
+is also enabled on the token.
+
+| Signature | Meaning |
+|---|---|
+| Environment create → `403 Resource not accessible by personal access token` | Token lacks the Environments/org-level grants |
+| `gh variable set --env <name>` → `404` | The Environment does not exist yet; create it first |
+| `gh variable set --env <name>` → `403` with repository-only grants | Org-level Secrets/Variables read/write missing |
+
+`smaqit.infrastructure-repo-config`'s `check-pat-permissions.sh` maps these signatures before any
+write.
 
 ---
 

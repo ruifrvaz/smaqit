@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-11"
 created: "2026-10-11"
 parent: "125"
 ---
@@ -36,8 +38,20 @@ the part a waiting downstream platform repository needs to bind its own fillers.
 5. Regenerate (`make -C installer prepare`) and confirm the compiled Claude/Copilot/Codex deployment agents carry the changes.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-11
+**Tools searched:** Claude Code (`anthropics/claude-code`), GitHub Copilot (`github/copilot-cli`), Codex CLI (`openai/codex`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#88987 Task/general-purpose subagent fabricates "verbatim" file quote instead of returning actual file content](https://github.com/anthropics/claude-code/issues/88987) — `anthropics/claude-code` — labels: bug, area:model, area:agents, stale. The agent must act on the filler SKILL.md it reads, not on a paraphrase; record the resolved SKILL.md path in the report.
+- [#40278 followup_task resets a full-access subagent to read-only/on-request](https://github.com/openai/codex/issues/40278) — `openai/codex` — labels: bug, sandbox, app, subagent. A resumed Codex deployment subagent may lose write/exec access mid slot plan; affects filler execution, not plan resolution.
+
+### Historical (Closed)
+- [#3688 Repository-level custom agents resolved relative to git root, but skills and .mcp.json relative to cwd](https://github.com/github/copilot-cli/issues/3688) — `github/copilot-cli` — closed 2026-09-30. `smaqit slots plan` resolves project-local skills from the project root, independent of client cwd behaviour.
+- [#81440 Subagents in plan mode can read files outside the working dir](https://github.com/anthropics/claude-code/issues/81440) — `anthropics/claude-code` — closed 2026-10-01. Global filler SKILL.md paths live outside the project; reading them is expected.
+
+### Omitted Tools
+- Agent Skills — specification only (covered by task 127's triage)
 
 ## Acceptance Criteria
 

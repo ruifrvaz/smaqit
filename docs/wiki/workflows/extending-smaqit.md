@@ -94,3 +94,4 @@ See [CONTRIBUTING.md](../../../CONTRIBUTING.md) for contribution guidelines.
 - [Level Up Compilation Architecture](../designs/level-up-compilation.md) — How the L0→L1→L2 chain works
 - [Hierarchical Levels](../designs/hierarchical-levels.md) — Why four levels exist
 - [Quickstart](quickstart.md) — Using smaqit in a project
+- [Deployment Slots](deployment-slots.md) — Binding project-owned skills to deployment variation points

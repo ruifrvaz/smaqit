@@ -2,7 +2,8 @@
 name: smaqit.infrastructure-deploy-rsync
 description: Use when deploying a Node.js backend + React frontend application to a remote VM via rsync. Used in the Phase 5 dev environment sweep of `smaqit.new-greenfield-project` to validate the deployment approach locally before CI/CD. Also use as a manual fallback for direct VM deployment outside the CI/CD pipeline.
 metadata:
-  version: "1.2.1"
+  version: "1.3.0"
+  smaqit-slots: "app-deploy=deploy"
 ---
 
 # Deploy Application via rsync

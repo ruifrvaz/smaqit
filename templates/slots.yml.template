@@ -1,0 +1,32 @@
+# smaqit deployment slots — project-owned configuration.
+#
+# smaqit creates this file once and never overwrites it. It binds deploy-phase
+# slots (variation points) to this project's own skills. The deployment agent
+# walks the slots in a fixed order for each environment run; any slot you do not
+# bind uses the default filler for the resolved provisioning_mode.
+#
+# Slot order (per environment run):
+#   platform-prereqs, access-credentials, platform-onboarding, target-credentials,
+#   artifact-build, iac-generate, ci-generate, provision, host-bootstrap,
+#   environment-config, app-deploy, verify, tls
+# Day-two slots (run one at a time): replace, teardown
+#
+# Each binding is one of:
+#   <slot>: default        # use the provisioning_mode default (same as omitting it)
+#   <slot>: none           # skip this slot
+#   <slot>:
+#     skill: <skill-name>  # required; installed project-locally or globally
+#     operation: <name>    # optional when the skill declares one operation for the slot
+#     environments: [prod] # optional; binding applies only to these environments
+#     params:              # optional scalar values passed to the filler
+#       key: value
+#
+# A bound skill must declare the slot in its SKILL.md frontmatter, for example:
+#   metadata:
+#     smaqit-slots: "provision=apply, replace=replace"
+#
+# Inspect the resolved plan:  smaqit slots plan --phase=deploy --mode=<mode> --env=<env>
+# Validate this file:         smaqit slots validate
+schemaVersion: 1
+phase: deploy
+slots: {}

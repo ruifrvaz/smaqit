@@ -2,7 +2,8 @@
 name: smaqit.infrastructure-image-build-push-static
 description: Use when containerizing a static HTML/CSS/vanilla-JS site (no build step of its own) for deployment onto an `existing-k3s` platform. Authors the `Dockerfile`/`.dockerignore` (`nginxinc/nginx-unprivileged:1-alpine` base, baked `health.json` with the deploy SHA) and the `deployment/k3s/deployment.yaml`/`service.yaml` manifest pair, setting an explicit numeric `runAsUser` matching the base image's real UID — without it the kubelet rejects the pod at admission with a non-numeric-user `CreateContainerConfigError`. Adds `imagePullSecrets` when the image is private. Fills the Dockerfile/manifest-authoring gap between `smaqit.infrastructure-cicd-generate`'s `k3s` template (builds and pushes the image, authors no application content) and `smaqit.infrastructure-deploy-k3s-app` (assumes manifests already exist). Does not render the Ingress, touch CI/CD, or manage registry credentials.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
+  smaqit-slots: "artifact-build=build"
 ---
 
 # Containerize a Static Site for k3s Deployment

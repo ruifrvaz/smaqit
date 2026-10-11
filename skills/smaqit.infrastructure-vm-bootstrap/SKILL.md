@@ -2,7 +2,8 @@
 name: smaqit.infrastructure-vm-bootstrap
 description: Use when a freshly provisioned Ubuntu VM needs to be bootstrapped after cloud-init completes. Covers cloud-init verification, data volume mount and fstab registration, app directory ownership fix, `.env` file creation, and Docker group setup. Produces a VM ready for application deployment on Ubuntu 22.04/24.04.
 metadata:
-  version: "1.1.1"
+  version: "1.2.0"
+  smaqit-slots: "host-bootstrap=bootstrap"
 ---
 
 # VM Bootstrap

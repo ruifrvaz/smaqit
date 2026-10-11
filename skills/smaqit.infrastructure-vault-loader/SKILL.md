@@ -2,7 +2,8 @@
 name: smaqit.infrastructure-vault-loader
 description: Use before any local deployment or credential operation that requires secrets from a local HashiCorp Vault instance. Verifies Vault is running, unsealed, and authenticated on 127.0.0.1:8200. Also runs an interactive credential loader script that prompts for all project secrets and writes them to Vault. Use for first-time setup, adding a new project's credentials, or when a Vault path is missing. Also use when setting up Vault for the first time on a new machine, or when a caller cannot reach Vault and needs troubleshooting guidance.
 metadata:
-  version: "3.6.0"
+  version: "3.7.0"
+  smaqit-slots: "access-credentials=access, target-credentials=target"
 ---
 
 # Vault Loader
@@ -210,7 +211,26 @@ PROVISIONING_MODE=existing-unmanaged bash [SMAQIT_SKILLS_DIR]/smaqit.infrastruct
 
 # Namespace-scoped Kubernetes/k3s target — no VM, no SSH, kubeconfig only (one machine per invocation):
 PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug> bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
+
+# existing-k3s before onboarding — github + platform-repo only, no kubeconfig, no MACHINE_SLUG:
+PROVISIONING_MODE=existing-k3s CREDENTIAL_SCOPE=access bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
 ```
+
+### Slot operations
+
+This skill fills two deployment slots (`metadata.smaqit-slots`). The deployment agent runs them at
+different points of one environment run:
+
+- **`access-credentials=access`** — credentials needed before the target can be reached or
+  requested. `existing-k3s`: `PROVISIONING_MODE=existing-k3s CREDENTIAL_SCOPE=access` (`github` +
+  `platform-repo`, no kubeconfig yet). Every other mode: `load-credentials.sh` exactly as described
+  above for that mode and scheme.
+- **`target-credentials=target`** — credentials the target issues or authorizes for this app, after
+  onboarding or registration. `existing-k3s`: `PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug>`
+  (the environment's kubeconfig). `existing-shared`/`existing-unmanaged` on the `apps/`+`machines/`
+  scheme: `bootstrap-app-to-machine.sh <app-slug> <machine-slug>` (below); on the legacy flat scheme,
+  nothing further — the access load already populated `ssh`. Not part of the `provision` or
+  `existing-owned` default sequence.
 
 ---
 

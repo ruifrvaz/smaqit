@@ -2,7 +2,8 @@
 name: smaqit.infrastructure-deploy-rsync-python-nextjs
 description: Use when deploying a Python/FastAPI backend + Next.js frontend application to a remote VM via rsync. Validated on Cyso Cloud (s5.small, Ubuntu 24.04). Covers Python source rsync, Next.js production build via Docker, database migration ordering, and Docker build gotchas. For Node.js + Vite/React deployments, use `smaqit.infrastructure-deploy-rsync`.
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
+  smaqit-slots: "app-deploy=deploy"
   validated: "2026-07-17"
   validated-stack: "Python 3.12, FastAPI 0.115, Next.js 15, pnpm 9, PostgreSQL 16, Docker Compose"
 ---

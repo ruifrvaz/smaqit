@@ -220,11 +220,23 @@ Implementation agents orchestrate their entire phase including specification gen
 
 Implementation agents always orchestrate specification generation as the primary first phase activity. Orchestration is not conditional on missing artifacts — it is the primary path:
 - **Orchestration-first** — Spec generation is always step 1; each layer is checked and generated if missing, draft, or failed
-- **Deterministic routing** — The invocation sequence is hardcoded per phase, not derived at runtime; status checks on spec files determine which layers to skip
+- **Deterministic routing** — The specification-agent invocation sequence is hardcoded per phase, not derived at runtime; status checks on spec files determine which layers to skip. Implementation steps that legitimately vary per project are variation points (slots), resolved deterministically as described below — never improvised at runtime
 - **Scoped context passing** — Each spec agent receives user requirements from session context plus content of upstream specs already generated in the current sequence; full accumulated phase context is not passed
 - **Dependency ordering** — Business → Functional → Stack for Development; Infrastructure for Deployment; Coverage for Validation
 - **Generation completion** — All required spec layers complete before implementation begins
 - **Iteration caps** — Spec generation retries cap at 3 per layer; on cap reached, unresolved issues are surfaced to the user before proceeding
+
+**Implementation Variation Points (Slots):**
+
+Where a phase's implementation steps legitimately differ between projects — an app repository versus a platform repository, a VM versus a Namespace-scoped cluster — the phase declares a fixed, ordered sequence of slots instead of hardcoding one wiring per case:
+- **Fixed order** — The phase defines the slot catalogue and its order; a project never reorders, adds, or removes slots, it only binds or skips them
+- **Slot contract** — Each slot defines its purpose, inputs, handoff, and completion signal; any filler bound to it must satisfy that contract
+- **Binding resolution** — A project binds a slot to a filler skill (and operation) in project-owned configuration; an unbound slot uses the default filler of the phase's selected profile; an explicit `none` skips it
+- **Deterministic resolution** — Bindings are resolved and validated by deterministic tooling before execution, not by agent judgment: a binding to a skill that is missing or does not declare the slot is refused
+- **Path refusals** — An execution path may refuse bindings for slots it must not perform, preserving that path's prohibitions
+- **Recorded resolution** — The resolved plan (slot, source, filler, operation, executor) is recorded in the phase report
+- **Invariants bind every filler** — Phase invariants (guarded IaC plan/apply, no out-of-band changes to IaC-managed resources, credential references only) apply to every filler, default or project-owned; a filler that cannot honour them is refused at plan time, not tolerated
+- **Single-slot runs** — Day-two operations run as single-slot invocations of the same agent under the same invariants
 
 **Execution Modes:**
 

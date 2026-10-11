@@ -152,3 +152,42 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
 | HashiCorp Vault | KV Secrets Engine v2 | https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2 |
 | HashiCorp Vault | CLI: vault kv | https://developer.hashicorp.com/vault/docs/commands/kv |
+
+## Task 125 — Deployment Variation Points: Slot-Driven Deployment Orchestration With Project-Bound Fillers
+
+**Context fingerprint:** sha256:aa378b49beb8f8d0854ded0161e0ce307cc1841110348f31e2d9f575e02d450d
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Claude Code | Subagents | https://code.claude.com/docs/en/sub-agents |
+| Claude Code | Agent Skills | https://code.claude.com/docs/en/skills |
+| Claude Code | Memory (CLAUDE.md imports) | https://code.claude.com/docs/en/memory |
+| GitHub Copilot | Custom agents | https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/create-custom-agents |
+| GitHub Copilot | Agent skills | https://docs.github.com/en/copilot/concepts/agents/about-agent-skills |
+| GitHub Copilot | VS Code custom agents | https://code.visualstudio.com/docs/agent-customization/custom-agents |
+| Codex CLI | Repository | https://github.com/openai/codex |
+| Codex CLI | AGENTS.md | https://learn.chatgpt.com/docs/agent-configuration/agents-md |
+| Codex CLI | Skills | https://learn.chatgpt.com/docs/build-skills |
+| Codex CLI | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
+| Agent Skills | Specification | https://agentskills.io/specification |
+| smaqit-adk | Repository | https://github.com/ruifrvaz/smaqit-adk |
+| Go | Documentation | https://go.dev/doc/ |
+| Go | flag package | https://pkg.go.dev/flag |
+| Go | embed package | https://pkg.go.dev/embed |
+| gopkg.in/yaml.v3 | Package reference | https://pkg.go.dev/gopkg.in/yaml.v3 |
+| gopkg.in/yaml.v3 | Node API | https://pkg.go.dev/gopkg.in/yaml.v3#Node |
+
+## Task 127 — Deployment Slots A: Principle, Catalogue, Schema, and `smaqit slots plan` Resolver
+
+**Context fingerprint:** sha256:0fa54aacb01ca2a206a1a63bbd13f4fd83d1c0bf5f3877df77bdb5d4c4bc78f5
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Go | Documentation | https://go.dev/doc/ |
+| Go | flag package | https://pkg.go.dev/flag |
+| Go | embed package | https://pkg.go.dev/embed |
+| gopkg.in/yaml.v3 | Package reference | https://pkg.go.dev/gopkg.in/yaml.v3 |
+| gopkg.in/yaml.v3 | Node API | https://pkg.go.dev/gopkg.in/yaml.v3#Node |
+| Agent Skills | Specification | https://agentskills.io/specification |

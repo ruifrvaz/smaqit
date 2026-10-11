@@ -68,8 +68,9 @@ infra-owning repo owns its own contract") is the philosophical basis.
 - **No downstream project is named** in this task's shipped artifacts (CONTRIBUTING rule).
 - **Revised slot catalogue** (user, 2026-10-11, from `task.plan` discovery): per-environment fixed
   order `platform-prereqs` → `access-credentials` → `platform-onboarding` → `target-credentials` →
-  `artifact-build` → `iac-generate` → `ci-generate` → `provision` → `host-bootstrap` →
-  `environment-config` → `app-deploy` → `verify` → `tls`; day-2 single-slot operations `replace`,
+  `environment-config` → `artifact-build` → `iac-generate` → `ci-generate` → `provision` →
+  `host-bootstrap` → `app-deploy` → `verify` → `tls` (`environment-config` moved ahead of
+  `artifact-build` after the `smaqit.qa` review so CI never starts before its secrets are synced); day-2 single-slot operations `replace`,
   `teardown`. Replaces the original 13-slot list, which contradicted current behaviour: k3s
   credentials are two-stage (the kubeconfig exists only after onboarding merges), IaC + CI workflows
   are generated before provisioning (greenfield P4.3), TLS runs after verify (greenfield Phase 6), and

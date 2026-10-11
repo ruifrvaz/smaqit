@@ -1,5 +1,6 @@
 ---
-description: Orchestrate the Development phase — Business/Functional/Stack specs, then a working application.
+description: Use when the user asks to build, add, change, or fix application features or behavior in a smaqit project. Runs the Development phase — Business, Functional, and Stack specifications, then a working, tested application. For a feature on an already-deployed project, prefer the smaqit.feature-new skill.
+when_to_use: Requests like "build the app", "add a login page", "implement this feature", "change how checkout works", or "fix this behavior". Not for typo, formatting, or comment-only edits.
 ---
 
 Run the Development phase through the `smaqit-development` subagent. The subagent cannot ask the user anything, so this conversation owns every question.

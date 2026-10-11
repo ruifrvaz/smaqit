@@ -22,7 +22,7 @@ copilot:
 
 claude:
   name: smaqit-development
-  description: Implementation agent for the Development phase. Orchestrates the Business, Functional, and Stack spec agents via Task, then builds a working, tested application from the consolidated specs. Invoked via the /smaqit.development command.
+  description: Use proactively when the user asks to build, add, change, or fix application features or behavior in a smaqit project. Runs the Development phase — orchestrates the Business, Functional, and Stack specification agents, then builds a working, tested application. Pass the user's full request and any PHASE-PARAMETERS block already resolved. If the result starts with NEEDS-INPUT or REVIEW-REQUESTED, ask the user and resume this agent with their answers; never answer it yourself.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
   skills:
   - smaqit.input-development

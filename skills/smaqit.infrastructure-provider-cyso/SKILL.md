@@ -1,6 +1,6 @@
 ---
 name: smaqit.infrastructure-provider-cyso
-description: Use this skill when making any Cyso Cloud decision — selecting a VM flavor, estimating cost, configuring Terraform credentials, looking up platform endpoints or resource IDs, setting up the OpenStack CLI, editing the compute instance or its user_data, running pre-flight checks, or importing a github_actions_variable/secret. Routes the agent to the correct reference documentation before acting, preventing guesses on Cyso-specific facts (auth URL, image IDs, flavor names, credential formats, ForceNew attributes, provider import ID formats).
+description: 'Use before any Cyso Cloud decision: choosing a VM flavor, estimating cost, configuring Terraform credentials, looking up endpoints or resource IDs, setting up the OpenStack CLI, editing the compute instance or its user_data, running pre-flight checks, or importing a github_actions_variable/secret. Routes to the right reference so Cyso-specific facts are never guessed.'
 metadata:
   version: "1.1.1"
 ---

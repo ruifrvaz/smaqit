@@ -1,13 +1,144 @@
 package main
 
 import (
+	"errors"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
+
+const agentsTemplatePath = "templates/AGENTS.md.template"
+
+// agentsTemplateBlock is the embedded AGENTS.md template as installInstructionsFile
+// splices it between existing content: without its trailing newline.
+func agentsTemplateBlock(t *testing.T) string {
+	t.Helper()
+	content, err := agentsMdTemplate.ReadFile(agentsTemplatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return strings.TrimRight(string(content), "\r\n")
+}
+
+func installInstructionsAt(t *testing.T, existing *string) (path, status string, err error) {
+	t.Helper()
+	path = filepath.Join(t.TempDir(), "AGENTS.md")
+	if existing != nil {
+		if err := os.WriteFile(path, []byte(*existing), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	status, err = installInstructionsFile(agentsMdTemplate, agentsTemplatePath, path)
+	return path, status, err
+}
+
+func readFileString(t *testing.T, path string) string {
+	t.Helper()
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(content)
+}
+
+func TestInstallInstructionsFileCreatesMissingFile(t *testing.T) {
+	path, status, err := installInstructionsAt(t, nil)
+	if err != nil || status != "created" {
+		t.Fatalf("status = %q, err = %v; want created", status, err)
+	}
+	if got := readFileString(t, path); got != agentsTemplateBlock(t)+"\n" {
+		t.Fatalf("created file = %q, want the template", got)
+	}
+}
+
+func TestInstallInstructionsFileAppendsToUserFile(t *testing.T) {
+	existing := "# My project\n\nUser rules."
+	path, status, err := installInstructionsAt(t, &existing)
+	if err != nil || status != "appended" {
+		t.Fatalf("status = %q, err = %v; want appended", status, err)
+	}
+	if got, want := readFileString(t, path), existing+"\n\n"+agentsTemplateBlock(t)+"\n"; got != want {
+		t.Fatalf("appended file = %q, want %q", got, want)
+	}
+}
+
+func TestInstallInstructionsFileRefreshesOnlyTheMarkedSection(t *testing.T) {
+	before := "# My project\n\nUser rules above.\n\n"
+	after := "\n\n## Mine\n\nUser rules below.\n"
+	stale := instructionsMarkerBegin + "\n# smaqit\n\nOutdated section.\n" + instructionsMarkerEnd
+	existing := before + stale + after
+	path, status, err := installInstructionsAt(t, &existing)
+	if err != nil || status != "updated" {
+		t.Fatalf("status = %q, err = %v; want updated", status, err)
+	}
+	if got, want := readFileString(t, path), before+agentsTemplateBlock(t)+after; got != want {
+		t.Fatalf("refreshed file = %q, want %q", got, want)
+	}
+}
+
+func TestInstallInstructionsFileLeavesCurrentSectionUnwritten(t *testing.T) {
+	existing := "# My project\n\n" + agentsTemplateBlock(t) + "\n\nUser rules below.\n"
+	path := filepath.Join(t.TempDir(), "AGENTS.md")
+	if err := os.WriteFile(path, []byte(existing), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	past := time.Now().Add(-time.Hour).Truncate(time.Second)
+	if err := os.Chtimes(path, past, past); err != nil {
+		t.Fatal(err)
+	}
+	status, err := installInstructionsFile(agentsMdTemplate, agentsTemplatePath, path)
+	if err != nil || status != "up to date" {
+		t.Fatalf("status = %q, err = %v; want up to date", status, err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.ModTime().Equal(past) {
+		t.Fatalf("current section was rewritten: mtime %v, want %v", info.ModTime(), past)
+	}
+	if got := readFileString(t, path); got != existing {
+		t.Fatalf("file changed: %q", got)
+	}
+}
+
+func TestInstallInstructionsFilePreservesCRLFLineEndings(t *testing.T) {
+	before := "# My project\r\n\r\n"
+	after := "\r\nUser rules below.\r\n"
+	existing := before + instructionsMarkerBegin + "\r\nOutdated.\r\n" + instructionsMarkerEnd + after
+	path, status, err := installInstructionsAt(t, &existing)
+	if err != nil || status != "updated" {
+		t.Fatalf("status = %q, err = %v; want updated", status, err)
+	}
+	want := before + strings.ReplaceAll(agentsTemplateBlock(t), "\n", "\r\n") + after
+	if got := readFileString(t, path); got != want {
+		t.Fatalf("refreshed CRLF file = %q, want %q", got, want)
+	}
+}
+
+func TestInstallInstructionsFileLeavesMalformedSectionUntouched(t *testing.T) {
+	cases := map[string]string{
+		"begin without end": "# Mine\n" + instructionsMarkerBegin + "\nsmaqit\n",
+		"end without begin": "# Mine\nsmaqit\n" + instructionsMarkerEnd + "\n",
+		"end before begin":  instructionsMarkerEnd + "\n# Mine\n" + instructionsMarkerBegin + "\n",
+		"duplicate begin":   instructionsMarkerBegin + "\n" + instructionsMarkerBegin + "\nsmaqit\n" + instructionsMarkerEnd + "\n",
+	}
+	for name, existing := range cases {
+		t.Run(name, func(t *testing.T) {
+			path, status, err := installInstructionsAt(t, &existing)
+			if !errors.Is(err, errMalformedInstructionsBlock) {
+				t.Fatalf("status = %q, err = %v; want errMalformedInstructionsBlock", status, err)
+			}
+			if got := readFileString(t, path); got != existing {
+				t.Fatalf("malformed file was modified: %q", got)
+			}
+		})
+	}
+}
 
 func TestResolveGlobalDirHonorsOverrides(t *testing.T) {
 	t.Setenv("COPILOT_HOME", "/tmp/copilot")

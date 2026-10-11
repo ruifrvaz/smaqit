@@ -1,6 +1,6 @@
 ---
 name: smaqit.infrastructure-repo-config
-description: "Use when configuring a GitHub repository with the secrets and variables required for CI/CD workflows. Covers Actions secrets (VM_SSH_KEY, Terraform backend credentials, cloud provider credentials, GH_TERRAFORM_TOKEN), Actions variables (VM_HOST, DEMO_MODE), and, for `provisioning_mode: existing-k3s` targets, the environment-scoped `KUBECONFIG` secret and `APP_HOST` variable plus an optional registry credential. Uses the `gh` CLI. Prevents GITHUB_TOKEN reserved-name collisions and SSH key trailing-newline drift. Also use when setting up a new deployment repository, rotating CI/CD credentials, or verifying that all required repository secrets and variables are present."
+description: 'Use when setting up, rotating, or verifying the GitHub Actions secrets and variables a project''s CI/CD needs, via the gh CLI: VM_SSH_KEY, Terraform backend and cloud credentials, GH_TERRAFORM_TOKEN, VM_HOST and DEMO_MODE, or for existing-k3s the environment-scoped KUBECONFIG secret, APP_HOST, and an optional registry credential.'
 metadata:
   version: "1.7.0"
   smaqit-slots: "environment-config=sync"

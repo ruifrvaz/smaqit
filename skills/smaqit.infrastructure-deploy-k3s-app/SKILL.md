@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-deploy-k3s-app
-description: "Use when deploying an application into a Namespace-scoped Kubernetes cluster (k3s or any cluster that issues a scoped kubeconfig per application/environment). Given a kubeconfig restricted to the app's own Namespace, lints manifests against the platform's Pod Security `restricted` and quota guardrails, applies them, waits for rollout, stamps the Deployment with the commit SHA as pod environment, waits for the Ingress host's `Certificate` to become `Ready`, and verifies externally over HTTPS. Used in Phase 4 of `smaqit.new-greenfield-project` for `provisioning_mode: existing-k3s`, and again from the generated `deploy.yml` in Phase 5. Also usable as a manual fallback for direct deployment into an already-onboarded Namespace. Never touches anything cluster-scoped and never reads pod logs."
+description: Use when deploying an application into a Namespace-scoped Kubernetes cluster (k3s, or any cluster issuing a per-app scoped kubeconfig), including provisioning_mode existing-k3s in greenfield Phase 4 and the generated deploy.yml. Lints manifests against Pod Security restricted and quota guardrails, applies them, waits for rollout and the Ingress Certificate, and verifies over HTTPS.
 metadata:
-  version: "1.2.0"
+  version: "1.2.1"
   smaqit-slots: "app-deploy=deploy"
 ---
 

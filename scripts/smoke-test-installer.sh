@@ -74,6 +74,14 @@ for path in .github/agents .github/skills .claude .codex/agents .agents/skills; 
 done
 (cd "$project" && "$binary" validate >/dev/null && "$binary" mcp verify >/dev/null)
 
+# Project instructions: both files carry smaqit's marked section, and AGENTS.md
+# tells the coding agent when to use smaqit.
+for file in AGENTS.md CLAUDE.md; do
+  grep -Fxq '<!-- smaqit:instructions:begin -->' "$project/$file"
+  grep -Fxq '<!-- smaqit:instructions:end -->' "$project/$file"
+done
+grep -Fxq '## When to use smaqit' "$project/AGENTS.md"
+
 # Deployment slot bindings: the skeleton resolves every slot to its default,
 # and a re-init (the same path `smaqit update` takes) never overwrites it.
 assert_file "$project/.smaqit/slots.yml" "project slot bindings skeleton"
@@ -81,9 +89,21 @@ assert_file "$project/.smaqit/slots.yml" "project slot bindings skeleton"
 (cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --json) \
   | grep -Fq '"skill": "smaqit.infrastructure-request-k3s-onboarding"'
 printf '%s\n' 'schemaVersion: 1' 'phase: deploy' 'slots:' '  tls: none' > "$project/.smaqit/slots.yml"
+# The same re-init refreshes an outdated smaqit section in AGENTS.md while keeping
+# the user's own content around it.
+printf '%s\n' '# User-owned heading' '<!-- smaqit:instructions:begin -->' 'Outdated smaqit section.' \
+  '<!-- smaqit:instructions:end -->' 'User-owned trailing line.' > "$project/AGENTS.md"
 reinit_output="$(cd "$project" && printf 'y\n' | "$binary" init)"
 grep -Fq '.smaqit/slots.yml preserved' <<< "$reinit_output"
 grep -Fxq '  tls: none' "$project/.smaqit/slots.yml"
+grep -Fq 'AGENTS.md updated' <<< "$reinit_output"
+grep -Fxq '# User-owned heading' "$project/AGENTS.md"
+grep -Fxq 'User-owned trailing line.' "$project/AGENTS.md"
+grep -Fxq '## When to use smaqit' "$project/AGENTS.md"
+if grep -Fq 'Outdated smaqit section.' "$project/AGENTS.md"; then
+  echo "[ERROR] Re-init did not refresh the outdated smaqit section in AGENTS.md" >&2
+  exit 1
+fi
 
 # Retain the core project-local design lifecycle gate alongside global payload
 # assertions: render, visual attestation, and phase readiness must still work.

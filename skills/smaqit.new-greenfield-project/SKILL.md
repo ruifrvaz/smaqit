@@ -1,16 +1,8 @@
 ---
 name: smaqit.new-greenfield-project
-description: >-
-  Use when orchestrating the complete SDLC for a new project — from raw project assets to a
-  running production application accessible via browser. Covers requirements extraction,
-  specification (business, functional, stack, infrastructure, coverage), task creation,
-  development, IaC generation + dev environment sweep (local provisioning + deploy + verify),
-  CI/CD production deployment, optional domain/TLS, validation, and tagged release. Re-entrant:
-  use the pre-condition checklist to resume at any phase. Also use when the user says "take this
-  from zero to prod", "run the full smaqit pipeline", "deploy a new project end-to-end", or when
-  starting implementation on a freshly initialized repository.
+description: 'Use when taking a new project from raw assets to a running production application: "take this from zero to prod", "run the full smaqit pipeline", or starting a freshly initialized repository. Orchestrates requirements extraction, all five specification layers, development, a dev-environment sweep, CI/CD production deployment, optional domain/TLS, validation, and release. Re-entrant at any phase.'
 metadata:
-  version: "2.1.0"
+  version: "2.1.1"
 ---
 
 # Project: Zero to Production

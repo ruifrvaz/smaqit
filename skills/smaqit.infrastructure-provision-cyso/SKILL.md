@@ -1,6 +1,6 @@
 ---
 name: smaqit.infrastructure-provision-cyso
-description: Use when provisioning cloud infrastructure for a project's target application on Cyso Cloud (OpenStack) using Terraform. Covers application credential sourcing, Object Storage backend initialization, SSH keypair variable configuration, `terraform init/plan/apply`, and fixed IP retrieval. Produces a running Cyso VM accessible via SSH, with Cinder data volume attached and security group configured on ports 22/80/443. Also use when re-running Terraform after infrastructure changes or when an operator invokes `/provision.cyso`.
+description: Use when provisioning a project's VM on Cyso Cloud (OpenStack) with Terraform, re-running Terraform after infrastructure changes, or when an operator invokes /provision.cyso. Covers application credentials, the Object Storage backend, the SSH keypair, terraform init/plan/apply, and the fixed IP, producing an SSH-reachable VM with a Cinder data volume and ports 22/80/443 open.
 metadata:
   version: "1.6.0"
   smaqit-slots: "provision=apply"

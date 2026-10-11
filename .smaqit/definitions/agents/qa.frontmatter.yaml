@@ -8,7 +8,7 @@ copilot:
   
 claude:
   name: smaqit-qa
-  description: Read-only Q&A agent for smaqit framework documentation (wiki + framework/*.md). Invoked via the /smaqit.qa command.
+  description: Use proactively when the user asks how smaqit works — its layers, phases, agents, specifications, designs, or commands. Read-only answers from the smaqit wiki and framework documentation.
   tools: Read, Grep, Glob, WebFetch
 
 codex:

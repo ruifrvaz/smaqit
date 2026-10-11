@@ -28,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.6.1] - 2026-10-11
+
+### Fixed
+- **PlantUML MCP server no longer fails to connect after an editor reload** — `smaqit mcp
+  plantuml` now validates an already-installed design-tools bundle without taking the runtime
+  installation lock, and takes the lock only to install. Previously every start took the lock, so
+  a lock left behind by a start killed mid-way (e.g. an editor reload) blocked every new start for
+  up to 60 s — past Claude Code's 30 s MCP connect timeout.
+
 ## [3.6.0] - 2026-09-15
 
 ### Added

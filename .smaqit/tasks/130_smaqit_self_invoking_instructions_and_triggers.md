@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 97
 mode: Assisted
 started: "2026-10-11"
 created: "2026-10-11"
@@ -146,32 +147,43 @@ Claude sessions in projects that use smaqit for development, deployment and vali
 
 ## Acceptance Criteria
 
-- [ ] `templates/AGENTS.md.template` contains a "When to use smaqit" section that routes feature, build, deploy, test and framework-question requests to the matching smaqit entry point, prefers the phase commands, states the return-signal rule (`NEEDS-INPUT`/`REVIEW-REQUESTED`: ask the user, never answer yourself, resume with `answers`), and includes a spec-first rule and an explicit trivial-change exemption list
-- [ ] `installInstructionsFile` replaces the content between the `smaqit:instructions` begin/end markers with the current template; content outside the markers is byte-identical afterwards; an identical block is not rewritten
-- [ ] A malformed block (begin without end, reversed, or duplicate begin) leaves the file untouched and prints a warning without failing `init`
-- [ ] Go tests cover the created, appended, refreshed, identical and malformed cases; the smoke test asserts the markers after `init` and a refresh that keeps the user's content on re-`init`
-- [ ] The four phase/qa commands have "Use when…" descriptions plus `when_to_use` trigger phrases; only their frontmatter changes, and their bodies are identical to v3.8.0
-- [ ] The four Claude phase/qa subagent descriptions contain no "Invoked via the /smaqit.X command", use "Use proactively when…" wording, and instruct passing the user's full request and any resolved `PHASE-PARAMETERS` block; their `tools:`/`skills:` fields are unchanged from v3.8.0
-- [ ] Every `skills/*/SKILL.md`, `commands/*.md` and generated agent frontmatter parses as strict YAML, including the three k3s-family skills
-- [ ] Every skill and command description is 400 characters or fewer with the key use case first; detail that was cut and is needed to run the skill lives in its body
-- [ ] `make prepare` fails, naming the file, on invalid frontmatter YAML or a skill/command description over 400 characters
-- [ ] README, compendium and the agent-tools-reference wiki describe the block refresh and the trigger model; CHANGELOG and Version sync updated
+- [x] `templates/AGENTS.md.template` contains a "When to use smaqit" section that routes feature, build, deploy, test and framework-question requests to the matching smaqit entry point, prefers the phase commands, states the return-signal rule (`NEEDS-INPUT`/`REVIEW-REQUESTED`: ask the user, never answer yourself, resume with `answers`), and includes a spec-first rule and an explicit trivial-change exemption list
+- [x] `installInstructionsFile` replaces the content between the `smaqit:instructions` begin/end markers with the current template; content outside the markers is byte-identical afterwards; an identical block is not rewritten
+- [x] A malformed block (begin without end, reversed, or duplicate begin) leaves the file untouched and prints a warning without failing `init`
+- [x] Go tests cover the created, appended, refreshed, identical and malformed cases; the smoke test asserts the markers after `init` and a refresh that keeps the user's content on re-`init`
+- [x] The four phase/qa commands have "Use when…" descriptions plus `when_to_use` trigger phrases; only their frontmatter changes, and their bodies are identical to v3.8.0
+- [x] The four Claude phase/qa subagent descriptions contain no "Invoked via the /smaqit.X command", use "Use proactively when…" wording, and instruct passing the user's full request and any resolved `PHASE-PARAMETERS` block; their `tools:`/`skills:` fields are unchanged from v3.8.0
+- [x] Every `skills/*/SKILL.md`, `commands/*.md` and generated agent frontmatter parses as strict YAML, including the three k3s-family skills
+- [x] Every skill and command description is 400 characters or fewer with the key use case first; detail that was cut and is needed to run the skill lives in its body
+- [x] `make prepare` fails, naming the file, on invalid frontmatter YAML or a skill/command description over 400 characters
+- [x] README, compendium and the agent-tools-reference wiki describe the block refresh and the trigger model; CHANGELOG updated (Version sync: nothing to sync — `framework/SMAQIT.md` carries no version and `installer/main.go`'s `Version` is an ldflags-overridden fallback that releases don't touch)
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- `templates/AGENTS.md.template` gains "When to use smaqit": a request-to-entry-point table, specifications first, prefer the phase commands, a return-signal rule (`NEEDS-INPUT`/`REVIEW-REQUESTED` go to the user, never answered by the agent), and an explicit trivial-change exemption list
+- `installInstructionsFile` replaces the begin-through-end marker span with the current template: `updated` / `up to date` (no write) / malformed → `errMalformedInstructionsBlock`, which `installInstructionsFileOrExit` turns into a warning and `left unchanged` without failing init. CRLF files keep CRLF
+- Six `TestInstallInstructionsFile…` tests (created, appended, refreshed, current-not-rewritten via mtime, CRLF, four malformed layouts); the smoke test asserts markers after init and a refresh that keeps user content, reusing the existing slots re-init
+- Commands: frontmatter-only rewrite to "Use when…" `description` + `when_to_use`; bodies byte-identical to v3.8.0. Claude phase/qa agents: "Use proactively when…" descriptions carrying the parameter-block and return-signal instructions; `tools:`/`skills:`, Copilot and Codex entries verified unchanged
+- 17 skill descriptions rewritten by a script that touched only `description` (and `metadata.version`), refused anything over 400 characters, and re-parsed each result; `check_all_listing_frontmatter()` in `scripts/generate-agents.py` runs first in `main()` and fails `make prepare` naming the file
+- Verified: `make test`, `make smoke-test`, planted-defect negative checks, a 34-file source scan and 91-file generated-output scan, and a real v3.8.0-initialized project refreshed by the dev build (content outside the markers byte-identical, `slots.yml` untouched, second run `up to date`)
 
 **Decisions made:**
-- TBD
+- Re-planned against v3.8.0 after tasks 125 and 131 shipped: the YAML-quoting step was already done in v3.7.0, and the return-signal rule was added because 131's ask-and-resume loop lives only in command bodies, which a proactive direct delegation skips
+- Task 114's five overlapping skills (`provider-cyso`, `vault-loader`, `provision-cyso`, `repo-config`, `cicd-generate`) changed only their description line, with no version bump: 114 already bumps their versions on a separate line, so the branches merge without conflict
+- `cicd-generate` kept its "greenfield generates workflows itself" and "never generates copilot-setup-steps.yml" facts in the description rather than moving them into a body 114 is editing; `test-e2e-playwright` gained one body sentence for the only other description-only detail
+- The five specification agents' "Invoked via Task by … not a direct user entry point" wording stays: it is accurate and keeps them delegation-only
+- Phase agent descriptions (~450 characters) are outside the 400-character limit, which applies only to skills and commands, the entries that share Claude Code's listing budget
+- Malformed markers warn rather than fail, so one hand-damaged file never blocks `smaqit update`
 
 **Blockers encountered:**
-- TBD
+- None
 
 **Follow-up identified:**
-- TBD
+- Live Claude Code check not run (installing the dev build globally would overwrite `~/.claude`): after release, in a smaqit-initialized project, ask "add a farewell page and deploy it" and "what's the status of this project" without slash commands, confirm smaqit is used, and confirm a directly delegated `NEEDS-INPUT` reaches the user
+- Open claude-code issue #85027 (VS Code agent host drops user skill descriptions, so skills never auto-activate) may still limit description-based triggering in the VS Code extension; the `AGENTS.md` directive doesn't depend on it. Re-check during the live check
+- Copilot and Codex agent descriptions remain in the older form; revisit after the live check
+- `smaqit uninstall` still leaves the managed `AGENTS.md`/`CLAUDE.md` section in place
 
 ## Files to Create / Modify
 

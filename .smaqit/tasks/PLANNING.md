@@ -4,6 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 131 | Claude Code Agents Can't Invoke Their Input Skills or Ask the User Questions | Not Started | High |
 | 130 | Make smaqit Self-Invoking: Directive Instructions, Block Refresh, Trigger-Form Descriptions | Not Started | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 129 | Deployment Slots C: Route new-greenfield-project Phases 4–6 Through the Deployment Agent (child of 125) | Not Started | High |

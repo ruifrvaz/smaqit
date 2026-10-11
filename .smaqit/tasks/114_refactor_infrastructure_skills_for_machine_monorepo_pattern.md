@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-11"
 created: "2026-08-24"
 ---
 
@@ -252,8 +254,32 @@ untagged as of this filing.)
     `vault-add-credential machines/<slug>/metadata` and `--check`).
 
 ## Known Issues Triage
+**Triaged:** 2026-10-11
+**Tools searched:** GitHub CLI (`cli/cli`), Terraform (`hashicorp/terraform`), OpenStack Terraform provider (`terraform-provider-openstack/terraform-provider-openstack`), OpenStack CLI (`openstack/python-openstackclient`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+- None
+
+### Advisory Issues
+- [#8817 gh variable/secret commands should url-encode environment name](https://github.com/cli/cli/issues/8817) — `cli/cli` — opened 2024-03-15 — bug, priority-3. Machine-slug Environment names are lowercase-hyphenated, so no encoding is needed; `sync-machine-env.sh` should validate the slug charset.
+- [#5149 create/edit/list/delete repo environment](https://github.com/cli/cli/issues/5149) — `cli/cli` — opened 2022-02-01 — enhancement. `gh` has no environment command; create Environments through `gh api …/environments/<name> -X PUT`, as planned.
+- [#37130 Regression for certain third-party S3 backends over S3 v2 API as of 1.11.2 (ceph, hetzner)](https://github.com/hashicorp/terraform/issues/37130) — `hashicorp/terraform` — opened 2025-05-20 — bug, backend/s3. Cyso Object Storage is a non-AWS S3 backend; relevant to the cicd-generate gotchas, not confirmed for Cyso.
+- [#37366 Backend S3 try to load aws credentials on non aws backends](https://github.com/hashicorp/terraform/issues/37366) — `hashicorp/terraform` — opened 2025-07-23 — enhancement, backend/s3.
+
+### Historical (Closed)
+- [#37985 Terraform S3 Backend fails with "No valid credential sources found" using aws login](https://github.com/hashicorp/terraform/issues/37985) — `hashicorp/terraform` — closed 2025-12-10. Same error signature as Finding 4, different cause.
+- [#37203 (maybe) 1.12 S3 Backend (nonAWS) Regression: skip_s3_checksum ignored?](https://github.com/hashicorp/terraform/issues/37203) — `hashicorp/terraform` — closed 2025-09-23
+- [#13588 Trailing whitespace in secret value when using gh secret set](https://github.com/cli/cli/issues/13588) — `cli/cli` — closed 2026-06-18. Relevant to piping secrets through stdin.
+
+### Unresolvable Tools
+- HashiCorp Vault — helper resolved to `hashicorp/vault-guides`, not the product repository; not searched
+
+### Omitted Tools
+- Bash, Go, GitHub Actions — excluded after relevance prioritization and the five-repository limit
+
+### Search Warnings
+- None. Research-map task block had no GitHub URLs; all repositories came from the helper fallback.
 
 ## Acceptance Criteria
 

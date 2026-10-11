@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-11"
 created: "2026-10-11"
 parent: "125"
 ---
@@ -37,8 +39,19 @@ the k3s credential ordering and the `existing-owned` teardown hazard on the way.
 5. Update the skill's Pre-conditions (k3s-tagged items; drop the "all modes need SSH" contradiction), Scope, Gotchas, Examples, Completion; bump `metadata.version`.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-11
+**Tools searched:** GitHub CLI (`cli/cli`), Terraform (`hashicorp/terraform`), k3s (`k3s-io/k3s`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#12786 Proposal: Display Commit SHA in `gh run watch` output](https://github.com/cli/cli/issues/12786) — `cli/cli` — labels: enhancement, gh-run, stale. `gh run watch` does not show the head SHA; `ci-push` must correlate the run via `gh run list --json headSha,event,workflowName` before watching it.
+
+### Historical (Closed)
+- [#5631 gh run watch --for <ref>](https://github.com/cli/cli/issues/5631) — `cli/cli` — closed 2022-10-20. No ref filter on watch; select the run ID first.
+
+### Omitted Tools
+- GitHub Actions — no repository to search (product docs in the research map)
+- Kubernetes — covered by the k3s search; no task-specific API change
 
 ## Acceptance Criteria
 

@@ -126,41 +126,130 @@ Release, silently. The chain should preflight the workflow's existence and warn 
 install it) before opening a release-titled PR. (a downstream project's infrastructure repo's `v0.1.0` remains
 untagged as of this filing.)
 
+## Issue Triage Context
+
+**Mode:** Auto
+**Technologies:** Bash, Go, HashiCorp Vault, GitHub CLI, Terraform, OpenStack, GitHub Actions
+**Platforms/Environments:** Linux, WSL2, Cyso Cloud (OpenStack)
+**Features/Integrations:** Vault KV v2, GitHub Environment secrets/variables, fine-grained PATs, Cinder volumes (virtio-scsi), Terraform S3 backend, smaqit deployment slots
+**Versions/Constraints:** smaqit 3.7.0, Agent Skills metadata values must be strings, fine-grained PAT needs org-level Secrets/Variables for Environment writes
+
 ## Design Decisions
 
 - Scope is refactors to existing artifacts only; new skills are sibling task 115. The two tasks
   together constitute the "smaqit framework update for the machine-repo pattern" that
   a downstream project's infrastructure repo task 001 deferred to this repository.
-- Finding 1's corrections update both `skills/smaqit.infrastructure-provider-cyso/references/`
-  and the wiki source they mirror, per that skill's own stated convention.
+- Finding 1's corrections update `skills/smaqit.infrastructure-provider-cyso/references/` only:
+  no `docs/wiki/` copy of the Cyso reference exists, so the skill's own claim that its
+  references mirror the wiki (SKILL.md:59) is corrected instead.
 - Finding 2 builds on task 110 / PR #85's `lib-project-slug.sh` work rather than reopening it —
   the remaining gap is the missing registration flow and required metadata, not derivation.
-- [TBD at task start: whether Finding 3 extends `infrastructure-repo-config` with a machine
-  scheme or delegates to a machine-specific config skill under task 115; whether Finding 5 is a
-  mode of `smaqit-deployment` or a distinct machine-deployment agent.]
+- Confirmed during `task.plan` (2026-10-11):
+  - **Finding 6 moves to smaqit-extensions task 042,** together with the smaqit-extensions half
+    of Finding 5's worktree caveat. The task-lifecycle and release skills live only in that
+    repository; nothing in this repository changes for Finding 6.
+  - **Finding 2:** a new `register-machine.sh`, declared in vault-loader's `metadata.smaqit-slots`
+    as `target-credentials=register`. It replaces only provision-cyso Step 7.5's raw
+    `vault kv put …/metadata`; the rest of the raw-Vault cleanup stays in task 123.
+  - **Finding 3:** a new `sync-machine` operation on `smaqit.infrastructure-repo-config`
+    (`environment-config=sync-machine`), implemented in scripts rather than inline `vault`
+    commands. The PAT-permission preflight is a shared script used by both the machine
+    operation and the existing k3s per-environment step.
+  - **Finding 4:** gotchas only. Machine workflow templates are task 115's.
+  - **Finding 5:** machine contexts are a mode of `smaqit-deployment` through deployment slots
+    (resolved by task 125). This task adds mandatory provider-knowledge routing, the
+    isolated-worktree caveat, and verify taken from the bound `verify` filler.
+  - **Live Vault step:** the metadata backfill is run by the user through their own Vault
+    tooling; the implementing agent runs no `vault` command and records the commands in
+    Findings.
+  - **Delivery:** its own branch from `origin/main` and its own `Prepare release vX.Y.Z` PR.
 
 ## Implementation Steps
 
-1. Correct `smaqit.infrastructure-provider-cyso` references (+ wiki source): virtio-scsi attach
-   convention with both by-id shapes, explicit `volume_type` requirement + tier default warning +
-   exact type names, detach-retype-reattach procedure, single confirmed image UUID, fine-grained
-   PAT org-level Secrets/Variables requirement with 403/404 diagnostic mapping.
-2. Add a machine-registration flow to `smaqit.infrastructure-vault-loader`
-   (`register-machine.sh <machine-slug>`): generate + store `base-ssh`, prompt `cyso` and
-   `tfstate` (using the hardened `read_secret` + empty-guards from task 110), write `metadata`
-   (provider/owner_project at registration; `host` backfilled post-apply). Document that
-   `rotate-credential.sh` is rotation-only. Backfill `secret/machines/<machine-slug>/metadata`
-   as the live proof.
-3. Extend `smaqit.infrastructure-repo-config` (or split) for machine-scoped GitHub Environments:
-   environment creation/verification, Vault→environment secret/variable mapping for the machine
-   scheme, PAT-permission preflight.
-4. Encode Finding 4's two workflow gotchas in the owning generation skill's gotchas + templates;
-   add a plan-guard/`prevent_destroy` recommendation for gated machine applies.
-5. Update `agents/deployment.md` (smaqit-deployment): machine-mode guidance or explicit
-   deferral to a machine-deployment path, mandatory provider-knowledge routing for platform
-   facts, and the agent-worktree/uncommitted-state caveat.
-6. Add the `post-merge-release.yml` existence preflight to `smaqit.task-complete` (Phase 1,
-   before the release-titled PR is opened).
+*Phase A — Cyso facts (Finding 1)*
+
+1. `skills/smaqit.infrastructure-provider-cyso/references/cyso-reference.md`:
+   - Replace the `/dev/vdb` data-volume convention (~219–225) with virtio-scsi `/dev/sdb` and
+     both stable symlink shapes (`/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_<full-volume-id>`,
+     `scsi-S…`).
+   - Volume types: lowercase `tier-1`, `tier-1m`, `tier-2`, `tier-2m`; warn that omitting
+     `volume_type` resolves to `tier-2`; add an explicit `volume_type` to the Terraform example
+     (~244–247).
+   - Add the detach → `openstack volume set --type` → reattach → remount retype procedure.
+   - Keep the single confirmed Ubuntu 24.04 UUID `fd91e198-f162-4b6b-a23e-123304fb408a`;
+     replace `bcdcd204-…` (~411).
+   - Add the fine-grained PAT org-level Secrets/Variables requirement for Environment writes,
+     with the three diagnostic signatures (env create 403, var set against a missing env 404,
+     var set with repo-only grants 403).
+   - Bump the verified date.
+2. Apply the same corrections to the sibling references: `cyso-deployment-setup.md` (~160–163,
+   `/dev/vdb`) and `cyso-pricing.md` (type names, default warning).
+3. `provider-cyso/SKILL.md`: correct the stale "copies of `docs/wiki/` content" claim (~59);
+   bump `metadata.version`.
+
+*Phase B — machine registration (Finding 2), parallel with A*
+
+4. Create `skills/smaqit.infrastructure-vault-loader/scripts/register-machine.sh <machine-slug>
+   [--host <ip>]`:
+   - The slug is a required argument; never derived from the working directory.
+   - Hidden reads use the `/dev/tty` `read_secret` pattern so `check-no-ad-hoc-secret-reads.sh`
+     passes.
+   - Idempotent: keeps existing fields; generates `base-ssh` only if missing; prompts `cyso` and
+     `tfstate`; writes `metadata` (`provider`, `owner_project` defaulting to the repo slug via
+     `lib-project-slug.sh`); `--host` backfills `metadata.host` after apply.
+5. `vault-loader/SKILL.md`: declare `target-credentials=register` alongside `access` and
+   `target`; document registration and that `rotate-credential.sh` is rotation-only and requires
+   `metadata.host`; fix the claim (~250) that `bootstrap-app-to-machine.sh` prompts for
+   cyso/tfstate; bump `metadata.version`.
+6. `provision-cyso/SKILL.md` Step 7.5 (~141–144): replace the raw metadata write with
+   `register-machine.sh <slug> --host <fixed_ip>`; bump `metadata.version`.
+
+*Phase C — machine Environments (Finding 3), depends on B for the path schema*
+
+7. Create `skills/smaqit.infrastructure-repo-config/scripts/sync-machine-env.sh <owner>/<repo>
+   <machine-slug>`: create or verify the Environment named after the machine slug
+   (`gh api repos/<owner>/<repo>/environments/<slug> -X PUT`); map `secret/machines/<slug>/*` to
+   `BASE_SSH_PUBLIC_KEY`, `BASE_SSH_PRIVATE_KEY`, `CYSO_APPLICATION_CREDENTIAL_ID`,
+   `CYSO_APPLICATION_CREDENTIAL_SECRET`, `CYSO_S3_ACCESS_KEY`, `CYSO_S3_SECRET_KEY`; set the
+   variables `RECONCILE_SSH_USER` and `FIXED_IP` (from `metadata.host`). Secrets travel by stdin,
+   never by argument or stdout.
+8. Create `skills/smaqit.infrastructure-repo-config/scripts/check-pat-permissions.sh`: probe the
+   token and map the three signatures to the fix (org-level Secrets/Variables read/write). Used
+   by `sync-machine` and by the existing k3s per-environment step.
+9. `repo-config/SKILL.md`: declare `environment-config=sync, environment-config=sync-machine`;
+   add the `sync-machine` operation section and the preflight; add Failure Handling rows; bump
+   `metadata.version`.
+10. `docs/wiki/workflows/deployment-slots.md`: extend the platform-repository example to bind
+    `target-credentials` → vault-loader `register` and `environment-config` → repo-config
+    `sync-machine`.
+
+*Phase D — gotchas and agent (Findings 4–5)*
+
+11. `cicd-generate/SKILL.md` Gotchas: S3-backend credentials belong in job-level `env:` (steps
+    don't inherit sibling-step env); a gated apply against an existing machine needs plan-guard
+    and `lifecycle { prevent_destroy = true }` on the instance and volumes. Bump
+    `metadata.version`.
+12. `agents/deployment.md`: platform facts (endpoints, regions, image/volume/network IDs) must
+    come from the provider-knowledge skill, never be guessed; a delegated subagent in an
+    isolated worktree sees only committed state, so run it in the task worktree; for non-app
+    targets verification is whatever the `verify` slot binds. Rebase onto task 131 first if it
+    has merged (its edits are in other sections).
+
+*Phase E — verification, docs, release*
+
+13. `installer/slots_test.go`: `smaqit slots plan` resolves bindings to `register` and
+    `sync-machine`; a binding without `operation` against a skill declaring several operations
+    fails with `SLOTS-OPERATION-INVALID`.
+14. Stub harness: run `register-machine.sh` and `sync-machine-env.sh` against PATH-shadowed
+    `vault`/`gh` stubs that record calls; assert idempotency, the required slug, and that no
+    secret value reaches stdout or argv. Run `check-no-ad-hoc-secret-reads.sh`.
+15. `make -C installer prepare test smoke-test`; `grep -rn '/dev/vdb\|bcdcd204' skills/` returns
+    nothing.
+16. `.smaqit/compendium.md`: entry on how a platform repository registers a machine and
+    configures its Environment through slots. `CHANGELOG.md` (MINOR) and a
+    `Prepare release vX.Y.Z` PR.
+17. Record in Findings the user-run commands for the live backfill and its check (the user's own
+    `vault-add-credential machines/<slug>/metadata` and `--check`).
 
 ## Known Issues Triage
 
@@ -168,23 +257,29 @@ untagged as of this filing.)
 
 ## Acceptance Criteria
 
-- [ ] `cyso-reference.md` (skill references + wiki source) reflects every Finding 1 correction;
-      no `/dev/vdb` claim, no duplicate image UUID, tier default and PAT org-level requirements
-      documented.
+- [ ] `cyso-reference.md` reflects every Finding 1 correction: no `/dev/vdb` claim, tier default
+      and lowercase type names, retype procedure, and PAT org-level requirement documented. No
+      `bcdcd204` UUID anywhere in `skills/`; `cyso-deployment-setup.md` and `cyso-pricing.md`
+      are corrected; `provider-cyso/SKILL.md` no longer claims a `docs/wiki/` mirror.
 - [ ] `register-machine.sh` exists, populates all four `secret/machines/<slug>/` paths
       (base-ssh, cyso, tfstate, metadata) idempotently, takes the machine slug as a required
       argument (no cwd derivation), and passes the skill's no-ad-hoc-secret-reads static check.
-- [ ] `secret/machines/<machine-slug>/metadata` is backfilled and
-      `rotate-credential.sh machines/<machine-slug>/base-ssh` no longer fails its
-      metadata precondition (dry-check acceptable; no live rotation required).
-- [ ] Machine-scoped GitHub Environment configuration is covered by a skill (extended or new),
-      including the PAT-permission preflight with the three diagnostic signatures.
-- [ ] The workflow-generation skill's docs/templates encode job-level backend credentials and a
-      destroy-guard for gated machine applies.
-- [ ] `agents/deployment.md` addresses machine-context misfit and mandates provider-knowledge
-      routing for platform facts.
-- [ ] `smaqit.task-complete` warns when `post-merge-release.yml` is absent before opening a
-      `Prepare release` PR.
+      vault-loader declares it as `target-credentials=register`, and provision-cyso Step 7.5
+      calls it instead of a raw `vault kv put`.
+- [ ] Findings record the user-run commands that backfill `secret/machines/<machine-slug>/metadata`
+      and check it, through the user's own Vault tooling. The implementing agent runs no `vault`
+      command.
+- [ ] repo-config's `sync-machine` operation creates or verifies the machine-slug Environment and
+      maps the six machine secrets and two variables. `check-pat-permissions.sh` maps the three
+      diagnostic signatures and is used by both the machine and the k3s per-environment step.
+- [ ] `cicd-generate`'s Gotchas encode job-level backend credentials, and plan-guard plus
+      `prevent_destroy` for gated applies against an existing machine.
+- [ ] `agents/deployment.md` mandates provider-knowledge routing for platform facts, states the
+      isolated-worktree caveat, and states that non-app verification comes from the bound
+      `verify` filler.
+- [ ] `make -C installer prepare test smoke-test` passes; Go tests cover both new operations; a
+      stub vault/gh harness proves idempotency and that no secret reaches stdout or argv.
+- [ ] The `deployment-slots.md` platform example, the compendium, and `CHANGELOG.md` are updated.
 
 ## Findings
 
@@ -206,13 +301,16 @@ untagged as of this filing.)
 
 | File | Action |
 |------|--------|
-| `skills/smaqit.infrastructure-provider-cyso/references/cyso-reference.md` | Modify (+ wiki source) |
+| `skills/smaqit.infrastructure-provider-cyso/references/{cyso-reference,cyso-deployment-setup,cyso-pricing}.md`, `SKILL.md` | Modify |
 | `skills/smaqit.infrastructure-vault-loader/scripts/register-machine.sh` | Create |
 | `skills/smaqit.infrastructure-vault-loader/SKILL.md` | Modify |
-| `skills/smaqit.infrastructure-repo-config/` | Modify (or split) |
+| `skills/smaqit.infrastructure-provision-cyso/SKILL.md` | Modify (Step 7.5 only) |
+| `skills/smaqit.infrastructure-repo-config/scripts/{sync-machine-env,check-pat-permissions}.sh` | Create |
+| `skills/smaqit.infrastructure-repo-config/SKILL.md` | Modify |
 | `skills/smaqit.infrastructure-cicd-generate/SKILL.md` | Modify (gotchas) |
 | `agents/deployment.md` | Modify |
-| `skills/smaqit.task-complete/SKILL.md` | Modify (release-workflow preflight) |
+| `installer/slots_test.go` | Modify |
+| `docs/wiki/workflows/deployment-slots.md`, `.smaqit/compendium.md`, `CHANGELOG.md` | Modify |
 
 ## Notes
 
@@ -222,4 +320,7 @@ Source material: a downstream project's infrastructure repo task file
 machine-monorepo skills). Related: task 110 / PR #85 (vault-loader slug derivation — in flight,
 complementary, not duplicated here).
 - **Re-scoped by task 125 (2026-10-11):** Finding 5's open decision is resolved there — machine contexts run as a mode of `smaqit-deployment` through deployment slots, not a distinct agent. Findings 2–3 (machine registration, machine-scoped Environments) become requirements on the `credentials` and `environment-config` slot contracts; a platform repository may fill those slots with its own skills.
+- **Planned 2026-10-11 (`task.plan`):** Finding 6 moved to smaqit-extensions task 042; machine
+  workflow templates (Finding 4) deferred to task 115. Overlaps task 123 (`repo-config`,
+  `vault-loader`) and task 131 (`agents/deployment.md`); whichever lands second rebases.
 - **Refreshed after task 125 implementation (2026-10-11):** the shipped slot names are `access-credentials` / `target-credentials` (not a single `credentials` slot) and `environment-config`; machine registration maps to `target-credentials`, machine-scoped Environments to `environment-config`. Bind them in `.smaqit/slots.yml`; fillers declare `metadata.smaqit-slots` (a string of `slot=operation` pairs). Inspect with `smaqit slots plan`.

@@ -159,7 +159,22 @@ Mostly, they don't ask; they return. Claude Code removes `AskUserQuestion` from 
 
 The main conversation owns the loop. That is the `/smaqit.<phase>` command body, or an orchestrating skill like `smaqit.feature-new`. It applies the phase input skill itself, passes the agent an explicit `PHASE-PARAMETERS` block, asks the user whatever a signal lists, and resumes the same subagent by sending its agent ID the `answers`. If resuming isn't possible, it invokes the agent again with `answers` plus `approved_spec_paths`. Approved specs count as current even while `draft`, so a fresh run never regenerates them.
 
-On GitHub Copilot, all eight non-QA agents have `vscode/askQuestions` and can ask directly; a `runSubagent` child that can't ask returns the signal to its parent. Before task 131 this was broken on Claude Code: the input gates never ran, Assisted mode was unreachable on every platform because nothing set the mode, and greenfield re-ran every specification agent after its own specification phase. See also: what agent orchestration pattern does smaqit's phase orchestration match?
+On GitHub Copilot, all eight non-QA agents have `vscode/askQuestions` and can ask directly; a `runSubagent` child that can't ask returns the signal to its parent. Before task 131 this was broken on Claude Code: the input gates never ran, Assisted mode was unreachable on every platform because nothing set the mode, and greenfield re-ran every specification agent after its own specification phase. See also: what agent orchestration pattern does smaqit's phase orchestration match? When are the `smaqit.input-*` skills invoked?
+
+---
+
+**When are the `smaqit.input-*` skills invoked?**
+
+There are two families, and each runs at a different point:
+
+- **The five layer gates** (`input-business`, `-functional`, `-stack`, `-infrastructure`, `-coverage`) run inside their specification agent, before it writes anything. A specification agent MUST apply its gate (`framework/AGENTS.md`, Session Context). The gate checks the layer's required sections (for Business: Actors, Use Cases, Success Metrics), flags contradictions, and checks whether to add new specs or revise existing ones. It asks the user directly where it can, and otherwise returns `NEEDS-INPUT` with stable question ids.
+- **The three phase skills** (`input-development`, `-deployment`, `-validation`) resolve execution parameters for a phase: `mode` (autonomous by default), the `specification_mode` the caller sets, the phase's own preferences and, for deployment, `provisioning_mode`, environment, deployment path and the slot plan from `smaqit slots plan`.
+  - Every parameter has a default, so these skills ask only about blocking ambiguity.
+  - They output a `PHASE-PARAMETERS` block.
+  - The caller runs them in the main conversation and passes the block in: the `/smaqit.<phase>` command body, `smaqit.feature-new` Phase 3, or greenfield Phases 4–6.
+  - A phase agent applies its own preloaded copy only when it was invoked without a block.
+
+On Claude Code every agent preloads exactly its own input skill through `skills:`. That's the only way it can reach the skill, since agent `tools:` lists omit `Skill`. Their "Invoke automatically when…" descriptions matter only in the main conversation, where Claude can choose a skill by its description. See also: how do smaqit agents ask the user questions when they run as subagents?
 
 ---
 
@@ -192,6 +207,32 @@ Through deployment slots. The deploy phase runs a fixed, ordered sequence of slo
 ---
 
 ## Claude Code Support
+
+**How do I start a new project with smaqit on Claude Code, and how do I run only the Develop phase?**
+
+There are two levels of setup:
+
+1. **Once per machine,** `install.sh` puts the `smaqit` binary on `PATH` and installs agents, commands and skills globally: `~/.claude/agents/`, `~/.claude/commands/`, `~/.claude/skills/`.
+2. **Once per project,** `smaqit init` scaffolds:
+   - `.smaqit/` (templates, state, and the git-ignored PlantUML runtime under `.smaqit/tools/`)
+   - `specs/` and `docs/designs/` for the five layers
+   - the `smaqit-plantuml` MCP registration in `.mcp.json`
+   - an `AGENTS.md` smaqit block plus a `CLAUDE.md` that imports it
+   - the Copilot setup workflow
+
+Approve the `smaqit-plantuml` server in Claude Code (`/mcp` shows whether it's connected); Node 22+ is the only prerequisite.
+
+Nothing forces Claude to use smaqit. The `AGENTS.md` block makes Claude aware of the specs, designs and commands, but smaqit runs only when you invoke a phase command or orchestrating skill. Because agents and skills are global, they are also present in projects without `smaqit init`, where they fail for lack of `specs/`, templates and the MCP server.
+
+To run only Develop, use `/smaqit.development <request>`:
+1. The command applies `smaqit.input-development` in the main conversation and invokes the `smaqit-development` subagent with the parameter block.
+2. That subagent runs the business, functional and stack specification agents for any spec that is missing, `draft` or `failed` (and not already approved).
+3. It consolidates the specs and runs `smaqit plan --phase=develop`, which also checks the design gate.
+4. It implements, builds and tests the application, and generates design-sequence diagrams.
+
+Deploy runs only when you invoke `/smaqit.deployment`. The specification agents have no slash command on Claude Code, but you can ask Claude to delegate to one by name (for example `smaqit-business`). The full lifecycle runs through the `smaqit.new-greenfield-project` and `smaqit.feature-new` skills, which also need smaqit-extensions for task lifecycle. See also: when are the `smaqit.input-*` skills invoked?
+
+---
 
 **What's the Claude Code equivalent of `copilot-setup-steps.yml`?**
 
@@ -356,5 +397,19 @@ It is owned entirely by the sibling `smaqit-extensions` repository, not by `smaq
 **How do you determine whether an old task file in `.smaqit/tasks/` is still relevant before starting or completing it?**
 
 Task files are written speculatively and can go stale as the framework evolves out from under them — re-reading the task text alone is not sufficient. Check three things against the *current* codebase rather than trusting the file: (1) do the file paths, commands, or skill names it references still exist (e.g. a task written when prompts were still `.github/prompts/*.prompt.md`, or when `PLANNING.md` lived under `docs/tasks/` instead of `.smaqit/tasks/`, is describing a mechanism that may no longer exist); (2) has a later task already superseded or completed the same underlying work, sometimes without ever being run through the task's own file (check `git log` on the files the task claims to touch, not just `PLANNING.md`'s status column); (3) has the concern the task wants to validate already been implicitly exercised by extensive real usage since it was filed, with no issue ever surfacing. A task can fail all three checks and still describe a real, unaddressed gap — in that case the fix is usually much smaller than the original task once rescoped to current architecture, and may not warrant a tracked task on its own.
+
+---
+
+## Bench
+
+**Can smaqit's Bench suite test how Claude Code runs smaqit agents?**
+
+Not soundly yet. The `smaqit-adk bench` engine runs whatever `process.executable` a manifest names, but every existing manifest drives `codex exec`, and three gaps block a valid Claude Code run:
+
+- **Staging and shadowing.** Bench stages the version under test into a read-only `.smaqit-bench-input/` sidecar that Claude Code doesn't read. Copying it into the project's `.claude/` doesn't help, because personal `~/.claude/skills` override project skills with the same name, so an installed smaqit release would mask the version under test.
+- **Credentials.** Avoiding that shadowing needs an isolated `CLAUDE_CONFIG_DIR`, which has no login. Credentials must be passed in on purpose and never frozen into evidence; smaqit-adk task 035 found Codex credentials leaking into a workspace that way.
+- **Conversation turns.** Headless Claude Code has no user to answer questions, so it covers single-turn Cases only. Testing an ask-and-resume loop needs scripted follow-up turns.
+
+smaqit-adk task 037 (Bench harness selector) would make Claude Code a declared harness that handles all three. Until it lands, Claude-specific behavior is checked live, through real use. Examples are `skills:` preload, the subagents' missing `AskUserQuestion`, and resume with `SendMessage`.
 
 ---

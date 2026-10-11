@@ -154,13 +154,16 @@ SSH into the VM (cloud-init may still be running — wait ~60 seconds after appl
 ssh -i ~/.ssh/<project-slug>_key ubuntu@<FLOATING_IP>
 ```
 
-**Format and mount the Cinder data volume** (run once):
+**Format and mount the Cinder data volume** (run once). Cyso attaches volumes over virtio-scsi,
+so the volume is `/dev/sdb`, not `/dev/vdb`; address it by its stable by-id link (see
+`cyso-reference.md` → Volume attachment):
 
 ```bash
-sudo mkfs.ext4 /dev/vdb
+DEV=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_<full-volume-id>
+sudo blkid "$DEV" || sudo mkfs.ext4 "$DEV"   # format only if empty
 sudo mkdir -p /data
-sudo mount /dev/vdb /data
-echo '/dev/vdb /data ext4 defaults,nofail 0 2' | sudo tee -a /etc/fstab
+echo "$DEV /data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
+sudo mount /data
 ```
 
 **Create the `.env` file** (never in Terraform state):

@@ -28,6 +28,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.9.0] - 2026-10-11
+
+### Added
+- **Machine registration** — `smaqit.infrastructure-vault-loader` `register-machine.sh <machine-slug>`, declared as the `target-credentials=register` slot operation, is the single entrypoint for first-time population of `secret/machines/<machine-slug>/{base-ssh,cyso,tfstate,metadata}`. The slug is a required argument (never derived from the working directory), existing paths are kept, prompts read only from the terminal with secrets handed to Vault on stdin, and `--host` backfills `metadata.host` after apply.
+- **Machine GitHub Environments** — `smaqit.infrastructure-repo-config` `sync-machine` operation (`environment-config=sync-machine`, `scripts/sync-machine-env.sh`) creates or verifies an Environment named after the machine slug and syncs six machine secrets plus `RECONCILE_SSH_USER` and `FIXED_IP`; `FIXED_IP` is skipped until the machine has an address, since `environment-config` runs before `provision`.
+- **Token preflight** — `scripts/check-pat-permissions.sh` probes an Environment read-only and maps the fine-grained PAT signatures to the fix (organization-level Secrets and Variables read/write is required for Environment writes). It also gates the `existing-k3s` per-environment sync.
+- **Skill-script test harness** — `installer/skill_scripts_test.go` runs the machine-registration and Environment scripts against stub `vault`/`gh` binaries, asserting idempotency and that no secret reaches a command line or the terminal.
+
+### Changed
+- `smaqit.infrastructure-provision-cyso` Step 7.5 registers the machine through `register-machine.sh` instead of a raw `vault kv put`.
+- The Deployment agent takes platform facts from the provider-knowledge skill instead of guessing them, never delegates to a subagent in an isolated worktree while implementation is uncommitted, and verifies non-application targets through the bound `verify` filler.
+- `smaqit.infrastructure-cicd-generate` documents two gotchas for Terraform workflows outside its templates: backend credentials belong in job-level `env:`, and a gated apply against an existing machine needs plan-guard plus `prevent_destroy`.
+
+### Fixed
+- Cyso reference facts: Cinder volumes attach over virtio-scsi as `/dev/sdb` (address them by their `by-id` link), not `/dev/vdb`; a volume created without `volume_type` is `tier-2`, not `tier-1`; an attached volume can't be retyped; one confirmed Ubuntu 24.04 image ID; the provisioning image check looks for Ubuntu 24.04.
+- `smaqit.infrastructure-vault-loader` no longer claims `bootstrap-app-to-machine.sh` prompts for `cyso`/`tfstate`.
+
 ## [3.8.0] - 2026-10-11
 
 ### Added

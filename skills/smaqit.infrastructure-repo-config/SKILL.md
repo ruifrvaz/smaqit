@@ -2,8 +2,8 @@
 name: smaqit.infrastructure-repo-config
 description: "Use when configuring a GitHub repository with the secrets and variables required for CI/CD workflows. Covers Actions secrets (VM_SSH_KEY, Terraform backend credentials, cloud provider credentials, GH_TERRAFORM_TOKEN), Actions variables (VM_HOST, DEMO_MODE), and, for `provisioning_mode: existing-k3s` targets, the environment-scoped `KUBECONFIG` secret and `APP_HOST` variable plus an optional registry credential. Uses the `gh` CLI. Prevents GITHUB_TOKEN reserved-name collisions and SSH key trailing-newline drift. Also use when setting up a new deployment repository, rotating CI/CD credentials, or verifying that all required repository secrets and variables are present."
 metadata:
-  version: "1.7.0"
-  smaqit-slots: "environment-config=sync"
+  version: "1.8.0"
+  smaqit-slots: "environment-config=sync, environment-config=sync-machine"
 ---
 
 # Configure GitHub Repository Secrets and Variables
@@ -66,7 +66,12 @@ metadata:
    why. Confirm all expected names appear (see Completion checklist) before considering this done.
 
 5. **`existing-k3s` only — sync the kubeconfig and host, on GitHub Environments, not the
-   repository:**
+   repository.** Preflight the token first; it maps a missing Environment or a missing grant to
+   the fix before any write (see Gotchas → fine-grained PAT):
+   ```bash
+   scripts/check-pat-permissions.sh <owner>/<repo> test prod
+   ```
+   Then sync:
    ```bash
    gh secret set KUBECONFIG --env test -R <owner>/<repo> --body "$(vault kv get -field=value secret/apps/<app-slug>/<test-machine-slug>/kubeconfig)"
    gh secret set KUBECONFIG --env prod -R <owner>/<repo> --body "$(vault kv get -field=value secret/apps/<app-slug>/<prod-machine-slug>/kubeconfig)"
@@ -96,11 +101,55 @@ metadata:
    read-only credential syncs to every app/environment declaring a private registry in this org;
    never a platform-owned credential, and never a per-app Vault path invented for this purpose.
 
+### Operation `sync-machine` — a machine's GitHub Environment (platform repositories)
+
+For a repository that owns machines rather than an app. Each machine gets one GitHub
+**Environment named after its machine slug**, populated from `secret/machines/<machine-slug>/*`
+(written by `smaqit.infrastructure-vault-loader`'s `register-machine.sh`). Bind it in
+`.smaqit/slots.yml` as `environment-config: {skill: smaqit.infrastructure-repo-config, operation:
+sync-machine}`; this skill declares two `environment-config` operations, so the binding must name
+one. Run once per machine:
+
+```bash
+scripts/sync-machine-env.sh <owner>/<repo> <machine-slug> [--ssh-user <user>]
+```
+
+The script stops before writing anything if any of `base-ssh`, `cyso`, `tfstate`, or `metadata`
+is missing, naming the `register-machine.sh` command that fills it. It then:
+
+1. Creates or verifies the Environment (`gh api repos/<owner>/<repo>/environments/<machine-slug> -X PUT`
+   — `gh` has no Environment command). The slug must be lowercase letters, digits, and inner
+   hyphens; `gh` does not URL-encode Environment names.
+2. Runs `scripts/check-pat-permissions.sh` against that Environment.
+3. Sets six Environment **secrets**, each piped from Vault to `gh secret set` on stdin:
+
+   | Secret | Vault source |
+   |---|---|
+   | `BASE_SSH_PUBLIC_KEY` / `BASE_SSH_PRIVATE_KEY` | `base-ssh` `public_key` / `private_key` |
+   | `CYSO_APPLICATION_CREDENTIAL_ID` / `CYSO_APPLICATION_CREDENTIAL_SECRET` | `cyso` `app_credential_id` / `app_credential_secret` |
+   | `CYSO_S3_ACCESS_KEY` / `CYSO_S3_SECRET_KEY` | `tfstate` `access_key` / `secret_key` |
+
+4. Sets two Environment **variables**: `RECONCILE_SSH_USER` (`--ssh-user`, default `ubuntu`) and
+   `FIXED_IP` (`metadata.host`).
+5. Lists the Environment's secrets and variables and fails if any expected name is absent.
+
+**It runs twice for a new machine.** `environment-config` comes before `provision` in the slot
+order, and CI needs the credentials secrets before the gated apply, so the first run happens while
+the machine has no address: `metadata.host` is unset and `FIXED_IP` is skipped with a notice (exit
+0). After apply, backfill the address (`register-machine.sh <machine-slug> --host <fixed_ip>`) and
+re-run — directly, or as a single-slot run (`smaqit slots plan … --slot=environment-config`) — to
+set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentials in Vault.
+
 ## Output
 
 - **`provision` / `existing-owned`:** GitHub repository configured with 7 secrets (VM_SSH_KEY, VM_SSH_PUBLIC_KEY, TF_BACKEND_ACCESS_KEY, TF_BACKEND_SECRET_KEY, OS_APPLICATION_CREDENTIAL_ID, OS_APPLICATION_CREDENTIAL_SECRET, GH_TERRAFORM_TOKEN) plus the VM_HOST variable
 - **`existing-shared` / `existing-unmanaged`:** 3 secrets only (VM_SSH_KEY, VM_SSH_PUBLIC_KEY, GH_TERRAFORM_TOKEN) plus the VM_HOST variable (set manually, not derived from Terraform) — identical set for both modes; only the reason there's no Terraform output differs (another project's Terraform vs. no Terraform at all)
 - **`existing-k3s`:** a `KUBECONFIG` secret on each of the `test` and `prod` GitHub Environments (never a repository-level secret), plus an `APP_HOST` variable on each Environment; if the spec's `Container Registry` row declares a private registry, also `REGISTRY_USERNAME`/`REGISTRY_TOKEN` on each Environment, sourced from the shared `secret/organizations/<org-slug>/github-package-read`. No `VM_HOST`, no `VM_SSH_KEY`, no Terraform-derived secret at all.
+- **`sync-machine`:** a GitHub Environment named after the machine slug holding 6 secrets
+  (`BASE_SSH_PUBLIC_KEY`, `BASE_SSH_PRIVATE_KEY`, `CYSO_APPLICATION_CREDENTIAL_ID`,
+  `CYSO_APPLICATION_CREDENTIAL_SECRET`, `CYSO_S3_ACCESS_KEY`, `CYSO_S3_SECRET_KEY`) and 2 variables
+  (`RECONCILE_SSH_USER`, and `FIXED_IP` once the machine's address is known). Nothing at the
+  repository level.
 - All values sourced from Vault; no credentials typed or stored locally outside Vault
 - Verification output confirming presence of each name; absent `tfstate`/`cyso`-derived secrets are reported as skipped, not missing
 
@@ -110,8 +159,9 @@ metadata:
 - Does NOT create or configure the GitHub repository itself
 - Does NOT manage environment-level secrets, except for `provisioning_mode: existing-k3s` — that
   mode's `KUBECONFIG` secret and `APP_HOST` variable are deliberately GitHub Environment-scoped
-  (`test`/`prod`), not repository-level, since each environment needs its own distinct value;
-  every other mode's output stays repository-level only
+  (`test`/`prod`), not repository-level, since each environment needs its own distinct value —
+  and the `sync-machine` operation, whose output is entirely one machine-slug Environment; the
+  `sync` operation's VM-mode output stays repository-level only
 - Does NOT hard-fail when `tfstate`/`cyso` Vault paths are absent — see Step 3 / `scripts/sync-secrets.sh` for `provisioning_mode: existing-shared`/`existing-unmanaged` handling
 - Does NOT contact a Kubernetes cluster for `existing-k3s` — the kubeconfig is read from Vault and written to GitHub verbatim, never validated against the cluster itself
 
@@ -129,6 +179,7 @@ metadata:
 - **`GH_TOKEN` vs `GH_TERRAFORM_TOKEN`** — `GH_TOKEN` is the legacy name used before the collision was discovered. If both exist, workflows use `GH_TERRAFORM_TOKEN`. Remove `GH_TOKEN` to avoid confusion.
 - **SSH key trailing newline** — always pipe through `tr -d '\n'` when setting VM_SSH_KEY. Without this, Terraform flags the keypair resource for replacement on every plan.
 - **Fine-grained PAT scope** — repository permissions → Variables: Read and write. Classic PATs are rejected by the GitHub Terraform provider.
+- **Environment writes need organization-level grants on a fine-grained PAT** — repository-level Environments + Secrets + Variables read/write is not enough: writes to an Environment's secrets or variables return 403 until **organization-level Secrets and Variables read/write** is also enabled on the token. `scripts/check-pat-permissions.sh` probes for this read-only before any write, for both `existing-k3s` and `sync-machine`.
 - **`gh auth login` scope** — ensure the `gh` session has `write:secrets` and `write:variables`. The `repo` scope alone is insufficient for variables.
 - **`KUBECONFIG` must be set per Environment, never at the repository level** — a repository-level secret can only hold one value, but `test` and `prod` each resolve to their own registered machine-slug and its own distinct scoped kubeconfig. Setting it at the repository level would silently make one environment deploy with the wrong credential.
 - **`APP_HOST` is a variable, not a secret** — same reasoning as `VM_HOST`: it's a hostname, not sensitive, and the generated `deploy.yml.k3s.template` reads it directly via `${{ vars.APP_HOST }}`.
@@ -143,6 +194,7 @@ metadata:
 - [ ] OS_APPLICATION_CREDENTIAL_ID and OS_APPLICATION_CREDENTIAL_SECRET set (from Vault), or cleanly skipped if `secret/<slug>/cyso` is absent
 - [ ] GH_TERRAFORM_TOKEN set (from Vault; fine-grained PAT, `variables:write` scope)
 - [ ] `existing-k3s` only: `KUBECONFIG` secret and `APP_HOST` variable set on both the `test` and `prod` GitHub Environments; `REGISTRY_USERNAME`/`REGISTRY_TOKEN` synced per environment from `secret/organizations/<org-slug>/github-package-read` if the spec's `Container Registry` row declares a private registry
+- [ ] `sync-machine` only: `scripts/sync-machine-env.sh` exited 0 — the machine-slug Environment exists with its 6 secrets and `RECONCILE_SSH_USER`, plus `FIXED_IP` after the post-apply re-run
 - [ ] `gh secret list` and `gh variable list` verified — all expected names present for the active `provisioning_mode` (pass `--env test`/`--env prod` for `existing-k3s`)
 
 ## Failure Handling
@@ -161,4 +213,10 @@ metadata:
 | `gh variable set` returns 403 | Verify the PAT used for `gh auth login` has `write:variables` scope |
 | `existing-k3s`: `secret/apps/<app-slug>/<machine-slug>/kubeconfig` absent for the target environment's registered machine-slug | Stop. This is `smaqit.infrastructure-vault-loader`'s job — populate it there (out-of-band paste from the platform's onboarding hand-off) before retrying; do not fabricate a placeholder |
 | `existing-k3s`: `gh secret set ... --env <name>` fails because the Environment doesn't exist yet | Create the `test`/`prod` GitHub Environments first (`gh api repos/<owner>/<repo>/environments/<name> -X PUT` or via the repository UI), then retry |
+| Environment create returns 403 "Resource not accessible by personal access token" | The token lacks Environments write or organization-level Secrets/Variables read/write; fix the fine-grained PAT, re-authenticate `gh`, retry |
+| `gh variable set --env <name>` returns 404 | The Environment doesn't exist yet — create it first (`sync-machine` does this itself) |
+| `gh variable set --env <name>` returns 403 with repository-only grants | Enable organization-level Secrets and Variables read/write on the fine-grained PAT |
+| `scripts/check-pat-permissions.sh` exits 2 or 3 | Exit 2: an Environment is missing; exit 3: a grant is missing. Apply the fix it prints; do not proceed to writes |
+| `sync-machine`: a `secret/machines/<machine-slug>/*` path is missing | Stop. Register the machine with `smaqit.infrastructure-vault-loader`'s `register-machine.sh`, then retry |
+| `sync-machine`: reports `FIXED_IP skipped` | Expected before the machine is provisioned. After apply, run `register-machine.sh <machine-slug> --host <fixed_ip>` and re-run `sync-machine` |
 | `existing-k3s`: spec's `Container Registry` row declares a private registry but `secret/organizations/<org-slug>/github-package-read` is absent | Stop. This is an operator-populated, org-scoped path (`smaqit.infrastructure-vault-loader`) — not something `load-credentials.sh`'s per-app flow ever creates; populate it there before retrying |

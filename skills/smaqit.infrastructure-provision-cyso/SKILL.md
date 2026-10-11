@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-provision-cyso
 description: Use when provisioning cloud infrastructure for a project's target application on Cyso Cloud (OpenStack) using Terraform. Covers application credential sourcing, Object Storage backend initialization, SSH keypair variable configuration, `terraform init/plan/apply`, and fixed IP retrieval. Produces a running Cyso VM accessible via SSH, with Cinder data volume attached and security group configured on ports 22/80/443. Also use when re-running Terraform after infrastructure changes or when an operator invokes `/provision.cyso`.
 metadata:
-  version: "1.6.0"
+  version: "1.7.0"
   smaqit-slots: "provision=apply"
 ---
 
@@ -99,7 +99,7 @@ be hand-edited in a target project expecting the edit to persist.
 
 3. **Confirm Ubuntu image ID and flavor** (catalog values change occasionally):
    ```bash
-   openstack image list | grep "Ubuntu 22.04"
+   openstack image list | grep "Ubuntu 24.04"
    openstack flavor list
    ```
    If IDs differ from the defaults in `deployment/terraform/main.tf`, update that file before continuing.
@@ -136,12 +136,13 @@ be hand-edited in a target project expecting the edit to persist.
    but does not route on Cyso's flat network; ignore it.
 
 7.5. **Register the machine and bootstrap this project's own app-specific key.** This project does
-   not get a shortcut around getting its own distinct key, even though it provisioned the machine:
+   not get a shortcut around getting its own distinct key, even though it provisioned the machine.
+   `register-machine.sh` fills any missing `secret/machines/<machine-slug>/*` path and records the
+   machine's address in `metadata.host`, which `rotate-credential.sh machines/<slug>/base-ssh`
+   requires:
    ```bash
-   vault kv put "secret/machines/${MACHINE_SLUG}/metadata" \
-     host="<fixed_ip>" \
-     provider="cyso" \
-     owner_project="${PROJECT_SLUG}" > /dev/null
+   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/register-machine.sh \
+     "${MACHINE_SLUG}" --host "<fixed_ip>" --provider cyso --owner-project "${PROJECT_SLUG}"
 
    bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/bootstrap-app-to-machine.sh \
      "${PROJECT_SLUG}" "${MACHINE_SLUG}"

@@ -1,7 +1,7 @@
 ---
-status: PR Open
-pr: 93
+status: Completed
 created: "2026-10-06"
+completed: "2026-10-11"
 ---
 
 # Design Tools: Skip the Runtime Install Lock When the Bundle Is Already Valid
@@ -46,24 +46,26 @@ in 0.4 s; the full installer suite passes.
 
 ## Acceptance Criteria
 
-- [ ] The fix is merged and released
-- [ ] A leftover lock no longer delays an MCP server start with a valid bundle (the new test)
+- [x] The fix is merged and released
+- [x] A leftover lock no longer delays an MCP server start with a valid bundle (the new test)
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Fix merged via PR #92 (fix branch, no task worktree); released separately via PR #93 (`Prepare release v3.6.1`), which carried only the CHANGELOG section
+- Regression test fails at 60.4 s against v3.6.0 code and passes in 0.4 s; a build of the merged code answered MCP `initialize` in under 1 s with an orphaned lock present, while the installed v3.6.0 binary was still blocked at 35 s
 
 **Decisions made:**
-- TBD
+- Released as PATCH v3.6.1 from a dedicated `release/v3.6.1` branch cut from `origin/main`, keeping local-only bookkeeping commits out of the release PR
+- Owner-PID lock hardening left out of scope, per this task's Design Decisions
 
 **Blockers encountered:**
-- TBD
+- PR #92's title did not match `Prepare release vX.Y.Z`, so `post-merge-release.yml` skipped and no release was published until PR #93
+- Branch push initially failed: the HTTPS token was read-only, and the desktop SSH agent refused to sign with the account key; the push succeeded over HTTPS once write access was restored
 
 **Follow-up identified:**
-- TBD
+- The install path still takes the lock: a start killed mid-install (fresh worktree, or first start after a bundle-version bump) can still leave a lock that blocks starts for up to 60 s against a 30 s MCP connect timeout; owner-PID liveness or a shorter wait would close it
+- `ensureDesignTools` re-validates the bundle right after `materializeDesignTools` already did, hashing about 3,900 files twice on every start
 
 ## Files to Create / Modify
 

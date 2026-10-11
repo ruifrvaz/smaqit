@@ -241,3 +241,32 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Codex CLI | Repository | https://github.com/openai/codex |
 | Codex CLI | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
 | Codex CLI | Skills | https://learn.chatgpt.com/docs/build-skills |
+
+## Task 114 — Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from a Downstream Project's Infrastructure Task 001)
+
+**Context fingerprint:** sha256:1d86aae9989446a4591e5f14be1e20be40957606b83180c230a835a14cc366fa
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |
+| Bash | Bash builtins (read) | https://www.gnu.org/software/bash/manual/html_node/Bash-Builtins.html |
+| Go | Documentation | https://go.dev/doc/ |
+| Go | testing package | https://pkg.go.dev/testing |
+| HashiCorp Vault | KV Secrets Engine v2 | https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2 |
+| HashiCorp Vault | CLI: vault kv | https://developer.hashicorp.com/vault/docs/commands/kv |
+| HashiCorp Vault | CLI: vault kv patch | https://developer.hashicorp.com/vault/docs/commands/kv/patch |
+| GitHub CLI | gh secret set | https://cli.github.com/manual/gh_secret_set |
+| GitHub CLI | gh variable set | https://cli.github.com/manual/gh_variable_set |
+| GitHub CLI | gh api | https://cli.github.com/manual/gh_api |
+| GitHub REST API | Deployment environments (create or update) | https://docs.github.com/en/rest/deployments/environments |
+| GitHub REST API | Permissions required for fine-grained PATs | https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens |
+| GitHub | Managing personal access tokens | https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens |
+| GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
+| GitHub Actions | Workflow syntax (env, jobs.<id>.env) | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| Terraform | S3 backend | https://developer.hashicorp.com/terraform/language/backend/s3 |
+| Terraform | lifecycle meta-argument (prevent_destroy) | https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle |
+| Terraform | OpenStack provider: blockstorage_volume_v3 | https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs/resources/blockstorage_volume_v3 |
+| OpenStack | CLI: volume set (retype) | https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/volume/v3/index.html |
+| OpenStack | Cinder volume retype | https://docs.openstack.org/cinder/latest/admin/volume-migration.html |
+| OpenStack | CLI: volume type | https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/volume/v3/index.html |

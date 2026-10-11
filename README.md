@@ -73,6 +73,8 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 | `smaqit design render <file>` | Syntax-check PlantUML and render its canonical PNG |
 | `smaqit design attest <file>` | Record the active agent's visual review against current hashes |
 | `smaqit design validate [file]` | Run structural, PlantUML, and visual-attestation gates |
+| `smaqit slots plan --phase=deploy --mode=<mode> --env=<env>` | Resolve the deployment slot plan from `.smaqit/slots.yml` and `provisioning_mode` defaults |
+| `smaqit slots validate` | Validate `.smaqit/slots.yml` and its bound skills |
 | `smaqit mcp verify` | Verify VS Code, Claude Code, and Codex PlantUML MCP registration plus local stdio transport |
 | `smaqit help` | Show detailed command help |
 | `smaqit uninstall` | Remove smaqit from project |
@@ -115,4 +117,5 @@ This makes it safe to:
 
 - **[Quickstart](docs/wiki/workflows/quickstart.md)** — Build "Hello, Mario!" from scratch
 - **[Team Alignment](docs/wiki/concepts/team-alignment.md)** — How layers map to Agile roles
+- **[Deployment Slots](docs/wiki/workflows/deployment-slots.md)** — Bind your own skills to deployment steps
 - **[Wiki](docs/wiki/)** — Concepts, designs, patterns, workflows

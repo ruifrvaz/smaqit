@@ -28,6 +28,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.7.0] - 2026-10-11
+
+### Added
+- **Deployment slots (variation points)** — the deployment phase runs a fixed, ordered sequence of
+  slots (`access-credentials`, `platform-onboarding`, `target-credentials`, `environment-config`,
+  `artifact-build`, `iac-generate`, `ci-generate`, `provision`, `host-bootstrap`, `app-deploy`,
+  `verify`, `tls`, plus day-two `replace`/`teardown`), each with a contract and a default filler
+  selected by `provisioning_mode`. A project binds any slot to its own skill, or skips it, in
+  `.smaqit/slots.yml`; with no bindings, behaviour matches the previous per-mode wiring.
+- **`smaqit slots plan` and `smaqit slots validate`** — deterministic slot-plan resolution
+  (project-local then global skill lookup, `--path`, single-slot `--slot` runs, `--json`) with all
+  `SLOTS-*` diagnostics reported together; refuses missing or undeclared fillers, bindings a
+  deployment path forbids, and local steps that would split a CI run. `smaqit validate` also checks
+  `.smaqit/slots.yml`.
+- **Project-owned `.smaqit/slots.yml`** — `smaqit init` creates a commented skeleton once;
+  `smaqit update` and `smaqit uninstall` preserve it. The `AGENTS.md` template points to it.
+- **`metadata.smaqit-slots` filler declarations** — the 13 default infrastructure skills declare the
+  slots and operations they fill, and any project skill can become a filler the same way.
+- **`deployment_path: ci-push`** — the Deployment agent owns greenfield's first production
+  deployment: local credential and configuration slots, push, CI run correlated by commit SHA,
+  `--expected-sha` verification.
+- **`CREDENTIAL_SCOPE=access` for `existing-k3s`** in `smaqit.infrastructure-vault-loader` — loads
+  `github` and `platform-repo` before onboarding has issued a kubeconfig.
+- **Deployment slots wiki page** (`docs/wiki/workflows/deployment-slots.md`) and a deployment-agent
+  bench suite.
+
+### Changed
+- **Deployment agent executes the slot plan** — reads each filler's `SKILL.md` from its resolved
+  path, monitors CI-executed slots, records the slot resolution in the deployment report, and holds
+  every filler to the guard, out-of-band, and credential-reference invariants. The Copilot
+  deployment agent gains `read/readFile`.
+- **`smaqit.input-deployment` resolves the slot plan** once per deployment, with new Environment and
+  Deployment Path parameters.
+- **`smaqit.feature-new` Phase 3 and `smaqit.new-greenfield-project` Phases 4–6** (now 2.0.0) route
+  every infrastructure step through the Deployment agent instead of calling infrastructure skills
+  directly. `existing-k3s` now loads the kubeconfig after onboarding, and the optional dev teardown
+  destroys only under `provision`.
+- **Framework principles** — Phase Orchestration describes implementation variation points;
+  Skills defines filler skills; "Extensible Through Templates" covers project extension at declared
+  slots.
+
+### Fixed
+- **Invalid YAML frontmatter** in `smaqit.infrastructure-deploy-k3s-app`,
+  `smaqit.infrastructure-repo-config`, and `smaqit.infrastructure-request-k3s-onboarding` — an
+  unquoted `provisioning_mode: existing-k3s` inside the description broke YAML parsing.
+
 ## [3.6.1] - 2026-10-11
 
 ### Fixed

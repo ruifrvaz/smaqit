@@ -80,6 +80,8 @@ Unpredictable structure breaks downstream consumers. Templates define the exact 
 
 What agents share philosophically belongs in foundational templates. What makes agents distinct belongs in role-specific templates. When templates capture principles explicitly, generation becomes principled rather than ad-hoc. This enables agent extensibility while preserving framework coherence.
 
+The same holds for what makes projects distinct. Where a phase's implementation steps vary between projects, the phase declares fixed variation points (slots) with explicit contracts; a project binds its own filler skills to them rather than forking the phase. Extension happens at declared points, under the phase's invariants, never by rewriting the orchestration.
+
 ### Accept Mutability, Validate Behavior
 
 **Embrace non-determinism in artifacts, enforce determinism in outcomes.**

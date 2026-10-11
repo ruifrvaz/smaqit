@@ -1,0 +1,11 @@
+schemaVersion: 1
+phase: deploy
+slots:
+  provision:
+    skill: bench.stub-provision
+  iac-generate: none
+  ci-generate: none
+  host-bootstrap: none
+  environment-config: none
+  app-deploy: none
+  tls: none

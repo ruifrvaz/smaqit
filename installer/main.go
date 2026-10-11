@@ -73,6 +73,8 @@ func main() {
 		cmdValidate()
 	case "design":
 		cmdDesign(os.Args[2:])
+	case "slots":
+		cmdSlots(os.Args[2:])
 	case "mcp":
 		cmdMCP(os.Args[2:])
 	case "help", "--help", "-h":
@@ -101,6 +103,7 @@ Commands:
   status     Show project state and spec coverage
   validate   Verify project structure integrity
   design     Render, attest, and validate canonical PlantUML designs
+  slots      Resolve and validate deployment slot bindings
   mcp        Run a bundled MCP server (normally invoked by an agent host)
   help       Show detailed command help
   uninstall  Remove smaqit from project
@@ -134,6 +137,12 @@ func cmdHelp() {
 	fmt.Println("  smaqit design render <design.md>  Syntax-check and render its PNG")
 	fmt.Println("  smaqit design attest <design.md>  Record a completed visual review")
 	fmt.Println("  smaqit design validate [path]     Run all mandatory design gates")
+	fmt.Println()
+	fmt.Println("  smaqit slots plan --phase=deploy --mode=<mode> --env=<env>")
+	fmt.Println("                    Resolve the ordered deployment slot plan from .smaqit/slots.yml")
+	fmt.Println("                    and provisioning_mode defaults; --path=standard|existing-cicd-pr|ci-push,")
+	fmt.Println("                    --slot=<slot> for a single-slot (day-two) run, --json for agents")
+	fmt.Println("  smaqit slots validate             Validate .smaqit/slots.yml and its bound skills")
 	fmt.Println()
 	fmt.Println("  smaqit mcp plantuml               Run the bundled PlantUML MCP server")
 	fmt.Println("  smaqit mcp verify                 Verify the PlantUML MCP wrapper and tools")
@@ -633,6 +642,13 @@ func cmdInit(targetDir string) {
 		fmt.Printf("Error installing CLAUDE.md: %v\n", err)
 		os.Exit(1)
 	}
+	// Project-owned deployment slot bindings: written once, never overwritten,
+	// because update re-runs init.
+	slotsStatus, err := installSlotsSkeleton(".")
+	if err != nil {
+		fmt.Printf("Error installing %s: %v\n", slotsConfigPath, err)
+		os.Exit(1)
+	}
 
 	// This is an idempotent local gate. cmdInit also backs project updates, so
 	// every initialization or update proves the generated MCP configuration and
@@ -651,6 +667,7 @@ func cmdInit(targetDir string) {
 	fmt.Println("✓ Global agent and skill installation is managed by the installer script")
 	fmt.Println("✓ Copied workflow files")
 	fmt.Printf("✓ AGENTS.md %s, CLAUDE.md %s\n", agentsStatus, claudeStatus)
+	fmt.Printf("✓ %s %s\n", slotsConfigPath, slotsStatus)
 	fmt.Printf("✓ Initialized smaqit %s\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open or restart GitHub Copilot chat, Claude Code, or Codex in this project, then confirm smaqit-plantuml exposes its two tools to specification agents")
@@ -862,7 +879,7 @@ func cmdUninstall() {
 
 	// Prompt for confirmation
 	fmt.Println("This will remove:")
-	fmt.Println("  • .smaqit/")
+	fmt.Println("  • .smaqit/ (except the project-owned .smaqit/slots.yml)")
 	fmt.Println("  • smaqit-owned global agents, commands, and skills")
 	fmt.Println("  • smaqit-owned PlantUML MCP registrations")
 	fmt.Print("\nContinue? [y/N]: ")
@@ -903,9 +920,11 @@ func cmdUninstall() {
 		fmt.Println("✓ Removed smaqit-owned PlantUML MCP registrations")
 	}
 
-	if err := os.RemoveAll(".smaqit"); err != nil {
+	if kept, err := removeSmaqitDirPreservingSlots("."); err != nil {
 		fmt.Printf("Error removing .smaqit/: %v\n", err)
 		errors++
+	} else if kept {
+		fmt.Printf("✓ Removed .smaqit/ (kept project-owned %s)\n", slotsConfigPath)
 	} else {
 		fmt.Println("✓ Removed .smaqit/")
 	}
@@ -1067,6 +1086,17 @@ func cmdValidate() {
 	if err := validateDesigns(""); err != nil {
 		fmt.Printf("✗ %v\n", err)
 		errors++
+	}
+
+	if _, err := os.Stat(slotsConfigPath); err == nil {
+		if slotErrs := validateSlotBindings("."); len(slotErrs) > 0 {
+			for _, err := range slotErrs {
+				fmt.Printf("✗ %v\n", err)
+			}
+			errors += len(slotErrs)
+		} else {
+			fmt.Printf("✓ %s is valid\n", slotsConfigPath)
+		}
 	}
 
 	fmt.Println()

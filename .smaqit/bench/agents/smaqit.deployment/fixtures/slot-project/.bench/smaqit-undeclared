@@ -1,0 +1,11 @@
+#!/bin/sh
+# Stub smaqit CLI: the resolver refuses a binding to a skill that does not
+# declare its slot.
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+case "$*" in
+  *"slots plan"*)
+    echo "SLOTS-SLOT-UNDECLARED: skill \"bench.rogue-deploy\" does not declare slot \"provision\" in metadata.smaqit-slots ($ROOT/.agents/skills/bench.rogue-deploy/SKILL.md)" >&2
+    exit 1 ;;
+  *"plan --phase=deploy"*) echo "No specs to process for phase deploy" ;;
+  *) echo "stub smaqit: unsupported command: $*" >&2; exit 2 ;;
+esac

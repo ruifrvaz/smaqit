@@ -18,7 +18,7 @@ prepare:
 	@cp -r ../templates/specs templates/
 	@cp -r ../templates/designs templates/
 	@cp ../.github/workflows/copilot-setup-steps.yml templates/workflows/
-	@cp ../templates/AGENTS.md.template ../templates/CLAUDE.md.template templates/
+	@cp ../templates/AGENTS.md.template ../templates/CLAUDE.md.template ../templates/slots.yml.template templates/
 	@echo "Preparing pinned PlantUML design runtime..."
 	@node ../scripts/prepare-design-tools.mjs
 	@mkdir -p tools

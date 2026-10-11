@@ -4,6 +4,7 @@ copilot:
   tools:
   - edit/editFiles
   - search
+  - read/readFile
   - runCommands
   - read/problems
   - changes

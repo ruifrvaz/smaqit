@@ -152,3 +152,75 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
 | HashiCorp Vault | KV Secrets Engine v2 | https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2 |
 | HashiCorp Vault | CLI: vault kv | https://developer.hashicorp.com/vault/docs/commands/kv |
+
+## Task 125 — Deployment Variation Points: Slot-Driven Deployment Orchestration With Project-Bound Fillers
+
+**Context fingerprint:** sha256:aa378b49beb8f8d0854ded0161e0ce307cc1841110348f31e2d9f575e02d450d
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Claude Code | Subagents | https://code.claude.com/docs/en/sub-agents |
+| Claude Code | Agent Skills | https://code.claude.com/docs/en/skills |
+| Claude Code | Memory (CLAUDE.md imports) | https://code.claude.com/docs/en/memory |
+| GitHub Copilot | Custom agents | https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/create-custom-agents |
+| GitHub Copilot | Agent skills | https://docs.github.com/en/copilot/concepts/agents/about-agent-skills |
+| GitHub Copilot | VS Code custom agents | https://code.visualstudio.com/docs/agent-customization/custom-agents |
+| Codex CLI | Repository | https://github.com/openai/codex |
+| Codex CLI | AGENTS.md | https://learn.chatgpt.com/docs/agent-configuration/agents-md |
+| Codex CLI | Skills | https://learn.chatgpt.com/docs/build-skills |
+| Codex CLI | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
+| Agent Skills | Specification | https://agentskills.io/specification |
+| smaqit-adk | Repository | https://github.com/ruifrvaz/smaqit-adk |
+| Go | Documentation | https://go.dev/doc/ |
+| Go | flag package | https://pkg.go.dev/flag |
+| Go | embed package | https://pkg.go.dev/embed |
+| gopkg.in/yaml.v3 | Package reference | https://pkg.go.dev/gopkg.in/yaml.v3 |
+| gopkg.in/yaml.v3 | Node API | https://pkg.go.dev/gopkg.in/yaml.v3#Node |
+
+## Task 127 — Deployment Slots A: Principle, Catalogue, Schema, and `smaqit slots plan` Resolver
+
+**Context fingerprint:** sha256:0fa54aacb01ca2a206a1a63bbd13f4fd83d1c0bf5f3877df77bdb5d4c4bc78f5
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Go | Documentation | https://go.dev/doc/ |
+| Go | flag package | https://pkg.go.dev/flag |
+| Go | embed package | https://pkg.go.dev/embed |
+| gopkg.in/yaml.v3 | Package reference | https://pkg.go.dev/gopkg.in/yaml.v3 |
+| gopkg.in/yaml.v3 | Node API | https://pkg.go.dev/gopkg.in/yaml.v3#Node |
+| Agent Skills | Specification | https://agentskills.io/specification |
+
+## Task 128 — Deployment Slots B: Deployment Agent Executes the Slot Plan; feature-new Routed Through It
+
+**Context fingerprint:** sha256:e113ce6defa27f412c550542c23ce111714b92ced41a8d1011c31a44b4ed6156
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Claude Code | Subagents | https://code.claude.com/docs/en/sub-agents |
+| Claude Code | Agent Skills | https://code.claude.com/docs/en/skills |
+| GitHub Copilot | Custom agents | https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/create-custom-agents |
+| GitHub Copilot | VS Code custom agents | https://code.visualstudio.com/docs/agent-customization/custom-agents |
+| GitHub Copilot | Agent skills | https://docs.github.com/en/copilot/concepts/agents/about-agent-skills |
+| Codex CLI | Repository | https://github.com/openai/codex |
+| Codex CLI | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
+| Codex CLI | Skills | https://learn.chatgpt.com/docs/build-skills |
+| Agent Skills | Specification | https://agentskills.io/specification |
+
+## Task 129 — Deployment Slots C: Route new-greenfield-project Phases 4–6 Through the Deployment Agent
+
+**Context fingerprint:** sha256:93a690e86cb91c39d1d92914d3b3992481bbe294e5c2930880c9aafa3bffaab8
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| GitHub Actions | Workflow syntax | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
+| GitHub CLI | gh run watch | https://cli.github.com/manual/gh_run_watch |
+| GitHub CLI | gh run list | https://cli.github.com/manual/gh_run_list |
+| Terraform | plan command | https://developer.hashicorp.com/terraform/cli/commands/plan |
+| Terraform | destroy command | https://developer.hashicorp.com/terraform/cli/commands/destroy |
+| Kubernetes | Deployments | https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ |
+| k3s | Documentation | https://docs.k3s.io/ |

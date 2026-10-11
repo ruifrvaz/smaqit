@@ -2,7 +2,7 @@
 name: smaqit.feature-new
 description: "Use when adding a post-MVP feature to a project that has already completed a `smaqit.new-greenfield-project` run (or equivalent) and has a deployed target. Applies greenfield's task-per-phase discipline and amendment gate to iterative feature work — spec revalidation, development, deployment, validation, close-out — without requirements extraction, from-scratch specs, or a dev-VM sweep. Defaults deployment to the existing target instead of provisioning a new VM. Also use when the user says 'add a feature to this project', 'iterate on the deployed app', or asks for post-MVP work and the project already has an Infrastructure spec with `status: deployed`."
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
 ---
 
 # Post-MVP Feature Workflow
@@ -20,7 +20,7 @@ All items below must be satisfied before starting. When re-entering at a later p
 
 **Required before Phase 3 (Deployment)**
 - [ ] CI/CD workflows exist (`.github/workflows/deploy.yml` at minimum)
-- [ ] Local Vault initialised and running with this project's existing credential paths populated (`smaqit.infrastructure-vault-loader` already completed during the original MVP cycle — re-run only if credentials have rotated or expired)
+- [ ] Local Vault initialised and running with this project's existing credential paths populated (populated during the original MVP cycle; the Deployment agent's `access-credentials`/`target-credentials` slots top up anything rotated or missing)
 
 If no Infrastructure spec exists yet under `specs/infrastructure/` — this project has not been through an MVP cycle — stop and flag to the user that `smaqit.new-greenfield-project` is the correct skill instead. Do not proceed silently.
 
@@ -122,37 +122,31 @@ This phase creates a **deploy PR** (feature-branch → `main`) to land the featu
    - If Infrastructure spec shows `status: deployed`, default to `existing-owned`. This overrides `smaqit.input-deployment`'s generic `provision` default.
    - Only fall through to `smaqit.input-deployment`'s standard elicitation if genuinely ambiguous (e.g. co-hosting on another project's VM → `existing-shared`; a second, dedicated VM that's provisioned out-of-band and will never be Terraform-managed → `existing-unmanaged`; a Namespace-scoped Kubernetes/k3s target with no VM at all → `existing-k3s`).
    - If resolution falls through to `provision` — this contradicts the Pre-conditions check; stop and flag.
-6. Invoke `smaqit.input-deployment` with the resolved `provisioning_mode` to confirm execution parameters.
+6. Invoke `smaqit.input-deployment` with the resolved `provisioning_mode`, the production environment name, and `deployment_path: existing-cicd-pr`. It confirms execution parameters and resolves the **slot plan** via `smaqit slots plan --phase=deploy --mode=<mode> --env=<env> --path=existing-cicd-pr --json`. If it reports any `SLOTS-*` failure, stop — the project's `.smaqit/slots.yml` or a bound skill must be fixed first. On this path the plan refuses `iac-generate`, `ci-generate`, `provision`, and `host-bootstrap`, and marks `artifact-build`/`app-deploy` as CI-executed.
 7. Require `.github/workflows/deploy.yml`. If absent, stop and flag.
 8. **Apply the deterministic trigger decision table** by reading `.github/workflows/deploy.yml` and any sibling PR-close/dispatch workflows:
    1. If `deploy.yml` has a `push` trigger covering the PR base branch → omit any deployment marker and plan to monitor the resulting `push` run. A marker-gated dispatcher may coexist but must remain false.
    2. If there is no matching push trigger → require `deploy.yml` to support `workflow_dispatch` AND require exactly one merged-PR dispatcher targeting it with a determinable PR-body sentinel. Add that exact sentinel to the PR body and plan to monitor the dispatcher then the dispatched deploy run.
    3. If a matching push trigger coexists with an unconditional or non-marker PR dispatcher → stop. Merging would cause duplicate deployments.
    4. If triggers, target workflow, dispatcher, or sentinel are missing, multiple, dynamic, or otherwise ambiguous → stop before opening the PR and report the unsupported layout.
-9. Invoke `smaqit.infrastructure-vault-loader`. Confirm Vault is running, unsealed, and credential paths are populated.
-   - **`existing-shared`:** only `secret/apps/<app-slug>/github` is loaded. Then run `bootstrap-app-to-machine.sh <app-slug> <machine-slug>` against the target machine's already-registered `base-ssh` credential.
-   - **`existing-unmanaged`:** same restricted load as `existing-shared` — only `github` is loaded. The difference: `bootstrap-app-to-machine.sh <app-slug> <machine-slug>` is typically registering the machine for the *first* time here (no prior `base-ssh`), so expect its fresh-registration branch (host/provider/owner_project prompts, new keypair, manual public-key install) rather than an already-trusted credential. Use this project's own slug for `owner_project`.
-   - **`existing-k3s`:** load only `secret/apps/<app-slug>/github` plus the target environment's registered machine-slug's `secret/apps/<app-slug>/<machine-slug>/kubeconfig`, via `smaqit.infrastructure-vault-loader`'s `existing-k3s` branch (`PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug>`). No `ssh`, `cyso`, or `tfstate` — there is no VM machine to bootstrap against, and no `secret/machines/<machine-slug>/*` counterpart for the k3s machine-slug either. The kubeconfig value is an out-of-band paste of the platform's own onboarding hand-off, never a cluster call.
-10. Invoke `smaqit.infrastructure-repo-config` to sync secrets from Vault to GitHub.
-   - **`existing-shared`:** restricted mode — skips `tfstate`/`cyso`, syncs only `ssh` + `github`-derived secrets. Additionally: `gh variable set VM_HOST --body <shared-vm-ip>`.
-   - **`existing-unmanaged`:** identical restricted mode and manual `VM_HOST` step as `existing-shared` — the only difference is *why* there's no Terraform output (nobody's, rather than another project's).
-   - **`existing-k3s`:** writes the target environment's kubeconfig as a `KUBECONFIG` secret on the corresponding GitHub Environment (not a plain repository secret). No `VM_HOST` is ever set, and no `ssh`/`tfstate`/`cyso`-derived secret is synced.
+9. Confirm Vault is running and unsealed for the credential slots. Do not invoke `smaqit.infrastructure-vault-loader` or `smaqit.infrastructure-repo-config` here: the Deployment agent runs them as the plan's `access-credentials`, `target-credentials`, and `environment-config` slots (or runs the project's bound fillers instead). The per-mode behaviour — `existing-shared`/`existing-unmanaged` loading `github` then running `bootstrap-app-to-machine.sh`, `existing-k3s` loading the environment's kubeconfig and writing a GitHub Environment-scoped `KUBECONFIG`, restricted secret sync with a manual `VM_HOST` — is defined by those fillers' slot operations.
 
 **Invoke Deployment agent:**
 
-11. Invoke `/smaqit.deployment` once with:
+10. Invoke `/smaqit.deployment` once with:
     - `specification_mode: prevalidated`
     - `deployment_path: existing-cicd-pr`
     - The Deploy handoff paths (Infrastructure + Stack)
     - Resolved `provisioning_mode` and target context
+    - The `slot_plan` resolved in step 6 (so the agent does not resolve it again)
     - Base branch, selected workflow/event, and sentinel (if dispatcher mode)
 
-    The Deployment agent owns the entire contiguous operation: process prevalidated specs, generate/update deployment artifacts, run the amendment gate, commit and push the feature branch, create the **deploy PR** with the resolved trigger plan, pause for human merge (even in Autonomous mode), monitor the exact CI run(s), invoke `smaqit.infrastructure-deploy-verify --expected-sha <deploy-run-headSha>`, update spec frontmatter to `status: deployed`, and write `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`.
+    The Deployment agent owns the entire contiguous operation: run the local credential and environment-configuration slots, process prevalidated specs, commit the feature's application changes (never generated IaC or workflows), run the amendment gate, push the feature branch, create the **deploy PR** with the resolved trigger plan, pause for human merge (even in Autonomous mode), monitor the exact CI run(s), run the `verify` slot's filler with `--expected-sha <deploy-run-headSha>`, update spec frontmatter to `status: deployed`, and write `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`.
 
-12. Validate returned evidence from the Deployment agent — must include: PR number/URL, merge SHA/time, dispatcher run ID (if applicable), deploy run ID/event/head SHA, verification result, report path, and deployed spec paths/statuses.
-13. Run the amendment gate: `bash [SMAQIT_SKILLS_DIR]/smaqit.feature-new/scripts/check-amendments.sh specs/`. If matches found, review each against the Phase 2 task and confirm all are resolved. An unresolved amendment blocks Phase 3 completion.
-14. **Gate:** Amendment gate clear. CI/CD run completed successfully. `deploy-verify` reports all checks PASS.
-15. **Complete the Phase 3 child:**
+11. Validate returned evidence from the Deployment agent — must include: PR number/URL, merge SHA/time, dispatcher run ID (if applicable), deploy run ID/event/head SHA, verification result, report path, and deployed spec paths/statuses.
+12. Run the amendment gate: `bash [SMAQIT_SKILLS_DIR]/smaqit.feature-new/scripts/check-amendments.sh specs/`. If matches found, review each against the Phase 2 task and confirm all are resolved. An unresolved amendment blocks Phase 3 completion.
+13. **Gate:** Amendment gate clear. CI/CD run completed successfully. `deploy-verify` reports all checks PASS.
+14. **Complete the Phase 3 child:**
     ```
     smaqit.task-complete $P3
     ```
@@ -253,7 +247,7 @@ Phase 5 is the last child task. It runs the release chain on the feature branch,
 - **Two PRs from the same feature branch, at different points in history.** Phase 3 opens a deploy PR; Phase 5 opens a release PR. Both are from the same feature branch to `main`. GitHub handles this correctly: the second PR shows only the commits added since the first PR was merged (Phase 4 amendments + release prep). No rebase or branch recreation is needed between PRs. The feature branch survives both PR merges — it is only deleted at parent cleanup.
 - **Repo auto-deletes head branch on PR merge — handled correctly.** If the target repo has "Automatically delete head branches" enabled, the release PR merge (Phase 5) deletes the feature branch remotely. When parent `task.complete` runs, the merge step skips silently ("branch does not exist"). Worktree removal still happens (local directory, unaffected by remote branch deletion). Post-deploy amendments and release prep are already on `main` via the release PR, so nothing is lost. No configuration change needed.
 - **`check-amendments.sh` matches a bare substring, not the canonical tag format.** The script (`grep -rl "amendment:" <dir>`) is case-sensitive and matches the literal substring `amendment:` anywhere in a file — it does not require the full `<!-- amendment: DATE — description -->` HTML-comment form. A note using different wording or capitalization (e.g. `**Amendment (...)**`) will not match. Phase 2 instructs the canonical lowercase tag specifically so the gate fires.
-- **`provisioning_mode` default-override lives in this skill, not in `smaqit.input-deployment`.** `smaqit.input-deployment`'s own default of `provision` is correct for its primary caller (`smaqit.new-greenfield-project`'s brand-new-project case); do not modify that skill. The override — defaulting to `existing-owned` when an Infrastructure spec already shows a deployed target — is this skill's own Phase 3 Step 1 logic.
+- **`provisioning_mode` default-override lives in this skill, not in `smaqit.input-deployment`.** `smaqit.input-deployment`'s own default of `provision` is correct for its primary caller (`smaqit.new-greenfield-project`'s brand-new-project case); do not change that default. The override — defaulting to `existing-owned` when an Infrastructure spec already shows a deployed target — is this skill's own Phase 3 Step 5 logic.
 - **No dev-VM sweep, by design.** A dev-environment validation pass makes sense for a brand-new deploy pipeline being proven for the first time; it is wasted cloud spend and time for the Nth feature landing on a pipeline already proven. If `provisioning_mode` ever resolves to `provision` here, that is itself a signal this project isn't actually past MVP — stop and flag rather than silently provisioning.
 - **Amendment gate runs every time, deploy-now or defer.** Deferred deploys still run the gate at Phase 3 — deferring the push must not mean deferring visibility into unresolved spec divergence.
 - **Context collapse / phase re-read** — in long sessions the conversation is summarised by the model, and summaries capture phase names and outcomes but not the exact tool calls each phase requires. At every phase boundary, re-read this SKILL.md for the upcoming phase before executing any step rather than relying on a conversation summary.
@@ -277,7 +271,7 @@ Phase 5 is the last child task. It runs the release chain on the feature branch,
 - [ ] Phase 0: parent task created and started (branch + worktree active), 5 phase children created via `--parent`, execution mode confirmed
 - [ ] Phase 1: touched specs and design pairs revalidated and visually reviewed by their specification agents, exact PlantUML Markdown paths recorded, scope confirmed via `smaqit plan --phase=develop`, durable handoff recorded, child completed
 - [ ] Phase 2: implementation complete, specs set to `implemented`, any divergence recorded via canonical `amendment:` tag, child completed
-- [ ] Phase 3: `provisioning_mode` resolved with the existing-target-first override; deploy PR merged, CI/CD deploy verified; amendment gate clear; child completed
+- [ ] Phase 3: `provisioning_mode` resolved with the existing-target-first override; slot plan resolved for `existing-cicd-pr`; deploy PR merged, CI/CD deploy verified; amendment gate clear; child completed
 - [ ] Phase 4: validation complete, any post-deployment amendments written to feature branch, child completed
 - [ ] Phase 5: amendment re-scan clear; release chain run on feature branch; release PR merged and post-merge automation confirmed; child completed
 - [ ] Parent: all 5 children Completed; merge step no-op (release PR landed everything); worktree removed, branch deleted, workspace rebuilt; parent moved to Completed
@@ -290,6 +284,7 @@ Phase 5 is the last child task. It runs the release chain on the feature branch,
 | `provisioning_mode` resolves to `provision` despite Pre-conditions passing | Stop. Flag to the user before provisioning a new VM. |
 | Amendment gate reports unresolved matches | Stop at the Phase 3 gate. Resolve or explicitly accept each annotation before continuing. |
 | `deploy-verify` fails | Stop. Report the failing check. Do not mark the Phase 3 task as complete. |
+| `smaqit slots plan` reports a `SLOTS-*` failure in Phase 3 | Stop before invoking the Deployment agent. Fix the binding in `.smaqit/slots.yml` or the bound skill's `metadata.smaqit-slots`; bindings to `iac-generate`/`ci-generate`/`provision`/`host-bootstrap` are always refused on the `existing-cicd-pr` path. |
 | Release PR has not been merged when parent completion is attempted | Stop. Report: "Release PR #N has not been merged. Parent completion is blocked until the release PR is merged and post-merge automation is confirmed." |
 | Parent resolver detects a child still In Progress or Not Started | Stop. Report which children are blocking. Complete or abandon them before retrying. |
 | `task.start` invoked for a phase child outside the parent context | Resolver returns an error. Re-enter from Phase 0 or confirm the parent worktree is the active working directory. |

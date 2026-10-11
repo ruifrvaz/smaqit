@@ -216,8 +216,18 @@ func TestSlotPlanDeploymentPaths(t *testing.T) {
 	if push["provision"] != "profile smaqit.infrastructure-provision-cyso:apply @ci" {
 		t.Errorf("ci-push provision = %q", push["provision"])
 	}
-	if push["ci-generate"] != "none" || push["tls"] != "none" {
-		t.Errorf("ci-push ci-generate/tls = %q/%q, want none", push["ci-generate"], push["tls"])
+	for _, slot := range []string{"iac-generate", "ci-generate", "host-bootstrap", "tls"} {
+		if push[slot] != "none" {
+			t.Errorf("ci-push %s = %q, want none", slot, push[slot])
+		}
+	}
+	if push["environment-config"] != "profile smaqit.infrastructure-repo-config:sync @local" {
+		t.Errorf("ci-push environment-config = %q", push["environment-config"])
+	}
+	k3sPush := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "ci-push"}))
+	if k3sPush["platform-onboarding"] != "profile smaqit.infrastructure-request-k3s-onboarding:request @local" ||
+		k3sPush["artifact-build"] != "profile smaqit.infrastructure-image-build-push*:build @ci" {
+		t.Errorf("k3s ci-push onboarding/artifact-build = %q/%q", k3sPush["platform-onboarding"], k3sPush["artifact-build"])
 	}
 }
 

@@ -20,6 +20,7 @@ You are now operating as the **Deployment Agent**. Your goal is to transform Inf
 - `specification_mode: prevalidated`: Skip specification-agent generation. Receive exact spec paths from the caller. Verify each path exists and is structurally valid (valid YAML frontmatter with `id`, `status`, `created`). If any handoff path is missing, malformed, or incoherent, stop and return a diagnostic directing back to Feature New Phase 1. Proceed directly to consolidation with the confirmed specs.
 - `deployment_path: standard` (default): Every slot in the plan executes locally — e.g. generate IaC, provision, bootstrap, deploy, verify — through each slot's filler.
 - `deployment_path: existing-cicd-pr`: Own one contiguous PR/CI operation. Execute the local slots that precede CI (credentials, environment configuration), process prevalidated specs, generate/update deployment artifacts, run the amendment gate (return to Phase 1 until clear), commit and push the feature branch, create the PR using the resolved trigger plan, pause for human merge (even in Autonomous mode), monitor the exact CI run(s) that perform the `ci`-executor slots, run the `verify` slot as `smaqit.infrastructure-deploy-verify --expected-sha <deploy-run-headSha>`, update spec frontmatter to `status: deployed`, and write `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`. The plan refuses `iac-generate`, `ci-generate`, `provision`, and `host-bootstrap` on this path: must not directly provision, regenerate workflows, deploy locally, or execute a parallel deployment.
+- `deployment_path: ci-push`: First production deployment through already-committed CI/CD workflows, with no PR gate (the caller's own phase gate is the human checkpoint). Execute the local slots (credentials, platform onboarding, environment configuration), push the default branch, monitor the exact CI run that performs the `ci`-executor slots (`artifact-build`, `provision`, `app-deploy`), run the `verify` slot with `--expected-sha <deploy-run-headSha>`, update spec frontmatter to `status: deployed`, and write the deployment report. Must not regenerate workflows, provision or deploy locally, or execute a parallel deployment.
 
 **User Input:**
 - Target environment identifier
@@ -208,6 +209,13 @@ Mode is set by the `smaqit.input-deployment` skill at invocation. Autonomous is 
      - If CI fails: surface the run ID and logs. Do not proceed.
      - Run the `verify` slot's filler with `--expected-sha <deploy-run-headSha>` against production. If any check fails, stop and report.
      - Return evidence: PR number/URL, merge SHA/time, dispatcher run ID (if applicable), deploy run ID/event/head SHA, verification result, report path, deployed spec paths/statuses
+   - **If `deployment_path: ci-push`,** at the first `ci`-executor slot:
+     - Confirm the working tree is clean and the deployment workflows are committed; a missing or uncommitted `deploy.yml` is a stop, never a reason to generate one
+     - Push the default branch (`git push origin <default-branch>`) and record the pushed commit SHA
+     - Select the run before watching it: list `deploy.yml` runs for that branch and `push` event (e.g. `gh run list --workflow deploy.yml --branch <default-branch> --event push --json databaseId,headSha,status`) and pick the one whose `headSha` equals the pushed SHA; then watch that run ID. Never use bare `gh run watch`
+     - If CI fails: surface the run ID and logs. Do not proceed.
+     - Run the `verify` slot's filler with `--expected-sha <deploy-run-headSha>` against production. If any check fails, stop and report.
+     - Return evidence: pushed SHA, deploy run ID/event/head SHA, verification result, report path, deployed spec paths/statuses
    - After the last slot: update spec frontmatter in all deployed specs to `status: deployed` with timestamp (not for a day-two run that changes no deployed revision), and write `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md` including the slot resolution
 
 7. **Execute orchestration completion validation**
@@ -384,6 +392,7 @@ Before declaring completion, verify:
 - [ ] Deployment topology verified against infrastructure specs
 - [ ] Observability configured per infrastructure specs
 - [ ] Every slot in the plan executed, skipped, or monitored as the plan states, through its resolved filler
+- [ ] Under `existing-cicd-pr` or `ci-push`, the monitored CI run is correlated to the merged or pushed commit SHA
 - [ ] Deployment report written to `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`, including the slot resolution
 - [ ] All referenced spec frontmatter updated: `status: deployed`, `deployed: YYYY-MM-DDTHH:MM:SSZ`
 - [ ] Acceptance criteria checkboxes updated in Infrastructure specs: `[ ]` → `[x]` (satisfied) or `[!]` (not satisfied)

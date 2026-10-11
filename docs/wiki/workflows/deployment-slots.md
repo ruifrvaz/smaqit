@@ -65,7 +65,7 @@ The deployment path adjusts the profile:
 |------|---------|--------|
 | `standard` | Local runs (greenfield dev sweep) | Every slot executes locally; `environment-config` defaults to none |
 | `existing-cicd-pr` | `smaqit.feature-new` | `iac-generate`, `ci-generate`, `provision`, `host-bootstrap` are **refused** (the PR path never regenerates workflows or provisions directly); `platform-onboarding` and `tls` default to none; `artifact-build` and `app-deploy` are executed by CI and monitored |
-| `ci-push` | Greenfield production | `iac-generate`, `ci-generate`, `tls` default to none; `artifact-build`, `provision`, `host-bootstrap`, `app-deploy` are executed by CI and monitored |
+| `ci-push` | Greenfield production | `iac-generate`, `ci-generate`, `host-bootstrap`, `tls` default to none (workflows were committed in the dev sweep; the production host is configured by provisioning); `artifact-build`, `provision`, `app-deploy` are executed by CI and monitored |
 
 ## Configuring Slots
 

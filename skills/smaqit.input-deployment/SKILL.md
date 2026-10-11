@@ -54,7 +54,7 @@ Surface the resolved `provisioning_mode` value alongside the Deployment Target s
 **Question:** "Which environment is this deployment for? (e.g. test, prod)"
 
 ### Deployment Path
-**Default:** `standard`, or the `deployment_path` the caller passes (`existing-cicd-pr` from `smaqit.feature-new`)
+**Default:** `standard`, or the `deployment_path` the caller passes (`existing-cicd-pr` from `smaqit.feature-new`, `ci-push` from `smaqit.new-greenfield-project` Phase 5)
 **Elicit when:** Never — the calling skill or agent invocation determines it
 
 ## Slot Plan

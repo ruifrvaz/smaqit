@@ -208,3 +208,19 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Codex CLI | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
 | Codex CLI | Skills | https://learn.chatgpt.com/docs/build-skills |
 | Agent Skills | Specification | https://agentskills.io/specification |
+
+## Task 129 — Deployment Slots C: Route new-greenfield-project Phases 4–6 Through the Deployment Agent
+
+**Context fingerprint:** sha256:93a690e86cb91c39d1d92914d3b3992481bbe294e5c2930880c9aafa3bffaab8
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| GitHub Actions | Workflow syntax | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
+| GitHub CLI | gh run watch | https://cli.github.com/manual/gh_run_watch |
+| GitHub CLI | gh run list | https://cli.github.com/manual/gh_run_list |
+| Terraform | plan command | https://developer.hashicorp.com/terraform/cli/commands/plan |
+| Terraform | destroy command | https://developer.hashicorp.com/terraform/cli/commands/destroy |
+| Kubernetes | Deployments | https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ |
+| k3s | Documentation | https://docs.k3s.io/ |

@@ -202,9 +202,12 @@ var deploymentPathRules = map[string]pathRule{
 		DefaultNone: slotSet("platform-onboarding", "tls"),
 		CIExecuted:  slotSet("artifact-build", "app-deploy"),
 	},
+	// ci-push mirrors greenfield production: workflows were generated and
+	// committed in the dev sweep, the pipeline provisions and deploys, and the
+	// production host is configured by provisioning (cloud-init), not bootstrap.
 	"ci-push": {
-		DefaultNone: slotSet("iac-generate", "ci-generate", "tls"),
-		CIExecuted:  slotSet("artifact-build", "provision", "host-bootstrap", "app-deploy"),
+		DefaultNone: slotSet("iac-generate", "ci-generate", "host-bootstrap", "tls"),
+		CIExecuted:  slotSet("artifact-build", "provision", "app-deploy"),
 	},
 }
 

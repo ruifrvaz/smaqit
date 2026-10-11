@@ -74,6 +74,17 @@ for path in .github/agents .github/skills .claude .codex/agents .agents/skills; 
 done
 (cd "$project" && "$binary" validate >/dev/null && "$binary" mcp verify >/dev/null)
 
+# Deployment slot bindings: the skeleton resolves every slot to its default,
+# and a re-init (the same path `smaqit update` takes) never overwrites it.
+assert_file "$project/.smaqit/slots.yml" "project slot bindings skeleton"
+(cd "$project" && "$binary" slots validate >/dev/null)
+(cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --json) \
+  | grep -Fq '"skill": "smaqit.infrastructure-request-k3s-onboarding"'
+printf '%s\n' 'schemaVersion: 1' 'phase: deploy' 'slots:' '  tls: none' > "$project/.smaqit/slots.yml"
+reinit_output="$(cd "$project" && printf 'y\n' | "$binary" init)"
+grep -Fq '.smaqit/slots.yml preserved' <<< "$reinit_output"
+grep -Fxq '  tls: none' "$project/.smaqit/slots.yml"
+
 # Retain the core project-local design lifecycle gate alongside global payload
 # assertions: render, visual attestation, and phase readiness must still work.
 design_spec="$project/specs/business/smoke-design.md"
@@ -98,6 +109,7 @@ if "$binary" >/dev/null 2>&1; then
 fi
 
 (cd "$project" && printf 'y\nn\n' | "$binary" uninstall >/dev/null)
+assert_file "$project/.smaqit/slots.yml" "project slot bindings kept by uninstall"
 assert_absent "$COPILOT_HOME/agents/smaqit.business.agent.md"
 assert_absent "$HOME/.agents/skills/smaqit.feature-new/SKILL.md"
 assert_file "$HOME/.agents/skills/custom-skill/SKILL.md" "user-owned global skill"

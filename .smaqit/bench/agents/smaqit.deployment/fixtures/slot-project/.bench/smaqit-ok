@@ -1,0 +1,32 @@
+#!/bin/sh
+# Stub smaqit CLI: serves a fixed slot plan so the Case is hermetic. The real
+# resolver's determinism is covered by installer/slots_test.go.
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+S="$ROOT/.agents/skills"
+case "$*" in
+  *"slots plan"*)
+    cat <<JSON
+{
+  "schemaVersion": 1, "phase": "deploy", "mode": "existing-owned", "environment": "prod",
+  "deploymentPath": "standard", "config": ".smaqit/slots.yml",
+  "slots": [
+    {"order": 1, "slot": "platform-prereqs", "source": "none", "executor": "", "kind": "none", "purpose": "Prepare platform-level prerequisites"},
+    {"order": 2, "slot": "access-credentials", "source": "profile", "executor": "local", "kind": "skill", "skill": "bench.stub-credentials", "operation": "access", "skillPath": "$S/bench.stub-credentials/SKILL.md", "purpose": "Load access credentials"},
+    {"order": 3, "slot": "platform-onboarding", "source": "none", "executor": "", "kind": "none", "purpose": "Request tenancy"},
+    {"order": 4, "slot": "target-credentials", "source": "none", "executor": "", "kind": "none", "purpose": "Load target credentials"},
+    {"order": 5, "slot": "environment-config", "source": "none", "executor": "", "kind": "none", "purpose": "Configure CI/CD environment"},
+    {"order": 6, "slot": "artifact-build", "source": "none", "executor": "", "kind": "none", "purpose": "Build artifacts"},
+    {"order": 7, "slot": "iac-generate", "source": "none", "executor": "", "kind": "none", "purpose": "Generate IaC"},
+    {"order": 8, "slot": "ci-generate", "source": "none", "executor": "", "kind": "none", "purpose": "Generate CI/CD"},
+    {"order": 9, "slot": "provision", "source": "bound", "executor": "local", "kind": "skill", "skill": "bench.stub-provision", "operation": "apply", "skillPath": "$S/bench.stub-provision/SKILL.md", "purpose": "Provision the target"},
+    {"order": 10, "slot": "host-bootstrap", "source": "none", "executor": "", "kind": "none", "purpose": "Bootstrap the host"},
+    {"order": 11, "slot": "app-deploy", "source": "none", "executor": "", "kind": "none", "purpose": "Deploy the application"},
+    {"order": 12, "slot": "verify", "source": "profile", "executor": "local", "kind": "skill", "skill": "bench.stub-verify", "operation": "verify", "skillPath": "$S/bench.stub-verify/SKILL.md", "purpose": "Verify the deployment"},
+    {"order": 13, "slot": "tls", "source": "none", "executor": "", "kind": "none", "purpose": "Issue TLS"}
+  ]
+}
+JSON
+    ;;
+  *"plan --phase=deploy"*) echo "No specs to process for phase deploy" ;;
+  *) echo "stub smaqit: unsupported command: $*" >&2; exit 2 ;;
+esac

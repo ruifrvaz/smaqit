@@ -116,6 +116,21 @@ Skills return results or recommendations:
 - User approvals or selections
 - Revised inputs or clarifications
 
+## Filler Skills (Variation Points)
+
+A filler skill performs one phase slot (variation point). Any skill becomes a filler by declaring the slots it fills in its frontmatter, as a single string of comma-separated `slot=operation` pairs — the agentskills.io specification limits `metadata` values to strings:
+
+```yaml
+metadata:
+  version: "1.0.0"
+  smaqit-slots: "access-credentials=access, target-credentials=target"
+```
+
+- **Declaration is required** — A skill bound to a slot must declare that slot; deterministic resolution refuses an undeclared binding
+- **Operations** — A filler with one operation for a slot performs its normal procedure; a filler declaring several operations documents each one in its body (e.g. a `Slot operations` section)
+- **Contract** — A filler satisfies its slot's contract (purpose, inputs, handoff, completion signal) and every invariant of the phase that runs it
+- **Ownership** — Default fillers ship with smaqit; project-owned fillers live in the project's own skill directories and are bound through the project's slot configuration
+
 ## Handling Ambiguity
 
 Input skills (`smaqit.input-[layer]`) detect common issues before spec generation: insufficient requirements, conflicts with upstream specs, and internal contradictions. Any ambiguity that survives input validation is handled inline by the agent:

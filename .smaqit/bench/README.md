@@ -9,11 +9,14 @@ This directory is smaqit dogfooding the `smaqit-adk bench` engine against its ow
 ├── skills/
 │   └── <skill-id>/
 │       └── bench.yaml       # + any fixture/oracle files it references
+├── agents/
+│   └── <agent-id>/
+│       └── bench.yaml       # agent suites, same shape as skill suites
 ├── runs/                    # generated experiment output — gitignored
 └── README.md
 ```
 
-Skill suites live under `skills/<skill-id>/`, matching the skill directory name at the repo root (`skills/<skill-id>/SMAQIT.md`). One `bench.yaml` per target unless it has genuinely distinct scenarios worth splitting into multiple manifests.
+Agent suites live under `agents/<agent-id>/` (e.g. `agents/smaqit.deployment/` for `agents/deployment.md`). Skill suites live under `skills/<skill-id>/`, matching the skill directory name at the repo root (`skills/<skill-id>/SMAQIT.md`). One `bench.yaml` per target unless it has genuinely distinct scenarios worth splitting into multiple manifests.
 
 ## Bench vocabulary
 

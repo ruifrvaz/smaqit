@@ -2,7 +2,7 @@
 name: smaqit.input-deployment
 description: Validate and elicit deployment phase parameters from session context before deployment begins. Invoke automatically before starting the Deployment phase to confirm or default execution preferences.
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # Deployment Input
@@ -14,7 +14,8 @@ Validate session context for deployment execution preferences before the Deploym
 1. **Extract from session context** — Scan for any explicit deployment target overrides, verification preferences, or output requirements
 2. **Apply defaults** — Use standard defaults for all unspecified parameters (listed below)
 3. **Elicit only when blocking** — Ask only if a parameter is referenced but missing, or if the deployment target cannot be resolved from Infrastructure specs
-4. **Proceed** — Begin deployment with confirmed or defaulted parameters
+4. **Resolve the slot plan** — Run `smaqit slots plan` with the resolved parameters (see Slot Plan below); skip when the caller already passed a slot plan
+5. **Proceed** — Begin deployment with confirmed or defaulted parameters and the slot plan
 
 ## Parameters
 
@@ -40,13 +41,36 @@ Validate session context for deployment execution preferences before the Deploym
 
 **Values:**
 - `provision` — this project provisions its own new VM via Terraform. Unchanged, current behavior. Default whenever nothing in session context suggests otherwise.
-- `existing-owned` — redeploying to a VM this project's own Terraform state already manages. Same skill sequence as `provision`; `terraform apply` is expected to no-op.
-- `existing-shared` — targeting a VM a *different* project owns and manages via its own Terraform state (e.g., co-hosting a second app on a VM another project provisioned). Skips Terraform provisioning for this project entirely; downstream skills (`smaqit.infrastructure-vault-loader`, `smaqit.infrastructure-provision-cyso`, `smaqit.infrastructure-repo-config`, `smaqit.infrastructure-cicd-generate`) branch on this value — see `smaqit.new-greenfield-project` Phase 4/5.
+- `existing-owned` — redeploying to a VM this project's own Terraform state already manages. Same default slot profile as `provision` except `teardown` (none); `terraform apply` is expected to no-op.
+- `existing-shared` — targeting a VM a *different* project owns and manages via its own Terraform state (e.g., co-hosting a second app on a VM another project provisioned). Skips Terraform provisioning for this project entirely; downstream skills (`smaqit.infrastructure-vault-loader`, `smaqit.infrastructure-repo-config`, `smaqit.infrastructure-cicd-generate`) branch on this value — see `smaqit.new-greenfield-project` Phase 4/5.
 - `existing-unmanaged` — a VM dedicated to this project (not co-hosted with anything else) but never managed by any Terraform state — provisioned out-of-band (manually, or via a provider's own tooling) and staying that way by design. Skips Terraform entirely, exactly like `existing-shared`, but is not a co-hosting scenario: the VM is this project's alone, just outside Terraform's view. The same downstream skills branch on this value — see `smaqit.new-greenfield-project` Phase 4/5 for the two points where it diverges from `existing-shared` (machine registration typically starts fresh rather than assuming an already-registered machine; the nginx vhost gets `default_server` since there's no co-hosting to guard against).
-- `existing-k3s` — targeting an already-onboarded, Namespace-scoped Kubernetes cluster (k3s or equivalent) that hands the app a scoped kubeconfig and nothing else: no SSH, no host filesystem, no nginx, no Terraform on the app's side. Like `existing-shared`/`existing-unmanaged`, the target is platform-owned and Terraform provisioning is skipped entirely for this project — but the deploy *mechanism* is different (`kubectl apply` into the app's own Namespace via `smaqit.infrastructure-deploy-k3s-app`, not rsync/SSH/nginx). Every VM-specific step (Terraform, VM bootstrap, nginx vhost, `VM_HOST`) is skipped, replaced by kubeconfig-based deployment — see `smaqit.new-greenfield-project` Phase 4/5 and `smaqit.feature-new` for the exact callouts. Downstream skills branch on this value: `smaqit.infrastructure-vault-loader` (loads `secret/apps/<app-slug>/kubeconfig` instead of `ssh`), `smaqit.infrastructure-cicd-generate` (`k3s` generation mode), and `smaqit.infrastructure-repo-config` (writes a `KUBECONFIG` Environment secret, sets no `VM_HOST`). **Resolving to this value means the Infrastructure spec's Constraints table must already carry `Platform Repo`, `Registry File Path`, `Machine Slug`, `Ingress Class`, `ClusterIssuer`, and `Namespace Quota` for the target environment, sourced from the platform team's own onboarding documentation — never invented locally.** If the spec doesn't yet declare them, flag this to the operator before proceeding; `smaqit.infrastructure-request-k3s-onboarding` and `smaqit.infrastructure-deploy-k3s-app` will otherwise fail on missing fields downstream.
+- `existing-k3s` — targeting an already-onboarded, Namespace-scoped Kubernetes cluster (k3s or equivalent) that hands the app a scoped kubeconfig and nothing else: no SSH, no host filesystem, no nginx, no Terraform on the app's side. Like `existing-shared`/`existing-unmanaged`, the target is platform-owned and Terraform provisioning is skipped entirely for this project — but the deploy *mechanism* is different (`kubectl apply` into the app's own Namespace via `smaqit.infrastructure-deploy-k3s-app`, not rsync/SSH/nginx). Every VM-specific step (Terraform, VM bootstrap, nginx vhost, `VM_HOST`) is skipped, replaced by kubeconfig-based deployment — see `smaqit.new-greenfield-project` Phase 4/5 and `smaqit.feature-new` for the exact callouts. Downstream skills branch on this value: `smaqit.infrastructure-vault-loader` (loads `secret/apps/<app-slug>/kubeconfig` instead of `ssh`), `smaqit.infrastructure-cicd-generate` (`k3s` generation mode), and `smaqit.infrastructure-repo-config` (writes a `KUBECONFIG` Environment secret, sets no `VM_HOST`). **Resolving to this value means the Infrastructure spec's Constraints table must already carry `Platform Repo`, `Registry File Path`, `Machine Slug`, `Ingress Class`, `ClusterIssuer`, `Namespace Quota`, and `Container Registry` for the target environment, sourced from the platform team's own onboarding documentation — never invented locally.** If the spec doesn't yet declare them, flag this to the operator before proceeding; `smaqit.infrastructure-request-k3s-onboarding` and `smaqit.infrastructure-deploy-k3s-app` will otherwise fail on missing fields downstream.
 
 Surface the resolved `provisioning_mode` value alongside the Deployment Target so downstream phases can read it from session context without re-eliciting.
 
+### Environment
+**Default:** The environment named by the caller (e.g. `dev` for a greenfield dev sweep, `prod` for production); otherwise the single target environment in Infrastructure specs
+**Elicit when:** Infrastructure specs declare several environments and the caller named none
+**Question:** "Which environment is this deployment for? (e.g. test, prod)"
+
+### Deployment Path
+**Default:** `standard`, or the `deployment_path` the caller passes (`existing-cicd-pr` from `smaqit.feature-new`, `ci-push` from `smaqit.new-greenfield-project` Phase 5)
+**Elicit when:** Never — the calling skill or agent invocation determines it
+
+## Slot Plan
+
+Deployment runs a fixed sequence of slots (variation points). The project may bind slots to its own skills in `.smaqit/slots.yml`; unbound slots use the defaults for the resolved `provisioning_mode`. Resolution is deterministic and belongs to the CLI, not to judgment:
+
+```
+smaqit slots plan --phase=deploy --mode=<provisioning_mode> --env=<environment> --path=<deployment_path> --json
+```
+
+Add `--slot=<slot>` for a single-slot (day-two) run such as `teardown` or `replace`.
+
+- **Exit 0:** surface the JSON plan alongside `provisioning_mode` as the `slot_plan` the Deployment agent executes. Summarize it for the user as one line per slot (slot, source, filler, executor), and list any warnings — e.g. a family slot with no installed candidate, which the orchestrating skill must match or synthesize before deployment.
+- **Nonzero exit:** stop. Surface every `SLOTS-*` line verbatim, whatever its code. Do not substitute a default wiring; the fix belongs in `.smaqit/slots.yml` or the bound skill.
+- **Caller already passed a slot plan:** do not run the command again — one resolution per deployment.
+
 ## Readiness Condition
 
-No required sections — defaults are always valid. Proceed immediately unless the deployment target cannot be determined from Infrastructure specs.
+No required sections — defaults are always valid. Proceed once the slot plan resolves, unless the deployment target cannot be determined from Infrastructure specs.

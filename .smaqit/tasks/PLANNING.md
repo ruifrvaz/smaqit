@@ -5,7 +5,7 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 125 | Deployment Variation Points: Slot-Driven Deployment Orchestration With Project-Bound Fillers | new | High |
-| 124 | Design Tools: Skip the Runtime Install Lock When the Bundle Is Already Valid | new | High |
+| 124 | Design Tools: Skip the Runtime Install Lock When the Bundle Is Already Valid | PR Open | High |
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch | new | Medium |
 | 122 | existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones | new | High |
 | 115 | New Machine-Monorepo Infrastructure Skills: Provision, Verify, Day-2 Baseline, Tenant Reconcile | new | Medium |

@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-domain-tls
-description: Use when configuring a custom domain with a Let's Encrypt TLS certificate for a running nginx server. Covers DNS propagation verification, nginx server_name update, Certbot certificate issuance, HTTPS smoke tests, and auto-renewal verification. Also use when activating a purchased domain for a deployed application, setting up HTTPS post-deployment, or when the infrastructure spec references pending TLS/domain acceptance criteria.
+description: 'Use when configuring a custom domain with a Let''s Encrypt TLS certificate for a running nginx server: activating a purchased domain, setting up HTTPS after deployment, or meeting pending TLS/domain acceptance criteria in the infrastructure spec. Covers DNS propagation checks, nginx server_name, Certbot issuance, HTTPS smoke tests, and auto-renewal.'
 metadata:
-  version: "1.2.0"
+  version: "1.2.1"
   smaqit-slots: "tls=issue"
 ---
 

@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-deploy-verify
-description: Use after any deployment to confirm the application is healthy before closing the task or proceeding. Checks the health endpoint, verifies the deployed commit SHA against the current local commit (or an explicit `--expected-sha`), and validates the SPA root HTTP response. Produces a PASS/FAIL report per check with a final summary. Also use when a deployment task asks to confirm success or when re-verifying after a fix.
+description: Use after any deployment, or when re-verifying after a fix, to confirm the application is healthy before closing the task or proceeding. Checks the health endpoint, compares the deployed commit SHA with the local commit (or --expected-sha), and validates the SPA root response, producing a PASS/FAIL report per check.
 metadata:
-  version: "1.2.0"
+  version: "1.2.1"
   smaqit-slots: "verify=verify"
 ---
 

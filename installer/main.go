@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -631,17 +632,11 @@ func cmdInit(targetDir string) {
 
 	// Install project-instructions files: AGENTS.md (read natively by GitHub Copilot and Codex)
 	// with a thin CLAUDE.md pointing at it (Claude Code does not read AGENTS.md on its own).
-	// Existing files are never overwritten — smaqit's section is appended if not already present.
-	agentsStatus, err := installInstructionsFile(agentsMdTemplate, "templates/AGENTS.md.template", "AGENTS.md")
-	if err != nil {
-		fmt.Printf("Error installing AGENTS.md: %v\n", err)
-		os.Exit(1)
-	}
-	claudeStatus, err := installInstructionsFile(claudeMdTemplate, "templates/CLAUDE.md.template", "CLAUDE.md")
-	if err != nil {
-		fmt.Printf("Error installing CLAUDE.md: %v\n", err)
-		os.Exit(1)
-	}
+	// Only smaqit's marked section is ever written: appended when absent, refreshed to the
+	// current template when present, so updates reach existing projects. Content outside
+	// the markers is never touched.
+	agentsStatus := installInstructionsFileOrExit(agentsMdTemplate, "templates/AGENTS.md.template", "AGENTS.md")
+	claudeStatus := installInstructionsFileOrExit(claudeMdTemplate, "templates/CLAUDE.md.template", "CLAUDE.md")
 	// Project-owned deployment slot bindings: written once, never overwritten,
 	// because update re-runs init.
 	slotsStatus, err := installSlotsSkeleton(".")
@@ -675,15 +670,27 @@ func cmdInit(targetDir string) {
 	fmt.Println("  3. Or type '/smaqit.business' to begin with business specifications only (GitHub Copilot only — see 'smaqit help')")
 }
 
-const instructionsMarkerBegin = "<!-- smaqit:instructions:begin -->"
+const (
+	instructionsMarkerBegin = "<!-- smaqit:instructions:begin -->"
+	instructionsMarkerEnd   = "<!-- smaqit:instructions:end -->"
+)
+
+// errMalformedInstructionsBlock reports a destination whose smaqit markers can't be
+// trusted to delimit smaqit's section, so the file is left exactly as it is.
+var errMalformedInstructionsBlock = errors.New("smaqit:instructions markers are malformed")
 
 // installInstructionsFile installs a project-instructions file (AGENTS.md, CLAUDE.md):
 //   - Destination absent: write the template as a new file.
 //   - Destination exists, no smaqit marker found: append the template to the end (never
 //     overwrite user content — the destination may already hold the user's own instructions).
-//   - Destination exists with the smaqit marker already present: no-op (already installed).
+//   - Destination exists with exactly one begin marker followed by one end marker: replace
+//     everything from the begin marker through the end marker with the current template, so
+//     template changes reach existing projects. Content outside the markers is preserved
+//     byte for byte, and an already-current section is not rewritten.
+//   - Any other marker layout (begin without end, reversed, duplicated): leave the file
+//     untouched and return errMalformedInstructionsBlock — never guess where a section ends.
 //
-// Returns a short status word ("created", "appended", "up to date") for reporting.
+// Returns a short status word ("created", "appended", "updated", "up to date") for reporting.
 func installInstructionsFile(embeddedFS embed.FS, srcPath, dstPath string) (string, error) {
 	content, err := embeddedFS.ReadFile(srcPath)
 	if err != nil {
@@ -701,11 +708,33 @@ func installInstructionsFile(embeddedFS embed.FS, srcPath, dstPath string) (stri
 		return "", fmt.Errorf("reading %s: %w", dstPath, err)
 	}
 
-	if strings.Contains(string(existing), instructionsMarkerBegin) {
-		return "up to date", nil
+	text := string(existing)
+	begins := strings.Count(text, instructionsMarkerBegin)
+	ends := strings.Count(text, instructionsMarkerEnd)
+	if begins > 0 || ends > 0 {
+		start := strings.Index(text, instructionsMarkerBegin)
+		end := strings.Index(text, instructionsMarkerEnd)
+		if begins != 1 || ends != 1 || end < start {
+			return "", fmt.Errorf("%w in %s (expected one begin marker followed by one end marker)", errMalformedInstructionsBlock, dstPath)
+		}
+		block := strings.TrimRight(string(content), "\r\n")
+		if !strings.HasPrefix(block, instructionsMarkerBegin) || !strings.HasSuffix(block, instructionsMarkerEnd) {
+			return "", fmt.Errorf("%s must start with %s and end with %s", srcPath, instructionsMarkerBegin, instructionsMarkerEnd)
+		}
+		if strings.HasPrefix(text[start+len(instructionsMarkerBegin):], "\r\n") {
+			block = strings.ReplaceAll(block, "\n", "\r\n")
+		}
+		refreshed := text[:start] + block + text[end+len(instructionsMarkerEnd):]
+		if refreshed == text {
+			return "up to date", nil
+		}
+		if err := os.WriteFile(dstPath, []byte(refreshed), 0644); err != nil {
+			return "", fmt.Errorf("writing %s: %w", dstPath, err)
+		}
+		return "updated", nil
 	}
 
-	appended := string(existing)
+	appended := text
 	if !strings.HasSuffix(appended, "\n") {
 		appended += "\n"
 	}
@@ -715,6 +744,21 @@ func installInstructionsFile(embeddedFS embed.FS, srcPath, dstPath string) (stri
 		return "", fmt.Errorf("writing %s: %w", dstPath, err)
 	}
 	return "appended", nil
+}
+
+// installInstructionsFileOrExit runs installInstructionsFile for cmdInit. A malformed smaqit
+// section is a warning, not a failure: the file is left as the user has it and init continues.
+func installInstructionsFileOrExit(embeddedFS embed.FS, srcPath, dstPath string) string {
+	status, err := installInstructionsFile(embeddedFS, srcPath, dstPath)
+	if errors.Is(err, errMalformedInstructionsBlock) {
+		fmt.Printf("⚠ %s left unchanged: %v. Fix the markers by hand, then run 'smaqit init' again.\n", dstPath, err)
+		return "left unchanged"
+	}
+	if err != nil {
+		fmt.Printf("Error installing %s: %v\n", dstPath, err)
+		os.Exit(1)
+	}
+	return status
 }
 
 // copyEmbeddedDir copies files from an embedded FS to a target directory

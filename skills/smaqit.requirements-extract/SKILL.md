@@ -1,8 +1,8 @@
 ---
 name: smaqit.requirements-extract
-description: Use this skill when the user wants to extract structured requirements candidates from raw project assets such as code prototypes, documents, or meeting notes. Produces `.smaqit/requirements-extract.md` — an enumerated, categorised inventory that specification agents can consume directly. Also use when the user asks to analyse assets, mine files for requirements, or prepare input for any spec workflow.
+description: Use when the user wants to extract structured requirement candidates from raw project assets such as code prototypes, documents, or meeting notes, or to analyse assets and prepare input for a spec workflow. Produces `.smaqit/requirements-extract.md`, a categorised inventory that specification agents consume directly.
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
 ---
 
 # Requirements Extraction

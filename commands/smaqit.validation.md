@@ -1,5 +1,6 @@
 ---
-description: Orchestrate the Validation phase — Coverage specs, then generate and run tests against the deployed system.
+description: Use when the user asks to test, validate, or verify the deployed system of a smaqit project. Runs the Validation phase — Coverage specifications, then generated tests executed against the deployed system.
+when_to_use: Requests like "test the deployed app", "run the end-to-end tests", "validate the release", "check that production works", or "cover the acceptance criteria with tests".
 ---
 
 Run the Validation phase through the `smaqit-validation` subagent. The subagent cannot ask the user anything, so this conversation owns every question.

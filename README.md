@@ -108,6 +108,7 @@ Running `smaqit init` on an existing installation will:
 - **Prompt for confirmation** — If smaqit files would be overwritten, you'll be asked to confirm
 - **Skip if no conflicts** — If only custom files exist, installation proceeds automatically
 - **Ignore managed runtime** — The installer adds the narrow `.smaqit/tools/` rule to your root `.gitignore`, preserving existing rules; canonical `docs/designs/` artifacts remain tracked
+- **Refresh project instructions** — smaqit's marked section in `AGENTS.md` and `CLAUDE.md` is replaced with the current version, so `smaqit update` delivers new guidance to existing projects; your own content outside the `smaqit:instructions` markers is never touched, and a section with broken markers is left as it is with a warning
 
 This makes it safe to:
 - Upgrade to a new version of smaqit

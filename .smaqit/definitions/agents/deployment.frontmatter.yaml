@@ -15,7 +15,7 @@ copilot:
 
 claude:
   name: smaqit-deployment
-  description: Implementation agent for the Deployment phase. Orchestrates the Infrastructure spec agent via Task, then deploys Infrastructure + Stack specs to the target environment. Invoked via the /smaqit.deployment command.
+  description: Use proactively when the user asks to deploy, redeploy, provision, or put a smaqit project online. Runs the Deployment phase — orchestrates the Infrastructure specification agent, then deploys through the resolved slot plan. Pass the user's full request and any PHASE-PARAMETERS block already resolved. If the result starts with NEEDS-INPUT or REVIEW-REQUESTED, ask the user and resume this agent with their answers; never answer it yourself.
   tools: Read, Write, Edit, Grep, Glob, Bash, Task
   skills:
   - smaqit.input-deployment

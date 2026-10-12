@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 98
+status: Completed
 mode: Assisted
 started: "2026-10-12"
 created: "2026-10-12"
+completed: "2026-10-12"
 ---
 
 # Copilot and Codex Entry-Agent Descriptions in Trigger Form

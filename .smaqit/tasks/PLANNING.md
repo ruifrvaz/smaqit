@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 133 | Copilot and Codex Entry-Agent Descriptions in Trigger Form | PR Open | Medium |
 | 132 | Claude Code Headless E2E Test: Install Into a Scratch Folder and Build a Site Through smaqit | In Progress | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch | new | Medium |
@@ -20,6 +19,7 @@
 
 | ID | Title |
 |----|-------|
+| 133 | Copilot and Codex Entry-Agent Descriptions in Trigger Form |
 | 130 | Make smaqit Self-Invoking: Directive Instructions, Block Refresh, Trigger-Form Descriptions |
 | 114 | Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from a Downstream Project's Infrastructure Task 001) |
 | 131 | Claude Code Agents Can't Invoke Their Input Skills or Ask the User Questions |

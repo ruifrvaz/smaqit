@@ -342,3 +342,15 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
 | cloud-init | write_files (encoding gz+b64) | https://docs.cloud-init.io/en/latest/reference/modules.html |
 | cloud-init | Documentation | https://docs.cloud-init.io/en/latest/ |
+
+## Task 134 — Apply the Guarded Plan in the Generated deploy.yml (full Mode)
+
+**Context fingerprint:** sha256:bae7925cfc274ab03c4751b312fd1ace4b1768539f7256aedb5981304d75ed03
+**Refreshed:** 2026-10-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Terraform | Command: apply (saved plan) | https://developer.hashicorp.com/terraform/cli/commands/apply |
+| Terraform | Command: plan (-out) | https://developer.hashicorp.com/terraform/cli/commands/plan |
+| GitHub Actions | Workflow syntax (working-directory) | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |

@@ -28,6 +28,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.13.0] - 2026-10-13
+
+### Added
+- **`credential-file.sh`** (`smaqit.infrastructure-vault-loader`) — writes one allowlisted credential (an app's SSH key, its kubeconfig, or its platform-repo token) to a 0600 file in a private temp directory and prints only the path.
+- **`terraform-env.sh`** (`smaqit.infrastructure-vault-loader`, sourced) — exports Terraform's provider and backend credentials into the shell without printing them; `--unset` clears them.
+- **`sync-k3s-env.sh`** (`smaqit.infrastructure-repo-config`) — creates or verifies an `existing-k3s` app's machine-slug GitHub Environment and syncs `KUBECONFIG`, `APP_HOST`, and optionally `REGISTRY_USERNAME`/`REGISTRY_TOKEN`, with secrets passed on stdin.
+- `load-credentials.sh` loads the org registry pull credential when `REGISTRY_ORG` is set, and enables kv-v2 at `secret/` on its first run; `rotate-credential.sh` accepts `organizations/<org>/github-package-read`.
+- A test that fails if any shipped skill document runs `vault` directly or grants `Bash(vault:*)`, plus stub-backed tests for the new scripts and a k3s template contract test.
+
+### Changed
+- **Action required for `existing-k3s` projects that regenerate their workflows:** GitHub Environments are now named after the target machine slug, not `test`/`prod`. The k3s `deploy.yml` takes `__PROD_MACHINE_SLUG__`/`__TEST_MACHINE_SLUG__`, offers a dispatch choice, and deploys to prod on push. Sync the new Environments with `sync-k3s-env.sh` before deleting the old ones.
+- The k3s `deploy.yml` passes `--build-arg DEPLOY_SHA`, verifies `/health.json`, and retries verification for up to 60 seconds; `smaqit.infrastructure-deploy-k3s-app` uses the same window.
+- One Ingress path: `deployment/k3s/ingress.yaml`, committed with `__HOST__` as a token and filled in per environment at apply time.
+- `smaqit.infrastructure-request-k3s-onboarding` reports a merged request as not yet deployable and titles its PR `chore: onboard <app> (<machine>)`; the `target-credentials` slot stops the deployment until the platform's hand-off has delivered the kubeconfig.
+- Skill text reaches Vault only through scripts: the k3s deploy, repo-config, provision-cyso, rsync, request-onboarding, and vault-loader skills no longer show raw `vault` commands, and the `Bash(vault:*)` grants are removed.
+- `smaqit.feature-new` resolves a deployed project whose Infrastructure spec carries the k3s Constraints rows to `existing-k3s` instead of `existing-owned`.
+
+### Fixed
+- `pods/log` access and kubeconfig rotation are described as the platform's decision instead of as fixed limitations; after a rotation, redeploy with a fresh dispatch, not a re-run.
+- `smaqit.input-deployment`'s kubeconfig path now includes the machine segment; `smaqit.new-greenfield-project` uses the app-scheme PAT paths and lists the `platform-repo` PAT for `existing-k3s`.
+- `smaqit.infrastructure-vault-loader` no longer claims a k3s machine can't have a `secret/machines/` record; `setup-vault.sh` no longer claims to enable kv-v2.
+- `smaqit.infrastructure-repo-config`'s VM-only sync steps are marked as such; a stray "single job" description of the two-job k3s template is corrected; wrong "store the key as base64" advice is replaced.
+
 ## [3.12.0] - 2026-10-12
 
 ### Added

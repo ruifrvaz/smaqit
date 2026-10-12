@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 100
 mode: Assisted
 started: "2026-10-12"
 created: "2026-10-12"
@@ -80,27 +81,32 @@ the two steps. Priority: Medium.
 
 ## Acceptance Criteria
 
-- [ ] The generated `full`-mode `deploy.yml` runs `plan-guard.sh deployment/terraform --out deployment/terraform/tfplan` and applies with `terraform apply tfplan`; no `terraform apply -auto-approve` remains in any cicd-generate template.
-- [ ] `provision.yml.template`, `deploy.yml.deploy-only.template`, and `deploy.yml.k3s.template` are unchanged.
-- [ ] cicd-generate's SKILL.md describes the guard and apply steps as coupled, and its version is bumped.
-- [ ] A test fails if the `full` template's provision job applies anything other than the guarded plan file.
-- [ ] `make -C installer test` and `make -C installer smoke-test` pass; `CHANGELOG.md` is updated.
+- [x] The generated `full`-mode `deploy.yml` runs `plan-guard.sh deployment/terraform --out deployment/terraform/tfplan` and applies with `terraform apply tfplan`; no `terraform apply -auto-approve` remains in any cicd-generate template.
+- [x] `provision.yml.template`, `deploy.yml.deploy-only.template`, and `deploy.yml.k3s.template` are unchanged.
+- [x] cicd-generate's SKILL.md describes the guard and apply steps as coupled, and its version is bumped.
+- [x] A test fails if the `full` template's provision job applies anything other than the guarded plan file.
+- [x] `make -C installer test` and `make -C installer smoke-test` pass; `CHANGELOG.md` is updated.
 
 ## Findings
 
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- `deploy.yml.full.template` provision job: the guard now runs `plan-guard.sh deployment/terraform --out deployment/terraform/tfplan`, and the apply step runs `terraform apply -input=false tfplan` with `working-directory: deployment/terraform`; comments explain the coupling and the stale-plan failure.
+- cicd-generate SKILL.md: a gotcha that the guard and apply are coupled and must not revert to `-auto-approve`; version 2.7.0.
+- New `installer/cicd_templates_test.go`: parses the embedded full template as YAML and checks the guard keeps its plan, precedes the apply, and the apply consumes `tfplan` in `deployment/terraform`; a second test fails on `-auto-approve` in any cicd-generate template. Restoring the old apply line made both fail.
+- `make -C installer test` and `make -C installer smoke-test` pass.
 
 **Decisions made:**
-- TBD
+- `-input=false` added to the apply so a CI run can never block on a prompt; a saved plan needs no `-auto-approve`.
+- The test reads the shipped (embedded) template rather than the source tree, so it checks what users actually get.
+- No replacement input added to the push-triggered workflow; deliberate replacement stays gated and operator-dispatched.
 
 **Blockers encountered:**
-- TBD
+- None
 
 **Follow-up identified:**
-- TBD
+- Existing projects pick this up only when they regenerate their workflows with cicd-generate (which re-vendors `plan-guard.sh` at the same time).
 
 ## Files to Create / Modify
 

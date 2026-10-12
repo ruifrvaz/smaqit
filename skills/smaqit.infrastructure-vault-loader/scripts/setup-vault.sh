@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # One-time Vault initialisation on a new machine.
-# Creates ~/.vault/config.hcl from the template, starts the server,
-# runs `vault operator init`, and enables the kv-v2 secrets engine.
+# Creates ~/.vault/config.hcl from the template, starts the server, and
+# runs `vault operator init`. The kv-v2 secrets engine is enabled by
+# load-credentials.sh on its first run, once Vault is unsealed and authenticated
+# (an engine can't be enabled before that).
 #
 # Run ONCE per machine. Do not re-run on an already-initialised Vault —
 # it will refuse to re-initialise and exit cleanly.
@@ -59,11 +61,10 @@ echo "    Store both offline immediately. Loss = permanent data loss."
 echo ""
 vault operator init -key-shares=1 -key-threshold=1
 
-# ── 4. Enable kv-v2 ──────────────────────────────────────────────────────────
+# ── 4. Next step ─────────────────────────────────────────────────────────────
+# kv-v2 needs an unsealed, authenticated Vault; load-credentials.sh unseals, logs in, and
+# enables it at secret/ on its first run.
 
 echo ""
-echo "==> After unsealing and logging in via load-credentials.sh, enable kv-v2 once:"
-echo "    vault secrets enable -path=secret kv-v2"
-echo ""
-echo "==> Setup complete. Next step:"
+echo "==> Setup complete. Next step (unseals, authenticates, and enables kv-v2 at secret/):"
 echo "    bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh"

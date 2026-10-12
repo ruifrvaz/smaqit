@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-deploy-rsync-python-nextjs
 description: Use when deploying a Python/FastAPI backend + Next.js frontend application to a remote VM via rsync. Validated on Cyso Cloud (s5.small, Ubuntu 24.04). Covers Python source rsync, Next.js production build via Docker, database migration ordering, and Docker build gotchas. For Node.js + Vite/React deployments, use `smaqit.infrastructure-deploy-rsync`.
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
   smaqit-slots: "app-deploy=deploy"
   validated: "2026-07-17"
   validated-stack: "Python 3.12, FastAPI 0.115, Next.js 15, pnpm 9, PostgreSQL 16, Docker Compose"
@@ -22,13 +22,15 @@ Validated path for deploying a Python backend with a Next.js frontend to a remot
 
 ## Steps
 
-1. **Fetch SSH key from Vault:**
+1. **Fetch the SSH key into a private temp file** (through the vault-loader script):
    ```bash
-   export VAULT_ADDR=http://127.0.0.1:8200
-   export PROJECT_SLUG=<project-slug>
-   TMPKEY=$(mktemp) && trap "rm -f $TMPKEY" EXIT
-   vault kv get -field=private_key secret/${PROJECT_SLUG}/ssh > "$TMPKEY"
-   chmod 600 "$TMPKEY"
+   export PROJECT_SLUG=<project-slug>   # from AGENTS.md (or legacy platform instructions)
+
+   # Legacy flat scheme: <project-slug>/ssh. An app on the apps/+machines/ scheme uses
+   # apps/<app-slug>/ssh instead. The script prints only the key file's path.
+   TMPKEY="$(bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/credential-file.sh \
+     "${PROJECT_SLUG}/ssh")"
+   trap 'rm -rf "$(dirname "$TMPKEY")"' EXIT
    ```
    If this fails with "error in libcrypto", see Failure Handling below — that's a Vault-stored-key
    trailing-newline issue (see also `smaqit.infrastructure-vault-loader` gotchas), not something to
@@ -263,7 +265,7 @@ Application artifacts deployed to `__APP_DIR__/` on the VM, containers running, 
 
 | Situation | Action |
 |-----------|--------|
-| SSH key "error in libcrypto" | Store key as base64 in Vault; decode on fetch |
+| SSH key "error in libcrypto" | The stored key lost its trailing newline. Re-store it through the vault-loader scripts, which write it byte-exact (`rotate-credential.sh ssh` for the legacy scheme, `apps/<app-slug>/ssh` otherwise) — see `smaqit.infrastructure-vault-loader`'s libcrypto gotcha. Never hand-load a key. |
 | `pnpm build` EACCES on `.next/` | Remove via a root container (`docker run --rm -v "$(pwd)":/app -w /app alpine rm -rf .next`), then rebuild |
 | `ModuleNotFoundError: app.main` | Dockerfile: COPY before RUN; add ENV PYTHONPATH=/app |
 | nginx 502 Bad Gateway | Check `ss -tlnp` for ports; add `127.0.0.1` mappings to compose |

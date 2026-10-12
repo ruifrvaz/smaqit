@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-cicd-generate
 description: 'Use when generating or updating GitHub Actions CI/CD workflows: the VM set (deploy.yml, provision.yml, post-merge-deploy.yml) for Node.js + React via Terraform and Docker Compose, or the k3s two-job deploy.yml + post-merge-deploy.yml, or when an operator invokes /cicd.generate. Inside smaqit.new-greenfield-project the deployment agent generates them itself. Never generates copilot-setup-steps.yml.'
 metadata:
-  version: "2.7.0"
+  version: "2.8.0"
   smaqit-slots: "ci-generate=generate"
 ---
 
@@ -45,6 +45,8 @@ validated with `actionlint`/`yamllint`/`shellcheck` (Task 085).
    |-------|-------------|------------------------|------------|
    | `__APP_DIR__` | The remote application directory on the VM (e.g. `/opt/myapp`) | `/opt/<project-slug>` — derive `<project-slug>` from `AGENTS.md` or legacy platform instructions, same convention as `smaqit.infrastructure-vault-loader` | `full`, `deploy-only` |
    | `__APP_SLUG__` | The app slug — the Namespace is always `app-__APP_SLUG__` | `<project-slug>`, same derivation as above | `k3s` |
+   | `__PROD_MACHINE_SLUG__` | The prod environment's machine slug from the Infrastructure spec — also the name of its GitHub Environment; a push to `main` deploys there | none — stop and ask; never invent a machine slug | `k3s` |
+   | `__TEST_MACHINE_SLUG__` | The test environment's machine slug — the second dispatch choice | none — if the spec declares no test environment, delete that `options` entry | `k3s` |
 
    All other references (`VM_HOST`, `VM_SSH_KEY`, `TF_BACKEND_ACCESS_KEY`, `OS_APPLICATION_CREDENTIAL_ID`, `GH_TERRAFORM_TOKEN`, `VITE_DEMO_MODE`, `KUBECONFIG`, `APP_HOST`, etc.) are baked into the templates verbatim — do not re-derive or rename them per project. `APP_HOST` is `k3s` mode's analog of `VM_HOST`: a GitHub Actions **variable** (not a secret, so `smaqit.infrastructure-deploy-k3s-app`'s own verify step in `deploy.yml.k3s.template` can read it directly) holding the environment's Ingress hostname — set by `smaqit.infrastructure-repo-config`, never templated into the workflow file itself.
 
@@ -56,8 +58,8 @@ validated with `actionlint`/`yamllint`/`shellcheck` (Task 085).
    | `provision.yml` | `assets/provision.yml.template` | not generated | not generated |
    | `post-merge-deploy.yml` | `assets/post-merge-deploy.yml.template` | `assets/post-merge-deploy.yml.template` (identical in all modes) | `assets/post-merge-deploy.yml.template` (identical in all modes) |
 
-4. **Substitute the mode's token** in the copied `deploy.yml`: `__APP_DIR__` for `full`/`deploy-only`,
-   `__APP_SLUG__` for `k3s`, with the resolved value from Step 2 (`provision.yml` and
+4. **Substitute the mode's tokens** in the copied `deploy.yml`: `__APP_DIR__` for `full`/`deploy-only`,
+   `__APP_SLUG__`, `__PROD_MACHINE_SLUG__`, and `__TEST_MACHINE_SLUG__` for `k3s`, with the resolved values from Step 2 (`provision.yml` and
    `post-merge-deploy.yml` don't reference either token).
 
 5. **Vendor the guard scripts a GitHub-hosted runner needs on disk** — the runner has no access
@@ -79,8 +81,8 @@ validated with `actionlint`/`yamllint`/`shellcheck` (Task 085).
 6. **Write files to `.github/workflows/`** — 3 workflow files + 2 vendored scripts (`full`); 2
    workflow files + 0 vendored scripts for `deploy-only` (`deploy.yml` + `post-merge-deploy.yml`,
    no `provision.yml`, no Terraform to guard); 2 workflow files + 2 vendored scripts for `k3s`
-   (`deployment/k3s/scripts/namespace-guard.sh` and `manifest-lint.sh` — `deploy.yml`'s single job
-   is kubectl-driven, not rsync/SSH-driven, but still needs its guard/lint scripts on disk).
+   (`deployment/k3s/scripts/namespace-guard.sh` and `manifest-lint.sh` — `deploy.yml`'s `deploy`
+   job is kubectl-driven, not rsync/SSH-driven, but still needs its guard/lint scripts on disk).
 
 7. **Report** the list of files written with a brief description of each, including which generation mode was used.
 
@@ -96,7 +98,7 @@ validated with `actionlint`/`yamllint`/`shellcheck` (Task 085).
 - Does NOT provision infrastructure — Terraform runs inside the generated workflow (`full` mode only; `deploy-only` and `k3s` modes have no Terraform at all).
 - Does NOT handle matrix builds or monorepos — the `full`/`deploy-only` templates assume exactly `backend/` + `frontend/` as source directories (same assumption `smaqit.infrastructure-deploy-rsync` makes). This assumption does not apply to `k3s` mode, which deploys a container image, not source artifacts.
 - **`k3s` mode only:** the generated `build` job builds and pushes whatever `Dockerfile` already exists at the repository root — it does NOT author the `Dockerfile` itself (see `smaqit.infrastructure-image-build-push-static` or an equivalent for the app's own stack) and does NOT manage registry credentials beyond `GITHUB_TOKEN`'s built-in push scope (a private image's pull-side `imagePullSecret` is `smaqit.infrastructure-deploy-k3s-app`'s concern, sourced via `smaqit.infrastructure-repo-config`).
-- Does NOT template anything beyond `__APP_DIR__` (`full`/`deploy-only`) or `__APP_SLUG__` (`k3s`). If a project needs more variance than that, treat it as a new template variant, not a general templating engine.
+- Does NOT template anything beyond `__APP_DIR__` (`full`/`deploy-only`) or `__APP_SLUG__` and the two machine-slug tokens (`k3s`). If a project needs more variance than that, treat it as a new template variant, not a general templating engine.
 
 ## Examples
 
@@ -134,12 +136,22 @@ generation.
   `deploy` job sets `KUBECONFIG` from the environment secret and calls
   `smaqit.infrastructure-deploy-k3s-app`'s own guard/lint/apply/verify sequence directly.
 - **`deployment/k3s/ingress.yaml` will not exist on a fresh `k3s`-mode generation** — it is
-  deliberately rendered later, from a real hostname, not checked in from the start (see
-  `smaqit.infrastructure-deploy-k3s-app`'s own Ingress-rendering step). Until that render has
-  happened once and the file is committed, `manifest-lint.sh` in the generated `deploy.yml` fails
-  with a bare `FileNotFoundError` on `ingress.yaml`. This is expected on a project's first
-  generation, not a bug in the generated template — do not fabricate a placeholder Ingress to make
-  the workflow pass.
+  rendered once from the shared template by `smaqit.infrastructure-deploy-k3s-app` (its Step 5)
+  and committed with `__HOST__` still a token; the workflow writes the target Environment's
+  `APP_HOST` into it before linting. Until that render has happened once and the file is
+  committed, `manifest-lint.sh` in the generated `deploy.yml` fails with a bare
+  `FileNotFoundError` on `ingress.yaml`. This is expected on a project's first generation, not a
+  bug in the generated template — do not fabricate a placeholder Ingress to make the workflow
+  pass.
+- **`k3s` GitHub Environments are named after machine slugs, not `test`/`prod`.** Each target
+  machine's Environment holds its own `KUBECONFIG` and `APP_HOST`, matching the app's Vault path
+  `secret/apps/<app-slug>/<machine-slug>/kubeconfig`. A project that already uses `test`/`prod`
+  Environments must rename them (or re-sync into new ones with
+  `smaqit.infrastructure-repo-config`) when it regenerates.
+- **The `k3s` verify step retries for 60 seconds** against `https://$APP_HOST/health.json`, and
+  the build step passes `--build-arg DEPLOY_SHA`: the image must expose its revision there
+  (`smaqit.infrastructure-image-build-push-static` bakes it in). A project with a different
+  health contract edits that path in its generated `deploy.yml`.
 - **A newly generated `deploy.yml` cannot be `workflow_dispatch`'d until it exists on the default
   branch** — GitHub's `workflow_dispatch` API 404s for a workflow file that only exists on a
   non-default branch. If this is the first CI/CD generation for a `k3s`-mode project, land
@@ -178,7 +190,7 @@ workflow, templated or not, must avoid them:
 
 - [ ] Existing workflows read (or confirmed absent)
 - [ ] Generation mode determined (`full`, `deploy-only`, or `k3s`)
-- [ ] `__APP_DIR__` resolved for `full`/`deploy-only` (from Infrastructure specs, or defaulted to `/opt/<project-slug>`), or `__APP_SLUG__` resolved for `k3s`
+- [ ] `__APP_DIR__` resolved for `full`/`deploy-only` (from Infrastructure specs, or defaulted to `/opt/<project-slug>`), or `__APP_SLUG__`, `__PROD_MACHINE_SLUG__`, and `__TEST_MACHINE_SLUG__` resolved for `k3s`
 - [ ] Correct template variant copied for `deploy.yml` (`full` vs `deploy-only` vs `k3s`)
 - [ ] The mode's token substituted in the copied `deploy.yml`
 - [ ] `provision.yml` copied verbatim (`full` only); NOT generated in `deploy-only` or `k3s` mode

@@ -25,7 +25,13 @@ printf '%s\0' "$@" >> "$STUB_STATE/vault.argv"
 printf '\n' >> "$STUB_STATE/vault.argv"
 case "$1 ${2:-}" in
   "token lookup") exit 0 ;;
+  "status -format=json") echo '{"sealed": false, "initialized": true}'; exit 0 ;;
+  "secrets list")
+    if [ -f "$STUB_STATE/kv-enabled" ]; then echo '{"secret/": {"type": "kv"}}'; else echo '{}'; fi
+    exit 0 ;;
+  "secrets enable") touch "$STUB_STATE/kv-enabled"; echo "$*" >> "$STUB_STATE/secrets-enable.log"; exit 0 ;;
 esac
+[ "$1" = "status" ] && exit 0
 [ "$1" = "kv" ] || exit 2
 op="$2"; shift 2
 field=""
@@ -185,11 +191,18 @@ func (h *scriptHarness) runInteractive(script string, answers [][2]string, args 
 	if err != nil {
 		h.t.Fatal(err)
 	}
-	transcript := filepath.Join(h.t.TempDir(), "typescript")
 	line := "bash " + shellQuote(abs)
 	for _, a := range args {
 		line += " " + shellQuote(a)
 	}
+	return h.runInteractiveCommand(line, answers)
+}
+
+// runInteractiveCommand runs a shell command line on a pseudo-terminal via
+// script(1), answering each prompt only after it appears.
+func (h *scriptHarness) runInteractiveCommand(line string, answers [][2]string) (string, error) {
+	h.t.Helper()
+	transcript := filepath.Join(h.t.TempDir(), "typescript")
 	cmd := exec.Command("script", "-qfec", line, transcript)
 	cmd.Dir = h.work
 	cmd.Env = h.env
@@ -667,4 +680,224 @@ func TestPlanGuardRejectsBadUsage(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(h.state, "terraform.argv")); err == nil {
 		t.Error("terraform ran despite a usage error")
 	}
+}
+
+func TestCredentialFileHandsOutOnlyAllowlistedCredentials(t *testing.T) {
+	h := newScriptHarness(t)
+	script := skillScript("smaqit.infrastructure-vault-loader", "credential-file.sh")
+	const kubeconfig = "apiVersion: v1\nkind: Config\nusers: [{name: deployer, user: {token: KUBE-TOKEN-91a2}}]\n"
+	const sshKey = "-----BEGIN OPENSSH PRIVATE KEY-----\nAPP-KEY-77c1\n-----END OPENSSH PRIVATE KEY-----\n"
+	h.seedVault("secret/apps/shop/edge-01/kubeconfig", map[string]string{"value": kubeconfig})
+	h.seedVault("secret/apps/shop/ssh", map[string]string{"private_key": sshKey, "public_key": "ssh-ed25519 AAAA"})
+	h.seedVault("secret/apps/shop/platform-repo", map[string]string{"token": "PLATFORM-PAT-3f9e"})
+	h.seedVault("secret/legacy-app/ssh", map[string]string{"private_key": sshKey})
+
+	for path, want := range map[string]string{
+		"apps/shop/edge-01/kubeconfig": kubeconfig,
+		"apps/shop/ssh":                sshKey,
+		"apps/shop/platform-repo":      "PLATFORM-PAT-3f9e",
+		"legacy-app/ssh":               sshKey,
+	} {
+		out, err := h.run(nil, script, path)
+		if err != nil {
+			t.Fatalf("%s: %v\n%s", path, err, out)
+		}
+		file := strings.TrimSpace(out)
+		h.requireAbsent("stdout of "+path, out, "KUBE-TOKEN-91a2", "APP-KEY-77c1", "PLATFORM-PAT-3f9e")
+		data, err := os.ReadFile(file)
+		if err != nil || string(data) != want {
+			t.Errorf("%s: file %q holds %q (%v), want %q", path, file, data, err, want)
+		}
+		if info, err := os.Stat(file); err != nil || info.Mode().Perm() != 0600 {
+			t.Errorf("%s: file mode %v (%v), want 0600", path, info.Mode().Perm(), err)
+		}
+		if info, err := os.Stat(filepath.Dir(file)); err != nil || info.Mode().Perm() != 0700 {
+			t.Errorf("%s: directory mode %v (%v), want 0700", path, info.Mode().Perm(), err)
+		}
+		os.RemoveAll(filepath.Dir(file))
+	}
+
+	for _, path := range []string{"machines/edge-01/base-ssh", "apps/shop/github", "organizations/acme/github-package-read", "apps/ssh", "apps/Shop/ssh", "apps/shop/edge-01/kubeconfig/extra"} {
+		if out, err := h.run(nil, script, path); err == nil {
+			t.Errorf("%s: handed out a credential outside the allowlist:\n%s", path, out)
+		}
+	}
+
+	out, err := h.run(nil, script, "apps/shop/edge-02/kubeconfig")
+	if err == nil || !strings.Contains(out, "hand-off") || strings.Contains(out, "/credential") {
+		t.Errorf("missing kubeconfig: %v\n%s", err, out)
+	}
+}
+
+func TestTerraformEnvExportsWithoutPrintingAndUnsets(t *testing.T) {
+	h := newScriptHarness(t)
+	script, _ := filepath.Abs(skillScript("smaqit.infrastructure-vault-loader", "terraform-env.sh"))
+	source := func(env, args, after string) (string, error) {
+		cmd := exec.Command("bash", "-c", "source "+shellQuote(script)+" "+args+"; rc=$?; "+after+"; exit $rc")
+		cmd.Dir = h.work
+		cmd.Env = append(append([]string{}, h.env...), strings.Fields(env)...)
+		out, err := cmd.CombinedOutput()
+		return string(out), err
+	}
+	dump := `printf 'VAL %s=%s\n' TF_VAR_app_credential_id "${TF_VAR_app_credential_id-}" TF_VAR_app_credential_secret "${TF_VAR_app_credential_secret-}" AWS_ACCESS_KEY_ID "${AWS_ACCESS_KEY_ID-}" AWS_SECRET_ACCESS_KEY "${AWS_SECRET_ACCESS_KEY-}" TF_VAR_github_token "${TF_VAR_github_token-}" TF_VAR_ssh_public_key "${TF_VAR_ssh_public_key-}" > dump.txt`
+	readDump := func() map[string]string {
+		data, _ := os.ReadFile(filepath.Join(h.work, "dump.txt"))
+		vals := map[string]string{}
+		for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+			if kv, ok := strings.CutPrefix(line, "VAL "); ok {
+				k, v, _ := strings.Cut(kv, "=")
+				vals[k] = v
+			}
+		}
+		return vals
+	}
+
+	// Machine scheme: cyso/tfstate only under machines/, github under apps/.
+	h.seedVault("secret/machines/edge-01/cyso", map[string]string{"app_credential_id": "id-1", "app_credential_secret": "CYSO-SECRET-aa"})
+	h.seedVault("secret/machines/edge-01/tfstate", map[string]string{"access_key": "ak-1", "secret_key": "S3-SECRET-bb"})
+	h.seedVault("secret/machines/edge-01/base-ssh", map[string]string{"public_key": "ssh-ed25519 BASE"})
+	h.seedVault("secret/apps/platform/github", map[string]string{"token": "GH-TOKEN-cc"})
+	out, err := source("PROJECT_SLUG=platform MACHINE_SLUG=edge-01", "", dump)
+	if err != nil {
+		t.Fatalf("machine scheme: %v\n%s", err, out)
+	}
+	h.requireAbsent("terraform-env output", out, "CYSO-SECRET-aa", "S3-SECRET-bb", "GH-TOKEN-cc")
+	want := map[string]string{
+		"TF_VAR_app_credential_id": "id-1", "TF_VAR_app_credential_secret": "CYSO-SECRET-aa",
+		"AWS_ACCESS_KEY_ID": "ak-1", "AWS_SECRET_ACCESS_KEY": "S3-SECRET-bb",
+		"TF_VAR_github_token": "GH-TOKEN-cc", "TF_VAR_ssh_public_key": "ssh-ed25519 BASE",
+	}
+	for k, v := range want {
+		if got := readDump()[k]; got != v {
+			t.Errorf("%s = %q, want %q", k, got, v)
+		}
+	}
+
+	// The project's own paths take precedence, as provision-cyso always read them.
+	h.seedVault("secret/platform/cyso", map[string]string{"app_credential_id": "legacy-id", "app_credential_secret": "LEGACY-SECRET"})
+	if out, err := source("PROJECT_SLUG=platform MACHINE_SLUG=edge-01", "", dump); err != nil || readDump()["TF_VAR_app_credential_id"] != "legacy-id" {
+		t.Errorf("project path precedence: %v\n%s", err, out)
+	}
+
+	// --unset clears everything.
+	if out, err := source("PROJECT_SLUG=platform MACHINE_SLUG=edge-01", "", "source "+shellQuote(script)+" --unset; "+dump); err != nil {
+		t.Fatalf("unset: %v\n%s", err, out)
+	}
+	for k, v := range readDump() {
+		if v != "" {
+			t.Errorf("%s still set after --unset", k)
+		}
+	}
+
+	// Missing credentials export nothing and fail.
+	out, err = source("PROJECT_SLUG=other", "", dump)
+	if err == nil || !strings.Contains(out, "Nothing exported") {
+		t.Errorf("missing credentials: %v\n%s", err, out)
+	}
+	for k, v := range readDump() {
+		if v != "" {
+			t.Errorf("%s exported despite missing credentials", k)
+		}
+	}
+
+	// Executing instead of sourcing is refused.
+	if out, err := h.run(nil, skillScript("smaqit.infrastructure-vault-loader", "terraform-env.sh")); err == nil || !strings.Contains(out, "source this file") {
+		t.Errorf("direct execution accepted: %v\n%s", err, out)
+	}
+}
+
+func TestSyncK3sEnvUsesTheMachineSlugEnvironment(t *testing.T) {
+	h := newScriptHarness(t)
+	script := skillScript("smaqit.infrastructure-repo-config", "sync-k3s-env.sh")
+	const kubeconfig = "apiVersion: v1\nusers: [{user: {token: KUBE-TOKEN-5e5e}}]\n"
+	h.seedVault("secret/apps/shop/edge-01/kubeconfig", map[string]string{"value": kubeconfig})
+	h.seedVault("secret/organizations/acme/github-package-read", map[string]string{"username": "bot", "token": "PKG-TOKEN-7a7a"})
+
+	out, err := h.run(nil, script, "acme/shop", "shop", "edge-01", "--host", "shop.example.com", "--registry-org", "acme")
+	if err != nil {
+		t.Fatalf("sync failed: %v\n%s", err, out)
+	}
+	for name, want := range map[string]string{"KUBECONFIG": kubeconfig, "REGISTRY_USERNAME": "bot", "REGISTRY_TOKEN": "PKG-TOKEN-7a7a"} {
+		if got, ok := h.ghValue("edge-01", "secret", name); !ok || got != want {
+			t.Errorf("secret %s = %q (present %v), want %q", name, got, ok, want)
+		}
+	}
+	if got, _ := h.ghValue("edge-01", "variable", "APP_HOST"); got != "shop.example.com" {
+		t.Errorf("APP_HOST = %q", got)
+	}
+	for _, env := range []string{"test", "prod"} {
+		if _, err := os.Stat(filepath.Join(h.state, "gh", "envs", env)); err == nil {
+			t.Errorf("created a %q Environment instead of the machine slug", env)
+		}
+	}
+	h.requireAbsent("gh argv", h.argv("gh"), "KUBE-TOKEN-5e5e", "PKG-TOKEN-7a7a")
+	h.requireAbsent("output", out, "KUBE-TOKEN-5e5e", "PKG-TOKEN-7a7a")
+
+	// Without the platform's hand-off there is nothing to sync, and nothing is written.
+	h2 := newScriptHarness(t)
+	out, err = h2.run(nil, script, "acme/shop", "shop", "edge-01")
+	if err == nil || !strings.Contains(out, "hand-off") {
+		t.Fatalf("missing kubeconfig accepted: %v\n%s", err, out)
+	}
+	if strings.Contains(h2.argv("gh"), "PUT") || strings.Contains(h2.argv("gh"), "secret\x00set") {
+		t.Error("wrote to GitHub before the kubeconfig existed")
+	}
+	if _, err := h2.run(nil, script, "acme/shop", "shop", "Edge_01"); err == nil {
+		t.Error("accepted a machine slug that needs URL encoding")
+	}
+}
+
+func TestLoadCredentialsEnablesKvAndLoadsTheRegistryToken(t *testing.T) {
+	h := newScriptHarness(t)
+	script := skillScript("smaqit.infrastructure-vault-loader", "load-credentials.sh")
+	const (
+		ghToken   = "GH-PAT-1d1d"
+		platToken = "PLAT-PAT-2e2e"
+		pkgToken  = "PKG-PAT-3f3f"
+	)
+	cmd := "PROVISIONING_MODE=existing-k3s CREDENTIAL_SCOPE=access REGISTRY_ORG=acme bash " + shellQuote(mustAbs(t, script))
+	out, err := h.runInteractiveCommand(cmd, [][2]string{
+		{"github_token:", ghToken},
+		{"platform_repo_token:", platToken},
+		{"username:", "bot"},
+		{"token:", pkgToken},
+	})
+	if err != nil {
+		t.Fatalf("access load failed: %v\n%s", err, out)
+	}
+	slug := filepath.Base(h.work)
+	for path, want := range map[string]string{
+		"secret/apps/" + slug + "/github/token":                  ghToken,
+		"secret/apps/" + slug + "/platform-repo/token":           platToken,
+		"secret/organizations/acme/github-package-read/username": "bot",
+		"secret/organizations/acme/github-package-read/token":    pkgToken,
+	} {
+		if got := h.vaultValue(filepath.Dir(path), filepath.Base(path)); got != want {
+			t.Errorf("%s = %q, want %q", path, got, want)
+		}
+	}
+	h.requireAbsent("vault argv", h.argv("vault"), ghToken, platToken, pkgToken)
+	h.requireAbsent("terminal output", out, ghToken, platToken, pkgToken)
+	enable, _ := os.ReadFile(filepath.Join(h.state, "secrets-enable.log"))
+	if strings.Count(string(enable), "kv-v2") != 1 {
+		t.Errorf("kv-v2 enable calls: %q, want exactly one", enable)
+	}
+
+	// A second run skips everything already present and doesn't re-enable kv-v2.
+	if out, err := h.runInteractiveCommand(cmd, nil); err != nil || strings.Count(out, "SKIP") != 3 {
+		t.Errorf("re-run: %v\n%s", err, out)
+	}
+	enable, _ = os.ReadFile(filepath.Join(h.state, "secrets-enable.log"))
+	if strings.Count(string(enable), "kv-v2") != 1 {
+		t.Errorf("kv-v2 re-enabled on a second run: %q", enable)
+	}
+}
+
+func mustAbs(t *testing.T, path string) string {
+	t.Helper()
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return abs
 }

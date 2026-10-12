@@ -31,10 +31,10 @@
 #     only to contents:write + pull_requests:write on the platform-owned infrastructure repo,
 #     used by smaqit.infrastructure-request-k3s-onboarding to open a PR there, never to commit or
 #     dispatch workflows directly), plus the one named machine's
-#     secret/apps/<app-slug>/<machine-slug>/kubeconfig. There is no machine namespace at all in
-#     this mode's VM sense, and no secret/machines/<machine-slug>/* counterpart for the k3s
-#     machine-slug either — a Namespace-scoped cluster is a platform the app is onboarded onto,
-#     not a host this project registers. Run again with a different MACHINE_SLUG to populate a
+#     secret/apps/<app-slug>/<machine-slug>/kubeconfig. The app needs nothing under
+#     secret/machines/<machine-slug>/* — a Namespace-scoped cluster is a platform the app is
+#     onboarded onto, not a host this project registers (the platform repository that owns the
+#     machine may register it there with register-machine.sh). Run again with a different MACHINE_SLUG to populate a
 #     second machine's kubeconfig (e.g. once for the test cluster, once for prod) — github and
 #     platform-repo are skipped as already-populated on that second run. The kubeconfig value is
 #     always an out-of-band paste of the platform's own onboarding hand-off; this script never
@@ -49,6 +49,13 @@
 #     single-pass behaviour above.
 #
 #   PROVISIONING_MODE=existing-k3s CREDENTIAL_SCOPE=access bash .../load-credentials.sh
+#
+#   REGISTRY_ORG=<org> (existing-k3s only, either scope) also checks/populates the org-scoped,
+#     read-only registry pull credential secret/organizations/<org>/github-package-read
+#     (username + token) — needed only when the app's image lives in a private registry.
+#
+# On every run, once Vault is unsealed and authenticated, the kv-v2 engine at secret/ is enabled
+# if it isn't yet (idempotent — the one-time step setup-vault.sh cannot do before the first unseal).
 
 set -euo pipefail
 
@@ -144,6 +151,13 @@ fi
 
 echo "    Vault: running, unsealed, authenticated"
 
+# ── Step 0d: kv-v2 at secret/ (idempotent) ────────────────────────────────────
+
+if ! vault secrets list -format=json 2>/dev/null | python3 -c "import sys,json; sys.exit(0 if 'secret/' in json.load(sys.stdin) else 1)"; then
+  echo "    Enabling the kv-v2 secrets engine at secret/ (first run on this Vault)"
+  vault secrets enable -path=secret kv-v2 > /dev/null
+fi
+
 # ── Derive project slug ───────────────────────────────────────────────────────
 
 PROJECT_SLUG=$(derive_project_slug)
@@ -158,9 +172,10 @@ echo "==> Project slug: $PROJECT_SLUG"
 #
 # A Namespace-scoped Kubernetes/k3s target has no VM machine namespace at all — the cluster is a
 # platform the app is onboarded onto, not a host this project registers via bootstrap-app-to-
-# machine.sh. Only github and one machine's kubeconfig are ever touched per invocation. The k3s
-# MACHINE_SLUG has no secret/machines/<machine-slug>/* counterpart — kubeconfig is the only thing
-# ever stored keyed by it, and it lives under apps/<app-slug>/<machine-slug>/kubeconfig. kubeconfig
+# machine.sh. Only github and one machine's kubeconfig are ever touched per invocation. The app
+# stores nothing under secret/machines/<machine-slug>/* — its kubeconfig lives under
+# apps/<app-slug>/<machine-slug>/kubeconfig (a platform repository may still register the machine
+# itself there with register-machine.sh). kubeconfig
 # is always an out-of-band paste of the platform's own onboarding hand-off; this script never
 # contacts a cluster to obtain or validate it.
 
@@ -194,7 +209,7 @@ if [ "${PROVISIONING_MODE:-}" = "existing-k3s" ]; then
       echo "ERROR: github_token is empty — refusing to write a placeholder secret." >&2
       exit 1
     fi
-    vault kv put "secret/apps/${APP_SLUG}/github" token="$GH_TOKEN" > /dev/null
+    printf '%s' "$GH_TOKEN" | vault kv put "secret/apps/${APP_SLUG}/github" token=- > /dev/null
     unset GH_TOKEN
     echo "    DONE"
   fi
@@ -213,9 +228,31 @@ if [ "${PROVISIONING_MODE:-}" = "existing-k3s" ]; then
       echo "ERROR: platform_repo_token is empty — refusing to write a placeholder secret." >&2
       exit 1
     fi
-    vault kv put "secret/apps/${APP_SLUG}/platform-repo" token="$PLATFORM_REPO_TOKEN" > /dev/null
+    printf '%s' "$PLATFORM_REPO_TOKEN" | vault kv put "secret/apps/${APP_SLUG}/platform-repo" token=- > /dev/null
     unset PLATFORM_REPO_TOKEN
     echo "    DONE"
+  fi
+
+  if [ -n "${REGISTRY_ORG:-}" ]; then
+    REGISTRY_PATH="secret/organizations/${REGISTRY_ORG}/github-package-read"
+    echo ""
+    echo "--- Registry pull credential (${REGISTRY_PATH}) ---"
+    if vault kv get "$REGISTRY_PATH" > /dev/null 2>&1; then
+      echo "    SKIP — path already populated"
+    else
+      echo "  Org-scoped and read-only: a classic PAT with exactly read:packages, shared by every"
+      echo "  app in '${REGISTRY_ORG}' that pulls a private image (fine-grained PATs have unreliable"
+      echo "  Packages API support)."
+      read -r -p "  username: " REGISTRY_USER </dev/tty
+      read_secret REGISTRY_TOKEN "token"
+      if [ -z "$REGISTRY_USER" ] || [ -z "$REGISTRY_TOKEN" ]; then
+        echo "ERROR: registry username or token is empty — refusing to write a placeholder secret." >&2
+        exit 1
+      fi
+      printf '%s' "$REGISTRY_TOKEN" | vault kv put "$REGISTRY_PATH" username="$REGISTRY_USER" token=- > /dev/null
+      unset REGISTRY_USER REGISTRY_TOKEN
+      echo "    DONE"
+    fi
   fi
 
   if [ "$CREDENTIAL_SCOPE" = "access" ]; then
@@ -232,6 +269,9 @@ if [ "${PROVISIONING_MODE:-}" = "existing-k3s" ]; then
   if vault kv get -field=value "$KUBECONFIG_PATH" > /dev/null 2>&1; then
     echo "    SKIP — path already populated"
   else
+    echo "  A merged onboarding request is not enough: the kubeconfig exists only once the"
+    echo "  platform's own hand-off has delivered it. If you don't have it yet, press Ctrl-D now"
+    echo "  and finish the platform's onboarding steps first."
     echo "  Paste the platform-issued kubeconfig for machine '${MACHINE_SLUG}'."
     echo "  This comes out-of-band from the platform's own onboarding hand-off — never fetched"
     echo "  from a cluster by this script. Paste the full YAML, then press Ctrl-D on its own"
@@ -241,7 +281,7 @@ if [ "${PROVISIONING_MODE:-}" = "existing-k3s" ]; then
       echo "ERROR: kubeconfig for '${MACHINE_SLUG}' is empty — refusing to write a placeholder secret." >&2
       exit 1
     fi
-    vault kv put "$KUBECONFIG_PATH" value="$NEW_VALUE" > /dev/null
+    printf '%s' "$NEW_VALUE" | vault kv put "$KUBECONFIG_PATH" value=- > /dev/null
     unset NEW_VALUE
     echo "    DONE"
   fi

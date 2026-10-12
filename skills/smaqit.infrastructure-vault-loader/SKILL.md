@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-vault-loader
 description: 'Use before any local deployment or credential operation that needs secrets from the local HashiCorp Vault (127.0.0.1:8200): verifies it is running, unsealed, and authenticated, and loads project secrets through an interactive prompt. Also use for first-time Vault setup on a machine, adding a project''s credentials, a missing Vault path, or a caller that cannot reach Vault.'
 metadata:
-  version: "3.8.0"
+  version: "3.9.0"
   smaqit-slots: "access-credentials=access, target-credentials=target, target-credentials=register"
 ---
 
@@ -21,11 +21,17 @@ Pre-step for `smaqit.infrastructure-provision-cyso`, `smaqit.infrastructure-depl
 | Script | Purpose |
 |--------|---------|
 | `scripts/install-vault.sh` | Install the Vault binary (Ubuntu/Debian). Run once per machine. |
-| `scripts/setup-vault.sh` | Create config, start server, run `vault operator init`, enable kv-v2. Run once per machine. |
-| `scripts/load-credentials.sh` | Start + unseal + authenticate + load all credential paths. Run every session. |
+| `scripts/setup-vault.sh` | Create config, start server, initialise (prints the unseal key and root token). Run once per machine. |
+| `scripts/load-credentials.sh` | Start + unseal + authenticate + enable kv-v2 if needed + load all credential paths. Run every session. |
 | `scripts/register-machine.sh <machine-slug> [--host <ip>]` | Populate a machine's `base-ssh`, `cyso`, `tfstate`, and `metadata` the first time; `--host` backfills the address after apply. Idempotent. |
 | `scripts/bootstrap-app-to-machine.sh <app-slug> <machine-slug>` | Give an app its own distinct SSH keypair, authorized on the named machine. Run once per app-to-machine pairing. |
-| `scripts/rotate-credential.sh <path>` | Rotation only: delete and re-populate a single existing credential path (e.g. `cyso`, `apps/<app-slug>/ssh`, `machines/<machine-slug>/base-ssh`). |
+| `scripts/rotate-credential.sh <path>` | Rotation only: delete and re-populate a single existing credential path (e.g. `cyso`, `apps/<app-slug>/ssh`, `machines/<machine-slug>/base-ssh`, `organizations/<org-slug>/github-package-read`). |
+| `scripts/credential-file.sh <path>` | Write one credential a tool reads from a file — an app's SSH key, its kubeconfig, or its platform-repo token — to a 0600 file in a private temp directory and print only the path. Allowlisted paths only. |
+| `source scripts/terraform-env.sh [--unset]` | Export Terraform's provider and backend credentials (`TF_VAR_*`, `AWS_*`) into the current shell without printing them; `--unset` clears them. |
+
+**Skills and operators never run `vault` directly** — every Vault read or write goes through one
+of these scripts (which may call `vault` internally). If an operation you need has no script,
+stop and add one rather than typing a raw `vault` command.
 
 Config template used by `setup-vault.sh`: `assets/vault.hcl.template`
 
@@ -71,16 +77,14 @@ app is keyed by one or more k3s machine-slugs — one per environment, or one pe
 when test and prod happen to share one physical k3s server (in which case they still get two
 distinct registered machine-slugs, e.g. `test-cluster` / `prod-cluster`, never one path with two
 fields) — and each holds exactly one credential: a single field named `value` holding the full
-scoped kubeconfig for that machine's Namespace. **There is no `secret/machines/<k3s-machine-slug>
-/*` counterpart.** Unlike a VM `<machine-slug>`, a k3s machine-slug has no `base-ssh`/`cyso`/
-`tfstate`/`metadata` sibling anywhere under `machines/` — none of those concepts apply to a
-Namespace-scoped Kubernetes target: there is no host to SSH into, no Terraform state, no cloud
-credential to provision it. `kubeconfig` is the only thing ever stored keyed by a k3s
-machine-slug, and it lives under `apps/<app-slug>/<machine-slug>/kubeconfig` rather than under
-`machines/<machine-slug>/*`, because an app can be onboarded onto multiple k3s machine-slugs over
-its lifetime (test-cluster, prod-cluster, or a future migration to a new machine) while there is
-nothing else machine-level to store for any of them — a `machines/` root exists to hold multiple
-credential types per machine, and a k3s machine-slug only ever has one. "Environment" is expressed
+scoped kubeconfig for that machine's Namespace. **The app keeps nothing under
+`secret/machines/<machine-slug>/*`.** From the app's side a Namespace-scoped Kubernetes target has
+no host to SSH into, no Terraform state, and no cloud credential to provision it, so its only
+machine-keyed credential is the kubeconfig, under `apps/<app-slug>/<machine-slug>/kubeconfig`: an
+app can be onboarded onto several machines over its lifetime (test, prod, or a migration to a new
+machine). The machine itself may still have a `secret/machines/<machine-slug>/*` record — written by
+the platform repository that owns it, with `register-machine.sh` — but that belongs to the
+platform's operator, never to the app. "Environment" is expressed
 entirely through which machine-slug is targeted, never through a field name on a shared path.
 Like every other credential here except `ssh`'s bootstrap step, `load-credentials.sh` never
 generates or validates it: the value always comes from the platform's own out-of-band onboarding
@@ -107,14 +111,10 @@ other credential in this table, it is **org-scoped, not app-scoped** — one cla
 exactly `read:packages`; fine-grained PATs have unreliable Packages API support), shared read-only
 across every app on every machine in the org, never minted per app. `<org-slug>` is the GitHub
 organization or user account that owns the repositories, not any one project's own slug. Because
-it is shared rather than tied to a single app's lifecycle, `load-credentials.sh`'s per-app
-`existing-k3s` prompt flow does not populate it — an operator sets it once, directly
-(`vault kv put secret/organizations/<org-slug>/github-package-read username=... token=...`), the
-same way a machine's `cyso`/`tfstate` credentials are populated once at machine registration
-rather than per app per session. It is likewise **not** one of `rotate-credential.sh`'s supported
-paths (org-scoped credentials sit outside that script's per-app/per-machine case matching) —
-rotating it is the same manual `vault kv put`/`delete` an operator used to populate it, not a
-scripted flow. `smaqit.infrastructure-repo-config` reads it to sync
+it is shared rather than tied to a single app's lifecycle, it is loaded once per org, only when
+asked for: `PROVISIONING_MODE=existing-k3s REGISTRY_ORG=<org-slug> load-credentials.sh` (either
+credential scope) checks the path and prompts for `username` and the hidden `token` only if it's
+missing, and `rotate-credential.sh organizations/<org-slug>/github-package-read` replaces it. `smaqit.infrastructure-repo-config` reads it to sync
 `REGISTRY_USERNAME`/`REGISTRY_TOKEN` onto each GitHub Environment that declares a private
 registry (see that skill's own Step 5).
 
@@ -136,17 +136,14 @@ Run `scripts/install-vault.sh`. Idempotent — exits cleanly if already installe
 ### Step 2 — Initialise Vault
 
 Run `scripts/setup-vault.sh`. It creates `~/.vault/config.hcl` from the template, starts the
-server, and runs `vault operator init`.
+server, and initialises it.
 
 The init output contains the **Unseal Key** and **Root Token**. Store both offline immediately
 (printed paper or password manager). Loss of the unseal key means permanent data loss.
 
-After init completes, run `scripts/load-credentials.sh` to unseal and authenticate, then enable
-the kv-v2 secrets engine once:
-
-```
-vault secrets enable -path=secret kv-v2
-```
+After init completes, run `scripts/load-credentials.sh`: it unseals, authenticates, and on its
+first run enables the kv-v2 secrets engine at `secret/` (an engine can't be enabled before the
+first unseal, which is why `setup-vault.sh` leaves it to this step).
 
 ### Step 3 — Load project credentials
 
@@ -177,8 +174,8 @@ bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credent
   `secret/apps/<app-slug>/<machine-slug>/kubeconfig`. There is no VM machine at
   all in this mode's sense — a Namespace-scoped cluster is a platform the app is onboarded onto,
   not a host this project registers — so `ssh`, `cyso`, `tfstate`, and `machine` are never
-  touched, and there is no `secret/machines/<machine-slug>/*` counterpart for the k3s
-  machine-slug either (see the path convention above). Run the script again with a different
+  touched, and the app stores nothing under `secret/machines/<machine-slug>/*` (see the path
+  convention above). Run the script again with a different
   `MACHINE_SLUG` to populate a second machine's kubeconfig — e.g. once for the test cluster, once
   for prod; `github` and `platform-repo` are skipped as already-populated on that second run. The
   kubeconfig value is always an out-of-band paste of the platform's own onboarding hand-off, never
@@ -228,7 +225,11 @@ different points of one environment run:
   above for that mode and scheme.
 - **`target-credentials=target`** — credentials the target issues or authorizes for this app, after
   onboarding or registration. `existing-k3s`: `PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug>`
-  (the environment's kubeconfig). `existing-shared`/`existing-unmanaged` on the `apps/`+`machines/`
+  (the environment's kubeconfig). **This is the onboarding gate:** a merged onboarding request
+  doesn't produce a kubeconfig by itself — the platform's own hand-off delivers it, however that
+  platform works. If the operator doesn't have it yet, stop the deployment here with that message
+  rather than continuing to `environment-config` or `app-deploy`; smaqit never performs or assumes
+  the platform's post-merge steps. `existing-shared`/`existing-unmanaged` on the `apps/`+`machines/`
   scheme: `bootstrap-app-to-machine.sh <app-slug> <machine-slug>` (below); on the legacy flat scheme,
   nothing further — the access load already populated `ssh`. Not part of the `provision` or
   `existing-owned` default sequence.
@@ -323,15 +324,17 @@ install the new public key on the machine, then retires the old one — because 
 credential type that has to install itself onto the remote machine, not just be replaced in Vault.
 Rotating a machine's `base-ssh` never touches any already-bootstrapped app's `secret/apps/<app-slug>
 /ssh`. `apps/<app-slug>/<machine-slug>/kubeconfig` is different again — and different from every
-other credential here: the platform's own credential rotation is destructive (a known platform
-gap, not fixed by this skill), so this script never generates a replacement locally. The
+other credential here: only the platform can issue one, and how it rotates is the platform's own
+decision (some reissue in place and revoke the old token, some only by re-onboarding), so this
+script never generates a replacement locally. The
 machine-slug in the path is already the distinguishing dimension — there is no separate
 test/prod argument anymore, since each machine-slug's kubeconfig is its own independent path with
 no sibling field to preserve. It deletes the value at that one path and re-prompts for a
 **freshly platform-reissued** value, pasted the same out-of-band way `load-credentials.sh`
 originally loaded it — never a cluster call, never regenerated. After any rotation, re-run
 `smaqit.infrastructure-repo-config` to sync the new value to GitHub Secrets (or the relevant
-GitHub Environment secret, for `kubeconfig`).
+GitHub Environment secret, for `kubeconfig`), then redeploy with a fresh workflow dispatch — a
+re-run of an earlier run keeps the secret values from when that run was created.
 
 ---
 
@@ -361,31 +364,31 @@ GitHub Environment secret, for `kubeconfig`).
   address with TLS disabled
 - **`-key-shares=1 -key-threshold=1`** — single unseal key for simplicity; acceptable for a
   local dev vault
-- **Background process** — `vault server ... &` dies when the terminal closes; this is
-  intentional — Vault is not a persistent service on this machine
-- **`VAULT_ADDR` must be exported** — every `vault` CLI call in subshells needs this variable;
-  export it at the start of each session or add to `.bashrc`
-- **`~/.vault-token` is read automatically** — if a prior `vault login` on this machine wrote a
+- **Background process** — the Vault server `load-credentials.sh` starts dies when the terminal
+  closes; this is intentional — Vault is not a persistent service on this machine
+- **`VAULT_ADDR`** — every script defaults it to `http://127.0.0.1:8200`; export it only to point
+  the scripts at a different address
+- **`~/.vault-token` is read automatically** — if a prior login on this machine wrote a
   token there, `load-credentials.sh` reuses it instead of prompting. Harmless no-op if the file
   is absent or the token has expired (falls through to the normal prompt).
-- **SSH private key trailing newline / "error in libcrypto"** — `vault kv put private_key="$(cat file)"`
-  strips the private key's trailing newline via shell command substitution. OpenSSH's key parser
+- **SSH private key trailing newline / "error in libcrypto"** — storing a key as
+  `private_key="$(cat file)"` strips its trailing newline via shell command substitution. OpenSSH's key parser
   requires it; without it, every subsequent `ssh`/`ssh-keygen -y` against the fetched key fails with
   `error in libcrypto` (not an auth or permissions issue — the key content itself is malformed).
   `load-credentials.sh` writes `private_key` using Vault's `@file` syntax (`private_key=@"$SSH_KEY_PATH"`),
   which preserves the file's exact bytes including the trailing newline. Never rewrite this back to
   `"$(cat ...)"` — that regresses the bug silently (re-fetching, patching, and writing back via
-  command substitution reintroduces it even after a one-time manual fix). If you ever hand-load an
-  SSH key manually (bypassing the script), use `@`-file syntax, not `$(cat ...)`, for `private_key`.
+  command substitution reintroduces it even after a one-time manual fix). Keys are only ever
+  stored through the scripts, which all use `@`-file syntax.
 - **`kubeconfig` is out-of-band paste only, never a cluster call.** Unlike every other credential
   this skill manages, `secret/apps/<app-slug>/<machine-slug>/kubeconfig` is never generated,
   derived, or validated by contacting a cluster — `load-credentials.sh`'s `existing-k3s` branch
   only stores whatever is pasted in, verbatim, as that path's single `value` field. If a paste is
   truncated or malformed, this skill will not detect it; the first sign of trouble is
   `smaqit.infrastructure-deploy-k3s-app`'s `namespace-guard.sh` failing to authenticate.
-- **`kubeconfig` rotation re-prompts; it never regenerates.** The platform's own kubeconfig
-  rotation is destructive (a known platform gap) — `rotate-credential.sh
-  apps/<app-slug>/<machine-slug>/kubeconfig` deletes the stored value and re-prompts for a
-  freshly platform-reissued value, unlike `ssh`'s local keypair regeneration. Do not "fix" this
+- **`kubeconfig` rotation re-prompts; it never regenerates.** Only the platform issues a
+  kubeconfig, and how it rotates one is its decision — `rotate-credential.sh
+  apps/<app-slug>/<machine-slug>/kubeconfig` replaces the stored value with a freshly
+  platform-reissued one, unlike `ssh`'s local keypair regeneration. Do not "fix" this
   by generating a keypair or token locally; there is nothing this skill can generate that the
   platform would accept.

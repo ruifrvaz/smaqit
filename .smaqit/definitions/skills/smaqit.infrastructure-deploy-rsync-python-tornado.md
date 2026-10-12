@@ -51,13 +51,11 @@ the CI/CD pipeline.
 
 1. **Fetch SSH key from Vault into a secure temp file:**
    ```bash
-   export VAULT_ADDR=http://127.0.0.1:8200
    export PROJECT_SLUG=<project-slug>
 
-   TMPKEY=$(mktemp)
-   trap "rm -f $TMPKEY" EXIT
-   vault kv get -field=private_key secret/${PROJECT_SLUG}/ssh > "$TMPKEY"
-   chmod 600 "$TMPKEY"
+   TMPKEY="$(bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/credential-file.sh \
+     "${PROJECT_SLUG}/ssh")"
+   trap 'rm -rf "$(dirname "$TMPKEY")"' EXIT
    ```
    All subsequent `ssh`, `rsync`, and `scp` commands use `-i "$TMPKEY"`.
 
@@ -171,7 +169,7 @@ nginx serving via the shared `write-vhost.sh`-written vhost, deploy stamps prese
 
 ## Allowed Tools
 
-Bash(ssh:*), Bash(rsync:*), Bash(scp:*), Bash(vault:*), Bash(git:*)
+Bash(ssh:*), Bash(rsync:*), Bash(scp:*), Bash(bash:*), Bash(git:*)
 
 ## Examples
 

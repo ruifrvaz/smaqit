@@ -18,7 +18,7 @@ Use smaqit's workflows, not direct edits, for any request that adds or changes a
 
 - **Specifications first** — Before changing behavior, run `smaqit status` and read the relevant `specs/`. A change no specification covers starts with a specification update, not with code.
 - **Prefer the phase commands** — In Claude Code, `/smaqit.development`, `/smaqit.deployment`, and `/smaqit.validation` resolve phase parameters before delegating and relay every question the agent returns. In GitHub Copilot and Codex, use the agent of the same name.
-- **Answer return signals through the user** — When a smaqit agent's result starts with `NEEDS-INPUT` or `REVIEW-REQUESTED`, ask the user each listed question, or ask them to approve or comment on the listed files. Never answer it yourself and never substitute a default. Then resume the same agent with `answers` keyed by question id (`review` for a review), or invoke it again with those `answers` plus any `approved_spec_paths` the signal carried.
+- **Answer return signals through the user** — When a smaqit agent's result starts with `NEEDS-INPUT` or `REVIEW-REQUESTED`, ask the user each listed question, or ask them to approve or comment on the listed files (in a headless run with no question tool, print them and end your turn; the user's next message carries the answers). Never answer it yourself and never substitute a default. Then resume the same agent with `answers` keyed by question id (`review` for a review), or invoke it again with those `answers` plus any `approved_spec_paths` the signal carried.
 - **Exemptions** — Changes that alter no behavior may be made directly: typo, formatting, comment, and documentation fixes, and dependency bumps that change no behavior.
 
 ## Scaffolding to ignore

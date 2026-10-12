@@ -432,6 +432,28 @@ Not soundly yet. The `smaqit-adk bench` engine runs whatever `process.executable
 - **Credentials.** Avoiding that shadowing needs an isolated `CLAUDE_CONFIG_DIR`, which has no login. Credentials must be passed in on purpose and never frozen into evidence; smaqit-adk task 035 found Codex credentials leaking into a workspace that way.
 - **Conversation turns.** Headless Claude Code has no user to answer questions, so it covers single-turn Cases only. Testing an ask-and-resume loop needs scripted follow-up turns.
 
-smaqit-adk task 037 (Bench harness selector) would make Claude Code a declared harness that handles all three. Until it lands, Claude-specific behavior is checked live, through real use. Examples are `skills:` preload, the subagents' missing `AskUserQuestion`, and resume with `SendMessage`.
+smaqit-adk task 037 (Bench harness selector) would make Claude Code a declared harness that handles all three. Until it lands, the standalone `make -C installer e2e-claude` test does that work outside Bench. It isolates the install itself, takes credentials only from the environment, and scripts follow-up turns with `--resume`. See also: how do I test smaqit end to end on Claude Code?
+
+---
+
+**How do I test smaqit end to end on Claude Code?**
+
+Run `make -C installer e2e-claude`. Credentials come from `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY` if either is set. Otherwise the script reuses your current claude.ai login: it reads only the access token, passes it as `CLAUDE_CODE_OAUTH_TOKEN`, writes nothing to the scratch folder, and never uses the refresh token. `scripts/e2e-claude.sh` takes these steps:
+
+1. Builds the dev binary.
+2. Points `HOME` and `CLAUDE_CONFIG_DIR` at a scratch folder and confirms the isolation with `claude auth status`.
+3. Installs smaqit globally there and runs `smaqit init` in a fresh project per scenario.
+4. Drives headless `claude -p` with live questions disabled, in Claude Code's `auto` permission mode.
+
+There are four scenarios, all building the `scripts/e2e/hello-site/` static site:
+
+- `happy-path`
+- `needs-input`: thin requirements → `NEEDS-INPUT` → a `--resume` turn with answers
+- `assisted`: `REVIEW-REQUESTED` after each layer, and approved specs never regenerated
+- `self-invocation`: a plain request with no slash command still reaches `smaqit-development`
+
+Checks use smaqit's own CLI (`validate`, `plan --phase=develop`, `status`), the site's `node --test`, and the stream-json session log, never the exit code alone. Evidence lands in `installer/test/e2e-claude/<timestamp>/`.
+
+Every run spends real model usage, so it is a manual pre-release check. Limit it with `SCENARIOS`, `E2E_BUDGET_USD`, `E2E_TIMEOUT` and `E2E_MAX_TURNS`. It replaces the Copilot-SDK `make test-e2e` path (`e2e-test.yml`, `run_e2e_test.py`), which was retired after its `smaqit.ci-testing` agent was deleted. Full reference: `docs/wiki/workflows/testing-smaqit.md`.
 
 ---

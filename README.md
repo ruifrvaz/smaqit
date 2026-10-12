@@ -120,4 +120,5 @@ This makes it safe to:
 - **[Quickstart](docs/wiki/workflows/quickstart.md)** — Build "Hello, Mario!" from scratch
 - **[Team Alignment](docs/wiki/concepts/team-alignment.md)** — How layers map to Agile roles
 - **[Deployment Slots](docs/wiki/workflows/deployment-slots.md)** — Bind your own skills to deployment steps
+- **[Platform Repositories](docs/wiki/workflows/platform-repositories.md)** — Run a repository that owns machines through smaqit
 - **[Wiki](docs/wiki/)** — Concepts, designs, patterns, workflows

@@ -5,8 +5,16 @@
       "path": "."
     },
     {
-      "name": "task/130-make-smaqit-self-invoking-directive-instructions-block-refresh-trigger-form-descriptions",
-      "path": "../smaqit-wt-task-130-make-smaqit-self-invoking-directive-instructions-block-refresh-trigger-form-descriptions"
+      "name": "task/115-platform-repositories-guarded-replacement-cyso-facts-and-a-pattern-guide",
+      "path": "../smaqit-wt-task-115-platform-repositories-guarded-replacement-cyso-facts-and-a-pattern-guide"
+    },
+    {
+      "name": "task/132-claude-code-headless-e2e-test-install-into-a-scratch-folder-and-build-a-site-through-smaqit",
+      "path": "../smaqit-wt-task-132-claude-code-headless-e2e-test-install-into-a-scratch-folder-and-build-a-site-through-smaqit"
+    },
+    {
+      "name": "task/133-copilot-and-codex-entry-agent-descriptions-in-trigger-form",
+      "path": "../smaqit-wt-task-133-copilot-and-codex-entry-agent-descriptions-in-trigger-form"
     }
   ],
   "settings": {

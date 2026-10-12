@@ -301,3 +301,21 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | GitHub Copilot | Agent skills | https://docs.github.com/en/copilot/concepts/agents/about-agent-skills |
 | Codex CLI | Repository | https://github.com/openai/codex |
 | Codex CLI | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
+
+## Task 132 — Claude Code Headless E2E Test: Install Into a Scratch Folder and Build a Site Through smaqit
+
+**Context fingerprint:** sha256:cdfcc03d2b7522701ab1c85b55035e82917824ec0a07cd2314275a1333e70802
+
+**Refreshed:** 2026-10-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Claude Code | Headless mode (claude -p) | https://code.claude.com/docs/en/headless |
+| Claude Code | CLI reference | https://code.claude.com/docs/en/cli-reference |
+| Claude Code | Authentication (setup-token, CLAUDE_CONFIG_DIR) | https://code.claude.com/docs/en/authentication |
+| Claude Code | Sessions and resume | https://code.claude.com/docs/en/sessions |
+| Claude Code | MCP (project servers) | https://code.claude.com/docs/en/mcp |
+| Claude Code | Subagents | https://code.claude.com/docs/en/sub-agents |
+| Node.js | Test runner (node --test) | https://nodejs.org/api/test.html |
+| Node.js | Documentation | https://nodejs.org/docs/latest-v22.x/api/ |
+| Go | Documentation | https://go.dev/doc/ |

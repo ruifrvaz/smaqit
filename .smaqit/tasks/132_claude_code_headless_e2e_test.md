@@ -17,7 +17,7 @@ Add `scripts/e2e-claude.sh`, behind `make -C installer e2e-claude`. It reuses `s
 **Technologies:** Claude Code, Node.js, Go
 **Platforms/Environments:** Linux, WSL2, macOS
 **Features/Integrations:** headless claude -p, CLAUDE_CONFIG_DIR isolation, CLAUDE_CODE_OAUTH_TOKEN, session resume, stream-json output, project MCP servers (.mcp.json), PlantUML MCP
-**Versions/Constraints:** smaqit 3.8.0, Node 22+, Claude Code 2.1.259+ for --permission-prompts none, every run spends real model usage
+**Versions/Constraints:** smaqit 3.10.0, Node 22+, Claude Code 2.1.268+ (verified locally on 2.1.296), every run spends real model usage
 
 ## Design Decisions
 
@@ -26,6 +26,8 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
 - **Runner:** a standalone script now (`scripts/e2e-claude.sh` plus a `make -C installer e2e-claude` target). Move it to a Bench manifest once smaqit-adk task 037 (Bench harness selector for Claude Code) lands.
 - **Authentication:** an environment token only. Accept `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY`, and fail fast if neither is set. Never copy `~/.claude` credentials, and never write a credential file into the scratch folder.
 - **Scenarios:** happy-path develop, the `NEEDS-INPUT` round trip, and Assisted `REVIEW-REQUESTED`.
+- **Fourth scenario, `self-invocation`** (user, 2026-10-12): a plain-language request with no slash command must make Claude route through smaqit. This closes task 130's deferred live check.
+- **Proof from the session log** (2026-10-12): delegation to smaqit and returned signals are checked by parsing the stream-json session log for tool calls and signal blocks, not only by looking at files on disk.
 - **Fixture:** a new static site, a one-page "Hello, Mario!" pinned to plain HTML/CSS/vanilla JS, with a test using Node's built-in runner (`node --test`) and no package installs.
 - **Assumption, local-only:** no CI workflow. Every run spends real model usage, so it's an explicit pre-release check, not a per-PR gate.
 - **Assumption, dev build by default:** `installer/dist/smaqit-dev` is used unless `--binary <path>` selects a release binary.
@@ -66,6 +68,7 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
    - `thin-requirements.md`: deliberately missing actors and success metrics
    - `answers.md`: answers keyed by the business gate's question ids (`actors`, `success-metrics`, …)
    - `approve.md`: the approval text for review turns
+   - `plain-request.md`: the same requirements worded as a natural request, with no slash command and no mention of smaqit
 
 *Phase C: scenarios (depends on A and B)*
 
@@ -84,16 +87,20 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
    - Turn 1 asks for assisted mode. It must end with `REVIEW-REQUESTED`, a business spec, and no functional spec.
    - The script records the approved specs' hashes, then resumes with the approval until the run finishes, capped at 6 turns.
    - Approved specs' hashes must be unchanged, and the happy-path checks must pass.
-10. **Knobs:** `SCENARIOS=happy-path,needs-input,assisted` (default all), `E2E_BUDGET_USD`, `E2E_TIMEOUT`. Add the `e2e-claude` target to `installer/Makefile`, depending on `build`.
+10. **`self-invocation`:** the prompt is `plain-request.md`, with no slash command. It passes when:
+    - the session log shows a delegation to smaqit: a `Task`/`Agent` call with `subagent_type` `smaqit-development`, or a `Skill`/command call to `smaqit.development`
+    - the happy-path checks pass
+11. **Log-check helper:** shared by all scenarios. It parses the stream-json session log (one JSON object per line) for tool calls and for `NEEDS-INPUT`/`REVIEW-REQUESTED` blocks, and doesn't rely on plain text matches in the final result.
+12. **Knobs:** `SCENARIOS=happy-path,needs-input,assisted,self-invocation` (default all), `E2E_BUDGET_USD`, `E2E_TIMEOUT`. Add the `e2e-claude` target to `installer/Makefile`, depending on `build`.
 
 *Phase D: making headless runs possible, plus docs*
 
-11. In the `commands/smaqit.{development,deployment,validation}.md` bodies, add a step 3 fallback: "if no question tool is available, print the signal's questions (or review files) and end your turn; the next user message carries the answers. Then resume the subagent as before". Without this the `needs-input` and `assisted` scenarios cannot work headless.
-12. `docs/wiki/workflows/testing-smaqit.md`: add a "Claude Code e2e" section (authentication via `claude setup-token`, cost and budget knobs, scenarios, evidence), and remove the stale reference to the deleted `.github/agents/smaqit.user-testing.agent.md`. Add a compendium entry.
+13. In the `commands/smaqit.{development,deployment,validation}.md` bodies, add a step 3 fallback: "if no question tool is available, print the signal's questions (or review files) and end your turn; the next user message carries the answers. Then resume the subagent as before". Without this the `needs-input` and `assisted` scenarios cannot work headless.
+14. `docs/wiki/workflows/testing-smaqit.md`: add a "Claude Code e2e" section (authentication via `claude setup-token`, cost and budget knobs, scenarios, evidence), and remove the stale reference to the deleted `.github/agents/smaqit.user-testing.agent.md`. Add a compendium entry.
 
 *Verification*
 
-13. Run `bash -n` (and `shellcheck` if available), the preflight negative cases, then each scenario live with `KEEP_E2E_DIR=1`. Confirm no `.credentials.json` exists under the scratch `CLAUDE_CONFIG_DIR`, and that the real `~/.claude` was untouched (mtimes).
+15. Run `bash -n` (and `shellcheck` if available), the preflight negative cases, then each scenario live with `KEEP_E2E_DIR=1`. Confirm no `.credentials.json` exists under the scratch `CLAUDE_CONFIG_DIR`, and that the real `~/.claude` was untouched (mtimes).
 
 ## Known Issues Triage
 
@@ -111,6 +118,7 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
   - `index.html` exists, `node --test` passes, and a development report exists
 - [ ] The needs-input scenario passes: turn 1 writes no spec and returns `NEEDS-INPUT`, and a `--resume` turn with the scripted answers produces the specs and reaches the happy-path checks
 - [ ] The assisted scenario passes: a `REVIEW-REQUESTED` after each layer, approved specs' hashes unchanged after approval, and the happy-path checks pass at the end
+- [ ] The self-invocation scenario passes: a plain-language request with no slash command delegates to `smaqit-development`, shown in the session log, and the happy-path checks pass
 - [ ] The phase command bodies define a fallback for when no question tool is available (print the questions and end the turn)
 - [ ] Every run is capped by budget, turns and wall-clock time; evidence is saved per scenario; the script exits nonzero on any failure; no credential file is ever written
 - [ ] `docs/wiki/workflows/testing-smaqit.md` documents the run, the authentication (`claude setup-token`) and the cost, and its stale user-testing agent reference is removed
@@ -159,5 +167,11 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
   - fix `docs/wiki/workflows/quickstart.md`, which still says `smaqit init` creates `.claude/`/`.github/agents/`
   - move to a Bench manifest after smaqit-adk task 037
 - Related: task 131 (whose deferred live check this automates), smaqit-adk task 037.
+- **Re-planned 2026-10-12** after tasks 114 (v3.9.0) and 130 (v3.10.0) shipped:
+  - 130 changed only the command `description`/`when_to_use` lines, so step 13's body fallback is still needed and does not conflict.
+  - 130 added a "When to use smaqit" block to `AGENTS.md`, which the self-invocation scenario exercises.
+  - 130's deferred live check (plain requests use smaqit, and a directly delegated `NEEDS-INPUT` reaches the user) is closed by the `self-invocation` scenario.
+  - Open claude-code issue #85027 (descriptions dropped in the VS Code extension's agent host) doesn't affect this CLI-based test, so a CLI pass says nothing about the VS Code extension.
+  - Checked locally at no model cost: all the `claude -p` flags used exist in 2.1.296, and with a scratch `CLAUDE_CONFIG_DIR` and no token, `claude auth status` reports `configDirectory` inside the scratch folder and `loggedIn: false`.
 
 Child tasks inherit their active parent's branch, worktree, and workflow mode. Only a standalone or parent task owns Git lifecycle cleanup.

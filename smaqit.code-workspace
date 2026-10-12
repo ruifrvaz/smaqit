@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/132-claude-code-headless-e2e-test-install-into-a-scratch-folder-and-build-a-site-through-smaqit",
-      "path": "../smaqit-wt-task-132-claude-code-headless-e2e-test-install-into-a-scratch-folder-and-build-a-site-through-smaqit"
     }
   ],
   "settings": {

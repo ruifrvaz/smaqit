@@ -8,7 +8,9 @@
 #   __APP_SLUG__       — the app slug; the Namespace is always app-__APP_SLUG__
 #   __INGRESS_CLASS__  — the platform's declared ingress class (e.g. its Traefik ingress class)
 #   __CLUSTER_ISSUER__ — the platform's declared cert-manager ClusterIssuer name
-#   __HOST__           — the environment's declared hostname (test or prod)
+#   __HOST__           — the target environment's hostname. Left as a token in the committed
+#                        deployment/k3s/ingress.yaml and filled in at apply time (CI: the
+#                        environment's APP_HOST variable), since each environment has its own.
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress

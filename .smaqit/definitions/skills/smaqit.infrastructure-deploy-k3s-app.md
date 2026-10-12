@@ -84,14 +84,13 @@ logs — the scoped credential this skill consumes cannot grant either.
 2. **Load the environment's kubeconfig** from Vault into a secure temp file, never printed or
    logged:
    ```bash
-   export VAULT_ADDR=http://127.0.0.1:8200
    export APP_SLUG=<app-slug>
    export MACHINE_SLUG=<machine-slug-for-target-environment>   # from the Infrastructure spec
 
-   TMPKUBECONFIG=$(mktemp)
-   trap "rm -f $TMPKUBECONFIG" EXIT
-   vault kv get -field=value "secret/apps/${APP_SLUG}/${MACHINE_SLUG}/kubeconfig" > "$TMPKUBECONFIG"
-   export KUBECONFIG="$TMPKUBECONFIG"
+   KUBECONFIG="$(bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/credential-file.sh \
+     "apps/${APP_SLUG}/${MACHINE_SLUG}/kubeconfig")"
+   trap 'rm -rf "$(dirname "$KUBECONFIG")"' EXIT
+   export KUBECONFIG
    ```
    In CI/CD, `KUBECONFIG` is instead written from the environment's `KUBECONFIG` GitHub
    Environment secret (`smaqit.infrastructure-cicd-generate`'s `k3s` mode) — same downstream
@@ -232,7 +231,7 @@ PASS on health, SHA, and SPA root over HTTPS.
 
 ## Allowed Tools
 
-Bash(kubectl:*), Bash(vault:*)
+Bash(kubectl:*), Bash(bash:*)
 
 ## Examples
 

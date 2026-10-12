@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-deploy-rsync-python-tornado
 description: Use when deploying a Python/Tornado application (single-process monolith, no Docker, no build step, systemd-managed, SQLite) to a remote VM via rsync, in the greenfield Phase 4 dev sweep or as a manual fallback. For Node.js + Vite/React use smaqit.infrastructure-deploy-rsync; for FastAPI + Next.js use smaqit.infrastructure-deploy-rsync-python-nextjs.
 metadata:
-  version: "1.1.1"
+  version: "1.2.0"
   smaqit-slots: "app-deploy=deploy"
   validated: "2026-07-21"
   validated-stack: "Python 3.12, Tornado 6.4, SQLite (stdlib), nginx 1.24, systemd 255, no Docker, no build step"
@@ -25,15 +25,15 @@ build, SQLite persistence) to a remote VM via rsync.
 
 ## Steps
 
-1. **Fetch SSH key from Vault into a secure temp file:**
+1. **Fetch the SSH key into a private temp file** (through the vault-loader script):
    ```bash
-   export VAULT_ADDR=http://127.0.0.1:8200
-   export PROJECT_SLUG=<project-slug>
+   export PROJECT_SLUG=<project-slug>   # from AGENTS.md (or legacy platform instructions)
 
-   TMPKEY=$(mktemp)
-   trap "rm -f $TMPKEY" EXIT
-   vault kv get -field=private_key secret/${PROJECT_SLUG}/ssh > "$TMPKEY"
-   chmod 600 "$TMPKEY"
+   # Legacy flat scheme: <project-slug>/ssh. An app on the apps/+machines/ scheme uses
+   # apps/<app-slug>/ssh instead. The script prints only the key file's path.
+   TMPKEY="$(bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/credential-file.sh \
+     "${PROJECT_SLUG}/ssh")"
+   trap 'rm -rf "$(dirname "$TMPKEY")"' EXIT
    ```
    All subsequent `ssh`, `rsync`, and `scp` commands use `-i "$TMPKEY"`.
 
@@ -157,4 +157,4 @@ written, health endpoint returns correct SHA.
 
 ## Allowed Tools
 
-Bash(ssh:*), Bash(rsync:*), Bash(scp:*), Bash(vault:*), Bash(git:*)
+Bash(ssh:*), Bash(rsync:*), Bash(scp:*), Bash(bash:*), Bash(git:*)

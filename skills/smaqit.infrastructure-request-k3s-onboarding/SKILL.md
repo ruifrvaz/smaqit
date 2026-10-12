@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-request-k3s-onboarding
 description: Use when an existing-k3s app needs one environment onboarded onto a platform-owned k3s cluster whose onboarding accepts PR-mergeable registry-file requests (greenfield Phases 4 and 5, before deploy-k3s-app). Opens a PR against the platform repository and gates on its merge; never needs direct commit or workflow_dispatch access, and never assumes how the platform converges.
 metadata:
-  version: "1.1.1"
+  version: "1.2.0"
   smaqit-slots: "platform-onboarding=request"
 ---
 
@@ -31,7 +31,14 @@ metadata:
 
 1. **Resolve inputs** for the target environment from the Infrastructure spec: `platform_repo`
    (owner/repo), `registry_file_path`, `machine_slug`. The operator supplies `entry_content`
-   directly.
+   directly. Load the `platform-repo` credential for every `gh`/`git` call below through the
+   vault-loader script — it never touches the command line or the transcript:
+   ```bash
+   TOKEN_FILE="$(bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/credential-file.sh \
+     "apps/${APP_SLUG}/platform-repo")"
+   trap 'rm -rf "$(dirname "$TOKEN_FILE")"' EXIT
+   export GH_TOKEN="$(cat "$TOKEN_FILE")"
+   ```
 2. **Check for an already-open PR before creating anything:**
    ```bash
    BRANCH="onboard-${APP_SLUG}-${MACHINE_SLUG}"
@@ -51,7 +58,7 @@ metadata:
    ```bash
    gh pr create -R "$PLATFORM_REPO" \
      --head "$BRANCH" \
-     --title "Onboard ${APP_SLUG} (${MACHINE_SLUG})" \
+     --title "chore: onboard ${APP_SLUG} (${MACHINE_SLUG})" \
      --body "Requests onboarding for app slug ${APP_SLUG} onto machine ${MACHINE_SLUG}. Opened by smaqit.infrastructure-request-k3s-onboarding."
    ```
    Report the PR URL. Never trigger `workflow_dispatch` on the platform repository.
@@ -59,8 +66,12 @@ metadata:
    ```bash
    gh pr view -R "$PLATFORM_REPO" "$PR_NUMBER" --json state,mergedAt
    ```
-   - `MERGED` → report success and stop. The platform team's own process now handles convergence
-     and the kubeconfig hand-off (still out-of-band, unchanged).
+   - `MERGED` → report the request accepted, and that the app is **not deployable yet**: the
+     platform's own process must still converge and hand off the kubeconfig — often a step a
+     platform operator runs after the merge, which this skill never performs or assumes. The
+     `target-credentials` slot is the gate: it stores the kubeconfig once the operator has it
+     (`PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug> load-credentials.sh`) and stops
+     the deployment until then.
    - `OPEN` → report "pending — awaiting platform-team review" with the PR URL and stop cleanly.
      Re-invoke later to re-check (Step 2 finds and reuses the same PR).
    - `CLOSED` (not merged) → report the closure; do not silently reopen or retry.
@@ -68,8 +79,9 @@ metadata:
 ## Output
 
 Either a newly opened PR on the platform repository (pending review), or confirmation that a
-previously opened PR for this app/machine has since merged. Never a kubeconfig, a converged
-Namespace, or any change to the platform repository outside the one PR.
+previously opened PR for this app/machine has since merged, with the reminder that the platform's
+hand-off of the kubeconfig still has to happen before the `target-credentials` load. Never a
+kubeconfig, a converged Namespace, or any change to the platform repository outside the one PR.
 
 ## Scope
 
@@ -93,8 +105,9 @@ onboard its test environment onto machine-slug `test-cluster`.
 **Output:** No existing open PR found for `onboard-<app-slug>-test-cluster`. A branch is pushed to
 the platform repository with the registry entry; `gh pr create -R <platform_repo>` opens PR #42;
 the skill reports the PR URL and "pending — awaiting platform-team review," then stops. Re-invoked
-after the platform team merges PR #42, the skill reports success and Phase 4 proceeds to
-`smaqit.infrastructure-deploy-k3s-app`.
+after the platform team merges PR #42, the skill reports the request accepted and that the
+kubeconfig hand-off is still pending; once the operator has it, the `target-credentials` load
+stores it and Phase 4 proceeds to `smaqit.infrastructure-deploy-k3s-app`.
 
 ## Gotchas
 
@@ -115,7 +128,12 @@ after the platform team merges PR #42, the skill reports success and Phase 4 pro
   codebase for a PR-merge wait; `smaqit.feature-new`'s own deploy-PR gate creates, pauses, and
   re-checks only on the next invocation. Mirror that shape exactly.
 - **Never trigger `workflow_dispatch` on the platform repository**, even if the credential happened
-  to have that scope — this skill's job ends at "PR merged."
+  to have that scope — this skill's job ends at "PR merged." Merged does not mean deployable: many
+  platforms converge only when their own operator runs a step afterwards and then hand off the
+  kubeconfig. Report that plainly instead of implying the app is ready.
+- **PR conventions:** branch `onboard-<app-slug>-<machine-slug>` and title
+  `chore: onboard <app-slug> (<machine-slug>)` — a deterministic name the platform side can
+  recognise, and the reason Step 2 can find and reuse an earlier request.
 - **The registry-file format is genuinely unknown to smaqit.** `entry_content` is always exactly
   what the operator supplies — never inferred, templated, or validated.
 - **One-time setup step, not per-push CI.** Do not add this to the generated `deploy.yml`.
@@ -130,7 +148,7 @@ after the platform team merges PR #42, the skill reports success and Phase 4 pro
 - [ ] PR opened via `gh pr create -R <platform_repo>`, URL reported
 - [ ] `workflow_dispatch` never triggered on the platform repository
 - [ ] Merge state checked once per invocation, never polled in a loop
-- [ ] On merge: success reported, no attempt made to fetch the resulting kubeconfig
+- [ ] On merge: request reported accepted but not yet deployable (the platform's hand-off and the `target-credentials` load remain); no attempt made to fetch the kubeconfig
 - [ ] On pending or closed: reported plainly, no silent retry
 
 ## Failure Handling
@@ -148,4 +166,4 @@ after the platform team merges PR #42, the skill reports success and Phase 4 pro
 
 ## Allowed Tools
 
-Bash(git:*), Bash(gh:*), Bash(vault:*)
+Bash(git:*), Bash(gh:*), Bash(bash:*)

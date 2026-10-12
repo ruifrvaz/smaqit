@@ -80,3 +80,84 @@ func TestCicdTemplatesNeverAutoApprove(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// The k3s deploy.yml targets a machine-slug GitHub Environment, builds the
+// image with its revision baked in, stamps the per-environment host into the
+// committed Ingress before linting, and verifies /health.json with a bounded
+// retry.
+func TestK3sDeployTemplateContract(t *testing.T) {
+	content, err := skillFilesShared.ReadFile(cicdAssets + "/deploy.yml.k3s.template")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var workflow struct {
+		On struct {
+			WorkflowDispatch struct {
+				Inputs map[string]struct {
+					Type    string   `yaml:"type"`
+					Options []string `yaml:"options"`
+					Default string   `yaml:"default"`
+				} `yaml:"inputs"`
+			} `yaml:"workflow_dispatch"`
+		} `yaml:"on"`
+		Jobs map[string]struct {
+			Environment string `yaml:"environment"`
+			Steps       []struct {
+				Name string `yaml:"name"`
+				Run  string `yaml:"run"`
+			} `yaml:"steps"`
+		} `yaml:"jobs"`
+	}
+	if err := yaml.Unmarshal(content, &workflow); err != nil {
+		t.Fatalf("deploy.yml.k3s.template is not valid YAML: %v", err)
+	}
+
+	input := workflow.On.WorkflowDispatch.Inputs["environment"]
+	if input.Type != "choice" || input.Default != "__PROD_MACHINE_SLUG__" ||
+		strings.Join(input.Options, ",") != "__PROD_MACHINE_SLUG__,__TEST_MACHINE_SLUG__" {
+		t.Errorf("environment input = %+v", input)
+	}
+	deploy := workflow.Jobs["deploy"]
+	if deploy.Environment != "${{ inputs.environment || '__PROD_MACHINE_SLUG__' }}" {
+		t.Errorf("deploy environment = %q, want the machine-slug expression", deploy.Environment)
+	}
+
+	build := ""
+	for _, s := range workflow.Jobs["build"].Steps {
+		build += s.Run
+	}
+	if !strings.Contains(build, `docker build --build-arg DEPLOY_SHA="${{ github.sha }}"`) {
+		t.Errorf("build does not pass DEPLOY_SHA: %q", build)
+	}
+
+	index := map[string]int{}
+	for i, s := range deploy.Steps {
+		switch {
+		case strings.Contains(s.Run, "s/__HOST__/"):
+			index["stamp"] = i
+		case strings.Contains(s.Run, "manifest-lint.sh"):
+			index["lint"] = i
+			if !strings.Contains(s.Run, "deployment/k3s/ingress.yaml") {
+				t.Errorf("lint skips the committed Ingress: %q", s.Run)
+			}
+		case strings.Contains(s.Run, "kubectl apply") && strings.Contains(s.Run, "deployment/k3s/ingress.yaml"):
+			index["apply"] = i
+		case strings.Contains(s.Run, "health.json"):
+			index["verify"] = i
+			if !strings.Contains(s.Run, "seq 1 12") || !strings.Contains(s.Run, "sleep 5") {
+				t.Errorf("verify has no bounded retry: %q", s.Run)
+			}
+		}
+	}
+	for _, step := range []string{"stamp", "lint", "apply", "verify"} {
+		if _, ok := index[step]; !ok {
+			t.Fatalf("deploy job has no %s step", step)
+		}
+	}
+	if !(index["stamp"] < index["lint"] && index["lint"] < index["apply"] && index["apply"] < index["verify"]) {
+		t.Errorf("step order = %v, want stamp < lint < apply < verify", index)
+	}
+	if strings.Contains(string(content), `/health"`) || strings.Contains(string(content), "environment: prod") {
+		t.Error("template still uses the old /health path or a fixed prod Environment")
+	}
+}

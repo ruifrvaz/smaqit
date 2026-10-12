@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-deploy-rsync
 description: Use when deploying a Node.js backend + React frontend application to a remote VM via rsync. Used in the Phase 5 dev environment sweep of `smaqit.new-greenfield-project` to validate the deployment approach locally before CI/CD. Also use as a manual fallback for direct VM deployment outside the CI/CD pipeline.
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
   smaqit-slots: "app-deploy=deploy"
 ---
 
@@ -17,15 +17,15 @@ metadata:
 
 ## Steps
 
-1. **Fetch SSH key from Vault into a secure temp file:**
+1. **Fetch the SSH key into a private temp file** (through the vault-loader script):
    ```bash
-   export VAULT_ADDR=http://127.0.0.1:8200
    export PROJECT_SLUG=<project-slug>   # from AGENTS.md (or legacy platform instructions)
 
-   TMPKEY=$(mktemp)
-   trap "rm -f $TMPKEY" EXIT
-   vault kv get -field=private_key secret/${PROJECT_SLUG}/ssh > "$TMPKEY"
-   chmod 600 "$TMPKEY"
+   # Legacy flat scheme: <project-slug>/ssh. An app on the apps/+machines/ scheme uses
+   # apps/<app-slug>/ssh instead. The script prints only the key file's path.
+   TMPKEY="$(bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/credential-file.sh \
+     "${PROJECT_SLUG}/ssh")"
+   trap 'rm -rf "$(dirname "$TMPKEY")"' EXIT
    ```
    All subsequent `ssh`, `rsync`, and `scp` commands use `-i "$TMPKEY"`. The file is wiped
    automatically when the shell exits or the script completes.

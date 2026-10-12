@@ -1,8 +1,8 @@
 ---
 name: smaqit.spec-status-update
-description: Use when implementation or deployment is confirmed and spec files need to be brought in sync with the live codebase. Updates frontmatter fields (`status`, `deployed`, `updated`) and flips acceptance criteria checkboxes (`[ ]→[x]` or `[ ]→[!]`) without running a full spec agent. Also use when the user asks to mark a spec as deployed, update spec status after a release, or record which acceptance criteria are met.
+description: 'Use when implementation or deployment is confirmed and specs must match the live codebase: marking a spec deployed, updating status after a release, or recording which acceptance criteria are met. Updates frontmatter (`status`, `deployed`, `updated`) and flips acceptance-criteria checkboxes (`[ ]→[x]` or `[ ]→[!]`) without running a spec agent.'
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
 ---
 
 # Spec Status Update

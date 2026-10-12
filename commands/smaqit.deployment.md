@@ -1,5 +1,6 @@
 ---
-description: Orchestrate the Deployment phase — Infrastructure specs, then deploy to the target environment.
+description: Use when the user asks to deploy, redeploy, provision, or put a smaqit project online. Runs the Deployment phase — Infrastructure specifications, then deployment to the target environment through the resolved slot plan.
+when_to_use: Requests like "deploy this", "ship it to test" or "to production", "redeploy", "set up the server", or "make it reachable at our domain".
 ---
 
 Run the Deployment phase through the `smaqit-deployment` subagent. The subagent cannot ask the user anything, so this conversation owns every question.

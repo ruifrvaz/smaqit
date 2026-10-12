@@ -1,8 +1,8 @@
 ---
 name: smaqit.feature-new
-description: "Use when adding a post-MVP feature to a project that has already completed a `smaqit.new-greenfield-project` run (or equivalent) and has a deployed target. Applies greenfield's task-per-phase discipline and amendment gate to iterative feature work — spec revalidation, development, deployment, validation, close-out — without requirements extraction, from-scratch specs, or a dev-VM sweep. Defaults deployment to the existing target instead of provisioning a new VM. Also use when the user says 'add a feature to this project', 'iterate on the deployed app', or asks for post-MVP work and the project already has an Infrastructure spec with `status: deployed`."
+description: 'Use when adding or changing a feature in a smaqit project that is already deployed (its Infrastructure spec has `status: deployed`), e.g. ''add a feature to this project'' or ''iterate on the deployed app''. Runs spec revalidation, development, deployment to the existing target, validation, and close-out, one task per phase, with no requirements extraction, from-scratch specs, or dev-VM sweep.'
 metadata:
-  version: "2.3.0"
+  version: "2.3.1"
 ---
 
 # Post-MVP Feature Workflow

@@ -248,7 +248,15 @@ It is the gitignored compiled-output directory holding Claude Code slash-command
 
 **Does `smaqit init` install `copilot-instructions.md`, `CLAUDE.md`, or `AGENTS.md`?**
 
-It installs `AGENTS.md` plus a thin `CLAUDE.md` that imports it. Copilot and Codex read `AGENTS.md`; Claude Code reads `CLAUDE.md`. Existing files are never overwritten: the marked smaqit section is appended when absent, and repeated initialization is idempotent. See `installInstructionsFile()` in `installer/main.go`.
+It installs `AGENTS.md` plus a thin `CLAUDE.md` that imports it. Copilot and Codex read `AGENTS.md`; Claude Code reads `CLAUDE.md`. Only smaqit's section, delimited by `<!-- smaqit:instructions:begin -->` and `<!-- smaqit:instructions:end -->`, is ever written. It is appended when absent, and replaced with the current template when present, so `smaqit update` (which re-runs `init`) delivers template changes to existing projects. Content outside the markers is preserved byte for byte, an already-current section is not rewritten, and a CRLF file keeps CRLF line endings. A section with malformed markers (begin without end, reversed, duplicated) is left untouched and `init` prints a warning instead of guessing where it ends. Before v3.9.0 the section was never refreshed once present. See `installInstructionsFile()` in `installer/main.go`.
+
+---
+
+**How does a coding-agent session know to use smaqit on its own, without the user typing a slash command?**
+
+Three things work together. The managed `AGENTS.md` section (loaded in every session; Claude Code reads it through `CLAUDE.md`'s `@AGENTS.md` import) has a "When to use smaqit" section. It routes feature, build, deploy, test, and framework-question requests to the matching smaqit entry point, puts specifications first, and lists trivial changes that may skip the workflow. On Claude Code, the phase commands are skills the model can invoke itself: each has a "Use when…" `description` plus `when_to_use` trigger phrases. The development, deployment, validation, and QA subagents carry "Use proactively when…" descriptions, so Claude can also delegate to them directly.
+
+Direct delegation skips the command body that resolves phase parameters and relays questions. That is safe for two reasons. A phase agent invoked without a `PHASE-PARAMETERS` block applies its preloaded defaults. And the `AGENTS.md` section requires the main conversation to put every `NEEDS-INPUT`/`REVIEW-REQUESTED` signal to the user, never answer it itself, and resume the agent with `answers`. Descriptions stay at 400 characters or fewer because Claude Code drops descriptions from the least-invoked skills first when its listing exceeds its budget; `make prepare` enforces the limit. See also: does `smaqit init` install `copilot-instructions.md`, `CLAUDE.md`, or `AGENTS.md`?
 
 ---
 

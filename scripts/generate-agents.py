@@ -223,6 +223,43 @@ def check_input_skill_reachability(name: str, body: str, claude_metadata: dict) 
         )
 
 
+LISTING_DESCRIPTION_MAX_CHARS = 400
+
+
+def check_listing_frontmatter(path: Path) -> None:
+    """Fail when a skill or command's frontmatter is not strict YAML or its description is too long.
+
+    Skills and commands are copied without being parsed, and clients differ in how leniently they
+    read frontmatter, so invalid YAML can silently drop a description. Claude Code lists every
+    skill and command description under a shared budget and drops the least-invoked ones first;
+    short descriptions that lead with the key use case keep smaqit's entry points visible.
+    """
+    rel = path.relative_to(ROOT)
+    text = path.read_text()
+    if not text.startswith("---\n"):
+        raise ValueError(f"{rel}: missing YAML frontmatter")
+    end = text.find("\n---\n", 4)
+    if end == -1:
+        raise ValueError(f"{rel}: frontmatter has no closing ---")
+    try:
+        data = yaml.safe_load(text[4:end])
+    except yaml.YAMLError as err:
+        raise ValueError(f"{rel}: frontmatter is not valid YAML: {' '.join(str(err).split())}") from err
+    description = data.get("description") if isinstance(data, dict) else None
+    if not isinstance(description, str) or not description.strip():
+        raise ValueError(f"{rel}: frontmatter needs a non-empty string `description`")
+    if len(description) > LISTING_DESCRIPTION_MAX_CHARS:
+        raise ValueError(
+            f"{rel}: description is {len(description)} characters; the limit is "
+            f"{LISTING_DESCRIPTION_MAX_CHARS}. Lead with the key use case and move detail into the body"
+        )
+
+
+def check_all_listing_frontmatter() -> None:
+    for path in sorted(SKILLS_SRC_DIR.glob("*/SKILL.md")) + sorted(COMMANDS_SRC_DIR.glob("*.md")):
+        check_listing_frontmatter(path)
+
+
 def generate_agent(name: str) -> None:
     body_path = AGENTS_BODY_SRC_DIR / f"{name}.md"
     fm_path = AGENTS_METADATA_SRC_DIR / f"{name}.frontmatter.yaml"
@@ -342,6 +379,7 @@ def generate_skills() -> None:
 
 
 def main() -> None:
+    check_all_listing_frontmatter()
     generate_agents()
     copy_commands()
     generate_skills()

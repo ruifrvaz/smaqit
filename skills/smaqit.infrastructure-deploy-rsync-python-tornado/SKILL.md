@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-deploy-rsync-python-tornado
-description: Use when deploying a Python/Tornado application (single-process monolith, no Docker, no build step, systemd-managed, SQLite persistence) to a remote VM via rsync. For stacks that match neither `smaqit.infrastructure-deploy-rsync` (Node.js + Vite/React, Docker Compose) nor `smaqit.infrastructure-deploy-rsync-python-nextjs` (FastAPI + Next.js, Docker Compose) — this variant has no container runtime, no frontend build, and no `backend/`/`frontend/` split. Used in the Phase 4 dev environment sweep of `smaqit.new-greenfield-project`. Also usable as a manual fallback for direct VM deployment outside the CI/CD pipeline.
+description: Use when deploying a Python/Tornado application (single-process monolith, no Docker, no build step, systemd-managed, SQLite) to a remote VM via rsync, in the greenfield Phase 4 dev sweep or as a manual fallback. For Node.js + Vite/React use smaqit.infrastructure-deploy-rsync; for FastAPI + Next.js use smaqit.infrastructure-deploy-rsync-python-nextjs.
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
   smaqit-slots: "app-deploy=deploy"
   validated: "2026-07-21"
   validated-stack: "Python 3.12, Tornado 6.4, SQLite (stdlib), nginx 1.24, systemd 255, no Docker, no build step"

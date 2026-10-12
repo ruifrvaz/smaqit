@@ -1,20 +1,15 @@
 ---
 name: smaqit.test-e2e-playwright
-description: >-
-  Use when running Playwright E2E smoke tests against a live application instance to validate
-  primary user flows before or after deployment. Accepts a BASE_URL, executes the project's `e2e/`
-  smoke suite, and produces a PASS/FAIL report per scenario. Also use when generating the initial
-  `e2e/` test suite: reads machine-readable scenario declarations from the coverage spec,
-  instantiates generic flow templates, and produces project-specific test files via the
-  `generate-e2e.js` script. The skill has no hardcoded project knowledge — all scenario parameters
-  come from the project's own specs.
+description: Use when running Playwright E2E smoke tests against a live application to validate primary user flows before or after deployment, or when generating the initial `e2e/` suite. Takes a BASE_URL and reports PASS/FAIL per scenario; generation instantiates flow templates from the coverage spec's scenario declarations via generate-e2e.js.
 metadata:
-  version: "2.0.1"
+  version: "2.0.2"
 compatibility: "Node.js 18+, npm, Chromium (auto-installed via --with-deps). Runs on Linux, macOS, WSL2."
 allowed-tools: Bash(node:*), Bash(npm:*), Bash(npx:*), Bash(curl:*), Read, Write, Grep
 ---
 
 # Playwright E2E Smoke Tests
+
+The skill holds no project knowledge: every scenario parameter comes from the project's own coverage spec.
 
 ## Template System
 

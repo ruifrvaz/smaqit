@@ -3,6 +3,24 @@
 
 This project uses [smaqit](https://github.com/ruifrvaz/smaqit) for spec-and-design-driven AI-assisted development. Specifications are canonical for requirements and acceptance criteria. PlantUML sources under `docs/designs/` are canonical for system structure, and their PNG projections are mandatory for specification-agent visual validation. Implementation agents consume validated specifications and PlantUML source without duplicating either.
 
+## When to use smaqit
+
+Use smaqit's workflows, not direct edits, for any request that adds or changes application behavior, deploys, or tests the deployed system:
+
+| Request | Use |
+|---|---|
+| Add or change a feature in a project that is already deployed | `smaqit.feature-new` skill |
+| Take a new project from requirements to production | `smaqit.new-greenfield-project` skill |
+| Build or change the application from specifications | `smaqit.development` |
+| Deploy to the target environment | `smaqit.deployment` |
+| Test the deployed system | `smaqit.validation` |
+| Answer questions about how smaqit works | `smaqit.qa` |
+
+- **Specifications first** — Before changing behavior, run `smaqit status` and read the relevant `specs/`. A change no specification covers starts with a specification update, not with code.
+- **Prefer the phase commands** — In Claude Code, `/smaqit.development`, `/smaqit.deployment`, and `/smaqit.validation` resolve phase parameters before delegating and relay every question the agent returns. In GitHub Copilot and Codex, use the agent of the same name.
+- **Answer return signals through the user** — When a smaqit agent's result starts with `NEEDS-INPUT` or `REVIEW-REQUESTED`, ask the user each listed question, or ask them to approve or comment on the listed files. Never answer it yourself and never substitute a default. Then resume the same agent with `answers` keyed by question id (`review` for a review), or invoke it again with those `answers` plus any `approved_spec_paths` the signal carried.
+- **Exemptions** — Changes that alter no behavior may be made directly: typo, formatting, comment, and documentation fixes, and dependency bumps that change no behavior.
+
 ## Scaffolding to ignore
 
 The following paths are smaqit tooling, not part of this project's business domain. When reasoning about architecture, domain logic, or conventions, ignore them:

@@ -1,6 +1,6 @@
 ---
 name: smaqit.infrastructure-vault-loader
-description: Use before any local deployment or credential operation that requires secrets from a local HashiCorp Vault instance. Verifies Vault is running, unsealed, and authenticated on 127.0.0.1:8200. Also runs an interactive credential loader script that prompts for all project secrets and writes them to Vault. Use for first-time setup, adding a new project's credentials, or when a Vault path is missing. Also use when setting up Vault for the first time on a new machine, or when a caller cannot reach Vault and needs troubleshooting guidance.
+description: 'Use before any local deployment or credential operation that needs secrets from the local HashiCorp Vault (127.0.0.1:8200): verifies it is running, unsealed, and authenticated, and loads project secrets through an interactive prompt. Also use for first-time Vault setup on a machine, adding a project''s credentials, a missing Vault path, or a caller that cannot reach Vault.'
 metadata:
   version: "3.8.0"
   smaqit-slots: "access-credentials=access, target-credentials=target, target-credentials=register"

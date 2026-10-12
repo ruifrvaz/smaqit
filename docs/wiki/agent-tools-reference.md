@@ -162,9 +162,25 @@ Callers pass phase agents an explicit `PHASE-PARAMETERS` block (`mode`, `specifi
 
 | Platform | Who asks the user | How the run continues |
 |---|---|---|
-| Claude Code | The main conversation: the `/smaqit.<phase>` command body, or an orchestrating skill such as `smaqit.feature-new` | The main conversation resumes the same subagent by sending its agent ID the `answers` (SendMessage). It falls back to invoking the agent again with `answers` and `approved_spec_paths` |
+| Claude Code | The main conversation: the `/smaqit.<phase>` command body, an orchestrating skill such as `smaqit.feature-new`, or, after a direct delegation, the main conversation following the project's `AGENTS.md` return-signal rule | The main conversation resumes the same subagent by sending its agent ID the `answers` (SendMessage). It falls back to invoking the agent again with `answers` and `approved_spec_paths` |
 | GitHub Copilot | Any smaqit agent with `vscode/askQuestions` (all eight non-QA agents); a `runSubagent` child that cannot ask returns the signal to its parent | The parent agent asks, then invokes the child again with `answers` |
 | Codex | The session that spawned the agent | The spawning session invokes the agent again with `answers` |
+
+## Triggers: How a Session Picks smaqit Up
+
+A session should reach for smaqit without the user typing a slash command. Three layers make that happen:
+
+| Layer | Where | What it does |
+|---|---|---|
+| Project instructions | The managed section of the project's `AGENTS.md` ("When to use smaqit"), loaded in every session on every platform | Routes feature, build, deploy, test, and framework-question requests to the matching entry point, puts specifications first, lists the trivial changes that may skip the workflow, and states the return-signal rule |
+| Commands | `commands/*.md` → `~/.claude/commands/` | Claude Code treats commands as skills it can invoke itself. Each has a "Use when…" `description` plus `when_to_use` trigger phrases. The command body resolves phase parameters and owns the ask-and-resume loop |
+| Phase subagents | `claude:` `description` in `.smaqit/definitions/agents/{development,deployment,validation,qa}.frontmatter.yaml` | "Use proactively when…" lets Claude delegate directly. The description asks for the user's full request plus any resolved `PHASE-PARAMETERS` block, and repeats the return-signal rule |
+
+Direct delegation skips the command body. A phase agent without a parameter block applies its preloaded defaults, and the `AGENTS.md` rule makes the main conversation relay any `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user rather than answering it. The commands stay the preferred path.
+
+`smaqit init` and `smaqit update` replace the managed section between the `smaqit:instructions` markers with the current template, so trigger changes reach existing projects; content outside the markers is never touched.
+
+**Description budget:** Claude Code lists every skill and command description at session start under a budget of about 1% of the context window, and drops descriptions from the least-invoked entries first; each entry is also cut at 1,536 characters. A skill whose description is dropped is rarely invoked automatically. smaqit therefore keeps every skill and command description at 400 characters or fewer, leading with the key use case, and `scripts/generate-agents.py` fails `make prepare` on a longer description or on frontmatter that isn't strict YAML. Detail that doesn't fit belongs in the skill body.
 
 ## Codex Agent Metadata
 

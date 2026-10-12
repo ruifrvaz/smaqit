@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 101
 mode: Assisted
 started: "2026-10-12"
 created: "2026-10-11"
@@ -142,36 +143,63 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
 
 ## Acceptance Criteria
 
-- [ ] `make -C installer e2e-claude` installs into an isolated scratch `HOME`/`CLAUDE_CONFIG_DIR` and verifies the isolation with `claude auth status`. It never writes the user's real `~/.claude`, and reads from it only the claude.ai access token, when no environment token is set
-- [ ] Preflight fails fast with a clear message on: no usable credentials (no environment token and no claude.ai login, or a login token with less than 30 minutes left), a Claude Code version below the required minimum, or Node older than 22
-- [ ] The happy-path scenario passes:
+- [x] `make -C installer e2e-claude` installs into an isolated scratch `HOME`/`CLAUDE_CONFIG_DIR` and verifies the isolation with `claude auth status`. It never writes the user's real `~/.claude`, and reads from it only the claude.ai access token, when no environment token is set
+- [x] Preflight fails fast with a clear message on: no usable credentials (no environment token and no claude.ai login, or a login token with less than 30 minutes left), a Claude Code version below the required minimum, or Node older than 22
+- [x] The happy-path scenario passes:
   - a spec in each of business, functional and stack
   - `smaqit validate` passes
   - `smaqit plan --phase=develop` returns nothing
   - `smaqit status` shows Develop complete
   - `index.html` exists, `node --test` passes, and a development report exists
-- [ ] The needs-input scenario passes: turn 1 writes no spec and returns `NEEDS-INPUT`, and a `--resume` turn with the scripted answers produces the specs and reaches the happy-path checks
-- [ ] The assisted scenario passes: a `REVIEW-REQUESTED` after each layer, approved specs' hashes unchanged after approval, and the happy-path checks pass at the end
-- [ ] The self-invocation scenario passes: a plain-language request with no slash command delegates to `smaqit-development`, shown in the session log, and the happy-path checks pass
-- [ ] The phase command bodies define a fallback for when no question tool is available (print the questions and end the turn)
-- [ ] Every run is capped by budget, turns and wall-clock time; evidence is saved per scenario; the script exits nonzero on any failure; no credential file is ever written
-- [ ] `docs/wiki/workflows/testing-smaqit.md` documents the run, the authentication (`claude setup-token`) and the cost, and its stale user-testing agent reference is removed
+- [x] The needs-input scenario passes: turn 1 writes no spec and returns `NEEDS-INPUT`, and a `--resume` turn with the scripted answers produces the specs and reaches the happy-path checks
+- [x] The assisted scenario passes: a `REVIEW-REQUESTED` after each layer, approved specs' hashes unchanged after approval, and the happy-path checks pass at the end
+- [x] The self-invocation scenario passes: a plain-language request with no slash command delegates to `smaqit-development`, shown in the session log, and the happy-path checks pass
+- [x] The phase command bodies define a fallback for when no question tool is available (print the questions and end the turn)
+- [x] Every run is capped by budget, turns and wall-clock time; evidence is saved per scenario; the script exits nonzero on any failure; no credential file is ever written
+- [x] `docs/wiki/workflows/testing-smaqit.md` documents the run, the authentication (`claude setup-token`) and the cost, and its stale user-testing agent reference is removed
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- `scripts/e2e-claude.sh` (`make -C installer e2e-claude`) runs these stages:
+  - preflight: binary, Node 22+, Claude Code 2.1.268+, scenario names, credentials
+  - isolation: scratch `HOME`/`CLAUDE_CONFIG_DIR`, verified with `claude auth status` before any model call
+  - install: the dev build, then a fresh `smaqit init` per scenario
+  - turns: headless `claude -p` with `--permission-prompts none`, `--resume` follow-ups, and caps on budget, turns and time
+  - evidence: saved per scenario under `installer/test/e2e-claude/`
+- `scripts/e2e/log_check.py` reads the stream-json session log:
+  - It finds signals only in the main conversation's own text, its tool results, background `task_notification` events and `result` text, never in expanded command or skill text.
+  - It combines a run's multiple result events.
+  - It detects delegation to `smaqit-development`.
+- The `scripts/e2e/hello-site/` fixture is a static "Hello, Mario!" site with a `node --test` suite, plus a thin version, keyed answers, an approval message, and a plain-language request.
+- The three phase command bodies and the `AGENTS.md` return-signal rule gained a headless fallback for sessions with no question tool.
+- Docs: a testing-smaqit.md e2e section, a compendium entry, and a quickstart.md refresh.
+- The broken Copilot-SDK e2e path was retired: the Makefile targets, `e2e-test.yml`, `.github/scripts/` and `mario-hello.automated.md`.
+- **Live results on Claude Code 2.1.296: all 4 scenarios PASS.** Notional cost was about $0.7–0.9 per scenario on the claude.ai subscription, with 0 permission denials and `smaqit-plantuml` connected in every turn.
+  - `happy-path` passed on an earlier harness revision that still used the per-command allowlist.
+  - `needs-input`, `self-invocation` and the final `assisted` run passed with auto permission mode.
+  - All preflight failure cases were verified to fail fast, at no model cost.
 
 **Decisions made:**
-- TBD
+- **Credentials** (user decision): an environment token, or else the current claude.ai login's access token, passed only through `CLAUDE_CODE_OAUTH_TOKEN`. The refresh token is never used, nothing is written to the scratch folder, and the run refuses to start with under 30 minutes left. A probe confirmed that a regular access token works through this variable.
+- **Permissions** (user decision): `--permission-mode auto` replaced the per-command allowlist. The allowlist denied a compound `ls … && smaqit status | head` command and stopped two scenarios.
+- **A fourth `self-invocation` scenario** (user decision) closed task 130's deferred live check. The `needs-input` and `assisted` scenarios closed task 131's.
+- **The "unchanged approved specs" digest ignores three kinds of legitimate end-of-phase edits:** frontmatter, checkbox state and design-sequence reference lines. This was confirmed against a saved turn-4 diff, and a real content edit is still detected.
+- **Exit codes are never trusted alone.** A 401 run reported `subtype: success`, so the checks rely on the files written and the session log.
+- **Scope was extended at the user's request:** the broken Copilot e2e path was retired and `quickstart.md` refreshed. The `.test-venv` cleanup was kept in `make uninstall` and `.gitignore` for leftovers.
 
 **Blockers encountered:**
-- TBD
+- The first live runs stalled on harness defects, all fixed:
+  - the per-command allowlist was too brittle
+  - background-subagent results arrive as `task_notification` events, not tool results
+  - a `system/permission_denied` event's string `message` crashed the checker
+  - the summary read only the last, empty result event
+- claude-code issue #75043 (detached nested subagents) reproduced: the development agent had to poll for `smaqit-business`'s output, but recovered.
 
 **Follow-up identified:**
-- TBD
+- **Product:** phase agents should invoke specification agents with `run_in_background: false`, so they don't depend on the #75043 polling workaround.
+- **Move the e2e test to a Bench manifest** once smaqit-adk task 037 lands.
+- Re-run `happy-path` under auto permission mode in the next full run, to have all four scenarios on the final harness revision.
 
 ## Files to Create / Modify
 

@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-cicd-generate
 description: 'Use when generating or updating GitHub Actions CI/CD workflows: the VM set (deploy.yml, provision.yml, post-merge-deploy.yml) for Node.js + React via Terraform and Docker Compose, or the k3s two-job deploy.yml + post-merge-deploy.yml, or when an operator invokes /cicd.generate. Inside smaqit.new-greenfield-project the deployment agent generates them itself. Never generates copilot-setup-steps.yml.'
 metadata:
-  version: "2.6.0"
+  version: "2.7.0"
   smaqit-slots: "ci-generate=generate"
 ---
 
@@ -125,6 +125,7 @@ generation.
 - **`VITE_*` vars are build-time** — `VITE_DEMO_MODE` (and any other `VITE_*` var) is set as `env:` on the frontend build step specifically, never the deploy step. Vite bakes them at compile time; they are not available at runtime. Do not move this env block to a later step when editing the template.
 - **`.terraform.lock.hcl` must be committed** — do NOT add it to `.gitignore`. If CI fails with provider version errors, check that this file is tracked in git.
 - **Never remove the plan-guard/ownership-guard steps from `deploy.yml.full.template` or `provision.yml.template`** — a bare `terraform apply -auto-approve` with no gate in front of it is exactly the failure mode Task 084/085 exist to prevent. A `user_data` edit (even a comment-only one) forces VM replacement, and an ungated `apply` in CI carries it out unattended.
+- **The guard and the apply in `deploy.yml.full.template` are coupled** — the guard writes the plan it inspected (`plan-guard.sh deployment/terraform --out deployment/terraform/tfplan`) and the apply step applies exactly that file (`terraform apply tfplan`). Don't change the apply back to `terraform apply -auto-approve`: that plans again, so CI could apply changes the guard never saw. If the state changes between the two steps, Terraform rejects the saved plan as stale and the job fails — the intended outcome. The vendored `plan-guard.sh` must support `--out`, which re-vendoring on every run guarantees.
 - **`systemctl reload-or-restart nginx`, never a bare `reload`** — cloud-init's `enable` only arranges start-on-next-boot, so nginx may never have actually started. This is baked into both `deploy.yml` templates; don't simplify it back to `reload`.
 - **`{{ ... }}` vs `__TOKEN__`** — the substitution tokens this skill uses (`__APP_DIR__`, `__APP_SLUG__`) are deliberately not double-curly-brace shaped, to avoid colliding visually (and, for `yamllint`, semantically — see `yamllint`'s `braces` rule) with GitHub Actions' own `${{ ... }}` expression syntax, which appears throughout every template. Keep any future token in the same `__TOKEN__` shape.
 - **`k3s` mode never touches Terraform, SSH, or nginx** — resist the temptation to add any of

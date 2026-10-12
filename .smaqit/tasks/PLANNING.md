@@ -5,7 +5,6 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 132 | Claude Code Headless E2E Test: Install Into a Scratch Folder and Build a Site Through smaqit | Not Started | High |
-| 130 | Make smaqit Self-Invoking: Directive Instructions, Block Refresh, Trigger-Form Descriptions | PR Open | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch | new | Medium |
 | 122 | existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones | new | High |
@@ -20,6 +19,7 @@
 
 | ID | Title |
 |----|-------|
+| 130 | Make smaqit Self-Invoking: Directive Instructions, Block Refresh, Trigger-Form Descriptions |
 | 114 | Refactor Infrastructure Skills for the Machine-Monorepo Pattern (Learnings from a Downstream Project's Infrastructure Task 001) |
 | 131 | Claude Code Agents Can't Invoke Their Input Skills or Ask the User Questions |
 | 125 | Deployment Variation Points: Slot-Driven Deployment Orchestration With Project-Bound Fillers |

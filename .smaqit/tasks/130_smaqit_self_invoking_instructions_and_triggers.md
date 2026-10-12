@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 97
+status: Completed
 mode: Assisted
 started: "2026-10-11"
 created: "2026-10-11"
+completed: "2026-10-12"
 ---
 
 # Make smaqit Self-Invoking: Directive Instructions, Block Refresh, Trigger-Form Descriptions

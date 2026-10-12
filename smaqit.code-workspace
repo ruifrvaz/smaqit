@@ -7,10 +7,6 @@
     {
       "name": "task/132-claude-code-headless-e2e-test-install-into-a-scratch-folder-and-build-a-site-through-smaqit",
       "path": "../smaqit-wt-task-132-claude-code-headless-e2e-test-install-into-a-scratch-folder-and-build-a-site-through-smaqit"
-    },
-    {
-      "name": "task/134-apply-the-guarded-plan-in-the-generated-deploy-yml-full-mode",
-      "path": "../smaqit-wt-task-134-apply-the-guarded-plan-in-the-generated-deploy-yml-full-mode"
     }
   ],
   "settings": {

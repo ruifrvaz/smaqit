@@ -457,3 +457,18 @@ Checks use smaqit's own CLI (`validate`, `plan --phase=develop`, `status`), the 
 Every run spends real model usage, so it is a manual pre-release check. Limit it with `SCENARIOS`, `E2E_BUDGET_USD`, `E2E_TIMEOUT` and `E2E_MAX_TURNS`. It replaces the Copilot-SDK `make test-e2e` path (`e2e-test.yml`, `run_e2e_test.py`), which was retired after its `smaqit.ci-testing` agent was deleted. Full reference: `docs/wiki/workflows/testing-smaqit.md`.
 
 ---
+
+**What did the live Claude Code e2e runs show about how smaqit's orchestration behaves?**
+
+It works end to end. On Claude Code 2.1.296, all four `make e2e-claude` scenarios passed. Each cost about $0.70–0.90 in Claude Code's notional cost figure; with claude.ai login that counts against the subscription. The runs also showed several mechanics worth knowing when reading evidence or changing agents:
+
+- **The phase agent usually runs in the background.** `/smaqit.development` applies the input skill in the main conversation, then starts `smaqit-development` as a background subagent and relays its result later. A headless run waits for background work, but the result arrives as `system/task_notification` events and extra `result` events, not as a `tool_result` block. One run therefore emits several result events.
+- **Nested subagents can detach** (claude-code issue #75043). When `smaqit-development` started `smaqit-business` without `run_in_background: false`, the child ran detached and the parent polled the filesystem until the spec appeared. It explicitly passed `false` for the next layers. Phase agents should always request foreground specification agents.
+- **The return signals work headless.** `NEEDS-INPUT` reached the main conversation and the run wrote nothing, then a `--resume` turn with the answers completed the phase. Assisted mode paused with `REVIEW-REQUESTED` after each layer, and approved specs kept their content.
+- **Completing the phase legitimately edits approved specs.** It sets `status: implemented`, ticks acceptance criteria, and links the design-sequence diagram. A "regenerated?" check must ignore exactly those three.
+- **Self-invocation works.** With no slash command, Claude routed a feature request to smaqit, citing the `AGENTS.md` "When to use smaqit" block.
+- **Use auto permission mode, not per-command Bash rules.** Agents compose shell commands (`ls … && smaqit status | head`), and per-command rules denied them. `--permission-mode auto` gave zero denials without bypassing permissions.
+
+See also: how do I test smaqit end to end on Claude Code?
+
+---

@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-12"
 created: "2026-10-11"
 ---
 
@@ -103,8 +105,29 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
 15. Run `bash -n` (and `shellcheck` if available), the preflight negative cases, then each scenario live with `KEEP_E2E_DIR=1`. Confirm no `.credentials.json` exists under the scratch `CLAUDE_CONFIG_DIR`, and that the real `~/.claude` was untouched (mtimes).
 
 ## Known Issues Triage
+**Triaged:** 2026-10-12
+**Tools searched:** Claude Code (`anthropics/claude-code`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#75043 Nested subagents: children spawned by a subagent are always async (regardless of run_in_background), completion notifications never reach the subagent parent, and TaskStop fails with ownership errors after resume](https://github.com/anthropics/claude-code/issues/75043) — `anthropics/claude-code` — opened 2026-07-07 — bug, has repro, platform:macos, area:agents, reproduced. **The most important finding.** smaqit's phase orchestration on Claude Code is exactly this shape: `smaqit-development` (depth 1) invokes the spec agents (depth 2). If this reproduces on the current version, the orchestrator stalls waiting for a child's completion. The happy-path scenario is what would expose it, so it doesn't block building the test, but a failure there may be this upstream bug rather than a harness defect. Record the Claude Code version and the stall signature in the evidence.
+- [#90256 Nested subagent (depth-2) completion notifications route to root session and are discarded on 2.1.250 — regression of #75043 item 2](https://github.com/anthropics/claude-code/issues/90256) — `anthropics/claude-code` — opened 2026-09 — duplicate, has repro, area:agents, regression, platform:wsl. The same class of failure, on WSL.
+- [#85066 Headless session exits "success" seconds after dispatching subagents — work orphaned, no error surfaced](https://github.com/anthropics/claude-code/issues/85066) — `anthropics/claude-code` — opened 2026-08-08 — area:core. A `-p` run can exit 0 with the work never done. Checks must never trust the exit code alone (artifacts and the session log decide), and backgrounded subagents must be avoided or waited for (`CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS`).
+- [#85129 -p (headless) mode silently kills run_in_background Bash/agents at turn end — no notification loop exists](https://github.com/anthropics/claude-code/issues/85129) — `anthropics/claude-code` — area:core. The same risk as #85066.
+- [#85895 CC spawns project .mcp.json stdio server twice per launch](https://github.com/anthropics/claude-code/issues/85895) — `anthropics/claude-code` — bug, has repro, platform:linux, area:mcp, reproduced. `smaqit-plantuml` is a project `.mcp.json` stdio server with a runtime lock (tasks 124/126). A double spawn can contend for that lock, so record the `system/init` `mcp_servers` status in the evidence.
+- [#78988 CLAUDE_CONFIG_DIR containing ~ is treated as a cwd-relative path](https://github.com/anthropics/claude-code/issues/78988) — `anthropics/claude-code` — bug, has repro, platform:macos, area:core. Always export an absolute `CLAUDE_CONFIG_DIR`.
+- [#97350 apiKeyHelper output that is a claude setup-token OAuth token is rejected with 401; the same token works via CLAUDE_CODE_OAUTH_TOKEN](https://github.com/anthropics/claude-code/issues/97350) — `anthropics/claude-code` — bug, has repro, platform:macos, area:auth. Pass the token through `CLAUDE_CODE_OAUTH_TOKEN`, never through `apiKeyHelper`.
+- [#91020 2.1.251 regression: CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1 strips CLAUDE_CONFIG_DIR from hooks and Bash subprocesses](https://github.com/anthropics/claude-code/issues/91020) — `anthropics/claude-code` — bug, has repro, platform:windows, regression. Don't set `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` in the harness.
+
+### Historical (Closed)
+- [#59642 Silent failure (exit 0, empty output) with CLAUDE_CONFIG_DIR isolation on 2.1.123+](https://github.com/anthropics/claude-code/issues/59642) — `anthropics/claude-code` — closed (stale). Another reason never to trust exit code 0 alone.
+- [#74926 -p/--print: stdio MCP servers stay "pending" — tool snapshot races server startup and never refreshes](https://github.com/anthropics/claude-code/issues/74926) — `anthropics/claude-code` — closed. If it recurs, spec agents would stop with `DESIGN-TOOLCHAIN-UNAVAILABLE`; check the MCP status in `system/init`.
+- [#73067 Auth errors in claude -p are written to stdout instead of stderr](https://github.com/anthropics/claude-code/issues/73067) — `anthropics/claude-code` — closed. The preflight auth check should read stdout as well as stderr.
+- [#83599 A subagent resumed with SendMessage reports its completion to the main conversation instead of the subagent that resumed it](https://github.com/anthropics/claude-code/issues/83599) — `anthropics/claude-code` — closed.
+
+### Omitted Tools
+- Node.js (`nodejs/node`) — used only for the fixture's `node --test`; excluded after relevance prioritization
+- Go — used only to build the installer; excluded after relevance prioritization
 
 ## Acceptance Criteria
 

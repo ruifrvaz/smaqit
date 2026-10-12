@@ -5,7 +5,7 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 133 | Copilot and Codex Entry-Agent Descriptions in Trigger Form | PR Open | Medium |
-| 132 | Claude Code Headless E2E Test: Install Into a Scratch Folder and Build a Site Through smaqit | Not Started | High |
+| 132 | Claude Code Headless E2E Test: Install Into a Scratch Folder and Build a Site Through smaqit | In Progress | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch | new | Medium |
 | 122 | existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones | new | High |

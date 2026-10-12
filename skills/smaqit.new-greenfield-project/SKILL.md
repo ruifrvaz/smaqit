@@ -2,7 +2,7 @@
 name: smaqit.new-greenfield-project
 description: 'Use when taking a new project from raw assets to a running production application: "take this from zero to prod", "run the full smaqit pipeline", or starting a freshly initialized repository. Orchestrates requirements extraction, all five specification layers, development, a dev-environment sweep, CI/CD production deployment, optional domain/TLS, validation, and release. Re-entrant at any phase.'
 metadata:
-  version: "2.1.1"
+  version: "2.2.0"
 ---
 
 # Project: Zero to Production
@@ -98,6 +98,7 @@ Before Phase 4 begins, `smaqit.input-deployment` resolves `provisioning_mode` �
 - **`existing-shared`** — targeting a VM a *different* project owns and manages via its own Terraform state (co-hosting).
 - **`existing-unmanaged`** — targeting a VM dedicated to this project (not co-hosted) but never managed by any Terraform state — provisioned out-of-band and staying that way by design.
 - **`existing-k3s`** — targeting an already-onboarded, Namespace-scoped Kubernetes cluster (k3s or equivalent) that hands the app a scoped kubeconfig and nothing else: no SSH, no host filesystem, no nginx, no Terraform on the app's side. The target is platform-owned, like `existing-shared`, but the deploy mechanism is entirely different — `kubectl apply` into the app's own Namespace via the `smaqit.infrastructure-deploy-k3s-app` family, never rsync/SSH/nginx.
+- An app hosted on a **platform repository's** machine (a repository that owns machines rather than an app) is not a separate mode: it is `existing-k3s` for a Kubernetes machine that admits tenants by onboarding, or `existing-shared` for a VM the platform's Terraform owns. The platform repository provisions, baselines, and verifies its machines through its own slot fillers; this project never runs them.
 
 This skill never invokes an infrastructure skill directly in Phases 4–6. Each phase invokes `/smaqit.deployment` with a **slot plan**: a fixed, ordered sequence of deployment slots (`platform-prereqs`, `access-credentials`, `platform-onboarding`, `target-credentials`, `environment-config`, `artifact-build`, `iac-generate`, `ci-generate`, `provision`, `host-bootstrap`, `app-deploy`, `verify`, `tls`; day-two `replace`, `teardown`). `provisioning_mode` selects each slot's default filler; the project's `.smaqit/slots.yml` may bind any slot to its own skill or skip it. `smaqit.input-deployment` resolves the plan with `smaqit slots plan --phase=deploy --mode=<mode> --env=<env> --path=<path> --json` — deterministic, never re-derived by judgment. Run that command yourself at any point to see exactly which skill fills which slot.
 

@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.11.1] - 2026-10-12
+
+### Fixed
+- **The generated `deploy.yml` (`full` mode) applies the guarded plan.** The provision job runs `plan-guard.sh deployment/terraform --out deployment/terraform/tfplan` and then `terraform apply -input=false tfplan`, instead of a bare `terraform apply -auto-approve` that planned again and could apply changes the guard never saw. A plan made stale by a state change between the two steps is now rejected. `smaqit.infrastructure-cicd-generate` documents the guard and apply steps as coupled; regenerate workflows to pick this up.
+
+### Added
+- Tests that parse the shipped `deploy.yml.full.template` to check the apply consumes the guard's plan, and that no cicd-generate template uses `-auto-approve`.
+
 ## [3.11.0] - 2026-10-12
 
 ### Added

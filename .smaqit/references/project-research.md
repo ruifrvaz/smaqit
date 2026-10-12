@@ -354,3 +354,26 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Terraform | Command: plan (-out) | https://developer.hashicorp.com/terraform/cli/commands/plan |
 | GitHub Actions | Workflow syntax (working-directory) | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
 | Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |
+
+## Task 123 — existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch
+
+**Context fingerprint:** sha256:362aa251ed6d8c28f25baa74c14c41aa62f99938991410792e8f3b1cb78cac1c
+**Refreshed:** 2026-10-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| HashiCorp Vault | KV Secrets Engine v2 | https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2 |
+| HashiCorp Vault | CLI: vault kv | https://developer.hashicorp.com/vault/docs/commands/kv |
+| HashiCorp Vault | CLI: vault secrets enable | https://developer.hashicorp.com/vault/docs/commands/secrets/enable |
+| Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |
+| GitHub CLI | gh secret set | https://cli.github.com/manual/gh_secret_set |
+| GitHub CLI | gh variable set | https://cli.github.com/manual/gh_variable_set |
+| GitHub CLI | gh api | https://cli.github.com/manual/gh_api |
+| GitHub Actions | Workflow syntax (workflow_dispatch inputs, environment) | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
+| Kubernetes | RBAC authorization (pods/log subresource) | https://kubernetes.io/docs/reference/access-authn-authz/rbac/ |
+| Kubernetes | kubectl logs | https://kubernetes.io/docs/reference/kubectl/generated/kubectl_logs/ |
+| Docker | docker build --build-arg | https://docs.docker.com/reference/cli/docker/buildx/build/ |
+| Docker | Dockerfile ARG | https://docs.docker.com/reference/dockerfile/ |
+| Terraform | Environment variables (TF_VAR_) | https://developer.hashicorp.com/terraform/cli/config/environment-variables |
+| Terraform | S3 backend | https://developer.hashicorp.com/terraform/language/backend/s3 |

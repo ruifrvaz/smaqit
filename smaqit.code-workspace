@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/123-existing-k3s-skill-family-stale-text-cross-skill-drift-raw-vault-usage-and-an-un-upstreamed-vault-loader-patch",
+      "path": "../smaqit-wt-task-123-existing-k3s-skill-family-stale-text-cross-skill-drift-raw-vault-usage-and-an-un-upstreamed-vault-loader-patch"
     }
   ],
   "settings": {

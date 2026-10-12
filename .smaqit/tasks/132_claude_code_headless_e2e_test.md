@@ -26,7 +26,11 @@ Add `scripts/e2e-claude.sh`, behind `make -C installer e2e-claude`. It reuses `s
 All confirmed by the user on 2026-10-11, during `task.plan`.
 
 - **Runner:** a standalone script now (`scripts/e2e-claude.sh` plus a `make -C installer e2e-claude` target). Move it to a Bench manifest once smaqit-adk task 037 (Bench harness selector for Claude Code) lands.
-- **Authentication:** an environment token only. Accept `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY`, and fail fast if neither is set. Never copy `~/.claude` credentials, and never write a credential file into the scratch folder.
+- **Authentication** (revised by the user on 2026-10-12, so that no API-billed key is required): use `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY` if set. Otherwise reuse the current claude.ai login: read only `claudeAiOauth.accessToken` from the real credentials file and pass it to the isolated run as `CLAUDE_CODE_OAUTH_TOKEN`.
+  - Refuse to start when the token has less than 30 minutes left, and warn when it would expire before `E2E_TIMEOUT`.
+  - Never use the refresh token, so the run cannot rotate the user's live login.
+  - Never write a credential file into the scratch folder.
+  - A probe confirmed that a regular claude.ai access token works through `CLAUDE_CODE_OAUTH_TOKEN` in an isolated config directory (`authMethod: oauth_token`, no credential file written).
 - **Scenarios:** happy-path develop, the `NEEDS-INPUT` round trip, and Assisted `REVIEW-REQUESTED`.
 - **Fourth scenario, `self-invocation`** (user, 2026-10-12): a plain-language request with no slash command must make Claude route through smaqit. This closes task 130's deferred live check.
 - **Proof from the session log** (2026-10-12): delegation to smaqit and returned signals are checked by parsing the stream-json session log for tool calls and signal blocks, not only by looking at files on disk.
@@ -131,8 +135,8 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
 
 ## Acceptance Criteria
 
-- [ ] `make -C installer e2e-claude` installs into an isolated scratch `HOME`/`CLAUDE_CONFIG_DIR`, verifies the isolation with `claude auth status`, and never reads or writes the user's real `~/.claude`
-- [ ] Preflight fails fast with a clear message on: no `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`, a Claude Code version below the required minimum, or Node older than 22
+- [ ] `make -C installer e2e-claude` installs into an isolated scratch `HOME`/`CLAUDE_CONFIG_DIR` and verifies the isolation with `claude auth status`. It never writes the user's real `~/.claude`, and reads from it only the claude.ai access token, when no environment token is set
+- [ ] Preflight fails fast with a clear message on: no usable credentials (no environment token and no claude.ai login, or a login token with less than 30 minutes left), a Claude Code version below the required minimum, or Node older than 22
 - [ ] The happy-path scenario passes:
   - a spec in each of business, functional and stack
   - `smaqit validate` passes

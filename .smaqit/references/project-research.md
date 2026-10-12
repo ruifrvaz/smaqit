@@ -319,3 +319,26 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Node.js | Test runner (node --test) | https://nodejs.org/api/test.html |
 | Node.js | Documentation | https://nodejs.org/docs/latest-v22.x/api/ |
 | Go | Documentation | https://go.dev/doc/ |
+
+## Task 115 — Platform Repositories: Guarded Replacement, Cyso Facts, and a Pattern Guide
+
+**Context fingerprint:** sha256:5654b6aa8a7070271ec0e8e04714beaef698a29ab5ebd12b0b998cec1b477e7d
+**Refreshed:** 2026-10-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Terraform | Command: plan (-replace, -out) | https://developer.hashicorp.com/terraform/cli/commands/plan |
+| Terraform | Command: apply (saved plan) | https://developer.hashicorp.com/terraform/cli/commands/apply |
+| Terraform | Command: show -json | https://developer.hashicorp.com/terraform/cli/commands/show |
+| Terraform | JSON output format (resource_changes actions) | https://developer.hashicorp.com/terraform/internals/json-format |
+| Terraform | S3 backend | https://developer.hashicorp.com/terraform/language/backend/s3 |
+| Terraform | lifecycle meta-argument (ignore_changes, precondition) | https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle |
+| Terraform | base64gzip function | https://developer.hashicorp.com/terraform/language/functions/base64gzip |
+| Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |
+| jq | Manual | https://jqlang.org/manual/ |
+| OpenStack | Nova user data (metadata service) | https://docs.openstack.org/nova/latest/user/metadata.html |
+| OpenStack | Terraform provider: compute_instance_v2 | https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs/resources/compute_instance_v2 |
+| GitHub Actions | Workflow syntax | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
+| cloud-init | write_files (encoding gz+b64) | https://docs.cloud-init.io/en/latest/reference/modules.html |
+| cloud-init | Documentation | https://docs.cloud-init.io/en/latest/ |

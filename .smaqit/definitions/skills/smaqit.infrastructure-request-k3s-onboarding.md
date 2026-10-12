@@ -156,7 +156,7 @@ Namespace, or any change to the platform repository outside the one PR.
 
 ## Allowed Tools
 
-Bash(git:*), Bash(gh:*), Bash(vault:*)
+Bash(git:*), Bash(gh:*), Bash(bash:*)
 
 ## Examples
 

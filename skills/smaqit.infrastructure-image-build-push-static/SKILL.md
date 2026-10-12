@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-image-build-push-static
 description: Use when containerizing a static HTML/CSS/vanilla-JS site (no build step) for an existing-k3s platform. Authors the Dockerfile/.dockerignore on nginx-unprivileged and the deployment.yaml/service.yaml pair with an explicit numeric runAsUser, plus imagePullSecrets for a private image, filling the gap between cicd-generate's k3s build-and-push and deploy-k3s-app.
 metadata:
-  version: "1.1.1"
+  version: "1.2.0"
   smaqit-slots: "artifact-build=build"
 ---
 
@@ -23,8 +23,10 @@ metadata:
      image's own default runtime user stays non-root.
    - Bake a `health.json` file with the deploy commit SHA templated in via a `DEPLOY_SHA` build
      `ARG` at image-build time — never at container-start time, and never checked into the site's
-     own versioned source tree. Distinct from the `DEPLOY_SHA` pod-environment stamp CI sets at
-     apply time (both exist and serve different purposes).
+     own versioned source tree. The generated `k3s` `deploy.yml` passes it
+     (`docker build --build-arg DEPLOY_SHA=<commit-sha>`) and its verify step reads
+     `/health.json`, so keep that path. Distinct from the `DEPLOY_SHA` pod-environment stamp CI sets
+     at apply time (both exist and serve different purposes).
    - Author a `.dockerignore` excluding non-runtime sources (`.git`, `.smaqit`, `.github`, `docs`,
      `specs`, `content`, `assets/raw`, test directories, markdown files).
 

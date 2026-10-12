@@ -14,6 +14,8 @@
 #     apps/<app-slug>/<machine-slug>/kubeconfig  (existing-k3s only — the machine-slug in the
 #       path is the distinguishing dimension; no separate environment argument)
 #     machines/<machine-slug>/cyso | machines/<machine-slug>/tfstate | machines/<machine-slug>/base-ssh
+#     organizations/<org-slug>/github-package-read  (the org-scoped, read-only registry pull
+#       credential: username + token)
 #
 # For everything except machines/<slug>/base-ssh and apps/<slug>/<machine-slug>/kubeconfig, the
 # path is deleted and re-populated (via load-credentials.sh for the legacy scheme; directly here
@@ -21,11 +23,13 @@
 # is different: it generates a new base keypair, uses the OLD one one last time to install the new
 # public key on the machine, then retires the old one — it's the one credential type that has to
 # install itself onto the remote machine, not just be replaced in Vault. This never touches any
-# already-bootstrapped app's secret/apps/<app-slug>/ssh. kubeconfig is different again: the
-# platform's own credential rotation is destructive (a known platform gap), so this script never
-# generates a replacement locally — it deletes the value at that one machine-slug's path and
-# re-prompts for a freshly platform-reissued value, pasted the same out-of-band way
-# load-credentials.sh originally loaded it. There is no sibling field to preserve — each
+# already-bootstrapped app's secret/apps/<app-slug>/ssh. kubeconfig is different again: only the
+# platform can issue one, and how it rotates is the platform's own decision (some reissue it in
+# place and revoke the old token, some only by re-onboarding), so this script never generates a
+# replacement locally — it replaces the value at that one machine-slug's path with the freshly
+# platform-reissued value, pasted the same out-of-band way load-credentials.sh originally loaded
+# it. After rotating, redeploy with a fresh workflow dispatch: a re-run of an old workflow run
+# keeps the secret values from when that run was created. There is no sibling field to preserve — each
 # machine-slug's kubeconfig is its own independent path.
 #
 # Example:
@@ -34,6 +38,7 @@
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/platform-repo
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/<machine-slug>/kubeconfig
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh machines/<machine-slug>/base-ssh
+#   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh organizations/<org-slug>/github-package-read
 
 set -euo pipefail
 
@@ -61,7 +66,7 @@ if [ -z "$CREDENTIAL_PATH" ]; then
   echo "Usage: $0 <path>"
   echo "  Legacy: cyso | ssh | tfstate | github"
   echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | apps/<app-slug>/<machine-slug>/kubeconfig |"
-  echo "          machines/<machine-slug>/{cyso,tfstate,base-ssh}"
+  echo "          machines/<machine-slug>/{cyso,tfstate,base-ssh} | organizations/<org-slug>/github-package-read"
   exit 1
 fi
 
@@ -81,6 +86,10 @@ case "$CREDENTIAL_PATH" in
     APP_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
     MACHINE_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f3)"
     ;;
+  organizations/*/github-package-read)
+    SCHEME="organizations"
+    ORG_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
+    ;;
   machines/*/cyso|machines/*/tfstate|machines/*/base-ssh)
     SCHEME="machines"
     MACHINE_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
@@ -90,14 +99,43 @@ case "$CREDENTIAL_PATH" in
     echo "ERROR: Unrecognized path '$CREDENTIAL_PATH'."
     echo "  Legacy: cyso | ssh | tfstate | github"
     echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | apps/<app-slug>/<machine-slug>/kubeconfig |"
-    echo "          machines/<machine-slug>/{cyso,tfstate,base-ssh}"
+    echo "          machines/<machine-slug>/{cyso,tfstate,base-ssh} | organizations/<org-slug>/github-package-read"
     exit 1
     ;;
 esac
 
+# ── organizations/<org-slug>/github-package-read ───────────────────────────────
+# Org-scoped and shared by every app that pulls a private image from this org: replace both
+# fields, then re-sync each app's GitHub Environments (smaqit.infrastructure-repo-config).
+
+if [ "$SCHEME" = "organizations" ]; then
+  FULL_PATH="secret/organizations/${ORG_SLUG}/github-package-read"
+  echo "==> About to replace: $FULL_PATH"
+  echo "    Every app syncing REGISTRY_USERNAME/REGISTRY_TOKEN from it needs a re-sync afterwards."
+  read -r -p "    Continue? [y/N] " CONFIRM
+  case "$CONFIRM" in
+    y|Y) ;;
+    *) echo "Aborted."; exit 0 ;;
+  esac
+  read -r -p "  username: " REGISTRY_USER </dev/tty
+  read_secret REGISTRY_TOKEN "token (classic PAT, read:packages only)"
+  if [ -z "$REGISTRY_USER" ] || [ -z "$REGISTRY_TOKEN" ]; then
+    echo "ERROR: registry username or token is empty — refusing to write a placeholder secret." >&2
+    exit 1
+  fi
+  printf '%s' "$REGISTRY_TOKEN" | vault kv put "$FULL_PATH" username="$REGISTRY_USER" token=- > /dev/null
+  unset REGISTRY_USER REGISTRY_TOKEN
+  echo "    DONE"
+  echo ""
+  echo "==> Rotation complete for $FULL_PATH"
+  echo "    Re-run smaqit.infrastructure-repo-config (sync-k3s-env.sh --registry-org ${ORG_SLUG})"
+  echo "    for each app that uses it."
+  exit 0
+fi
+
 # ── New scheme: apps/<app-slug>/<machine-slug>/kubeconfig ──────────────────────
-# Never regenerated locally — the platform's own kubeconfig rotation is destructive (a known
-# platform gap). Delete the value at this one machine-slug's path and re-prompt for a freshly
+# Never regenerated locally — only the platform can issue a kubeconfig, and how it rotates one is
+# the platform's own decision. Delete the value at this one machine-slug's path and re-prompt for a freshly
 # platform-reissued value, pasted the same out-of-band way load-credentials.sh originally
 # loaded it. There is no sibling field to preserve — each machine-slug's kubeconfig is its own
 # independent path, so no other machine's kubeconfig is ever touched.

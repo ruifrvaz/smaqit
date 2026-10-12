@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-deploy-k3s-app
 description: Use when deploying an application into a Namespace-scoped Kubernetes cluster (k3s, or any cluster issuing a per-app scoped kubeconfig), including provisioning_mode existing-k3s in greenfield Phase 4 and the generated deploy.yml. Lints manifests against Pod Security restricted and quota guardrails, applies them, waits for rollout and the Ingress Certificate, and verifies over HTTPS.
 metadata:
-  version: "1.2.1"
+  version: "1.3.0"
   smaqit-slots: "app-deploy=deploy"
 ---
 
@@ -10,46 +10,51 @@ metadata:
 
 ## Pre-conditions
 
-- The target Namespace (`app-__APP_SLUG__`, both `test` and `prod`) has already been onboarded
-  by the platform side (Namespace, RBAC, Pod Security label, NetworkPolicy,
+- The target Namespace (`app-__APP_SLUG__`, on each target environment's machine) has already
+  been onboarded by the platform side (Namespace, RBAC, Pod Security label, NetworkPolicy,
   ResourceQuota/LimitRange, and the scoped kubeconfig already issued). This skill's job starts
   after onboarding — if the kubeconfig secret for the target environment is absent, fail loudly
   and point at the platform's own onboarding playbook rather than attempting anything
   cluster-scoped.
 - Local Vault running and unsealed (`smaqit.infrastructure-vault-loader` complete); the target
   environment's registered machine-slug's kubeconfig at
-  `secret/apps/<app-slug>/<machine-slug>/kubeconfig`.
+  `secret/apps/<app-slug>/<machine-slug>/kubeconfig`. A merged onboarding request alone doesn't
+  put it there — the platform's own hand-off delivers it, and the `target-credentials` load
+  stores it.
 - `kubectl` installed, at a version within the supported skew of the target cluster's minor
   version.
 - `python3` with PyYAML available (`pip install pyyaml` if not already present) — required by
   `scripts/manifest-lint.sh`. On a fresh GitHub-hosted runner, install it explicitly rather than
   assuming the image ships it.
-- The app's Deployment/Service manifests present locally under the project's deployment
-  manifest directory.
+- The app's manifests under `deployment/k3s/` — `deployment.yaml`, `service.yaml`, and, once
+  rendered (Step 5), `ingress.yaml` — the same paths the generated CI workflow uses.
 - The Infrastructure spec declares, per environment: Namespace name (always
   `app-__APP_SLUG__`), machine-slug, ingress class, `ClusterIssuer` name, hostname, kubeconfig
   secret name, and the quota/Pod-Security limits the manifests must fit.
 
 ## Steps
 
-1. **Resolve the target environment** (`test` for Phase 4's dev sweep, `prod` for Phase 5's
-   CI/CD deploy) and read that environment's declared Namespace, ingress class, `ClusterIssuer`
-   name, and hostname from the Infrastructure spec.
+1. **Resolve the target environment** (the test environment for Phase 4's dev sweep, prod for
+   Phase 5's CI/CD deploy) and read that environment's machine slug, Namespace, ingress class,
+   `ClusterIssuer` name, and hostname from the Infrastructure spec. The machine slug also names
+   the app's GitHub Environment for that target.
 
-2. **Load the kubeconfig into a secure temp file** (local invocation):
+2. **Load the kubeconfig into a private temp file** (local invocation) through the vault-loader
+   script, which prints only the file's path:
    ```bash
-   export VAULT_ADDR=http://127.0.0.1:8200
    export APP_SLUG=<app-slug>
    export MACHINE_SLUG=<machine-slug-for-target-environment>   # from the Infrastructure spec
 
-   TMPKUBECONFIG=$(mktemp)
-   trap "rm -f $TMPKUBECONFIG" EXIT
-   vault kv get -field=value "secret/apps/${APP_SLUG}/${MACHINE_SLUG}/kubeconfig" > "$TMPKUBECONFIG"
-   export KUBECONFIG="$TMPKUBECONFIG"
+   KUBECONFIG="$(bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/credential-file.sh \
+     "apps/${APP_SLUG}/${MACHINE_SLUG}/kubeconfig")"
+   trap 'rm -rf "$(dirname "$KUBECONFIG")"' EXIT
+   export KUBECONFIG
    ```
-   In CI/CD, `KUBECONFIG` is instead written from the environment's `KUBECONFIG` GitHub
-   Environment secret (see `smaqit.infrastructure-cicd-generate`'s `k3s` mode) — every step from
-   here on is identical either way.
+   If the script reports the kubeconfig missing, stop: the platform's onboarding hand-off hasn't
+   completed (see Failure Handling). In CI/CD, `KUBECONFIG` is instead written from the
+   `KUBECONFIG` secret of the GitHub Environment named after the target machine slug (see
+   `smaqit.infrastructure-cicd-generate`'s `k3s` mode) — every step from here on is identical
+   either way.
 
 3. **Run the namespace guard before touching anything else:**
    ```bash
@@ -72,19 +77,26 @@ metadata:
    `REGISTRY_USERNAME`/`REGISTRY_TOKEN` come from the app's own GitHub Environment secret, never
    anything platform-owned. Skip this step entirely for a public image.
 
-5. **Render the Ingress from the shared template** — never hand-write a per-app Ingress:
+5. **Render the Ingress from the shared template** — never hand-write a per-app Ingress — into
+   `deployment/k3s/ingress.yaml`, once, and commit it. Leave `__HOST__` in place: each
+   environment has its own hostname, so it is filled in at apply time (the generated CI workflow
+   substitutes the target Environment's `APP_HOST` into that same file).
    ```bash
    sed \
      -e "s/__APP_SLUG__/${APP_SLUG}/g" \
      -e "s/__INGRESS_CLASS__/<ingress-class>/g" \
      -e "s/__CLUSTER_ISSUER__/<cluster-issuer-name>/g" \
-     -e "s/__HOST__/<host>/g" \
-     assets/ingress.yaml.template > ingress.rendered.yaml
+     assets/ingress.yaml.template > deployment/k3s/ingress.yaml
+   ```
+   For this run, write the host into a temporary copy, never into the committed file:
+   ```bash
+   INGRESS="$(mktemp -d)/ingress.yaml"
+   sed "s/__HOST__/<host>/g" deployment/k3s/ingress.yaml > "$INGRESS"
    ```
 
 6. **Lint every manifest before any apply:**
    ```bash
-   scripts/manifest-lint.sh deployment.yaml service.yaml ingress.rendered.yaml
+   scripts/manifest-lint.sh deployment/k3s/deployment.yaml deployment/k3s/service.yaml "$INGRESS"
    ```
    Checks the Pod Security `restricted` fields (`runAsNonRoot: true`, an explicit numeric
    `runAsUser` wherever `runAsNonRoot` is true, `allowPrivilegeEscalation: false`,
@@ -92,14 +104,14 @@ metadata:
    `hostPath` volumes, no `hostNetwork`/`hostPID`/`hostIPC`), explicit CPU/memory
    `requests`/`limits` on every container, and the absence of any cluster-scoped `kind` in the
    manifest set. A rejected manifest exits non-zero and names the offending field — fix the
-   manifest, not the check. The admission rejection this prevents is terse and this skill's
-   credential cannot read logs to diagnose it after the fact; a base image whose own `USER`
+   manifest, not the check. The admission rejection this prevents is terse, and a pod that never
+   starts leaves no logs to diagnose it with; a base image whose own `USER`
    directive names a user rather than a numeric UID is the most common way `runAsNonRoot` alone
    still fails admission with `CreateContainerConfigError`.
 
 7. **Apply into the app's own Namespace only:**
    ```bash
-   kubectl apply -n "app-${APP_SLUG}" -f deployment.yaml -f service.yaml -f ingress.rendered.yaml
+   kubectl apply -n "app-${APP_SLUG}" -f deployment/k3s/deployment.yaml -f deployment/k3s/service.yaml -f "$INGRESS"
    ```
    `deployment.yaml` must set `DEPLOY_SHA`/`DEPLOY_TIME` as pod environment (see
    `assets/deployment.yaml.template`), from the current commit SHA and an ISO 8601 UTC
@@ -122,7 +134,10 @@ metadata:
     ```bash
     smaqit.infrastructure-deploy-verify --url "https://<host>" --expected-sha "$(git rev-parse HEAD)"
     ```
-    Invoked unmodified — exactly as any other deploy skill in the product calls it.
+    Invoked unmodified — exactly as any other deploy skill in the product calls it. Right after a
+    rollout the new pods may not be serving through the Ingress yet: if a check fails, re-run the
+    verification every 5 seconds for up to 60 seconds (the same window the generated CI workflow
+    uses) before reporting FAIL. A failure that persists past the window is real.
 
 ## Output
 
@@ -135,8 +150,9 @@ PASS on health, SHA, and SPA root over HTTPS.
 - Does NOT onboard the Namespace, RBAC, Pod Security label, NetworkPolicy, or quota — that is
   the platform side's own skill; this skill's precondition, not its job.
 - Does NOT provision the cluster itself — a separate, unrelated concern.
-- Does NOT read pod logs, at any step — the scoped credential cannot grant `pods/log`, and
-  verification is deliberately external for exactly this reason.
+- Does NOT rely on pod logs for verification — verification is external (`Certificate` `Ready`
+  plus HTTPS checks). Whether the scoped credential may read `pods/log` is the platform's
+  decision; when it can, a failed rollout's logs may be read for diagnosis. Never `pods/exec`.
 - Does NOT touch anything cluster-scoped — `namespace-guard.sh` refuses to proceed if the
   kubeconfig's own permissions would even allow it.
 - Does NOT request onboarding on the app's behalf — if the kubeconfig secret is absent, it
@@ -149,27 +165,30 @@ default, recommended path for every deploy, including the very first one to a ne
 (see Gotchas: a manual local first deploy exercises a different code path than production and
 has hidden real defects, e.g. an image-tag casing bug, in past live use).
 
-**Output:** `KUBECONFIG` written from the `prod` Environment secret; the `build` job's pushed
-image reference and this same guard → lint → apply → rollout → `Certificate` → verify sequence
-run against `app-<app-slug>` in the `prod` Namespace; `deploy-verify` reports PASS over
-`https://<prod-host>`.
+**Output:** `KUBECONFIG` written from the secret of the GitHub Environment named after the prod
+machine slug; the `build` job's pushed image reference and this same guard → lint → apply →
+rollout → `Certificate` → verify sequence run against `app-<app-slug>` on the prod machine;
+`deploy-verify` reports PASS over `https://<prod-host>`.
 
 **Input:** `provisioning_mode: existing-k3s` project's Phase 4 dev sweep invokes this skill
 directly (local fallback — no CI configured yet, or a first pass before wiring one up).
 
 **Output:** Kubeconfig loaded from `secret/apps/<app-slug>/<test-machine-slug>/kubeconfig`
 (`value` field); `namespace-guard.sh` confirms the Namespace is `app-<app-slug>` with no
-cluster-scoped verb permitted; `manifest-lint.sh` passes; Deployment/Service/rendered Ingress
-applied into `app-<app-slug>`; rollout completes; `Certificate` reaches `Ready`; `deploy-verify`
+cluster-scoped verb permitted; `manifest-lint.sh` passes; `deployment/k3s/` Deployment, Service,
+and rendered Ingress applied into `app-<app-slug>`; rollout completes; `Certificate` reaches `Ready`; `deploy-verify`
 reports PASS on health, SHA, and the SPA root over `https://<test-host>`.
 
 ## Gotchas
 
 - **Never widen scope to work around a guard refusal.** `namespace-guard.sh` failing signals the
   onboarding contract or the supplied kubeconfig is wrong, not an obstacle to route around.
-- **No pod logs, ever.** The scoped credential's RBAC allowlist deliberately excludes
-  `pods/log` and `pods/exec` — this is why verification is external (`Certificate` `Ready` +
-  `smaqit.infrastructure-deploy-verify` over HTTPS) rather than log inspection.
+- **Verification is external, not log-based.** `Certificate` `Ready` plus
+  `smaqit.infrastructure-deploy-verify` over HTTPS decide success. The platform decides whether
+  the scoped credential may read `pods/log` (some grant it read-only, some don't); use it only to
+  diagnose a failed rollout, and never ask for `pods/exec`. A Role change on the platform side may
+  not reach an app that was onboarded before it — ask the platform team rather than assuming a
+  permission is there.
 - **The Ingress template is shared, not per-app.** Always render from
   `assets/ingress.yaml.template`; a hand-written Ingress risks drifting from the platform's own
   ingress-class/`ClusterIssuer` conventions.
@@ -178,10 +197,13 @@ reports PASS on health, SHA, and the SPA root over `https://<test-host>`.
   Set `DEPLOY_SHA`/`DEPLOY_TIME` as container env vars in the Deployment manifest at apply time.
 - **`kubectl` version skew.** Confirm the local/CI `kubectl` minor version is within the
   supported skew of the target cluster before applying.
-- **Kubeconfig rotation is destructive and platform-side.** Never regenerate one locally — see
-  `smaqit.infrastructure-vault-loader`'s `rotate-credential.sh` support for
-  `apps/<app-slug>/<machine-slug>/kubeconfig`, which re-prompts for a freshly reissued value
-  instead.
+- **Kubeconfig rotation is the platform's.** Only the platform issues a kubeconfig, and how it
+  rotates one is its decision — some reissue in place and revoke the old token, leaving
+  workloads untouched; some only by re-onboarding. Never regenerate one locally: replace it in
+  Vault with `smaqit.infrastructure-vault-loader`'s `rotate-credential.sh
+  apps/<app-slug>/<machine-slug>/kubeconfig`, re-sync the GitHub Environment
+  (`smaqit.infrastructure-repo-config`), and redeploy with a **fresh** workflow dispatch — a
+  re-run of an earlier run keeps the secret values from when that run was created.
 - **Prefer the generated CI workflow over a manual local invocation, even for the first deploy to
   a brand-new environment.** A manual local run exercises a different code path (this skill's own
   shell commands) than what actually runs in production (the generated `deploy.yml`) — in past
@@ -193,10 +215,10 @@ reports PASS on health, SHA, and the SPA root over `https://<test-host>`.
 
 - [ ] Target environment resolved; Namespace/ingress class/`ClusterIssuer`/hostname read from
       the Infrastructure spec
-- [ ] Kubeconfig loaded from Vault (local) or the `KUBECONFIG` Environment secret (CI/CD)
+- [ ] Kubeconfig loaded through `credential-file.sh` (local) or the machine-slug Environment's `KUBECONFIG` secret (CI/CD)
 - [ ] `namespace-guard.sh` passed
 - [ ] `imagePullSecret` created only when a private registry is declared
-- [ ] Ingress rendered from the shared template
+- [ ] Ingress rendered from the shared template into `deployment/k3s/ingress.yaml` (host left as `__HOST__`), with this run's host written into a temporary copy
 - [ ] `manifest-lint.sh` passed before any `kubectl apply`
 - [ ] `kubectl apply -n app-__APP_SLUG__` succeeded
 - [ ] `kubectl rollout status` succeeded
@@ -208,16 +230,16 @@ reports PASS on health, SHA, and the SPA root over `https://<test-host>`.
 
 | Situation | Action |
 |-----------|--------|
-| Kubeconfig secret absent for the target environment | Fail loudly; point at the platform's onboarding playbook. Never attempt a cluster-scoped fix. |
+| Kubeconfig secret absent for the target environment | Stop. A merged onboarding request is not enough: the platform's own hand-off must deliver the kubeconfig, then the `target-credentials` load stores it (`PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug> load-credentials.sh`). Point at the platform's onboarding playbook. Never attempt a cluster-scoped fix. |
 | `namespace-guard.sh` refuses (cluster-scoped verb permitted, or Namespace mismatch) | Stop immediately. Do not proceed with a broader credential than the onboarding contract issues. |
 | `manifest-lint.sh` rejects a manifest | Stop before any `kubectl apply`. Report the exact offending field. Fix the manifest, not the check. |
 | `kubectl apply` fails (admission rejection) | Report the admission error verbatim. Do not retry with `--force` or widened scope. |
-| `kubectl rollout status` times out | Do not read pod logs — the credential cannot. Report the timeout and the last known state from `kubectl get deployment`/`kubectl get events` (both within the RBAC allowlist). |
+| `kubectl rollout status` times out | Report the timeout and the last known state from `kubectl get deployment`/`kubectl get events`. If the platform grants `pods/log`, include the failing container's `kubectl logs`; never `pods/exec`. |
 | `Certificate` never reaches `Ready` | Check the `ClusterIssuer` name and ACME HTTP-01 reachability from the Infrastructure spec's declared values; do not bypass the wait. |
-| `smaqit.infrastructure-deploy-verify` reports FAIL | Stop. Report the failing check. Do not mark the deployment complete. |
+| `smaqit.infrastructure-deploy-verify` still reports FAIL after the 60-second retry window | Stop. Report the failing check. Do not mark the deployment complete. |
 | Subagent invocation fails | Report the failure with context; do not silently retry. |
 | Output artifact already exists | Confirm with user before overwriting. |
 
 ## Allowed Tools
 
-Bash(kubectl:*), Bash(vault:*)
+Bash(kubectl:*), Bash(bash:*)

@@ -320,13 +320,25 @@ This split has a direct design consequence: concern 1 lives inside an infra repo
 
 **What Vault credentials does `provisioning_mode: existing-k3s` use, and how do they differ from the VM-based conventions?**
 
-Three app-scoped fields, all under `secret/apps/<app-slug>/*`, none with a `secret/machines/*` counterpart since a k3s machine-slug has nothing else machine-level to store (no SSH, no Terraform state):
+Three app-scoped fields, all under `secret/apps/<app-slug>/*`; the app keeps nothing under `secret/machines/*`, since from its side a k3s machine has no SSH and no Terraform state (the platform repository that owns the machine may still register it there with `register-machine.sh`):
 
 - `secret/apps/<app-slug>/github` — same as every other mode, scoped to this project's own repository.
-- `secret/apps/<app-slug>/<machine-slug>/kubeconfig` — a single `value` field per registered machine-slug. "Environment" is expressed entirely through which machine-slug is targeted: test and prod get distinct machine-slugs even when they happen to share one physical k3s server, rather than one path split into `test`/`prod` fields — a flat, environment-keyed structure can't represent an app onboarded onto genuinely different machines per environment. Always populated out-of-band (an operator paste of the platform's own onboarding hand-off, never a live cluster call); rotation re-prompts for a freshly platform-reissued value rather than regenerating locally, since the platform's own kubeconfig rotation is destructive.
+- `secret/apps/<app-slug>/<machine-slug>/kubeconfig` — a single `value` field per registered machine-slug. "Environment" is expressed entirely through which machine-slug is targeted: test and prod get distinct machine-slugs even when they happen to share one physical k3s server, rather than one path split into `test`/`prod` fields — a flat, environment-keyed structure can't represent an app onboarded onto genuinely different machines per environment. Always populated out-of-band (an operator paste of the platform's own onboarding hand-off, never a live cluster call); rotation re-prompts for a freshly platform-reissued value rather than regenerating locally — how the platform rotates (in place with the old token revoked, or only by re-onboarding) is the platform's decision. After rotating, re-sync the Environment and redeploy with a fresh dispatch, not a re-run.
 - `secret/apps/<app-slug>/platform-repo` — a fine-grained PAT scoped only to `contents:write` + `pull_requests:write` on the platform-owned infrastructure repository, distinct from `github`. Used by `smaqit.infrastructure-request-k3s-onboarding` to open a PR there; never has `workflow_dispatch` scope, since triggering convergence is entirely the platform repo's own concern once the PR merges. Unlike `kubeconfig`, this follows the standard delete-and-repopulate rotation shape, since it's a smaqit-managed PAT the operator can freely regenerate, not a platform-issued artifact.
 
-`load-credentials.sh` requires `MACHINE_SLUG` to be set for this mode and populates one machine's kubeconfig per invocation — run it again with a different `MACHINE_SLUG` to populate a second machine.
+`load-credentials.sh` requires `MACHINE_SLUG` to be set for this mode and populates one machine's kubeconfig per invocation — run it again with a different `MACHINE_SLUG` to populate a second machine. A merged onboarding request doesn't produce the kubeconfig: the platform's own hand-off delivers it, and the `target-credentials` slot stops the deployment until it's loaded. `REGISTRY_ORG=<org>` additionally loads the org-scoped `secret/organizations/<org>/github-package-read` pull credential when the image is private. In the app's repository each target machine gets a GitHub Environment named after its machine slug, synced with `smaqit.infrastructure-repo-config`'s `sync-k3s-env.sh`.
+
+---
+
+**How do smaqit skills read or write Vault without running `vault` commands?**
+
+Through purpose-named scripts; skill text never tells an agent or operator to run `vault` directly, and a Go test (`installer/skill_text_test.go`) fails if a run-able `vault` command or a `Bash(vault:*)` grant appears in any shipped skill document. Scripts may call `vault` internally. The interface:
+
+- **Load or populate:** `load-credentials.sh` (unseals, authenticates, enables kv-v2 on first run, prompts only for missing paths), `register-machine.sh` (a machine's own credentials), `bootstrap-app-to-machine.sh` (an app's SSH key on a machine), `rotate-credential.sh` (replace an existing path).
+- **Use:** `credential-file.sh <path>` writes one allowlisted credential (an app SSH key, a kubeconfig, the platform-repo token) to a 0600 file in a private temp directory and prints only the path; `source terraform-env.sh` exports Terraform's provider and backend credentials into the shell (`--unset` clears them).
+- **Sync to GitHub:** repo-config's `sync-secrets.sh` (VM modes), `sync-k3s-env.sh` (an app's machine-slug Environment), `sync-machine-env.sh` (a platform repository's machine Environment).
+
+Secrets reach `vault` and `gh` on stdin, never as command arguments. Operator tooling outside smaqit may call `load-credentials.sh` (no arguments, legacy scheme) and `bootstrap-app-to-machine.sh <app> <machine>` directly, so those interfaces and the Vault path and field conventions stay stable. If an operation has no script, add one rather than typing a raw `vault` command.
 
 ---
 

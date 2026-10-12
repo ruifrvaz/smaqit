@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-provision-cyso
 description: Use when provisioning a project's VM on Cyso Cloud (OpenStack) with Terraform, re-running Terraform after infrastructure changes, or when an operator invokes /provision.cyso. Covers application credentials, the Object Storage backend, the SSH keypair, terraform init/plan/apply, and the fixed IP, producing an SSH-reachable VM with a Cinder data volume and ports 22/80/443 open.
 metadata:
-  version: "1.8.0"
+  version: "1.9.0"
   smaqit-slots: "provision=apply"
 ---
 
@@ -61,41 +61,31 @@ be hand-edited in a target project expecting the edit to persist.
    Invoke `smaqit.infrastructure-vault-loader` and confirm Vault is running, unsealed, and all
    `secret/<project-slug>/*` paths are populated. Do not proceed until this is confirmed.
 
-2. **Resolve the machine slug, ensure its base credential exists, then fetch credentials from
-   Vault into the shell environment:**
+2. **Resolve the machine slug, ensure its base credential exists, then export the credentials
+   Terraform reads** — both through the vault-loader scripts, never a raw `vault` command:
    ```bash
-   export VAULT_ADDR=http://127.0.0.1:8200
    export PROJECT_SLUG=<project-slug>   # from AGENTS.md (or legacy platform instructions)
    export MACHINE_SLUG=<machine-slug>   # defaults to PROJECT_SLUG when this project provisions its own new machine
 
-   # Ensure the machine's base-ssh credential exists — generate it if this is a fresh machine.
+   # Ensure the machine's credentials exist — base-ssh is generated if this is a fresh machine.
    # Terraform installs its public half via the keypair resource at apply time (Step 7); this
    # keypair is bootstrap-only from here on — never used for routine day-to-day deploys, including
    # by this provisioning project itself (Step 7.5 gives it its own distinct key).
-   if ! vault kv get "secret/machines/${MACHINE_SLUG}/base-ssh" > /dev/null 2>&1; then
-     TMPDIR_BASE=$(mktemp -d) && trap 'rm -rf "$TMPDIR_BASE"' EXIT
-     ssh-keygen -t ed25519 -f "${TMPDIR_BASE}/base_key" -N "" -q
-     vault kv put "secret/machines/${MACHINE_SLUG}/base-ssh" \
-       private_key=@"${TMPDIR_BASE}/base_key" \
-       public_key="$(cat "${TMPDIR_BASE}/base_key.pub" | tr -d '\n')" > /dev/null
-     rm -rf "$TMPDIR_BASE" && trap - EXIT
-   fi
+   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/register-machine.sh \
+     "${MACHINE_SLUG}" --provider cyso --owner-project "${PROJECT_SLUG}"
 
-   export TF_VAR_app_credential_id=$(vault kv get -field=app_credential_id secret/${PROJECT_SLUG}/cyso)
-   export TF_VAR_app_credential_secret=$(vault kv get -field=app_credential_secret secret/${PROJECT_SLUG}/cyso)
-   export TF_VAR_github_token=$(vault kv get -field=token secret/${PROJECT_SLUG}/github)
-   export TF_VAR_ssh_public_key=$(vault kv get -field=public_key secret/machines/${MACHINE_SLUG}/base-ssh)
-   export AWS_ACCESS_KEY_ID=$(vault kv get -field=access_key secret/${PROJECT_SLUG}/tfstate)
-   export AWS_SECRET_ACCESS_KEY=$(vault kv get -field=secret_key secret/${PROJECT_SLUG}/tfstate)
+   # Export TF_VAR_app_credential_*, TF_VAR_github_token, TF_VAR_ssh_public_key, and the backend's
+   # AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY into this shell, without printing them.
+   source [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/terraform-env.sh
    ```
    Use `TF_VAR_github_token` — not `GITHUB_TOKEN` (reserved by Actions) and not `TF_VAR_GITHUB_TOKEN`
    (case-sensitive; Terraform maps `TF_VAR_github_token` → `var.github_token`). The public key is
    already newline-stripped at Vault load time — do not `tr -d '\n'` again.
-   Terraform state backend credentials (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`) and the Cyso
-   API credential (`TF_VAR_app_credential_*`) remain sourced from `secret/<project-slug>/*` here —
-   this session did not verify a live `terraform apply`, so migrating those two to the machine
-   namespace as well is left as a documented follow-up (see Findings) rather than an unverified
-   change to the provisioning credential path.
+   `terraform-env.sh` reads the backend and Cyso API credentials from `secret/<project-slug>/*`
+   first — the paths this step has always used — and falls back to
+   `secret/machines/<machine-slug>/*` only when the project paths are absent; `TF_VAR_ssh_public_key`
+   comes from the machine's `base-ssh`. When Terraform is done, clear them with
+   `source …/terraform-env.sh --unset`.
 
 3. **Confirm Ubuntu image ID and flavor** (catalog values change occasionally):
    ```bash
@@ -166,10 +156,10 @@ be hand-edited in a target project expecting the edit to persist.
 8. **Verify SSH access** (should already be confirmed by the bootstrap script's own verification
    in Step 7.5; re-check manually if needed):
    ```bash
-   TMPKEY=$(mktemp) && trap "rm -f $TMPKEY" EXIT
-   vault kv get -field=private_key secret/apps/${PROJECT_SLUG}/ssh > "$TMPKEY"
-   chmod 600 "$TMPKEY"
-   ssh -i "$TMPKEY" ubuntu@<fixed_ip>
+   KEY="$(bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/credential-file.sh \
+     "apps/${PROJECT_SLUG}/ssh")"
+   trap 'rm -rf "$(dirname "$KEY")"' EXIT
+   ssh -i "$KEY" ubuntu@<fixed_ip>
    ```
 
 ## Output
@@ -204,13 +194,9 @@ accessible with the project's deploy keypair, Terraform state in `<project-slug>
   virtio-blk. `lsblk` shows it as `sdb` (or `sdc` if multiple volumes are attached).
 
 - **Keypair trailing-newline drift** — Terraform will show the keypair needing replacement on a
-  non-first apply if the stored key string differs by a trailing newline. Strip the newline when
-  loading into Vault:
-  ```bash
-  vault kv put secret/machines/<machine-slug>/base-ssh public_key="$(cat ~/.ssh/<key>.pub | tr -d '\n')" ...
-  ```
-  The Vault fetch (`vault kv get -field=public_key`) does not add a newline, so subsequent
-  applies are stable. The variable name is `TF_VAR_ssh_public_key` (all lowercase) — matches
+  non-first apply if the stored public key differs by a trailing newline. `register-machine.sh`
+  stores `public_key` newline-stripped, and Vault returns field values without adding one, so
+  applies are stable — never load a base key into Vault by hand. The variable name is `TF_VAR_ssh_public_key` (all lowercase) — matches
   `var.ssh_public_key` in `variables.tf`.
 
 - **Provider lock file platform mismatch** — `.terraform.lock.hcl` is committed with hashes for

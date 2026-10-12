@@ -2,7 +2,7 @@
 name: smaqit.new-greenfield-project
 description: 'Use when taking a new project from raw assets to a running production application: "take this from zero to prod", "run the full smaqit pipeline", or starting a freshly initialized repository. Orchestrates requirements extraction, all five specification layers, development, a dev-environment sweep, CI/CD production deployment, optional domain/TLS, validation, and release. Re-entrant at any phase.'
 metadata:
-  version: "2.2.0"
+  version: "2.3.0"
 ---
 
 # Project: Zero to Production
@@ -27,7 +27,8 @@ Applicability below depends on `provisioning_mode` (resolved by `smaqit.input-de
 - [ ] `[provision/existing-owned]` Object Storage state bucket created (with separate state keys for dev and prod); S3 keys loaded into Vault at `secret/<project-slug>/tfstate`
 - [ ] `[existing-shared/existing-unmanaged]` The target machine is known by machine-slug: for `existing-shared` it must already be registered (its `secret/machines/<machine-slug>/base-ssh` exists); for `existing-unmanaged` it typically registers for the *first* time. Phase 4's `target-credentials` slot then bootstraps this app's own SSH keypair at `secret/apps/<app-slug>/ssh` via `bootstrap-app-to-machine.sh` (see `smaqit.infrastructure-vault-loader`)
 - [ ] `[existing-shared/existing-unmanaged]` The production host is already bootstrapped (Phase 5's `ci-push` path runs no `host-bootstrap` by default; bind one in `.smaqit/slots.yml` if a separate production host needs it)
-- [ ] `[all modes]` Fine-grained PAT with `variables:write` loaded into Vault at `secret/<project-slug>/github`
+- [ ] `[all modes]` Fine-grained PAT with `variables:write` loaded into Vault at `secret/apps/<app-slug>/github` (legacy flat-scheme projects: `secret/<project-slug>/github`)
+- [ ] `[existing-k3s]` Fine-grained PAT with `contents:write` + `pull_requests:write` on the platform repository only, loaded at `secret/apps/<app-slug>/platform-repo` by the `access-credentials` load (`smaqit.infrastructure-vault-loader`)
 - [ ] `[existing-shared/existing-unmanaged]` Target VM's fixed IP known; will be set via `gh variable set VM_HOST` rather than read from a Terraform output
 - [ ] `[existing-k3s]` Infrastructure spec Constraints declare `Platform Repo`, `Registry File Path`, `Machine Slug` (test and prod), `Ingress Class`, `ClusterIssuer`, `Namespace Quota`, and `Container Registry`, sourced from the platform team's onboarding documentation; no SSH keypair, cloud account, or Terraform state is needed
 - [ ] `[all modes]` `smaqit slots plan --phase=deploy --mode=<mode> --env=<dev-or-test-env>` resolves without `SLOTS-*` errors (an untouched `.smaqit/slots.yml` uses every default)
@@ -141,7 +142,7 @@ Uses the workflows committed in Phase 4. Configures production credentials, push
 1. Invoke `smaqit.task-start` for the Phase 5 task.
 2. Invoke `smaqit.input-deployment` with environment `prod` (for `existing-k3s`, the prod machine-slug's environment) and `deployment_path: ci-push`. Stop on any `SLOTS-*` failure.
 3. Invoke `/smaqit.deployment` with `deployment_path: ci-push`, the resolved `slot_plan`, `mode` from Phase 0, and `specification_mode: prevalidated` with the Phase 2 Infrastructure and Stack specs as `spec_paths`. The agent runs the local slots, then pushes and monitors:
-   - **Local slots:** `access-credentials`; for `existing-k3s`, `platform-onboarding` for the prod machine-slug (gated on merge — the platform hands off the prod kubeconfig only once that PR is approved; **pending** stops this task until it merges); `target-credentials` (`existing-shared`/`existing-unmanaged`: per-app SSH key; `existing-k3s`: prod kubeconfig); `environment-config` (`smaqit.infrastructure-repo-config`: full secret sync for `provision`/`existing-owned`; restricted sync plus `gh variable set VM_HOST` for `existing-shared`/`existing-unmanaged`; for `existing-k3s`, `KUBECONFIG` on the `prod` GitHub Environment plus `REGISTRY_USERNAME`/`REGISTRY_TOKEN` when the spec's `Container Registry` row declares a private registry — never `VM_HOST`).
+   - **Local slots:** `access-credentials`; for `existing-k3s`, `platform-onboarding` for the prod machine-slug (gated on merge; **pending** stops this task until it merges — and a merge alone isn't enough: the platform's own hand-off must deliver the prod kubeconfig); `target-credentials` (`existing-shared`/`existing-unmanaged`: per-app SSH key; `existing-k3s`: prod kubeconfig — stops this task until the platform has handed it off); `environment-config` (`smaqit.infrastructure-repo-config`: full secret sync for `provision`/`existing-owned`; restricted sync plus `gh variable set VM_HOST` for `existing-shared`/`existing-unmanaged`; for `existing-k3s`, `KUBECONFIG` and `APP_HOST` on the GitHub Environment named after the prod machine slug (`sync-k3s-env.sh`), plus `REGISTRY_USERNAME`/`REGISTRY_TOKEN` when the spec's `Container Registry` row declares a private registry — never `VM_HOST`).
    - **CI slots:** the agent pushes `main`, selects the `deploy.yml` `push` run whose `headSha` matches the pushed commit, and watches that run. The pipeline performs `provision` (full mode's `provision` job, `provision`/`existing-owned` only), `artifact-build` (`existing-k3s` `build` job), and `app-deploy` (`deploy` job).
    - **`verify`:** `smaqit.infrastructure-deploy-verify --expected-sha <deploy-run-headSha>` against production (`https://<prod-host>` for `existing-k3s`).
    - The agent sets infrastructure specs to `status: deployed` and writes the deployment report with the slot resolution.

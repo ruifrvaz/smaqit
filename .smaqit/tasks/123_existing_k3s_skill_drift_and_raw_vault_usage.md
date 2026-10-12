@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 102
 mode: Assisted
 started: "2026-10-12"
 created: "2026-10-06"
@@ -150,30 +151,42 @@ Confirmed by the user on 2026-10-12, during `task.plan`:
 
 ## Acceptance Criteria
 
-- [ ] The `pods/log` and rotation statements are platform-neutral in deploy-k3s-app, vault-loader, and `rotate-credential.sh`.
-- [ ] k3s app skills and the k3s template use machine-slug GitHub Environments; the template verifies `/health.json` with a bounded retry and passes `--build-arg DEPLOY_SHA`; one Ingress path (`deployment/k3s/ingress.yaml`) everywhere.
-- [ ] Vault paths are complete and consistent (kubeconfig machine segment, app-scheme PATs, no "no machines counterpart" claim); repo-config's VM steps are gated off for `existing-k3s`; feature-new no longer defaults a deployed k3s project to `existing-owned`; cicd-generate's "single job" leftover is gone.
-- [ ] request-k3s-onboarding reports that merged is not yet deployable and uses `chore: onboard <app> (<machine>)`; the `target-credentials` operation stops with an operator message while the kubeconfig is absent.
-- [ ] `credential-file.sh`, `terraform-env.sh`, `sync-k3s-env.sh`, `REGISTRY_ORG`, and the setup-vault kv-v2 step exist and are covered by stub tests; existing script interfaces are unchanged.
-- [ ] No SKILL.md or references file contains a run-able `vault` command or `Bash(vault`, enforced by a Go test that fails when one is reintroduced.
-- [ ] The installed-only netbird patch is recorded as already dropped (nothing to upstream).
-- [ ] `make -C installer test` and `make -C installer smoke-test` pass; compendium and `CHANGELOG.md` are updated.
+- [x] The `pods/log` and rotation statements are platform-neutral in deploy-k3s-app, vault-loader, and `rotate-credential.sh`.
+- [x] k3s app skills and the k3s template use machine-slug GitHub Environments; the template verifies `/health.json` with a bounded retry and passes `--build-arg DEPLOY_SHA`; one Ingress path (`deployment/k3s/ingress.yaml`) everywhere.
+- [x] Vault paths are complete and consistent (kubeconfig machine segment, app-scheme PATs, no "no machines counterpart" claim); repo-config's VM steps are gated off for `existing-k3s`; feature-new no longer defaults a deployed k3s project to `existing-owned`; cicd-generate's "single job" leftover is gone.
+- [x] request-k3s-onboarding reports that merged is not yet deployable and uses `chore: onboard <app> (<machine>)`; the `target-credentials` operation stops with an operator message while the kubeconfig is absent.
+- [x] `credential-file.sh`, `terraform-env.sh`, `sync-k3s-env.sh`, `REGISTRY_ORG`, and the setup-vault kv-v2 step exist and are covered by stub tests; existing script interfaces are unchanged.
+- [x] No SKILL.md or references file contains a run-able `vault` command or `Bash(vault`, enforced by a Go test that fails when one is reintroduced.
+- [x] The installed-only netbird patch is recorded as already dropped (nothing to upstream).
+- [x] `make -C installer test` and `make -C installer smoke-test` pass; compendium and `CHANGELOG.md` are updated.
 
 ## Findings
 
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Re-checked every audit item on main (v3.11.1) during `task.plan`: 12 of 13 still present, one partly fixed; two new items found (no `DEPLOY_SHA` build arg in the k3s template; vault-loader's "no machines counterpart" contradicting task 114). Confirmed the platform-side facts against the live downstream repositories.
+- Stale facts made platform-neutral in deploy-k3s-app, vault-loader, and `rotate-credential.sh`: `pods/log` read only when granted (never `pods/exec`); rotation is the platform's decision; redeploy with a fresh dispatch after rotating.
+- k3s template: machine-slug Environment via a `workflow_dispatch` choice (`__PROD_MACHINE_SLUG__`/`__TEST_MACHINE_SLUG__`, prod on push), `--build-arg DEPLOY_SHA`, `__HOST__` stamped into the committed Ingress before lint, `/health.json` verified with a 12×5 s retry. deploy-k3s-app renders `deployment/k3s/ingress.yaml` (host left as a token) and re-runs verification within the same window.
+- New scripts: vault-loader `credential-file.sh` (allowlisted credential to a 0600 file, path printed) and `terraform-env.sh` (sourced exports, `--unset`); repo-config `sync-k3s-env.sh` (machine-slug Environment, stdin secrets, PAT preflight). `load-credentials.sh` gained `REGISTRY_ORG` and an idempotent kv-v2 enable and now writes k3s secrets on stdin; `rotate-credential.sh` accepts `organizations/<org>/github-package-read`; `setup-vault.sh` no longer claims to enable kv-v2.
+- Every run-able `vault` command and `Bash(vault:*)` grant removed from shipped skill text and the three definition files; drift fixed in input-deployment, greenfield, feature-new, repo-config, cicd-generate, image-build-push-static, request-k3s-onboarding, provision-cyso, and the rsync skills; compendium updated with a new script-only Vault entry.
+- Tests: four stub-script tests, a k3s template contract test, and `skill_text_test.go`, which fails on a run-able `vault` command in any shipped skill document. Deliberate breaks (a leaked token, `/health`, an inserted `vault kv get`) each made a test fail. `make -C installer test` and `make -C installer smoke-test` pass.
 
 **Decisions made:**
-- TBD
+- The committed `deployment/k3s/ingress.yaml` keeps `__HOST__` as a token because each environment has its own hostname; CI substitutes `APP_HOST` before lint and a local run writes a temp copy — a single rendered file could hold only one host.
+- kv-v2 is enabled by `load-credentials.sh` after unseal and login: `setup-vault.sh` runs while Vault is still sealed, so it can't enable an engine.
+- `terraform-env.sh` reads the project's own paths first and falls back to machine and app paths, preserving provision-cyso's existing credential sources (never verified with a live apply) rather than migrating them.
+- `feature-new` detects a deployed k3s project from the Infrastructure spec's `Platform Repo`/`Machine Slug` Constraints rows, since the spec doesn't record `provisioning_mode` itself.
+- Script interfaces the operator's own tooling calls (`load-credentials.sh` with no arguments, `bootstrap-app-to-machine.sh <app> <machine>`) stayed byte-identical in behaviour; the legacy and new-scheme sections of `load-credentials.sh` are unchanged.
+- The installed-only netbird vault-loader patch was already dropped by a reinstall and exists nowhere as code; the operator's own Vault tooling covers it, so nothing was upstreamed.
 
 **Blockers encountered:**
-- TBD
+- None
 
 **Follow-up identified:**
-- TBD
+- Existing k3s app projects adopt machine-slug Environments when they regenerate workflows: sync into the new Environments with `sync-k3s-env.sh`, then delete the old `test`/`prod` ones.
+- `load-credentials.sh` still passes the unseal key to `vault operator unseal` as an argument, and the legacy flat-scheme writes still pass values as arguments; moving them to stdin was out of scope (the legacy section had to stay unchanged).
+- The k3s template still waits on `certificate/<app>-tls`, which a platform that owns the Ingress itself (for example behind an SSO gate) may name differently; a project-level edit for now.
 
 ## Files to Create / Modify
 

@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-12"
 created: "2026-08-24"
 ---
 
@@ -157,8 +159,34 @@ Confirmed by the user on 2026-10-12, during `task.plan`:
 - **Delivery:** its own branch from `origin/main` and its own `Prepare release vX.Y.Z` PR.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-12
+**Tools searched:** Terraform (`hashicorp/terraform`), OpenStack Terraform provider (`terraform-provider-openstack/terraform-provider-openstack`), cloud-init (`canonical/cloud-init`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+- None
+
+### Advisory Issues
+- [#37130 Regression for certain third-party S3 backends over S3 v2 API as of 1.11.2 (ceph, hetzner)](https://github.com/hashicorp/terraform/issues/37130) — `hashicorp/terraform` — opened 2025-05-20 — bug, backend/s3, new. Relevant to the documented non-AWS backend flags; not confirmed for Cyso.
+- [#38337 S3 backend: skip_s3_checksum does not disable aws-chunked content-encoding on PutObject](https://github.com/hashicorp/terraform/issues/38337) — `hashicorp/terraform` — opened 2026-04-01 — enhancement, backend/s3, new
+- [#36704 Apply `skip_s3_checksum` option to `GetObject` calls](https://github.com/hashicorp/terraform/issues/36704) — `hashicorp/terraform` — enhancement, backend/s3, new
+- [#35305 change suggested `apply` command after saving plan file to account for `-chdir`](https://github.com/hashicorp/terraform/issues/35305) — `hashicorp/terraform` — enhancement, cli. The guard changes directory before planning, so `--out` must resolve to an absolute path.
+
+### Historical (Closed)
+- [#39076 Replacement planned as ["delete","create"] is applied create-before-destroy, and the destroy never runs](https://github.com/hashicorp/terraform/issues/39076) — `hashicorp/terraform` — closed. A replacement can appear in either action order; the guard must accept both.
+- [#35302 Terraform does not respect -replace option](https://github.com/hashicorp/terraform/issues/35302) — `hashicorp/terraform` — closed, working as designed. Supports failing closed when a listed address is not replaced in the plan.
+- [#37648 The state can not be persisted in custom S3 endpoint. The Content-SHA256 you specified did not match](https://github.com/hashicorp/terraform/issues/37648) — `hashicorp/terraform` — closed. The reason for `skip_s3_checksum` on non-AWS stores.
+- [#37203 (maybe) 1.12 S3 Backend (nonAWS) Regression: skip_s3_checksum ignored?](https://github.com/hashicorp/terraform/issues/37203) — `hashicorp/terraform` — closed
+- [#4042 text/plain encoding for write_files unsupported?](https://github.com/canonical/cloud-init/issues/4042) — `canonical/cloud-init` — closed
+
+### Unresolvable Tools
+- None
+
+### Omitted Tools
+- Bash, jq, GitHub Actions — excluded after relevance prioritization; not material to the task's failure modes
+
+### Search Warnings
+- None. Research-map task block had no GitHub URLs; all repositories came from the helper fallback.
 
 ## Implementation Steps
 

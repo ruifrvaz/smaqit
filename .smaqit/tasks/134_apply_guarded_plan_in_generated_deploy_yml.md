@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-12"
 created: "2026-10-12"
 ---
 
@@ -52,8 +54,29 @@ the two steps. Priority: Medium.
 5. CHANGELOG via `task.complete`.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-12
+**Tools searched:** Terraform (`hashicorp/terraform`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+- None
+
+### Advisory Issues
+- [#35305 change suggested `apply` command after saving plan file to account for `-chdir`](https://github.com/hashicorp/terraform/issues/35305) — `hashicorp/terraform` — enhancement, cli. Saved-plan paths are relative to the working directory: plan into `deployment/terraform/tfplan` and apply `tfplan` from that directory.
+- [#31366 Add -out option to apply command](https://github.com/hashicorp/terraform/issues/31366) — `hashicorp/terraform` — enhancement, new
+
+### Historical (Closed)
+- [#39330 Equivalent check results can spuriously increment remote state serial and invalidate saved plans](https://github.com/hashicorp/terraform/issues/39330) — `hashicorp/terraform` — closed. A saved plan whose state changed is rejected as stale at apply — the safe failure this change relies on.
+- [#39076 Replacement planned as ["delete","create"] is applied create-before-destroy, and the destroy never runs](https://github.com/hashicorp/terraform/issues/39076) — `hashicorp/terraform` — closed
+
+### Unresolvable Tools
+- None
+
+### Omitted Tools
+- GitHub Actions, Bash — excluded after relevance prioritization; not material to the change's failure modes
+
+### Search Warnings
+- None. Research-map task block had no GitHub URLs; the repository came from the helper fallback.
 
 ## Acceptance Criteria
 

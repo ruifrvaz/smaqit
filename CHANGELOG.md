@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.10.1] - 2026-10-12
+
+### Changed
+- **Trigger-form Copilot and Codex entry agents.** The GitHub Copilot and Codex descriptions of `smaqit.development`, `smaqit.deployment`, `smaqit.validation`, and `smaqit.qa` now lead with "Use when…" and the user requests each serves, matching the Claude Code wording from v3.10.0. The Codex phase-agent descriptions also tell the spawning session to pass the full request and any `PHASE-PARAMETERS` block, and to relay `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user rather than answering it. Specification agents keep their delegation-only wording.
+
 ## [3.10.0] - 2026-10-12
 
 ### Added

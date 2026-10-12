@@ -1,6 +1,6 @@
 copilot:
   name: smaqit.deployment
-  description: Implementation agent for the Deployment phase.
+  description: 'Use when the user asks to deploy, redeploy, provision, or put the project online. Runs the Deployment phase: Infrastructure specifications, then deployment through the resolved slot plan.'
   tools:
   - vscode/askQuestions
   - edit/editFiles
@@ -22,7 +22,7 @@ claude:
 
 codex:
   name: smaqit.deployment
-  description: Implementation agent for the Deployment phase that spawns the Infrastructure agent and deploys Infrastructure and Stack specs.
+  description: 'Use when the user asks to deploy, redeploy, provision, or put a smaqit project online. Runs the Deployment phase: spawns the Infrastructure specification agent, then deploys through the resolved slot plan. Pass the user''s full request and any PHASE-PARAMETERS block already resolved. If the result starts with NEEDS-INPUT or REVIEW-REQUESTED, ask the user and invoke this agent again with their answers; never answer it yourself.'
   
 placeholders:
   DELEGATE_INFRASTRUCTURE:

@@ -1,6 +1,6 @@
 copilot:
   name: smaqit.validation
-  description: Implementation agent for the Validation phase.
+  description: 'Use when the user asks to test, validate, or verify the deployed system. Runs the Validation phase: Coverage specifications, then generated tests executed against the deployed system.'
   tools:
   - vscode/askQuestions
   - execute/getTerminalOutput
@@ -29,7 +29,7 @@ claude:
 
 codex:
   name: smaqit.validation
-  description: Implementation agent for the Validation phase that spawns the Coverage agent and executes tests against the deployed system.
+  description: 'Use when the user asks to test, validate, or verify the deployed system of a smaqit project. Runs the Validation phase: spawns the Coverage specification agent, then generates and runs tests against the deployed system. Pass the user''s full request and any PHASE-PARAMETERS block already resolved. If the result starts with NEEDS-INPUT or REVIEW-REQUESTED, ask the user and invoke this agent again with their answers; never answer it yourself.'
   
 placeholders:
   DELEGATE_COVERAGE:

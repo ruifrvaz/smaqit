@@ -183,7 +183,8 @@ Claude sessions in projects that use smaqit for development, deployment and vali
 - Live Claude Code check not run (installing the dev build globally would overwrite `~/.claude`): after release, in a smaqit-initialized project, ask "add a farewell page and deploy it" and "what's the status of this project" without slash commands, confirm smaqit is used, and confirm a directly delegated `NEEDS-INPUT` reaches the user
 - Open claude-code issue #85027 (VS Code agent host drops user skill descriptions, so skills never auto-activate) may still limit description-based triggering in the VS Code extension; the `AGENTS.md` directive doesn't depend on it. Re-check during the live check
 - Copilot and Codex agent descriptions remain in the older form; revisit after the live check
-- `smaqit uninstall` still leaves the managed `AGENTS.md`/`CLAUDE.md` section in place
+- `smaqit uninstall` leaves the managed `AGENTS.md`/`CLAUDE.md` section in place. Decided by the user on 2026-10-12: this is intended, not a gap, so uninstall must not remove it
+- Live check after release (2026-10-12, installed v3.10.0): `smaqit update` reinstalled the global payload. Installed commands carry `when_to_use`, phase agents are "Use proactively", and all 30 smaqit skills are strict YAML at 400 characters or fewer. In a fresh scratch project, `init` wrote the new section, and `validate`, `status`, `mcp verify`, and the `slots` commands passed. Re-init reported `up to date`, an outdated section was refreshed with user content kept, and a malformed section was left untouched with a warning and exit 0. Headless Claude Code behavior is task 132's scope
 
 ## Files to Create / Modify
 

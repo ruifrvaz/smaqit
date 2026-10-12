@@ -1,6 +1,6 @@
 copilot:
   name: smaqit.development
-  description: Implementation agent for the Development phase.
+  description: 'Use when the user asks to build, add, change, or fix application features or behavior. Runs the Development phase: Business, Functional, and Stack specifications, then a working, tested application.'
   tools:
   - vscode/askQuestions
   - execute/getTerminalOutput
@@ -29,7 +29,7 @@ claude:
 
 codex:
   name: smaqit.development
-  description: Implementation agent for the Development phase that spawns Business, Functional, and Stack agents and builds a tested application.
+  description: 'Use when the user asks to build, add, change, or fix application features or behavior in a smaqit project. Runs the Development phase: spawns the Business, Functional, and Stack specification agents, then builds a working, tested application. Pass the user''s full request and any PHASE-PARAMETERS block already resolved. If the result starts with NEEDS-INPUT or REVIEW-REQUESTED, ask the user and invoke this agent again with their answers; never answer it yourself.'
   
 placeholders:
   DELEGATE_SPEC_AGENT:

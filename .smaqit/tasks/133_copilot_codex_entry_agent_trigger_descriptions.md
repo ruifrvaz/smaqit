@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 98
 mode: Assisted
 started: "2026-10-12"
 created: "2026-10-12"
@@ -57,27 +58,30 @@ These descriptions say what the agent *is*, not which user request it serves. Th
 
 ## Acceptance Criteria
 
-- [ ] The Copilot and Codex descriptions of `development`, `deployment`, `validation`, and `qa` lead with "Use when…" and the user requests each serves
-- [ ] The three Codex phase-agent descriptions tell the spawning session to pass the full request and any `PHASE-PARAMETERS` block, and to relay `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user without answering them itself
-- [ ] The five specification agents' descriptions, every agent's tools, `user-invocable`, and the agent bodies are unchanged
-- [ ] Generated Copilot frontmatter parses as YAML and generated Codex agents parse as TOML; `make test` and `make smoke-test` pass
-- [ ] The wiki trigger section and the CHANGELOG describe the change
+- [x] The Copilot and Codex descriptions of `development`, `deployment`, `validation`, and `qa` lead with "Use when…" and the user requests each serves
+- [x] The three Codex phase-agent descriptions tell the spawning session to pass the full request and any `PHASE-PARAMETERS` block, and to relay `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user without answering them itself
+- [x] The five specification agents' descriptions, every agent's tools, `user-invocable`, and the agent bodies are unchanged
+- [x] Generated Copilot frontmatter parses as YAML and generated Codex agents parse as TOML; `make test` and `make smoke-test` pass
+- [x] The wiki trigger section and the CHANGELOG describe the change
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Rewrote only the `copilot:` and `codex:` `description` lines of the four entry-agent definitions (two lines per file), using a script that located each platform block by its line-anchored key and asserted that every other key in every platform was unchanged
+- Copilot descriptions lead with "Use when…" plus the phase summary (174–198 characters); Codex phase descriptions add the pass-request and relay-signal instruction (429–466 characters); QA is trigger-only on both
+- Wiki triggers table gained a Copilot/Codex row; CHANGELOG `[Unreleased]` entry under Changed
+- Verified: `make test`, `make smoke-test`, all generated Copilot frontmatter parses as YAML and all Codex agents parse as TOML, and the five specification agents and every agent body are identical to `origin/main`
 
 **Decisions made:**
-- TBD
+- The relay instruction goes only into Codex descriptions: Copilot phase agents have `vscode/askQuestions` and ask the user directly, while a Codex agent's signals return to the spawning session, as on Claude Code
+- Specification agents keep their delegation-only wording: it is accurate, and Copilot's `user-invocable: false` already keeps them out of the picker
 
 **Blockers encountered:**
-- TBD
+- None; a first script pass failed safely before writing (it assumed a newline before the first platform key) and was corrected
 
 **Follow-up identified:**
-- TBD
+- Open VS Code issue #336761 (the Agent Host ignores a selected custom agent) can stop a Copilot custom agent from applying at all, independent of its description
+- Behavioral confirmation that Codex spawns these agents from their descriptions is not covered here; task 132's headless end-to-end work is Claude Code-only
 
 ## Files to Create / Modify
 

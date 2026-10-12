@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 102
+status: Completed
 mode: Assisted
 started: "2026-10-12"
 created: "2026-10-06"
+completed: "2026-10-13"
 ---
 
 # existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch

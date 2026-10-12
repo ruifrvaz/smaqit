@@ -41,7 +41,11 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
   - This replaced the original per-command `Bash(...)` allowlist, which proved too brittle in the first live run: it denied a compound `ls … && smaqit status | head` command, so the `self-invocation` and `assisted` agents stopped.
   - A probe confirmed that headless auto mode allows compound commands with no denials.
   - Permissions are never bypassed entirely.
-- **Out of scope:** repairing or retiring the broken Copilot `test-e2e`/`e2e-test.yml`/`run_e2e_test.py` (a follow-up); the deploy and validate phases; CI.
+- **Scope extension** (user, 2026-10-12, after the live runs):
+  - Retire the broken Copilot-SDK e2e path: `make test-e2e`/`test-e2e-clean`, `.github/workflows/e2e-test.yml`, `.github/scripts/`, and `docs/test-cases/mario-hello.automated.md`. It depended on the deleted `smaqit.ci-testing` agent.
+  - Fix `docs/wiki/workflows/quickstart.md`'s drift (global installation, requirements passed in the command, clarifying questions, assisted mode, plain-language requests).
+  - The `.test-venv` cleanup in `make uninstall` and `.gitignore` stays, so leftovers from earlier runs still get removed.
+- **Out of scope:** moving to a Bench manifest (blocked on smaqit-adk task 037); the deploy and validate phases; CI.
 
 ## Implementation Steps
 

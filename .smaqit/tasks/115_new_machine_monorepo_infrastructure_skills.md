@@ -3,9 +3,35 @@ status: Not Started
 created: "2026-08-24"
 ---
 
-# New Machine-Monorepo Infrastructure Skills: Provision, Verify, Day-2 Baseline, Tenant Reconcile
+# Platform Repositories: Guarded Replacement, Cyso Facts, and a Pattern Guide
 
 ## Description
+
+**Rescoped 2026-10-12 (`task.plan`).** The four canonical skills this task originally asked for
+are dropped. Since the task was filed, the downstream platform repository moved every machine to
+single-server k3s reached over a mesh network: its provisioning and host-baseline mechanisms are
+live but materially changed, machine verification was never packaged as one unit, and the
+`tenants.yml` VM tenancy was retired on 2026-09-05 in favour of k3s Namespace onboarding. Those
+mechanisms are now that repository's own project skills, which it plans to bind into smaqit's
+deployment slots itself. Shipping canonical copies would duplicate live skills and hardcode one
+contributor's mechanics as a universal contract (the task 116 thin-dispatcher rule).
+
+What remains is the generic, smaqit-owned work the downstream exposed:
+
+1. **Guarded replacement.** `plan-guard.sh` rejects every planned delete, which also blocks a
+   deliberate `terraform plan -replace=<address>` — the only way to replace an instance whose
+   `user_data` is under `ignore_changes`. The guard also discards the plan it inspected, so the
+   caller's `terraform apply` re-plans instead of applying what was checked.
+2. **Cyso facts.** The reference's S3 backend block uses superseded syntax and lacks the flags
+   proven against Cyso Object Storage; Nova's 65,535-byte `user_data` limit and the gzip
+   embedding that avoids it are undocumented.
+3. **A platform-repository guide.** The pattern (layout, per-machine state and Environments,
+   gated dispatch, day-two through workflows, verification checklist) and its live-found gotchas
+   have no home in smaqit's documentation.
+4. **A cross-reference** from the app-side skills to how an app is hosted on a platform
+   repository's machine.
+
+### Original scope (superseded)
 
 Companion to task 114. A downstream project's infrastructure repo task 001 (2026-08-22 → 2026-08-24, PRs #1–#7)
 established and live-verified the **machine-monorepo pattern** — an app-agnostic repository
@@ -102,45 +128,114 @@ tenants:
   `touch`/`chmod`-style mutations outside a guard, or idempotency silently degrades to
   content-only.
 
+## Issue Triage Context
+
+**Mode:** Auto
+**Technologies:** Terraform, Bash, jq, OpenStack, GitHub Actions, cloud-init
+**Platforms/Environments:** Linux, WSL2, Cyso Cloud (OpenStack)
+**Features/Integrations:** terraform plan -replace, saved plan files, Terraform S3 backend, Nova user_data, cloud-init gzip encoding, smaqit deployment slots
+**Versions/Constraints:** smaqit 3.10.0, Terraform >= 1.6 S3 backend syntax, Nova user_data limit 65535 bytes base64-encoded
+
 ## Design Decisions
 
-- Four separate skills rather than one mega-skill, matching the existing family's granularity
-  (provision / verify / day-2 / reconcile map to distinct invocation moments).
-- Reference implementation is a downstream project's infrastructure repo (modules/, machines/<machine-slug>/,
-  scripts/reconcile/, .github/workflows/{provision,reconcile-tenants,host-baseline}.yml) — the
-  skills generalize it (machine-agnostic, provider constants parameterized where sensible) rather
-  than embedding downstream-specific details; the pattern's rule that no application name may appear in
-  machinery applies to the skills too.
-- [TBD at task start: whether provision-machine stays Cyso/OpenStack-specific (matching
-  provision-cyso's precedent) or abstracts the provider; whether `smaqit.new-greenfield-project`
-  gains an `existing-shared` cross-reference pointing app projects at machine-monorepo-managed
-  hosts.]
-- Depends on task 114 for: corrected provider facts (skill 1 consumes them), machine-scoped
-  GitHub Environment configuration (skill 1's credential step), and machine registration in
-  Vault (precondition for everything).
+Confirmed by the user on 2026-10-12, during `task.plan`:
+
+- **No canonical machine skills.** Provision, verify, host-baseline, and the k3s onboarding
+  successor stay platform-repository-owned fillers, bound through deployment slots. This follows
+  the task 116 rule that smaqit defines hand-off points, not one contributor's mechanisms.
+- **`tenant-reconcile` is out:** superseded downstream by k3s Namespace onboarding, whose
+  receiving side is the platform's own contract (smaqit ships only the app side).
+- **The guard stays backward compatible:** with no flags, `plan-guard.sh` behaves exactly as
+  today, so vendored copies and the cicd-generate templates are unaffected.
+- **Fail closed on replacement:** an allowed address passes only when the plan replaces it
+  (delete plus create). A pure destroy of it, or an allowed address the plan doesn't replace, is
+  blocked, as is every other delete.
+- **`--out` is opt-in** and closes the gap between the guarded plan and the applied one.
+- **Machine verification is a checklist in the guide, not a skill:** the checks depend on the
+  machine's class.
+- **No downstream project names** in shipped content or the guide (CONTRIBUTING).
+- **Delivery:** its own branch from `origin/main` and its own `Prepare release vX.Y.Z` PR.
 
 ## Known Issues Triage
 
 [Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
 
+## Implementation Steps
+
+*Phase A — guarded replacement*
+
+1. `skills/smaqit.infrastructure-provision-cyso/scripts/plan-guard.sh`: add repeatable
+   `--allow-replace <address>` (passed to `terraform plan` as `-replace=<address>`) and
+   `--out <planfile>` (keep the inspected binary plan), keeping the positional directory argument.
+   An allowed address passes only as a replacement; a pure destroy of it, an allowed address the
+   plan doesn't replace, and every other delete are blocked. No flags: behaviour unchanged.
+2. `installer/skill_scripts_test.go`: stub-`terraform` cases — no changes, update-only,
+   unexpected delete blocked, allowed replacement passes with `-replace=` passed through, pure
+   destroy of an allowed address blocked, allowed address not replaced blocked, allowed
+   replacement plus another delete blocked, `--out` keeps the plan, unknown flag fails. Skip when
+   `jq` is missing.
+3. `provision-cyso/SKILL.md`: a deliberate-replacement path in Steps 6–7 (apply the `--out` plan),
+   a Failure Handling row, version bump. `cicd-generate/SKILL.md`: a gotcha for gated workflows
+   (pass the dispatch input through `--allow-replace`, apply the `--out` plan), version bump;
+   templates unchanged.
+
+*Phase B — Cyso facts (parallel with A)*
+
+4. `cyso-reference.md` S3 backend block: `endpoints = { s3 = … }`, `use_path_style`,
+   `skip_requesting_account_id`, `skip_s3_checksum`, `skip_credentials_validation`,
+   `skip_region_validation`; Terraform >= 1.6; state isolation by key in a shared bucket, or a
+   dedicated bucket for full separation.
+5. `openstack-forcenew-attributes.md`: Nova's 65,535-byte base64 `user_data` limit and its
+   empty-error-box symptom, a plan-time `precondition`, `base64gzip()` with cloud-init
+   `encoding: gz+b64`, and `ignore_changes = [user_data]` requiring an explicit guarded
+   `-replace=`. `provider-cyso/SKILL.md`: gotcha line, version bump.
+
+*Phase C — platform-repository guide*
+
+6. New `docs/wiki/workflows/platform-repositories.md` (app-agnostic, no downstream names): what a
+   platform repository is and which slots it binds; layout (shared modules, per-machine roots,
+   state, and Environments; validate-only PR checks under main-only branch policies); governance
+   (gated dispatch with an exact confirm input, guarded `--allow-replace`/`--out`); day-two
+   through workflows, sharing first-boot scripts, targeting from Terraform outputs; a generic
+   machine-verification checklist; gotchas (ssh argv joining, `</dev/null` in loops, secrets on
+   stdin, guard-then-act idempotency at the filesystem level, SSH keepalive, `user_data` limit,
+   host keys changing on replacement).
+7. Link it from `deployment-slots.md` and any wiki index.
+
+*Phase D — cross-reference*
+
+8. `smaqit.input-deployment` and `smaqit.new-greenfield-project` mode definitions: an app on a
+   platform repository's machine uses `existing-k3s` (onboarded via `request-k3s-onboarding`) or
+   `existing-shared`; the platform repository binds its own fillers; see the guide. Version
+   bumps; descriptions within the 400-character cap.
+
+*Phase E — verification and release*
+
+9. `.smaqit/compendium.md`: extend the platform-repository entry with the guarded-replacement
+   flow and the guide.
+10. `make -C installer prepare test smoke-test`; `grep -rn force_path_style skills/` is empty;
+    break the guard deliberately once to prove the tests fail. CHANGELOG via `task.complete`.
+
 ## Acceptance Criteria
 
-- [ ] `smaqit.infrastructure-provision-machine` exists covering layout, per-machine state-key
-      isolation, machine-scoped environment credentials, plan-on-PR + gated confirm-input apply,
-      fixed-IP recording, and ForceNew/user_data safety.
-- [ ] `smaqit.infrastructure-machine-verify` exists producing a PASS/FAIL report over SSH,
-      cloud-init, mount (UUID-pinned + write test), services, API-verified security group,
-      reboot survival, and zero-drift plan; documents the stale-known_hosts gotcha.
-- [ ] `smaqit.infrastructure-host-baseline` exists encoding the day-2 workflow pattern
-      (Terraform-output-sourced targeting, idempotent script streaming, machine-scoped
-      environment) with an explicit no-ad-hoc-SSH stance.
-- [ ] `smaqit.infrastructure-tenant-reconcile` exists covering the tenants.yml schema,
-      fail-closed validation, idempotent grants, DNS ledger semantics, filesystem-level
-      idempotency, and both the shlex-quoting and unconditional-touch gotchas.
-- [ ] All four skills contain no application-specific names or logic (tenants as opaque data
-      only), matching the pattern's own app-agnostic rule.
-- [ ] Cross-references are in place: provision-machine ↔ provider-cyso (facts), ↔ task 114's
-      environment-config work, tenant-reconcile ↔ host-baseline (grants assume a baselined host).
+- [ ] `plan-guard.sh` accepts repeatable `--allow-replace <address>` and `--out <planfile>`,
+      passes each address to `terraform plan -replace=`, allows only a true replacement of a
+      listed address, blocks every other delete, a pure destroy of a listed address, and a listed
+      address the plan doesn't replace; with no flags its behaviour is unchanged.
+- [ ] Stub-terraform tests cover every case in Implementation Step 2 and fail when the guard is
+      deliberately broken.
+- [ ] `provision-cyso` documents the guarded replacement path and applying the `--out` plan;
+      `cicd-generate` documents it for gated workflows; templates are unchanged.
+- [ ] `cyso-reference.md`'s backend block uses the current S3 backend syntax and flags, with no
+      `force_path_style` anywhere in `skills/`; the `user_data` limit, gzip embedding, and
+      explicit replacement are documented in `openstack-forcenew-attributes.md`.
+- [ ] `docs/wiki/workflows/platform-repositories.md` covers the pattern, slots, governance,
+      day-two, the verification checklist, and every gotcha in Step 6, naming no downstream
+      project; `deployment-slots.md` links to it.
+- [ ] `smaqit.input-deployment` and `smaqit.new-greenfield-project` cross-reference hosting an
+      app on a platform repository's machine.
+- [ ] `make -C installer test` and `make -C installer smoke-test` pass; the compendium and
+      `CHANGELOG.md` are updated.
 
 ## Findings
 
@@ -162,11 +257,13 @@ tenants:
 
 | File | Action |
 |------|--------|
-| `skills/smaqit.infrastructure-provision-machine/SKILL.md` | Create |
-| `skills/smaqit.infrastructure-machine-verify/SKILL.md` | Create |
-| `skills/smaqit.infrastructure-host-baseline/SKILL.md` | Create |
-| `skills/smaqit.infrastructure-tenant-reconcile/SKILL.md` | Create |
-| `skills/smaqit.new-greenfield-project/SKILL.md` | Possibly modify (cross-reference) |
+| `skills/smaqit.infrastructure-provision-cyso/scripts/plan-guard.sh`, `SKILL.md` | Modify |
+| `skills/smaqit.infrastructure-cicd-generate/SKILL.md` | Modify (gotcha) |
+| `skills/smaqit.infrastructure-provider-cyso/{SKILL.md,references/cyso-reference.md,references/openstack-forcenew-attributes.md}` | Modify |
+| `skills/smaqit.input-deployment/SKILL.md`, `skills/smaqit.new-greenfield-project/SKILL.md` | Modify (cross-reference) |
+| `installer/skill_scripts_test.go` | Modify |
+| `docs/wiki/workflows/platform-repositories.md` | Create |
+| `docs/wiki/workflows/deployment-slots.md`, `.smaqit/compendium.md`, `CHANGELOG.md` | Modify |
 
 ## Notes
 
@@ -176,4 +273,10 @@ this is the "smaqit framework update for the machine-repo pattern" that infrastr
 deferred to this repository. Task 114 should land first (this task consumes its corrected facts
 and registration/config flows).
 - **Re-scoped by task 125 (2026-10-11):** with deployment slots, a platform repository owns its machine fillers (provision, verify, host baseline, replace). These four skills become optional canonical default fillers and the slot contracts they must meet, not mandatory canonical machine skills.
+- **Rescoped 2026-10-12 (`task.plan`):** discovery against the downstream repository found
+  provisioning and host-baseline live but changed (k3s, mesh access, machine classes), no packaged
+  verification, and tenancy replaced by k3s Namespace onboarding on 2026-09-05. Its own task 051
+  binds its project skills into smaqit slots; it can use `--allow-replace` once this ships.
+  Task 114's `sync-machine` still sets an optional `FIXED_IP`; the downstream now reads the IP
+  from Terraform outputs instead — the guide notes the variable as optional.
 - **Refreshed after task 125 implementation (2026-10-11):** the shipped slots for these four skills are `provision`, `verify`, `host-bootstrap` ("host baseline"), and the day-two `replace`; any default filler added here must declare them in `metadata.smaqit-slots` and be added to the catalogue in `installer/slots.go` (a Go test enforces the declaration).

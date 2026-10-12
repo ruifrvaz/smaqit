@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 99
 mode: Assisted
 started: "2026-10-12"
 created: "2026-08-24"
@@ -246,23 +247,23 @@ Confirmed by the user on 2026-10-12, during `task.plan`:
 
 ## Acceptance Criteria
 
-- [ ] `plan-guard.sh` accepts repeatable `--allow-replace <address>` and `--out <planfile>`,
+- [x] `plan-guard.sh` accepts repeatable `--allow-replace <address>` and `--out <planfile>`,
       passes each address to `terraform plan -replace=`, allows only a true replacement of a
       listed address, blocks every other delete, a pure destroy of a listed address, and a listed
       address the plan doesn't replace; with no flags its behaviour is unchanged.
-- [ ] Stub-terraform tests cover every case in Implementation Step 2 and fail when the guard is
+- [x] Stub-terraform tests cover every case in Implementation Step 2 and fail when the guard is
       deliberately broken.
-- [ ] `provision-cyso` documents the guarded replacement path and applying the `--out` plan;
+- [x] `provision-cyso` documents the guarded replacement path and applying the `--out` plan;
       `cicd-generate` documents it for gated workflows; templates are unchanged.
-- [ ] `cyso-reference.md`'s backend block uses the current S3 backend syntax and flags, with no
+- [x] `cyso-reference.md`'s backend block uses the current S3 backend syntax and flags, with no
       `force_path_style` anywhere in `skills/`; the `user_data` limit, gzip embedding, and
       explicit replacement are documented in `openstack-forcenew-attributes.md`.
-- [ ] `docs/wiki/workflows/platform-repositories.md` covers the pattern, slots, governance,
+- [x] `docs/wiki/workflows/platform-repositories.md` covers the pattern, slots, governance,
       day-two, the verification checklist, and every gotcha in Step 6, naming no downstream
       project; `deployment-slots.md` links to it.
-- [ ] `smaqit.input-deployment` and `smaqit.new-greenfield-project` cross-reference hosting an
+- [x] `smaqit.input-deployment` and `smaqit.new-greenfield-project` cross-reference hosting an
       app on a platform repository's machine.
-- [ ] `make -C installer test` and `make -C installer smoke-test` pass; the compendium and
+- [x] `make -C installer test` and `make -C installer smoke-test` pass; the compendium and
       `CHANGELOG.md` are updated.
 
 ## Findings
@@ -270,16 +271,28 @@ Confirmed by the user on 2026-10-12, during `task.plan`:
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Rescoped during `task.plan` after reading the downstream platform repository as it stands: provisioning and host-baseline live but rebuilt around k3s and a mesh network, verification never packaged, and VM tenancy (`tenants.yml`) retired on 2026-09-05 for k3s Namespace onboarding. The four canonical skills were dropped in favour of generic hand-off pieces.
+- `plan-guard.sh`: repeatable `--allow-replace <address>` (passed to `terraform plan -replace=`; passes only a delete-plus-create of a listed address, in either action order) and `--out <planfile>` (resolved to an absolute path before changing directory; kept only when the guard passes). No flags keeps the old behaviour; usage errors exit 2.
+- `installer/skill_scripts_test.go`: a stub `terraform` (records argv, writes a marker plan at `-out=`, answers `show -json` only for that plan) and four tests covering every planned case. A deliberate break (dropping the replacement check) made the pure-destroy case fail; restored.
+- provision-cyso now guards with `--out tfplan` and applies `tfplan`, with a deliberate-replacement path and two failure rows; cicd-generate gained a gated-replacement gotcha.
+- Cyso facts: Terraform 1.6+ S3 backend block proven against Cyso Object Storage, state-isolation guidance, the Nova `user_data` limit with a plan-time precondition and gzip embedding, and the `ignore_changes`/deliberate-replacement interplay.
+- New `docs/wiki/workflows/platform-repositories.md`, linked from `deployment-slots.md` and the README; app-side cross-references in `input-deployment` and `new-greenfield-project`; compendium entry extended.
+- `make -C installer prepare test smoke-test` pass; no downstream names in the diff; no `force_path_style` left in `skills/`.
 
 **Decisions made:**
-- TBD
+- No canonical machine skills and no tenancy skill: the platform repository's mechanisms changed wholesale within weeks and remain its own slot fillers (task 116 rule).
+- Machine verification is a checklist in the guide rather than a skill, because the checks depend on the machine's class.
+- provision-cyso's default flow now applies the saved, guarded plan instead of re-planning on apply.
+- The cross-reference sentences in shipped skills are self-contained: `docs/wiki/` is not installed with the skills, so a skill cannot link to the guide.
+- The per-bucket isolation note was limited to what is verified (a bucket as the unit of listing, lifecycle, and deletion); per-bucket credential scoping on Cyso was not verified and is not claimed.
 
 **Blockers encountered:**
-- TBD
+- A fresh worktree has no generated embed directories, so `go test` fails at setup until `make prepare` runs.
 
 **Follow-up identified:**
-- TBD
+- cicd-generate's `deploy.yml.full.template` still runs the guard and then a bare `terraform apply -auto-approve`, which re-plans; moving it to `--out`/`apply tfplan` changes generated workflows and deserves its own task.
+- Downstream platform repository task 051 can use `--allow-replace` instead of writing its own guard.
+- Task 114's `sync-machine` sets an optional `FIXED_IP` that the downstream no longer reads; documented as optional in the guide.
 
 ## Files to Create / Modify
 

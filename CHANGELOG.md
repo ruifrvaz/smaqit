@@ -30,6 +30,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.11.1] - 2026-10-12
+
+### Fixed
+- **The generated `deploy.yml` (`full` mode) applies the guarded plan.** The provision job runs `plan-guard.sh deployment/terraform --out deployment/terraform/tfplan` and then `terraform apply -input=false tfplan`, instead of a bare `terraform apply -auto-approve` that planned again and could apply changes the guard never saw. A plan made stale by a state change between the two steps is now rejected. `smaqit.infrastructure-cicd-generate` documents the guard and apply steps as coupled; regenerate workflows to pick this up.
+
+### Added
+- Tests that parse the shipped `deploy.yml.full.template` to check the apply consumes the guard's plan, and that no cicd-generate template uses `-auto-approve`.
+
+## [3.11.0] - 2026-10-12
+
+### Added
+- **Guarded replacement** — `plan-guard.sh --allow-replace <address>` (repeatable) plans with `-replace=` and passes only a true replacement of each named address, in either action order. A pure destroy of it, an address the plan doesn't replace, and every other delete stay blocked. Without flags the guard behaves as before.
+- **Guarded plan file** — `plan-guard.sh --out <planfile>` keeps the exact plan the guard inspected, so `terraform apply <planfile>` applies what was checked instead of planning again; the file is deleted whenever the guard blocks.
+- **Platform Repositories guide** (`docs/wiki/workflows/platform-repositories.md`) — how a repository that owns machines runs through smaqit's deployment slots: why smaqit doesn't ship its mechanisms, layout and governance, day two through workflows, a machine-verification checklist, and gotchas found only on live machines.
+- Stub-terraform tests for every `plan-guard.sh` case, including both replacement action orders and `--out` cleanup.
+
+### Changed
+- `smaqit.infrastructure-provision-cyso` applies the saved, guarded plan (`plan-guard.sh . --out tfplan`, then `terraform apply tfplan`) and documents deliberate replacement; `smaqit.infrastructure-cicd-generate` documents guarded replacement for gated workflows.
+- `smaqit.input-deployment` and `smaqit.new-greenfield-project` explain hosting an app on a platform repository's machine: `existing-k3s` or `existing-shared`, with the platform's own fillers out of the app's hands.
+
+### Fixed
+- Cyso S3 backend block uses the Terraform 1.6+ arguments proven against Cyso Object Storage (`endpoints`, `use_path_style`, `skip_s3_checksum`, `skip_requesting_account_id`) instead of the superseded `endpoint`/`force_path_style`.
+- Nova's 65,535-byte `user_data` limit (and its empty error box), a plan-time precondition, gzip embedding, and the `ignore_changes = [user_data]` replacement path are documented in `smaqit.infrastructure-provider-cyso`.
+
+## [3.10.1] - 2026-10-12
+
+### Changed
+- **Trigger-form Copilot and Codex entry agents.** The GitHub Copilot and Codex descriptions of `smaqit.development`, `smaqit.deployment`, `smaqit.validation`, and `smaqit.qa` now lead with "Use when…" and the user requests each serves, matching the Claude Code wording from v3.10.0. The Codex phase-agent descriptions also tell the spawning session to pass the full request and any `PHASE-PARAMETERS` block, and to relay `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user rather than answering it. Specification agents keep their delegation-only wording.
+
 ## [3.10.0] - 2026-10-12
 
 ### Added

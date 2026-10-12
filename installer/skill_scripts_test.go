@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -107,6 +108,23 @@ esac
 exit 0
 `
 
+const stubTerraform = `#!/usr/bin/env bash
+set -u
+printf '%s\0' "$@" >> "$STUB_STATE/terraform.argv"
+printf '\n' >> "$STUB_STATE/terraform.argv"
+case "$1" in
+  plan)
+    for a in "$@"; do
+      case "$a" in -out=*) printf 'stub-plan' > "${a#-out=}" ;; esac
+    done
+    pwd > "$STUB_STATE/terraform.pwd"
+    exit "${STUB_TF_PLAN_EXIT:-2}" ;;
+  show)
+    [ "$(cat "$3" 2>/dev/null)" = stub-plan ] || { echo "no plan at $3" >&2; exit 1; }
+    cat "$STUB_TF_PLAN_JSON" ;;
+esac
+`
+
 type scriptHarness struct {
 	t     *testing.T
 	state string
@@ -122,7 +140,7 @@ func newScriptHarness(t *testing.T) *scriptHarness {
 		}
 	}
 	bin := t.TempDir()
-	for name, body := range map[string]string{"vault": stubVault, "gh": stubGh} {
+	for name, body := range map[string]string{"vault": stubVault, "gh": stubGh, "terraform": stubTerraform} {
 		if err := os.WriteFile(filepath.Join(bin, name), []byte(body), 0755); err != nil {
 			t.Fatal(err)
 		}
@@ -492,5 +510,161 @@ func TestCheckPatPermissionsMapsSignatures(t *testing.T) {
 	out, err = h.run([]string{"STUB_GH_FORBID_VARIABLES=1"}, script, "acme/app", "test")
 	if exitCode(err) != 3 || !strings.Contains(out, "organization-level Secrets and Variables") {
 		t.Errorf("forbidden variables: exit %d\n%s", exitCode(err), out)
+	}
+}
+
+// planChange is one resource_changes entry in the stub plan's JSON.
+type planChange struct {
+	address string
+	actions []string
+}
+
+// runPlanGuard runs plan-guard.sh against the stub terraform in a "tf"
+// subdirectory, with the plan exiting planExit and reporting changes.
+func runPlanGuard(t *testing.T, h *scriptHarness, planExit int, changes []planChange, args ...string) (string, int) {
+	t.Helper()
+	if _, err := exec.LookPath("jq"); err != nil {
+		t.Skipf("jq not available: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(h.work, "tf"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	var entries []string
+	for _, c := range changes {
+		entries = append(entries, `{"address":"`+c.address+`","change":{"actions":["`+strings.Join(c.actions, `","`)+`"]}}`)
+	}
+	planJSON := filepath.Join(t.TempDir(), "plan.json")
+	if err := os.WriteFile(planJSON, []byte(`{"resource_changes":[`+strings.Join(entries, ",")+`]}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	os.Remove(filepath.Join(h.state, "terraform.argv"))
+	script := skillScript("smaqit.infrastructure-provision-cyso", "plan-guard.sh")
+	out, err := h.run([]string{
+		"STUB_TF_PLAN_EXIT=" + strconv.Itoa(planExit),
+		"STUB_TF_PLAN_JSON=" + planJSON,
+	}, script, append([]string{"tf"}, args...)...)
+	code := 0
+	if err != nil {
+		ee, ok := err.(*exec.ExitError)
+		if !ok {
+			t.Fatalf("plan-guard did not run: %v\n%s", err, out)
+		}
+		code = ee.ExitCode()
+	}
+	return out, code
+}
+
+const instance = "module.machine.openstack_compute_instance_v2.this"
+
+func TestPlanGuardWithoutFlagsKeepsBlockingEveryDelete(t *testing.T) {
+	h := newScriptHarness(t)
+	if out, code := runPlanGuard(t, h, 0, nil); code != 0 || !strings.Contains(out, "no changes") {
+		t.Errorf("no changes: exit %d\n%s", code, out)
+	}
+	if pwd, _ := os.ReadFile(filepath.Join(h.state, "terraform.pwd")); !strings.HasSuffix(strings.TrimSpace(string(pwd)), "/tf") {
+		t.Errorf("terraform did not run in the working directory argument: %q", pwd)
+	}
+	out, code := runPlanGuard(t, h, 2, []planChange{{"openstack_networking_secgroup_v2.app", []string{"update"}}})
+	if code != 0 || !strings.Contains(out, "additive/update-only") {
+		t.Errorf("update-only: exit %d\n%s", code, out)
+	}
+	for _, actions := range [][]string{{"delete", "create"}, {"create", "delete"}, {"delete"}} {
+		out, code := runPlanGuard(t, h, 2, []planChange{{instance, actions}})
+		if code != 1 || !strings.Contains(out, instance) {
+			t.Errorf("unflagged %v: exit %d\n%s", actions, code, out)
+		}
+	}
+	if out, code := runPlanGuard(t, h, 1, nil); code != 1 || !strings.Contains(out, "plan failed") {
+		t.Errorf("failed plan: exit %d\n%s", code, out)
+	}
+	if strings.Contains(h.argv("terraform"), "-replace=") {
+		t.Error("passed -replace= without --allow-replace")
+	}
+}
+
+func TestPlanGuardAllowsOnlyTheNamedReplacement(t *testing.T) {
+	h := newScriptHarness(t)
+	// Both action orders are a replacement (create-before-destroy plans create first).
+	for _, actions := range [][]string{{"delete", "create"}, {"create", "delete"}} {
+		out, code := runPlanGuard(t, h, 2, []planChange{
+			{instance, actions},
+			{"module.machine.openstack_compute_volume_attach_v2.data", []string{"update"}},
+		}, "--allow-replace", instance)
+		if code != 0 || !strings.Contains(out, "replaces only the explicitly allowed") {
+			t.Errorf("allowed replacement %v: exit %d\n%s", actions, code, out)
+		}
+		if !strings.Contains(h.argv("terraform"), "-replace="+instance+"\x00") {
+			t.Errorf("-replace not passed to terraform plan: %q", h.argv("terraform"))
+		}
+	}
+
+	cases := []struct {
+		name    string
+		exit    int
+		changes []planChange
+		want    string
+	}{
+		{"pure destroy of the allowed address", 2, []planChange{{instance, []string{"delete"}}}, instance + ": delete"},
+		{"allowed address not replaced", 2, []planChange{{instance, []string{"update"}}}, "does not replace"},
+		{"allowed address with no changes", 0, nil, "nothing was replaced"},
+		{"another delete beside the allowed replacement", 2, []planChange{
+			{instance, []string{"delete", "create"}},
+			{"module.machine.openstack_blockstorage_volume_v3.data", []string{"delete", "create"}},
+		}, "openstack_blockstorage_volume_v3.data"},
+	}
+	for _, c := range cases {
+		out, code := runPlanGuard(t, h, c.exit, c.changes, "--allow-replace", instance)
+		if code != 1 || !strings.Contains(out, c.want) {
+			t.Errorf("%s: exit %d, want 1 mentioning %q\n%s", c.name, code, c.want, out)
+		}
+	}
+
+	// Two listed addresses: both must be replaced.
+	second := "module.machine.openstack_compute_keypair_v2.this"
+	if out, code := runPlanGuard(t, h, 2, []planChange{{instance, []string{"delete", "create"}}},
+		"--allow-replace", instance, "--allow-replace", second); code != 1 || !strings.Contains(out, second) {
+		t.Errorf("second allowed address unreplaced: exit %d\n%s", code, out)
+	}
+}
+
+func TestPlanGuardOutKeepsOnlyAGuardedPlan(t *testing.T) {
+	h := newScriptHarness(t)
+	kept := filepath.Join(h.work, "guarded.tfplan") // relative to the caller, not the tf directory
+	out, code := runPlanGuard(t, h, 2, []planChange{{instance, []string{"delete", "create"}}},
+		"--allow-replace", instance, "--out", "guarded.tfplan")
+	if code != 0 || !strings.Contains(out, "terraform apply "+kept) {
+		t.Fatalf("guarded plan: exit %d\n%s", code, out)
+	}
+	if data, err := os.ReadFile(kept); err != nil || string(data) != "stub-plan" {
+		t.Fatalf("plan not kept at %s: %v", kept, err)
+	}
+	if _, err := os.Stat(filepath.Join(h.work, "tf", "guarded.tfplan")); err == nil {
+		t.Error("--out resolved against the terraform directory instead of the caller's")
+	}
+
+	// A blocked plan never survives, even one kept by an earlier run.
+	out, code = runPlanGuard(t, h, 2, []planChange{{instance, []string{"delete"}}}, "--out", "guarded.tfplan")
+	if code != 1 {
+		t.Fatalf("destroy with --out: exit %d\n%s", code, out)
+	}
+	if _, err := os.Stat(kept); err == nil {
+		t.Error("blocked plan left on disk")
+	}
+}
+
+func TestPlanGuardRejectsBadUsage(t *testing.T) {
+	h := newScriptHarness(t)
+	for _, args := range [][]string{
+		{"--bogus"},
+		{"--allow-replace"},
+		{"--out"},
+		{"extra-dir"},
+	} {
+		if out, code := runPlanGuard(t, h, 0, nil, args...); code != 2 {
+			t.Errorf("args %q: exit %d, want 2\n%s", args, code, out)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(h.state, "terraform.argv")); err == nil {
+		t.Error("terraform ran despite a usage error")
 	}
 }

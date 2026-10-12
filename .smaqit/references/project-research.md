@@ -270,3 +270,75 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | OpenStack | CLI: volume set (retype) | https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/volume/v3/index.html |
 | OpenStack | Cinder volume retype | https://docs.openstack.org/cinder/latest/admin/volume-migration.html |
 | OpenStack | CLI: volume type | https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/volume/v3/index.html |
+
+## Task 130 — Make smaqit Self-Invoking: Directive Instructions, Block Refresh, Trigger-Form Descriptions
+
+**Context fingerprint:** sha256:717c2b031595e4e46835a069aab2bf9ae7726c0671bae8a038e6fe0262f131f8
+**Refreshed:** 2026-10-11
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Go | Package testing | https://pkg.go.dev/testing |
+| Go | Package strings | https://pkg.go.dev/strings |
+| Python | Documentation | https://docs.python.org/3/ |
+| Python | re module | https://docs.python.org/3/library/re.html |
+| PyYAML | Documentation | https://pyyaml.org/wiki/PyYAMLDocumentation |
+| PyYAML | Package reference | https://pypi.org/project/PyYAML/ |
+| Claude Code | Agent Skills (description budget, when_to_use) | https://code.claude.com/docs/en/skills |
+| Claude Code | Subagents (proactive delegation) | https://code.claude.com/docs/en/sub-agents |
+| Claude Code | Memory (CLAUDE.md imports, AGENTS.md) | https://code.claude.com/docs/en/memory |
+| Claude Code | Settings (skill listing budget) | https://code.claude.com/docs/en/settings |
+| Claude Code | Features overview (context cost) | https://code.claude.com/docs/en/features-overview |
+
+## Task 133 — Copilot and Codex Entry-Agent Descriptions in Trigger Form
+
+**Context fingerprint:** sha256:c047a36c5b8ac6a4643635c9745115a82766fe4aeb4ba5df0817b02f9d3e83f2
+**Refreshed:** 2026-10-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| GitHub Copilot | VS Code custom agents | https://code.visualstudio.com/docs/agent-customization/custom-agents |
+| GitHub Copilot | Agent skills | https://docs.github.com/en/copilot/concepts/agents/about-agent-skills |
+| Codex CLI | Repository | https://github.com/openai/codex |
+| Codex CLI | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
+
+## Task 132 — Claude Code Headless E2E Test: Install Into a Scratch Folder and Build a Site Through smaqit
+
+**Context fingerprint:** sha256:cdfcc03d2b7522701ab1c85b55035e82917824ec0a07cd2314275a1333e70802
+
+**Refreshed:** 2026-10-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Claude Code | Headless mode (claude -p) | https://code.claude.com/docs/en/headless |
+| Claude Code | CLI reference | https://code.claude.com/docs/en/cli-reference |
+| Claude Code | Authentication (setup-token, CLAUDE_CONFIG_DIR) | https://code.claude.com/docs/en/authentication |
+| Claude Code | Sessions and resume | https://code.claude.com/docs/en/sessions |
+| Claude Code | MCP (project servers) | https://code.claude.com/docs/en/mcp |
+| Claude Code | Subagents | https://code.claude.com/docs/en/sub-agents |
+| Node.js | Test runner (node --test) | https://nodejs.org/api/test.html |
+| Node.js | Documentation | https://nodejs.org/docs/latest-v22.x/api/ |
+| Go | Documentation | https://go.dev/doc/ |
+
+## Task 115 — Platform Repositories: Guarded Replacement, Cyso Facts, and a Pattern Guide
+
+**Context fingerprint:** sha256:5654b6aa8a7070271ec0e8e04714beaef698a29ab5ebd12b0b998cec1b477e7d
+**Refreshed:** 2026-10-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Terraform | Command: plan (-replace, -out) | https://developer.hashicorp.com/terraform/cli/commands/plan |
+| Terraform | Command: apply (saved plan) | https://developer.hashicorp.com/terraform/cli/commands/apply |
+| Terraform | Command: show -json | https://developer.hashicorp.com/terraform/cli/commands/show |
+| Terraform | JSON output format (resource_changes actions) | https://developer.hashicorp.com/terraform/internals/json-format |
+| Terraform | S3 backend | https://developer.hashicorp.com/terraform/language/backend/s3 |
+| Terraform | lifecycle meta-argument (ignore_changes, precondition) | https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle |
+| Terraform | base64gzip function | https://developer.hashicorp.com/terraform/language/functions/base64gzip |
+| Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |
+| jq | Manual | https://jqlang.org/manual/ |
+| OpenStack | Nova user data (metadata service) | https://docs.openstack.org/nova/latest/user/metadata.html |
+| OpenStack | Terraform provider: compute_instance_v2 | https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs/resources/compute_instance_v2 |
+| GitHub Actions | Workflow syntax | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub Actions | Using environments for deployment | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
+| cloud-init | write_files (encoding gz+b64) | https://docs.cloud-init.io/en/latest/reference/modules.html |
+| cloud-init | Documentation | https://docs.cloud-init.io/en/latest/ |

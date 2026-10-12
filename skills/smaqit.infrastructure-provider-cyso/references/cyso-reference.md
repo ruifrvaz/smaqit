@@ -318,21 +318,39 @@ Object Storage uses **EC2/S3 credentials**, which are separate from application 
 
 ### Terraform S3 backend configuration
 
+Terraform 1.6 replaced the S3 backend's `endpoint` and `force_path_style` arguments with
+`endpoints = { s3 = … }` and `use_path_style`. This block is the one proven against Cyso Object
+Storage with current Terraform:
+
 ```hcl
 terraform {
   backend "s3" {
-    bucket   = "<project-slug>-tfstate"
-    key      = "<project-slug>/terraform.tfstate"
-    region   = "ams2"
-    endpoint = "https://core.fuga.cloud:8080"
+    bucket = "<state-bucket>"
+    key    = "<project-or-machine-slug>/terraform.tfstate"
+    region = "ams2"
+
+    endpoints = {
+      s3 = "https://core.fuga.cloud:8080"
+    }
 
     skip_credentials_validation = true
-    skip_metadata_api_check     = true
     skip_region_validation      = true
-    force_path_style            = true
+    skip_requesting_account_id  = true
+    skip_s3_checksum            = true
+    use_path_style              = true
   }
 }
 ```
+
+- `skip_s3_checksum = true` is required on non-AWS S3 stores: without it, recent Terraform
+  versions send checksum headers the store rejects ("The Content-SHA256 you specified did not
+  match", hashicorp/terraform#37648). Third-party S3 compatibility has regressed before
+  (hashicorp/terraform#37130), so pin the Terraform version and test `init` after upgrading.
+- `skip_requesting_account_id` stops the backend calling AWS STS/IAM, which Cyso doesn't have.
+- **State isolation** is by `key`: one key per project or per machine in a shared bucket is
+  enough to keep states apart. Use a dedicated bucket per machine when a state must be fully
+  separated (for example production): a bucket is the unit that is listed, lifecycle-managed, and
+  deleted as a whole. Either way the bucket is created by hand before `terraform init`.
 
 Credentials passed at runtime:
 ```bash

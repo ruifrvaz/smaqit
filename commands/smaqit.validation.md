@@ -10,6 +10,7 @@ Run the Validation phase through the `smaqit-validation` subagent. The subagent 
 2. **Delegate.** Invoke the `smaqit-validation` subagent via the Task tool. Pass the user's request, the session context relevant to it, and the `PHASE-PARAMETERS` block.
 3. **Handle return signals.** If the result starts with `NEEDS-INPUT` or `REVIEW-REQUESTED`:
    - Ask the user with the question tool. For `NEEDS-INPUT`, ask each listed question, using its `why` as context. For `REVIEW-REQUESTED`, point the user to the listed specification and design files and ask them to approve or give feedback.
+   - If no question tool is available, for example in a headless `claude -p` run, print each question with its id (or the files to review), then end your turn. The user's next message carries the answers; treat it as the reply and continue with the next bullet.
    - Resume the same subagent: send its agent ID a message (SendMessage) containing `answers`, keyed by question id (`review` for a review), plus any `approved_spec_paths` the signal carried.
    - If the subagent cannot be resumed, invoke it again via Task with the same `PHASE-PARAMETERS` block plus `answers` and the signal's `approved_spec_paths`. Nothing a `NEEDS-INPUT` signal reported was written, and approved specifications are skipped, so a fresh run repeats no work.
    - Repeat until the result is neither signal.

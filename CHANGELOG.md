@@ -28,6 +28,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.12.0] - 2026-10-12
+
+### Added
+- **Claude Code end-to-end test** (`make -C installer e2e-claude`, `scripts/e2e-claude.sh`). It installs the dev build into an isolated scratch `HOME`/`CLAUDE_CONFIG_DIR` and drives headless `claude -p` through four scenarios that build a static "Hello, Mario!" site: `happy-path`, `needs-input` (the `NEEDS-INPUT` round trip with `--resume`), `assisted` (`REVIEW-REQUESTED` with no regeneration of approved specs), and `self-invocation` (a plain request with no slash command reaches `smaqit-development`). Checks use smaqit's CLI, the site's `node --test`, and the stream-json session log; evidence is kept per scenario. Credentials come from `CLAUDE_CODE_OAUTH_TOKEN`/`ANTHROPIC_API_KEY`, or else from the current claude.ai login's access token, passed only through the environment.
+
+### Changed
+- The `/smaqit.development`, `/smaqit.deployment` and `/smaqit.validation` commands, and the `AGENTS.md` return-signal rule, now cover a session with no question tool (for example headless `claude -p`): print the questions, end the turn, and treat the next message as the answers.
+- `docs/wiki/workflows/testing-smaqit.md` documents the Claude Code e2e test and no longer points to the removed `.github/agents/smaqit.user-testing.agent.md`.
+- `docs/wiki/workflows/quickstart.md` matches the global installation (`smaqit init` creates only project-local files), passes requirements with `/smaqit.development`, and describes clarifying questions, assisted mode, and plain-language requests.
+
+### Removed
+- The broken Copilot-SDK end-to-end path: `make test-e2e`/`make test-e2e-clean`, `.github/workflows/e2e-test.yml`, `.github/scripts/` (runner, requirements, investigation notes), and its `docs/test-cases/mario-hello.automated.md` test case. It depended on the `smaqit.ci-testing` agent, which no longer exists. `make e2e-claude` replaces it.
+
 ## [3.11.1] - 2026-10-12
 
 ### Fixed

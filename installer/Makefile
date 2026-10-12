@@ -121,21 +121,6 @@ uninstall:
 		esac; \
 	fi
 
-# E2E testing using Copilot SDK
-.PHONY: test-e2e
-test-e2e:
-	@echo "Setting up test environment..."
-	@cd .. && python3 -m venv .test-venv 2>/dev/null || true
-	@cd .. && .test-venv/bin/pip install -q github-copilot-sdk
-	@chmod +x ../.test-venv/lib/python*/site-packages/copilot/bin/copilot 2>/dev/null || true
-	@echo "Running E2E test with Copilot SDK..."
-	@cd .. && .test-venv/bin/python .github/scripts/run_e2e_test.py
-
-.PHONY: test-e2e-clean
-test-e2e-clean:
-	@echo "Cleaning test environment..."
-	@cd .. && rm -rf .test-venv
-
 .PHONY: test
 test: prepare
 	@go test ./...
@@ -144,6 +129,12 @@ test: prepare
 .PHONY: smoke-test
 smoke-test: build
 	@../scripts/smoke-test-installer.sh "$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME)"
+
+# Claude Code e2e: installs into an isolated scratch HOME and drives headless `claude -p`.
+# Spends real model usage; needs CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY.
+.PHONY: e2e-claude
+e2e-claude: build
+	@../scripts/e2e-claude.sh --binary "$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME)"
 
 # Help
 help:
@@ -155,8 +146,7 @@ help:
 	@echo "  make uninstall  - Remove binary (prompts for PATH and artifact cleanup)"
 	@echo "  make test       - Run Go tests and vet after generating platform artifacts"
 	@echo "  make smoke-test - Build and verify install/reinstall/validate/uninstall in a temporary project"
-	@echo "  make test-e2e   - Run end-to-end tests using Copilot SDK (auto-setup)"
-	@echo "  make test-e2e-clean - Remove test environment venv"
+	@echo "  make e2e-claude - Build, install into a scratch HOME, and drive headless Claude Code through smaqit (spends model usage; SCENARIOS=...)"
 	@echo "  make version    - Show version that will be built"
 	@echo ""
 	@echo "Current version: $(VERSION)"

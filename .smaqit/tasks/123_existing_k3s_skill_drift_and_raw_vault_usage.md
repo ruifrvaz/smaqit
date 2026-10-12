@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-12"
 created: "2026-10-06"
 ---
 
@@ -121,8 +123,30 @@ Confirmed by the user on 2026-10-12, during `task.plan`:
     `task.complete` (notes the Environment rename for projects regenerating k3s workflows).
 
 ## Known Issues Triage
+**Triaged:** 2026-10-12
+**Tools searched:** GitHub CLI (`cli/cli`), HashiCorp Vault (`hashicorp/vault`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+- None
+
+### Advisory Issues
+- [#8817 gh variable/secret commands should url-encode environment name](https://github.com/cli/cli/issues/8817) — `cli/cli` — bug, priority-3. Machine-slug Environment names need no encoding; `sync-k3s-env.sh` validates the slug's characters.
+- [#5149 create/edit/list/delete repo environment](https://github.com/cli/cli/issues/5149) — `cli/cli` — enhancement. No `gh` Environment command; create Environments with `gh api … -X PUT`.
+- [#13293 Unable to get just the secret values (data) if the secret itself contains a "data" key](https://github.com/hashicorp/vault/issues/13293) — `hashicorp/vault` — secret/kv. Not triggered by smaqit's field names; scripts read single fields with `-field=`.
+
+### Historical (Closed)
+- [#13522 gh run rerun uses stale secret snapshot from workflow-run-create time, not rerun-execute time](https://github.com/cli/cli/issues/13522) — `cli/cli` — closed. After a kubeconfig rotation, redeploy with a fresh dispatch, not a re-run.
+- [#3579 `gh secret load_file envfile`](https://github.com/cli/cli/issues/3579) — `cli/cli` — closed
+
+### Unresolvable Tools
+- None
+
+### Omitted Tools
+- Bash, GitHub Actions, Kubernetes, Docker, Terraform — excluded after relevance prioritization; Terraform and Docker were searched earlier today for tasks 114, 115, and 134 with no blocking results
+
+### Search Warnings
+- None. Research-map task block had no GitHub URLs; all repositories came from the helper fallback.
 
 ## Acceptance Criteria
 

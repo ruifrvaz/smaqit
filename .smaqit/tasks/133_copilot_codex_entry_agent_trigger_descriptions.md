@@ -1,5 +1,7 @@
 ---
-status: Not Started
+status: In Progress
+mode: Assisted
+started: "2026-10-12"
 created: "2026-10-12"
 ---
 
@@ -38,8 +40,20 @@ These descriptions say what the agent *is*, not which user request it serves. Th
 5. Run `make -C installer test` and `make -C installer smoke-test`.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-12
+**Tools searched:** GitHub Copilot, Codex CLI
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#41703 Remove unintended whitespace from spawn agent tool descriptions](https://github.com/openai/codex/issues/41703) — `openai/codex` — bug, subagent. Concerns the spawn tool's own description text, not custom-agent descriptions; noted only because it touches how Codex presents agents
+- [#336761 Agent Host ignores the selected custom agent: picker resets to "Agent" and the agent prompt is never applied](https://github.com/microsoft/vscode/issues/336761) — `microsoft/vscode` — open. A host-side bug that affects whether a selected Copilot custom agent runs at all, independent of its description
+
+### Historical (Closed)
+- [#32418 Add Claude Code-style reusable subagent types to MultiAgentV2 spawn_agent](https://github.com/openai/codex/issues/32418) — `openai/codex` — closed
+- [#340610 Agent picker and runtime desynchronize during Agent Host hydration and harness switching](https://github.com/microsoft/vscode/issues/340610) — `microsoft/vscode` — closed
+
+### Search Warnings
+- GitHub Copilot has no public issue repository; `microsoft/vscode` (the custom-agent host) was searched instead
 
 ## Acceptance Criteria
 

@@ -289,3 +289,15 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Claude Code | Memory (CLAUDE.md imports, AGENTS.md) | https://code.claude.com/docs/en/memory |
 | Claude Code | Settings (skill listing budget) | https://code.claude.com/docs/en/settings |
 | Claude Code | Features overview (context cost) | https://code.claude.com/docs/en/features-overview |
+
+## Task 133 — Copilot and Codex Entry-Agent Descriptions in Trigger Form
+
+**Context fingerprint:** sha256:c047a36c5b8ac6a4643635c9745115a82766fe4aeb4ba5df0817b02f9d3e83f2
+**Refreshed:** 2026-10-12
+
+| Tool | Section | URL |
+|------|---------|-----|
+| GitHub Copilot | VS Code custom agents | https://code.visualstudio.com/docs/agent-customization/custom-agents |
+| GitHub Copilot | Agent skills | https://docs.github.com/en/copilot/concepts/agents/about-agent-skills |
+| Codex CLI | Repository | https://github.com/openai/codex |
+| Codex CLI | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |

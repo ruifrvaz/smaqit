@@ -4,6 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 134 | Apply the Guarded Plan in the Generated deploy.yml (full Mode) | Not Started | Medium |
 | 132 | Claude Code Headless E2E Test: Install Into a Scratch Folder and Build a Site Through smaqit | In Progress | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch | new | Medium |

@@ -37,7 +37,10 @@ All confirmed by the user on 2026-10-11, during `task.plan`.
 - **Fixture:** a new static site, a one-page "Hello, Mario!" pinned to plain HTML/CSS/vanilla JS, with a test using Node's built-in runner (`node --test`) and no package installs.
 - **Assumption, local-only:** no CI workflow. Every run spends real model usage, so it's an explicit pre-release check, not a per-PR gate.
 - **Assumption, dev build by default:** `installer/dist/smaqit-dev` is used unless `--binary <path>` selects a release binary.
-- **Assumption, scoped permissions:** each turn gets `--allowedTools` limited to the commands it needs (`smaqit`, `node`, `git`, `npm`), plus `--permission-prompts none`, rather than bypassing permissions, because the scratch folder does not sandbox the shell.
+- **Permissions:** `--permission-mode auto` with `--permission-prompts none` (user decision, 2026-10-12). Claude Code's classifier allows ordinary commands and denies risky ones, and `E2E_PERMISSION_MODE` overrides the mode.
+  - This replaced the original per-command `Bash(...)` allowlist, which proved too brittle in the first live run: it denied a compound `ls … && smaqit status | head` command, so the `self-invocation` and `assisted` agents stopped.
+  - A probe confirmed that headless auto mode allows compound commands with no denials.
+  - Permissions are never bypassed entirely.
 - **Out of scope:** repairing or retiring the broken Copilot `test-e2e`/`e2e-test.yml`/`run_e2e_test.py` (a follow-up); the deploy and validate phases; CI.
 
 ## Implementation Steps

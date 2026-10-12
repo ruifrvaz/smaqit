@@ -168,13 +168,14 @@ Callers pass phase agents an explicit `PHASE-PARAMETERS` block (`mode`, `specifi
 
 ## Triggers: How a Session Picks smaqit Up
 
-A session should reach for smaqit without the user typing a slash command. Three layers make that happen:
+A session should reach for smaqit without the user typing a slash command. These layers make that happen:
 
 | Layer | Where | What it does |
 |---|---|---|
 | Project instructions | The managed section of the project's `AGENTS.md` ("When to use smaqit"), loaded in every session on every platform | Routes feature, build, deploy, test, and framework-question requests to the matching entry point, puts specifications first, lists the trivial changes that may skip the workflow, and states the return-signal rule |
 | Commands | `commands/*.md` → `~/.claude/commands/` | Claude Code treats commands as skills it can invoke itself. Each has a "Use when…" `description` plus `when_to_use` trigger phrases. The command body resolves phase parameters and owns the ask-and-resume loop |
 | Phase subagents | `claude:` `description` in `.smaqit/definitions/agents/{development,deployment,validation,qa}.frontmatter.yaml` | "Use proactively when…" lets Claude delegate directly. The description asks for the user's full request plus any resolved `PHASE-PARAMETERS` block, and repeats the return-signal rule |
+| Copilot and Codex entry agents | `copilot:` and `codex:` `description` in the same four files | Lead with "Use when…" and the user requests each agent serves, so the right agent is picked from the Copilot agent picker or spawned by Codex. Copilot phase agents ask the user directly (`vscode/askQuestions`), so their descriptions carry only the trigger. Codex phase-agent descriptions also tell the spawning session to pass the full request and any `PHASE-PARAMETERS` block, and to relay `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user |
 
 Direct delegation skips the command body. A phase agent without a parameter block applies its preloaded defaults, and the `AGENTS.md` rule makes the main conversation relay any `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user rather than answering it. The commands stay the preferred path.
 

@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-provision-cyso
 description: Use when provisioning a project's VM on Cyso Cloud (OpenStack) with Terraform, re-running Terraform after infrastructure changes, or when an operator invokes /provision.cyso. Covers application credentials, the Object Storage backend, the SSH keypair, terraform init/plan/apply, and the fixed IP, producing an SSH-reachable VM with a Cinder data volume and ports 22/80/443 open.
 metadata:
-  version: "1.7.0"
+  version: "1.8.0"
   smaqit-slots: "provision=apply"
 ---
 
@@ -122,16 +122,28 @@ be hand-edited in a target project expecting the edit to persist.
    first apply: 1 Nova VM, 1 boot volume (20 GB), 1 security group (ports 22/80/443), 1 keypair,
    1 GitHub Actions variable.
    ```bash
-   scripts/plan-guard.sh .
+   scripts/plan-guard.sh . --out tfplan
    ```
    Exits non-zero and names the specific resource(s) if the plan would delete or replace anything
    (e.g. a `user_data` edit forcing VM replacement) — a deterministic gate, not a prompt to review
-   the plan carefully. Do not run `terraform apply` if this script exits non-zero.
+   the plan carefully. Do not run `terraform apply` if this script exits non-zero. `--out` keeps
+   the exact plan the guard inspected (it is deleted whenever the guard blocks).
 
-7. **Apply (only after `plan-guard.sh` exits 0):**
+   **Deliberate replacement** (e.g. rebuilding the instance so new first-boot content takes
+   effect — with `ignore_changes = [user_data]` a content change alone never shows in a plan):
+   name the resource address explicitly. The guard plans with `-replace=<address>`, accepts a
+   replacement of exactly that address, and still blocks every other delete, a pure destroy of
+   it, and an address the plan doesn't replace:
    ```bash
-   terraform apply
+   scripts/plan-guard.sh . --allow-replace openstack_compute_instance_v2.app --out tfplan
    ```
+
+7. **Apply the guarded plan (only after `plan-guard.sh` exits 0):**
+   ```bash
+   terraform apply tfplan
+   ```
+   Applying the saved plan applies exactly what the guard passed. A bare `terraform apply` plans
+   again and could apply something the guard never saw.
    After apply, note the `fixed_ip` output — this is the public address. The floating IP is provisioned
    but does not route on Cyso's flat network; ignore it.
 
@@ -238,8 +250,8 @@ accessible with the project's deploy keypair, Terraform state in `<project-slug>
 - [ ] Backend variables set (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 - [ ] Terraform provider variables set (correct casing; `TF_VAR_github_token`; ssh key newline stripped)
 - [ ] `terraform init` succeeded with remote state backend
-- [ ] `scripts/plan-guard.sh` run and exited 0 — plan is additive/update-only, no delete or replace
-- [ ] `terraform apply` succeeded; `fixed_ip` noted from outputs
+- [ ] `scripts/plan-guard.sh --out tfplan` run and exited 0 — plan is additive/update-only, or replaces only an address named with `--allow-replace`
+- [ ] `terraform apply tfplan` succeeded; `fixed_ip` noted from outputs
 - [ ] SSH access to VM confirmed via the project's deploy keypair
 - [ ] `.terraform.lock.hcl` committed if regenerated
 
@@ -257,4 +269,5 @@ accessible with the project's deploy keypair, Terraform state in `<project-slug>
 | Image ID not found | Run `openstack image list`; update `variables.tf` with current ID |
 | Keypair replacement shown in plan | Strip trailing newline; re-export `TF_VAR_ssh_public_key` using `tr -d '\n'` |
 | SSH access fails after apply | Verify security group allows port 22; confirm key fingerprint matches uploaded keypair |
-| `scripts/plan-guard.sh` exits non-zero | Do NOT apply. Review the named resource(s); if the destroy/replace is genuinely intentional, apply manually outside this guarded path with explicit sign-off |
+| `scripts/plan-guard.sh` exits non-zero | Do NOT apply. Review the named resource(s). An intentional replacement of a named resource: re-run with `--allow-replace <address> --out tfplan` and apply `tfplan`. A genuine destroy: apply manually outside this guarded path with explicit sign-off |
+| `plan-guard.sh` reports an `--allow-replace` address the plan does not replace | The address is wrong or already gone; check `terraform state list` and correct it — never fall back to an unguarded apply |

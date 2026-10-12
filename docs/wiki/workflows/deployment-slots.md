@@ -96,8 +96,9 @@ slots:
   tls: none
 ```
 
-This is a platform repository — one that owns machines rather than an app. It binds two shipped
-operations and two of its own skills:
+This is a platform repository — one that owns machines rather than an app (see
+[Platform Repositories](platform-repositories.md) for the pattern, a machine-verification checklist,
+and the gotchas found on live machines). It binds two shipped operations and two of its own skills:
 
 - **`target-credentials` → vault-loader `register`** runs `register-machine.sh <machine-slug>`:
   it populates `secret/machines/<machine-slug>/{base-ssh,cyso,tfstate,metadata}` the first time

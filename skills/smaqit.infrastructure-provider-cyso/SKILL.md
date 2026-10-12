@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-provider-cyso
 description: 'Use before any Cyso Cloud decision: choosing a VM flavor, estimating cost, configuring Terraform credentials, looking up endpoints or resource IDs, setting up the OpenStack CLI, editing the compute instance or its user_data, running pre-flight checks, or importing a github_actions_variable/secret. Routes to the right reference so Cyso-specific facts are never guessed.'
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Cyso Knowledge Base
@@ -59,6 +59,8 @@ Output: Step-by-step instructions covering app credential creation, OpenRC downl
 - The `references/` files are the canonical copy of these facts; there is no `docs/wiki/` mirror. Correct them here when a live run contradicts them, and record the date in the file header.
 - Cinder volumes attach over virtio-scsi as `/dev/sdb` with a `/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_<volume-id>` link — never `/dev/vdb`. A volume created without `volume_type` is `tier-2`, not `tier-1`. An attached volume can't be retyped. See `references/cyso-reference.md` → Storage.
 - `user_data` (and `image_id`/`image_name`/`key_pair`) on `openstack_compute_instance_v2` is `ForceNew` — any edit, including a comment-only one, destroys and recreates the instance. Always read `references/openstack-forcenew-attributes.md` before touching that resource, and always gate the apply with `smaqit.infrastructure-provision-cyso/scripts/plan-guard.sh` rather than eyeballing the plan.
+- Nova rejects `user_data` over 65,535 bytes once base64-encoded, and the error shows as an empty box because the value is sensitive. Guard it with a plan-time `precondition` and gzip embedded scripts (`base64gzip` + cloud-init `encoding: gz+b64`); see `references/openstack-forcenew-attributes.md`.
+- The S3 backend uses Terraform 1.6+ arguments (`endpoints = { s3 = … }`, `use_path_style`) plus `skip_s3_checksum` and `skip_requesting_account_id` for Cyso Object Storage; see `references/cyso-reference.md` → Terraform S3 backend configuration.
 - `github_actions_variable`/`github_actions_secret` import IDs are `<repository>:<name>` — not `<owner>/<repo>`. Getting this wrong produces a confusing "resource not found" on `terraform import` that looks like a permissions issue.
 
 ## Completion

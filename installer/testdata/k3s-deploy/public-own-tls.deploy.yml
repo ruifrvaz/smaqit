@@ -1,0 +1,282 @@
+name: Deploy
+
+# Dispatch only. post-merge-deploy.yml dispatches this workflow after a merge whose PR carries the
+# deploy marker; a push trigger here as well would deploy the same merge twice.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target machine (its GitHub Environment holds that machine's kubeconfig)"
+        type: choice
+        options:
+          - edge-01
+        default: edge-01
+
+# provisioning_mode: existing-k3s — the target is a Namespace-scoped Kubernetes/k3s cluster,
+# not a VM. No provision job, no Terraform, no SSH, no nginx, no VM_HOST anywhere in this
+# workflow. Each target machine has a GitHub Environment named after its machine slug — the same
+# slug that keys the app's kubeconfig in Vault — holding a KUBECONFIG secret and, for a
+# private-mesh machine, its mesh setup-key secret (see smaqit.infrastructure-repo-config). Never
+# repository-level secrets, since each machine needs its own distinct values.
+#
+# Rendered by smaqit.infrastructure-cicd-generate's scripts/render-k3s-deploy.sh from the
+# Infrastructure spec's Environments table (`smaqit spec environments --json`). Do not edit
+# K3S_TARGETS or the dispatch options by hand: change the spec and render again.
+jobs:
+  # Builds and pushes the application's container image before the deploy job applies it.
+  # smaqit.infrastructure-cicd-generate has no build-time knowledge of the app's own stack — the
+  # Dockerfile itself is authored by the matched/synthesized image-build skill (e.g.
+  # smaqit.infrastructure-image-build-push-static) or hand-authored; this job only builds and
+  # pushes whatever Dockerfile already exists at the repository root.
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN already carries packages: write on this job (see permissions above) —
+          # no separate registry credential is needed to push.
+
+      # github.repository preserves the real org/repo casing (e.g. "Org/repo"); Docker rejects
+      # a mixed-case image reference outright with "repository name must be lowercase" — lowercase
+      # it before constructing the tag. Live-verified failure mode, not a hypothetical.
+      - name: Build and push image
+        id: image
+        run: |
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${REPO_LC}:${{ github.sha }}"
+          # DEPLOY_SHA lets the image bake its own revision into its health response (see
+          # smaqit.infrastructure-image-build-push-static). The verify steps prove the revision
+          # from the Deployment's image tag, which is this commit SHA.
+          docker build --build-arg DEPLOY_SHA="${{ github.sha }}" -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    # The target machine's GitHub Environment: the dispatch input, or the default machine when
+    # post-merge-deploy.yml dispatches without one.
+    environment: ${{ inputs.environment || 'edge-01' }}
+    env:
+      MACHINE: ${{ inputs.environment || 'edge-01' }}
+      # One entry per machine slug, from the Infrastructure spec's Environments table.
+      K3S_TARGETS: |
+        {
+          "edge-01": {
+            "environment": "prod",
+            "reachability": "public",
+            "ingressMode": "own-tls",
+            "host": "prod.example.com",
+            "ingressClass": "traefik",
+            "clusterIssuer": "letsencrypt",
+            "healthPath": "/health.json",
+            "meshSetupKeySecret": "",
+            "meshWaitForHost": ""
+          }
+        }
+    steps:
+      - uses: actions/checkout@v4
+
+      # Exports the dispatched machine's spec fields for the steps below. VERIFY is in-cluster
+      # when the runner cannot reach the app from the internet: a private-mesh machine, or an
+      # Ingress the platform owns (for example behind its SSO gate).
+      - name: Resolve target
+        run: |
+          set -euo pipefail
+          TARGET="$(jq -c --arg m "$MACHINE" '.[$m] // empty' <<<"$K3S_TARGETS")"
+          if [ -z "$TARGET" ]; then
+            echo "No Environments row targets machine ${MACHINE}; add it to the Infrastructure spec and render deploy.yml again" >&2
+            exit 1
+          fi
+          field() { jq -r --arg k "$1" '.[$k] // ""' <<<"$TARGET"; }
+          VERIFY=external
+          if [ "$(field reachability)" = "private-mesh" ] || [ "$(field ingressMode)" = "platform-owned" ]; then
+            VERIFY=in-cluster
+          fi
+          {
+            echo "REACHABILITY=$(field reachability)"
+            echo "INGRESS_MODE=$(field ingressMode)"
+            echo "APP_HOST=$(field host)"
+            echo "INGRESS_CLASS=$(field ingressClass)"
+            echo "CLUSTER_ISSUER=$(field clusterIssuer)"
+            echo "HEALTH_PATH=$(field healthPath)"
+            echo "MESH_SETUP_KEY_SECRET=$(field meshSetupKeySecret)"
+            echo "MESH_WAIT_FOR_HOST=$(field meshWaitForHost)"
+            echo "VERIFY=${VERIFY}"
+          } >> "$GITHUB_ENV"
+          echo "Target ${MACHINE}: $(field environment), $(field reachability), $(field ingressMode), verify ${VERIFY}"
+
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Write kubeconfig
+        run: |
+          install -m 700 -d "$HOME/.kube"
+          printf '%s' "${{ secrets.KUBECONFIG }}" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
+
+      # Refuses to proceed if the API is unreachable, if the kubeconfig's context targets any
+      # namespace other than app-shop, or if any cluster-scoped verb is permitted — see
+      # smaqit.infrastructure-deploy-k3s-app/scripts/namespace-guard.sh. Never widen scope to
+      # work around a guard refusal.
+      - name: Namespace guard
+        run: |
+          bash deployment/k3s/scripts/namespace-guard.sh "$KUBECONFIG" "app-shop"
+        # deployment/k3s/scripts/namespace-guard.sh and manifest-lint.sh below are vendored,
+        # checked-in copies of smaqit.infrastructure-deploy-k3s-app's bundled scripts (see
+        # smaqit.infrastructure-cicd-generate Step 5) — this runner has no access to the smaqit
+        # skill directory itself.
+
+      # Only present when the spec names a private registry — see
+      # smaqit.infrastructure-deploy-k3s-app/SKILL.md Step 4. Omit this step entirely for a
+      # public image.
+      # - name: Create imagePullSecret
+      #   run: |
+      #     kubectl create secret docker-registry app-registry \
+      #       --namespace "app-shop" \
+      #       --docker-server=<registry-host> \
+      #       --docker-username="${{ secrets.REGISTRY_USERNAME }}" \
+      #       --docker-password="${{ secrets.REGISTRY_TOKEN }}" \
+      #       --dry-run=client -o yaml | kubectl apply -n "app-shop" -f -
+
+      # Chooses the manifests for this machine's Ingress mode and stamps them. own-tls applies
+      # ingress.yaml (tls, issuer annotation); platform-default-tls applies ingress-default-tls.yaml
+      # (no tls, the platform's default certificate serves it); platform-owned applies no Ingress.
+      # pvc.yaml, when committed, is applied before the Deployment. The probe Job is stamped only
+      # for in-cluster verification. DEPLOY_SHA/DEPLOY_TIME are pod environment, not a file — this
+      # credential has no host filesystem to write to. Runs before lint so lint sees the manifests
+      # exactly as they will be applied.
+      - name: Select and stamp manifests
+        run: |
+          set -euo pipefail
+          DEPLOY_SHA="${{ github.sha }}"
+          DEPLOY_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          IMAGE="${{ needs.build.outputs.image }}"
+          MANIFESTS=""
+          if [ -f deployment/k3s/pvc.yaml ]; then
+            MANIFESTS="deployment/k3s/pvc.yaml"
+          fi
+          MANIFESTS="${MANIFESTS} deployment/k3s/deployment.yaml deployment/k3s/service.yaml"
+          sed -i "s/__DEPLOY_SHA__/${DEPLOY_SHA}/g; s/__DEPLOY_TIME__/${DEPLOY_TIME}/g; s|__IMAGE__|${IMAGE}|g" deployment/k3s/deployment.yaml
+          case "$INGRESS_MODE" in
+            own-tls) INGRESS=deployment/k3s/ingress.yaml ;;
+            platform-default-tls) INGRESS=deployment/k3s/ingress-default-tls.yaml ;;
+            platform-owned) INGRESS="" ;;
+            *) echo "Unknown Ingress mode '${INGRESS_MODE}'" >&2; exit 1 ;;
+          esac
+          if [ -n "$INGRESS" ]; then
+            sed -i "s/__HOST__/${APP_HOST}/g; s/__INGRESS_CLASS__/${INGRESS_CLASS}/g; s/__CLUSTER_ISSUER__/${CLUSTER_ISSUER}/g" "$INGRESS"
+            MANIFESTS="${MANIFESTS} ${INGRESS}"
+          fi
+          LINT="$MANIFESTS"
+          if [ "$VERIFY" = "in-cluster" ]; then
+            sed -i "s|__IMAGE__|${IMAGE}|g; s|__HEALTH_PATH__|${HEALTH_PATH}|g" deployment/k3s/probe-job.yaml
+            LINT="${LINT} deployment/k3s/probe-job.yaml"
+          fi
+          echo "MANIFESTS=${MANIFESTS# }" >> "$GITHUB_ENV"
+          echo "LINT_MANIFESTS=${LINT# }" >> "$GITHUB_ENV"
+
+      # manifest-lint.sh requires PyYAML — ubuntu-latest ships python3 but not always PyYAML, so
+      # install it explicitly rather than depend on the runner image's current contents.
+      - name: Install manifest-lint dependencies
+        run: pip install --quiet pyyaml
+
+      # Rejects a manifest before any kubectl apply runs — Pod Security restricted fields,
+      # explicit resource requests/limits, and the absence of any cluster-scoped kind. See
+      # smaqit.infrastructure-deploy-k3s-app/scripts/manifest-lint.sh.
+      - name: Lint manifests
+        run: |
+          # shellcheck disable=SC2086 # LINT_MANIFESTS is a space-separated list of fixed paths
+          bash deployment/k3s/scripts/manifest-lint.sh $LINT_MANIFESTS
+
+      - name: Apply manifests
+        run: |
+          set -euo pipefail
+          ARGS=()
+          for manifest in $MANIFESTS; do ARGS+=(-f "$manifest"); done
+          kubectl apply -n "app-shop" "${ARGS[@]}"
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status -n "app-shop" "deployment/shop" --timeout=180s
+
+      # Only an own-tls Ingress requests its own certificate. The RBAC allowlist grants read
+      # access to this object specifically — it covers the TLS-validity gap
+      # smaqit.infrastructure-deploy-verify explicitly does not check.
+      - name: Wait for Certificate Ready
+        if: env.INGRESS_MODE == 'own-tls'
+        run: |
+          kubectl wait -n "app-shop" "certificate/shop-tls" --for=condition=Ready --timeout=180s
+
+      # The rolled-out Deployment must run this commit's image; its tag is the full commit SHA.
+      - name: Verify revision
+        run: |
+          set -euo pipefail
+          ACTUAL="$(kubectl get -n "app-shop" "deployment/shop" -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          EXPECTED="${{ needs.build.outputs.image }}"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "Deployment runs ${ACTUAL}, expected ${EXPECTED}" >&2
+            exit 1
+          fi
+          echo "Deployment runs ${ACTUAL}"
+
+      # In-cluster verification: a short-lived Job runs the app's own image and requests the
+      # Service's health path over cluster DNS, retrying for up to 60 s itself. The verdict is the
+      # Job's status, so no pods/log grant is needed; logs are printed only if the platform allows.
+      - name: Verify in cluster
+        if: env.VERIFY == 'in-cluster'
+        run: |
+          set -euo pipefail
+          NS="app-shop"
+          JOB="job/shop-probe"
+          kubectl delete -n "$NS" "$JOB" --ignore-not-found --wait=true
+          kubectl apply -n "$NS" -f deployment/k3s/probe-job.yaml
+          RESULT=""
+          for _ in $(seq 1 24); do
+            STATUS="$(kubectl get -n "$NS" "$JOB" -o jsonpath='{.status.succeeded}/{.status.failed}')"
+            case "$STATUS" in
+              1/*) RESULT=pass; break ;;
+              */1) RESULT=fail; break ;;
+            esac
+            sleep 5
+          done
+          if [ "$RESULT" != "pass" ]; then
+            kubectl logs -n "$NS" "$JOB" 2>/dev/null || echo "(probe logs not readable with this credential)"
+            kubectl delete -n "$NS" "$JOB" --ignore-not-found
+            echo "In-cluster verification of ${HEALTH_PATH} did not succeed (${RESULT:-timeout})" >&2
+            exit 1
+          fi
+          kubectl delete -n "$NS" "$JOB" --ignore-not-found
+          echo "Deployment verified in cluster: ${HEALTH_PATH} answers"
+
+      # External verification, for a public machine whose Ingress the app owns: the declared health
+      # path and the root answer over HTTPS from the runner.
+      - name: Verify over HTTPS
+        if: env.VERIFY == 'external'
+        run: |
+          set -euo pipefail
+          # Right after a rollout the new pods may not be serving through the Ingress yet, so retry
+          # for up to 60 s before failing. A failure that outlasts the window is real.
+          for attempt in $(seq 1 12); do
+            if curl -sf -o /dev/null "https://${APP_HOST}${HEALTH_PATH}" && curl -sfI "https://${APP_HOST}/" | head -1 | grep -q "200"; then
+              echo "Deployment verified over HTTPS at https://${APP_HOST}${HEALTH_PATH}"
+              exit 0
+            fi
+            echo "Attempt ${attempt}/12: https://${APP_HOST}${HEALTH_PATH} not answering yet; retrying in 5s..."
+            sleep 5
+          done
+          echo "Deployment verification did not succeed within 60s" >&2
+          exit 1

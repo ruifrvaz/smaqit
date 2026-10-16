@@ -1,0 +1,33 @@
+# Shared Ingress template for smaqit.infrastructure-deploy-k3s-app, Ingress Mode
+# platform-default-tls.
+#
+# The platform serves TLS with its own default certificate (for example one wildcard certificate
+# set as the ingress controller's default), so this Ingress carries no tls section and no
+# cert-manager annotation, and no Certificate is requested or waited for. Use
+# ingress.yaml.template for own-tls; ship no Ingress at all for platform-owned.
+#
+# Rendered once by substituting __APP_SLUG__ and committed as deployment/k3s/ingress-default-tls.yaml.
+# The per-environment tokens stay in the committed file and are stamped at apply time from the
+# Infrastructure spec's Environments row (CI: the dispatched machine's K3S_TARGETS entry):
+#   __APP_SLUG__       — the app slug; the Namespace is always app-__APP_SLUG__
+#   __INGRESS_CLASS__  — the environment's Ingress Class
+#   __HOST__           — the environment's Host
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: __APP_SLUG__
+  namespace: app-__APP_SLUG__
+spec:
+  ingressClassName: __INGRESS_CLASS__
+  rules:
+    - host: __HOST__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: __APP_SLUG__
+                port:
+                  number: 80

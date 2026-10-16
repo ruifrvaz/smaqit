@@ -2,7 +2,7 @@
 name: smaqit.feature-new
 description: 'Use when adding or changing a feature in a smaqit project that is already deployed (its Infrastructure spec has `status: deployed`), e.g. ''add a feature to this project'' or ''iterate on the deployed app''. Runs spec revalidation, development, deployment to the existing target, validation, and close-out, one task per phase, with no requirements extraction, from-scratch specs, or dev-VM sweep.'
 metadata:
-  version: "2.4.0"
+  version: "2.5.0"
 ---
 
 # Post-MVP Feature Workflow
@@ -121,7 +121,7 @@ This phase creates a **deploy PR** (feature-branch → `main`) to land the featu
 3. Read `specs/stack/platform-stack.md` — the authoritative stack declaration.
 4. Read `specs/infrastructure/*.md` — determine deployment topology and target environment.
 5. Resolve `provisioning_mode`:
-   - If the Infrastructure spec shows `status: deployed` **and** its Constraints table carries the `existing-k3s` rows (`Platform Repo`, `Machine Slug`), resolve to `existing-k3s` — a Namespace-scoped cluster target is never a VM this project owns.
+   - If the Infrastructure spec shows `status: deployed` **and** it carries the `existing-k3s` contract (the `Platform Repo` Constraints row and a `## Environments` table), resolve to `existing-k3s` — a Namespace-scoped cluster target is never a VM this project owns. Its generated `deploy.yml` is dispatch-only, so the trigger decision table below resolves to dispatcher mode.
    - Otherwise, if the Infrastructure spec shows `status: deployed`, default to `existing-owned`. Both override `smaqit.input-deployment`'s generic `provision` default.
    - Only fall through to `smaqit.input-deployment`'s standard elicitation if genuinely ambiguous (e.g. co-hosting on another project's VM → `existing-shared`; a second, dedicated VM that's provisioned out-of-band and will never be Terraform-managed → `existing-unmanaged`).
    - If resolution falls through to `provision` — this contradicts the Pre-conditions check; stop and flag.

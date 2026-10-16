@@ -86,15 +86,18 @@ const (
 	familyImageBuild  = "smaqit.infrastructure-image-build-push"
 	familyDeployRsync = "smaqit.infrastructure-deploy-rsync"
 	familyDeployK3s   = "smaqit.infrastructure-deploy-k3s-app"
+	skillDeployK3s    = "smaqit.infrastructure-deploy-k3s-app"
 )
 
 // deploySlots is the deploy-phase slot catalogue in execution order. Day-two
 // slots never run as part of a full sequence; they are invoked one at a time.
 var deploySlots = []slotDef{
 	{
-		Name:     "platform-prereqs",
-		Purpose:  "Prepare platform-level prerequisites the target needs before credentials or onboarding",
-		Defaults: byMode(noFiller(), nil),
+		Name:    "platform-prereqs",
+		Purpose: "Prepare platform-level prerequisites the target needs before credentials or onboarding",
+		// existing-k3s: confirm a private-mesh target's API is reachable from this machine;
+		// a public target passes without probing.
+		Defaults: byMode(noFiller(), map[string]slotFiller{"existing-k3s": skillFiller(skillDeployK3s, "mesh-check")}),
 	},
 	{
 		Name:     "access-credentials",
@@ -574,14 +577,15 @@ type familyCandidate struct {
 }
 
 type slotPlan struct {
-	SchemaVersion int             `json:"schemaVersion"`
-	Phase         string          `json:"phase"`
-	Mode          string          `json:"mode"`
-	Environment   string          `json:"environment"`
-	Path          string          `json:"deploymentPath"`
-	Config        string          `json:"config"`
-	Slots         []slotPlanEntry `json:"slots"`
-	Warnings      []string        `json:"warnings,omitempty"`
+	SchemaVersion int               `json:"schemaVersion"`
+	Phase         string            `json:"phase"`
+	Mode          string            `json:"mode"`
+	Environment   string            `json:"environment"`
+	Path          string            `json:"deploymentPath"`
+	Config        string            `json:"config"`
+	Target        *infraEnvironment `json:"target,omitempty"` // the spec's Environments row (existing-k3s)
+	Slots         []slotPlanEntry   `json:"slots"`
+	Warnings      []string          `json:"warnings,omitempty"`
 }
 
 type slotPlanOptions struct {
@@ -621,6 +625,13 @@ func resolveSlotPlan(root string, opts slotPlanOptions) (*slotPlan, []error) {
 		return nil, errs
 	}
 	plan := &slotPlan{SchemaVersion: 1, Phase: "deploy", Mode: opts.Mode, Environment: opts.Environment, Path: opts.Path}
+	// existing-k3s fillers read the environment's target from the Infrastructure
+	// spec, so a plan is refused until that row declares it completely.
+	if opts.Mode == "existing-k3s" {
+		target, specErrs := existingK3sTarget(root, opts.Environment)
+		errs = append(errs, specErrs...)
+		plan.Target = target
+	}
 	if cfg != nil {
 		plan.Config = slotsConfigPath
 	}

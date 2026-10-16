@@ -86,8 +86,27 @@ grep -Fxq '## When to use smaqit' "$project/AGENTS.md"
 # and a re-init (the same path `smaqit update` takes) never overwrites it.
 assert_file "$project/.smaqit/slots.yml" "project slot bindings skeleton"
 (cd "$project" && "$binary" slots validate >/dev/null)
+# existing-k3s plans are refused until the Infrastructure spec's Environments row
+# for the environment is complete, then resolve with that row as the target.
+if (cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --json) 2>/dev/null; then
+  echo "existing-k3s plan resolved without an Environments table" >&2
+  exit 1
+fi
+k3s_spec="$project/specs/infrastructure/smoke-k3s.md"
+printf '%s\n' '---' 'id: INF-SMOKE-K3S' 'status: draft' 'created: 2026-01-01' '---' '' '# Smoke' '' \
+  '## Environments' '' \
+  '| Environment | Machine Slug | Host | Reachability | Ingress Mode | Ingress Class | ClusterIssuer | Health Path | Mesh Setup-Key Secret | Mesh Wait-For Host |' \
+  '|---|---|---|---|---|---|---|---|---|---|' \
+  '| test | edge-01 | — | private-mesh | platform-owned | — | — | /health.json | MESH_SETUP_KEY | edge-01.mesh.internal |' '' \
+  '## Constraints' '' '| Constraint | Description | Impact |' '|---|---|---|' \
+  '| Mesh Join Action | example-org/mesh-join@v1.0.0 | joins the mesh |' \
+  '| Mesh Setup-Key Input | setup-key | action input |' \
+  '| Mesh Wait-For Input | wait-for | action input |' \
+  '| Probe Client | wget | in-cluster probe |' > "$k3s_spec"
 (cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --json) \
   | grep -Fq '"skill": "smaqit.infrastructure-request-k3s-onboarding"'
+(cd "$project" && "$binary" spec environments --env=test --json) | grep -Fq '"reachability": "private-mesh"'
+rm -f "$k3s_spec"
 printf '%s\n' 'schemaVersion: 1' 'phase: deploy' 'slots:' '  tls: none' > "$project/.smaqit/slots.yml"
 # The same re-init refreshes an outdated smaqit section in AGENTS.md while keeping
 # the user's own content around it.

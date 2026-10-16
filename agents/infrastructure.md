@@ -138,10 +138,22 @@ These rules are specific to the Infrastructure layer and must be followed when p
 - Be consistent with Phase 1 specs regarding requirements and runtime constraints (validated at implementation)
 - Use the `deployment` diagram profile for Infrastructure visual designs
 - For a target environment resolving to `provisioning_mode: existing-k3s`, populate the
-  Constraints table's `Platform Repo`, `Registry File Path`, `Machine Slug`, `Ingress Class`,
-  `ClusterIssuer`, and `Namespace Quota` rows — every value must come from the platform team's own
+  Constraints table's `Platform Repo`, `Registry File Path`, and `Namespace Quota` rows, and one
+  `## Environments` row per environment (`Machine Slug`, `Host`, `Reachability`, `Ingress Mode`,
+  `Ingress Class`, `ClusterIssuer`, `Health Path`, and for `private-mesh` the `Mesh Setup-Key
+  Secret` and `Mesh Wait-For Host`) — every value must come from the platform team's own
   onboarding documentation for that cluster; never invent, infer, or default one. If the operator
   cannot supply a required value, flag it as a gap under Untestable Criteria rather than guessing
+- Declare every existing-k3s environment's `Reachability` (`public` | `private-mesh`) and
+  `Ingress Mode` (`own-tls` | `platform-default-tls` | `platform-owned`) explicitly; there is no
+  default. Follow the column rules in the template's Environments comments (ClusterIssuer only for
+  `own-tls`; no Host or Ingress Class for `platform-owned`; mesh fields only for `private-mesh`)
+- When any environment is `private-mesh`, populate the Constraints rows `Mesh Join Action` (a pinned
+  `uses:` reference), `Mesh Setup-Key Input`, and `Mesh Wait-For Input` from the platform team's
+  documentation; when any environment is `private-mesh` or `platform-owned`, populate `Probe Client`
+  (`curl` or `wget`, whichever the app's own image contains)
+- Keep every existing-k3s environment in one Infrastructure spec's `## Environments` table, and run
+  `smaqit spec environments` before handoff; fix every `SLOTS-SPEC-*` line it reports
 - For that same `existing-k3s` target, also populate the Constraints table's `Container Registry`
   row (registry host and public/private visibility) — unlike the platform-sourced fields above,
   this is a per-project decision the operator makes, not a fact to source from the platform

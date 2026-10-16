@@ -1,0 +1,75 @@
+# In-cluster verification Job for smaqit.infrastructure-deploy-k3s-app.
+#
+# Used when the deployer cannot reach the app from outside the cluster: a private-mesh machine
+# (the CI mesh peer reaches only the API port) or a platform-owned Ingress (for example behind
+# the platform's SSO gate). The Job runs the app's own just-deployed image — so no other registry
+# is involved — and requests the Service's health path over cluster DNS, retrying for up to 60 s.
+# The verdict is the Job's own status (succeeded or failed), so no pods/log grant is needed.
+#
+# Rendered once and committed as deployment/k3s/probe-job.yaml, substituting:
+#   __APP_SLUG__     — the app slug; the Namespace is always app-__APP_SLUG__
+#   __RUN_AS_USER__  — the same numeric UID the app's Deployment sets (manifest-lint.sh requires one)
+#   __PROBE_FETCH__  — the Infrastructure spec's Probe Client as a fetch command:
+#                      curl → curl -fsS -o /dev/null      wget → wget -q -O /dev/null
+# Left in the committed file and stamped at apply time:
+#   __IMAGE__        — this run's image reference
+#   __HEALTH_PATH__  — the environment's Health Path
+# If the Deployment sets imagePullSecrets, set the same ones here.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: __APP_SLUG__-probe
+  namespace: app-__APP_SLUG__
+  labels:
+    app.kubernetes.io/name: __APP_SLUG__-probe
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: __APP_SLUG__-probe
+    spec:
+      restartPolicy: Never
+      # imagePullSecrets:
+      #   - name: app-registry
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: __RUN_AS_USER__
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: probe
+          image: __IMAGE__
+          command: ["sh", "-c"]
+          args:
+            - |
+              url="http://__APP_SLUG__:80__HEALTH_PATH__"
+              i=0
+              while [ "$i" -lt 12 ]; do
+                if __PROBE_FETCH__ "$url"; then
+                  echo "probe: ${url} answered"
+                  exit 0
+                fi
+                i=$((i + 1))
+                sleep 5
+              done
+              echo "probe: ${url} did not answer within 60s" >&2
+              exit 1
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"

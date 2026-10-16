@@ -1,16 +1,18 @@
-# Shared Ingress template for smaqit.infrastructure-deploy-k3s-app.
+# Shared Ingress template for smaqit.infrastructure-deploy-k3s-app, Ingress Mode own-tls.
 #
-# Rendered per app/environment by substituting the tokens below — never hand-write a per-app
-# Ingress. ingressClassName and the cert-manager cluster-issuer annotation come from the
-# Infrastructure spec's declared values, not guessed or hardcoded.
+# Rendered per app by substituting __APP_SLUG__ — never hand-write a per-app Ingress — and
+# committed as deployment/k3s/ingress.yaml. The app's Ingress requests its own certificate from the
+# environment's cert-manager ClusterIssuer (ingress-shim names the Certificate after secretName).
+# Use ingress-default-tls.yaml.template for platform-default-tls; ship no Ingress for
+# platform-owned.
 #
-# Tokens:
+# The per-environment tokens stay in the committed file and are stamped at apply time from the
+# Infrastructure spec's Environments row (CI: the dispatched machine's K3S_TARGETS entry), never
+# guessed or hardcoded:
 #   __APP_SLUG__       — the app slug; the Namespace is always app-__APP_SLUG__
-#   __INGRESS_CLASS__  — the platform's declared ingress class (e.g. its Traefik ingress class)
-#   __CLUSTER_ISSUER__ — the platform's declared cert-manager ClusterIssuer name
-#   __HOST__           — the target environment's hostname. Left as a token in the committed
-#                        deployment/k3s/ingress.yaml and filled in at apply time (CI: the
-#                        environment's APP_HOST variable), since each environment has its own.
+#   __INGRESS_CLASS__  — the environment's Ingress Class
+#   __CLUSTER_ISSUER__ — the environment's ClusterIssuer
+#   __HOST__           — the environment's Host
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress

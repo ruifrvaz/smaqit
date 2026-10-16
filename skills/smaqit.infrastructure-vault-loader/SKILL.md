@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-vault-loader
 description: 'Use before any local deployment or credential operation that needs secrets from the local HashiCorp Vault (127.0.0.1:8200): verifies it is running, unsealed, and authenticated, and loads project secrets through an interactive prompt. Also use for first-time Vault setup on a machine, adding a project''s credentials, a missing Vault path, or a caller that cannot reach Vault.'
 metadata:
-  version: "3.9.0"
+  version: "3.10.0"
   smaqit-slots: "access-credentials=access, target-credentials=target, target-credentials=register"
 ---
 
@@ -53,6 +53,9 @@ secret/apps/<app-slug>/github    — token (used as TF_VAR_github_token)
 secret/apps/<app-slug>/machine   — machine-slug this app is bootstrapped against (non-secret)
 secret/apps/<app-slug>/<machine-slug>/kubeconfig — value (a full scoped kubeconfig for that
                                      machine's Namespace; provisioning_mode: existing-k3s only)
+secret/apps/<app-slug>/<machine-slug>/mesh-setup-key — value (the platform-issued setup key the
+                                     app's CI peer joins a private-mesh machine's mesh with;
+                                     existing-k3s private-mesh only)
 secret/apps/<app-slug>/platform-repo — token (PR-create rights only — contents:write +
                                      pull_requests:write — on the platform-owned infrastructure
                                      repo; provisioning_mode: existing-k3s only)
@@ -225,7 +228,8 @@ different points of one environment run:
   above for that mode and scheme.
 - **`target-credentials=target`** — credentials the target issues or authorizes for this app, after
   onboarding or registration. `existing-k3s`: `PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug>`
-  (the environment's kubeconfig). **This is the onboarding gate:** a merged onboarding request
+  (the environment's kubeconfig; add `MESH_SETUP_KEY=1` for a `private-mesh` environment, which
+  also loads its platform-issued mesh setup key, hidden). **This is the onboarding gate:** a merged onboarding request
   doesn't produce a kubeconfig by itself — the platform's own hand-off delivers it, however that
   platform works. If the operator doesn't have it yet, stop the deployment here with that message
   rather than continuing to `environment-config` or `app-deploy`; smaqit never performs or assumes

@@ -10,8 +10,12 @@
 # Usage: namespace-guard.sh <kubeconfig-path> <expected-namespace>
 #   Exit 0 — the kubeconfig's current context targets exactly <expected-namespace>, and
 #            `kubectl auth can-i --list` in that namespace grants no cluster-scoped verb.
-#   Exit 1 — namespace mismatch, a cluster-scoped verb is permitted, or a required tool/arg
-#            is missing. Do NOT proceed to lint/apply on a non-zero exit.
+#   Exit 1 — namespace mismatch, a cluster-scoped verb is permitted, the API is unreachable or
+#            rejects the credential, a permission check gives no clear answer, or a required
+#            tool/arg is missing. Do NOT proceed to lint/apply on a non-zero exit.
+#
+# Fails closed: only an explicit "no" from the API counts as denied. An unreachable API (for
+# example a private-mesh machine before the mesh is joined) is a FAIL, never a PASS.
 
 set -euo pipefail
 
@@ -60,11 +64,29 @@ fi
 
 echo "namespace-guard: namespace OK — context targets '$EXPECTED_NAMESPACE'"
 
-# ── Cluster-scoped verb check: `kubectl auth can-i --list` must grant nothing cluster-scoped ──
-# `--list` with a namespace set reports namespaced rules; passing --all-namespaces or omitting
-# -n would report cluster-wide, which is exactly what must never be permitted. Query explicitly
-# for common cluster-scoped resources in addition to the general list, since a compact RBAC
-# allowlist may not always surface every relevant rule under --list alone.
+# ── Reachability: the API must answer and accept the credential before any check means anything ──
+
+REQUEST_TIMEOUT="${NAMESPACE_GUARD_REQUEST_TIMEOUT:-15s}"
+ERR_FILE="$(mktemp)"
+trap 'rm -f "$ERR_FILE"' EXIT
+
+set +e
+RULES="$(kubectl auth can-i --list -n "$EXPECTED_NAMESPACE" --request-timeout="$REQUEST_TIMEOUT" 2>"$ERR_FILE")"
+REACH=$?
+set -e
+if [ "$REACH" -ne 0 ]; then
+  echo "namespace-guard: FAIL — the Kubernetes API is unreachable or rejected this credential:" >&2
+  sed 's/^/                 /' "$ERR_FILE" | head -5 >&2
+  echo "                 For a private-mesh machine, join the mesh first. Otherwise check the" >&2
+  echo "                 kubeconfig's server and token against the platform's hand-off." >&2
+  exit 1
+fi
+
+# ── Cluster-scoped verb check: no cluster-scoped verb may be permitted ──────────────────────────
+# `kubectl auth can-i` prints "yes" (exit 0) or "no" (exit 1). Any other result — an error, a
+# timeout, an empty answer — is not a "no", so it fails the guard instead of passing it. Query
+# common cluster-scoped resources explicitly, since a compact RBAC allowlist may not surface every
+# relevant rule under --list alone.
 
 echo "namespace-guard: checking for cluster-scoped permissions in '$EXPECTED_NAMESPACE'..."
 
@@ -72,29 +94,38 @@ CLUSTER_SCOPED_KINDS=(namespaces nodes clusterroles clusterrolebindings persiste
   customresourcedefinitions storageclasses)
 
 FOUND_CLUSTER_SCOPE=false
+UNDETERMINED=false
 for KIND in "${CLUSTER_SCOPED_KINDS[@]}"; do
   for VERB in get list watch create update patch delete deletecollection; do
     set +e
-    kubectl auth can-i "$VERB" "$KIND" -n "$EXPECTED_NAMESPACE" >/dev/null 2>&1
-    ALLOWED=$?
+    ANSWER="$(kubectl auth can-i "$VERB" "$KIND" -n "$EXPECTED_NAMESPACE" --request-timeout="$REQUEST_TIMEOUT" 2>"$ERR_FILE")"
+    RC=$?
     set -e
-    if [ "$ALLOWED" -eq 0 ]; then
+    ANSWER="$(printf '%s' "$ANSWER" | head -1 | awk '{print $1}')"
+    if [ "$RC" -eq 0 ] && [ "$ANSWER" = "yes" ]; then
       echo "namespace-guard: FAIL — credential permits '$VERB' on cluster-scoped resource '$KIND'." >&2
       FOUND_CLUSTER_SCOPE=true
+    elif [ "$RC" -ne 0 ] && [ "$ANSWER" = "no" ]; then
+      :
+    else
+      echo "namespace-guard: FAIL — could not determine whether '$VERB' on '$KIND' is permitted (exit $RC): $(head -1 "$ERR_FILE")" >&2
+      UNDETERMINED=true
     fi
   done
 done
 
-# Belt-and-suspenders: `--list` itself, restricted to the namespace, must not surface any rule
-# whose resource has no namespace qualifier attached (a namespaced credential's --list output is
-# entirely namespace column "" is expected only for the namespaced verbs already covered above;
-# this call is kept for visibility in the report, not as the sole signal).
-kubectl auth can-i --list -n "$EXPECTED_NAMESPACE" 2>/dev/null || true
+# Kept for visibility in the report, not as the sole signal.
+printf '%s\n' "$RULES"
 
 if [ "$FOUND_CLUSTER_SCOPE" = "true" ]; then
   echo "namespace-guard: REFUSING to proceed — this credential is broader than the onboarding" >&2
   echo "                 contract should issue. Do not lint or apply. Report this to the" >&2
   echo "                 platform side rather than working around it." >&2
+  exit 1
+fi
+if [ "$UNDETERMINED" = "true" ]; then
+  echo "namespace-guard: REFUSING to proceed — a permission check gave no clear answer, so the" >&2
+  echo "                 credential's scope is unproven. Fix the connection and run again." >&2
   exit 1
 fi
 

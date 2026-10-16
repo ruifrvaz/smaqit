@@ -28,6 +28,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.14.0] - 2026-10-16
+
+**Action required for `existing-k3s` projects:** add an `## Environments` table to the Infrastructure spec (one row per environment, declaring `Reachability` and `Ingress Mode`), move the `Machine Slug`, `Ingress Class`, and `ClusterIssuer` Constraints rows into it, and regenerate `deploy.yml` with `smaqit.infrastructure-cicd-generate`. `smaqit slots plan --mode=existing-k3s` refuses to plan until every targeted row is complete. See Changed below for the full migration.
+
+### Added
+- **Private-mesh and platform-owned `existing-k3s` targets.** Each environment declares `Reachability` (`public` | `private-mesh`) and `Ingress Mode` (`own-tls` | `platform-default-tls` | `platform-owned`) in a new `## Environments` table in the Infrastructure spec, with its host, Ingress class, ClusterIssuer, health path and, for `private-mesh`, the mesh setup-key secret and the API's mesh name. New Constraints rows declare the mesh-join action (a pinned `uses:` reference and its input names) and the `Probe Client` the app's image contains.
+- **`smaqit spec environments [--env=<env>] [--json]`** — validates and prints the Environments table; the k3s fillers and the workflow renderer consume its JSON.
+- **`render-k3s-deploy.sh`** (`smaqit.infrastructure-cicd-generate`) — renders one `deploy.yml` for every environment from that JSON: dispatch options for each machine slug, a per-machine `K3S_TARGETS` map, and the mesh-join step only when some environment is `private-mesh`.
+- **In-cluster verification** — a probe Job template (`smaqit.infrastructure-deploy-k3s-app`) and an in-cluster mode in `smaqit.infrastructure-deploy-verify`: for `private-mesh` or `platform-owned` targets, a short-lived Job runs the app's own image against the Service's health path over cluster DNS; its verdict is the Job's status, so no `pods/log` grant is needed. Every k3s deploy also checks that the Deployment runs this commit's image.
+- **`mesh-check`** (`smaqit.infrastructure-deploy-k3s-app`, `scripts/mesh-check.sh`) — the `existing-k3s` default for the `platform-prereqs` slot: confirms a `private-mesh` target's API answers from this machine, and passes without probing for `public`.
+- **`platform-default-tls` Ingress template** (no `tls`, no issuer annotation).
+- **Mesh setup key credential** — `load-credentials.sh` loads `secret/apps/<app>/<machine>/mesh-setup-key` with `MESH_SETUP_KEY=1`, `rotate-credential.sh` replaces it, and `sync-k3s-env.sh --mesh-secret <name>` syncs it into the machine's Environment, all on stdin.
+- Golden files for every reachability × Ingress-mode render plus a mixed public/private one (`installer/testdata/k3s-deploy/`, regenerate with `go test -run TestK3sDeployGoldenFiles -update`), a test that runs the rendered steps per combination, and stub-`kubectl` tests for the namespace guard and `mesh-check`.
+
+### Changed
+- **Breaking (`existing-k3s`):** the Infrastructure spec's `Machine Slug`, `Ingress Class`, and `ClusterIssuer` Constraints rows move into the `## Environments` table, and `smaqit slots plan --mode=existing-k3s` refuses an incomplete row with `SLOTS-SPEC-*` diagnostics. There is no default reachability or Ingress mode. Migrate by declaring each environment's row (today's behaviour is `public` + `own-tls`), then regenerate `deploy.yml`. `own-tls` keeps `deployment/k3s/ingress.yaml`, now committed with `__INGRESS_CLASS__` and `__CLUSTER_ISSUER__` left as tokens; re-render it from the template.
+- The generated k3s `deploy.yml` is **dispatch-only**: `post-merge-deploy.yml`'s marker dispatch is its only automatic trigger, so one marked merge deploys once. The deployment agent's `ci-push` path dispatches a workflow that has no `push` trigger.
+- The generated k3s `deploy.yml` applies `deployment/k3s/pvc.yaml` before the Deployment when it is committed, applies no Ingress for `platform-owned`, waits for the `Certificate` only for `own-tls`, reads each machine's host from the spec instead of the `APP_HOST` variable, and verifies the spec's health path instead of `/health.json`'s `sha` field.
+- `smaqit.infrastructure-deploy-k3s-app` 2.0.0, `smaqit.infrastructure-cicd-generate` 3.0.0, `smaqit.infrastructure-repo-config` 2.0.0, `smaqit.infrastructure-deploy-verify` 1.3.0, and the Infrastructure spec agent, `smaqit.input-deployment`, `smaqit.new-greenfield-project`, and `smaqit.feature-new` follow the Environments table. Switching an environment away from `own-tls` leaves cert-manager's old `Certificate` behind (cert-manager#8733); delete it once the new Ingress serves.
+
+### Deprecated
+- `sync-k3s-env.sh --host`: generated k3s workflows no longer read `APP_HOST`.
+
+### Removed
+- The k3s `deploy.yml` `push: main` trigger, and the `__PROD_MACHINE_SLUG__`/`__TEST_MACHINE_SLUG__` tokens (the renderer fills the dispatch options from the spec).
+
+### Fixed
+- `namespace-guard.sh` failed open: `kubectl auth can-i` exits non-zero for a connection error as well as for "no", so an unreachable API passed the guard. It now checks that the API answers and accepts the credential first, and treats only an explicit "no" as denied.
+
 ## [3.13.0] - 2026-10-13
 
 ### Added

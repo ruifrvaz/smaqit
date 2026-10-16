@@ -76,6 +76,7 @@ smaqit includes a GitHub Action workflow that automatically installs smaqit befo
 | `smaqit design validate [file]` | Run structural, PlantUML, and visual-attestation gates |
 | `smaqit slots plan --phase=deploy --mode=<mode> --env=<env>` | Resolve the deployment slot plan from `.smaqit/slots.yml` and `provisioning_mode` defaults |
 | `smaqit slots validate` | Validate `.smaqit/slots.yml` and its bound skills |
+| `smaqit spec environments [--env=<env>] [--json]` | Validate and print the Infrastructure spec's `existing-k3s` Environments table (reachability, Ingress mode, host, health path, mesh access) |
 | `smaqit mcp verify` | Verify VS Code, Claude Code, and Codex PlantUML MCP registration plus local stdio transport |
 | `smaqit help` | Show detailed command help |
 | `smaqit uninstall` | Remove smaqit from project |

@@ -37,6 +37,12 @@ func slotsTestProject(t *testing.T) string {
 	if err := os.MkdirAll(filepath.Join(root, ".smaqit"), 0755); err != nil {
 		t.Fatal(err)
 	}
+	// existing-k3s plans need a complete Environments row for every environment
+	// the tests plan.
+	rows := append([]k3sEnvRow(nil), k3sFixtureRows...)
+	staging := k3sFixtureRows[0]
+	staging[0] = "staging"
+	writeInfraSpec(t, root, "platform.md", k3sSpec(append(rows, staging), k3sFixtureConstraints))
 	return root
 }
 
@@ -126,7 +132,7 @@ func TestSlotPlanDefaultsMatchCurrentBehaviour(t *testing.T) {
 		"provision":          "none",
 	}
 	k3s := map[string]string{
-		"platform-prereqs":    "none",
+		"platform-prereqs":    "profile smaqit.infrastructure-deploy-k3s-app:mesh-check @local",
 		"access-credentials":  "profile smaqit.infrastructure-vault-loader:access @local",
 		"platform-onboarding": "profile smaqit.infrastructure-request-k3s-onboarding:request @local",
 		"target-credentials":  "profile smaqit.infrastructure-vault-loader:target @local",

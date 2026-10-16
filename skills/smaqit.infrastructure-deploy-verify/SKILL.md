@@ -1,14 +1,66 @@
 ---
 name: smaqit.infrastructure-deploy-verify
-description: Use after any deployment, or when re-verifying after a fix, to confirm the application is healthy before closing the task or proceeding. Checks the health endpoint, compares the deployed commit SHA with the local commit (or --expected-sha), and validates the SPA root response, producing a PASS/FAIL report per check.
+description: Use after any deployment, or when re-verifying after a fix, to confirm the application is healthy before closing the task or proceeding. Checks the health endpoint, compares the deployed commit SHA with the local commit (or --expected-sha), and validates the SPA root; for an existing-k3s target the deployer can't reach, verifies inside the cluster with a probe Job. PASS/FAIL per check.
 metadata:
-  version: "1.2.1"
+  version: "1.3.0"
   smaqit-slots: "verify=verify"
 ---
 
 # Deploy Verify
 
-## Steps
+## Choose the mode
+
+- **HTTP mode** (Steps 1–8) — every VM target, and an `existing-k3s` environment whose
+  Environments row is `public` with an Ingress the app owns (`own-tls` or
+  `platform-default-tls`).
+- **In-cluster mode** (Kubernetes Steps K1–K5) — an `existing-k3s` environment whose row is
+  `private-mesh`, or whose Ingress Mode is `platform-owned` (for example behind the platform's SSO
+  gate). The deployer cannot reach such an app from outside the cluster, so HTTP checks from this
+  machine would test the wrong thing.
+
+For `existing-k3s`, the caller passes `--environment <environment>`; read its row with
+`smaqit spec environments --env=<environment> --json` and choose from `reachability` and
+`ingressMode`. Never fall back from in-cluster mode to HTTP checks the deployer cannot reach.
+
+## Kubernetes Steps (existing-k3s)
+
+Run with the target's scoped kubeconfig already exported (see
+`smaqit.infrastructure-deploy-k3s-app`), against Namespace `app-<app-slug>`.
+
+K1. **Revision check.** The rolled-out Deployment must run this commit's image; its tag is the full
+    commit SHA:
+    ```bash
+    kubectl get -n "app-${APP_SLUG}" "deployment/${APP_SLUG}" -o jsonpath='{.spec.template.spec.containers[0].image}'
+    ```
+    Assert the tag equals the expected SHA (`--expected-sha`, or `git rev-parse HEAD`).
+
+K2. **HTTP mode for a public, app-owned Ingress:** run Steps 3 and 6 against
+    `https://<host><healthPath>` and `https://<host>/` from the row, retrying every 5 seconds for up
+    to 60 seconds. Skip Steps 4, 5, and 7 — the revision is already proven by K1, and there is no
+    nginx or stamp file.
+
+K3. **In-cluster mode:** stamp the committed probe Job with this run's image and the row's health
+    path into a temporary copy, lint it, and run it:
+    ```bash
+    PROBE="$(mktemp -d)/probe-job.yaml"
+    sed -e "s|__IMAGE__|<image>|g" -e "s|__HEALTH_PATH__|<healthPath>|g" deployment/k3s/probe-job.yaml > "$PROBE"
+    bash deployment/k3s/scripts/manifest-lint.sh "$PROBE"
+    kubectl delete -n "app-${APP_SLUG}" "job/${APP_SLUG}-probe" --ignore-not-found --wait=true
+    kubectl apply -n "app-${APP_SLUG}" -f "$PROBE"
+    ```
+    The Job runs the app's own image and requests `http://<app-slug>:80<healthPath>` over cluster
+    DNS, retrying for up to 60 seconds itself.
+
+K4. **Read the verdict from the Job's status**, polling every 5 seconds for up to 120 seconds:
+    `kubectl get -n "app-${APP_SLUG}" "job/${APP_SLUG}-probe" -o jsonpath='{.status.succeeded}/{.status.failed}'`
+    — `1/` is PASS, `/1` is FAIL. This needs no `pods/log` grant. Only on FAIL or timeout, try
+    `kubectl logs job/<app-slug>-probe` for diagnosis, and report "logs not readable" if the
+    platform denies it.
+
+K5. **Clean up and report:** delete the Job (`--ignore-not-found`), then print PASS/FAIL for the
+    revision and the health check, and the one-line summary.
+
+## Steps (HTTP mode)
 
 1. **Resolve the target URL.** Check in this order:
    - Explicit `--url` argument provided by the caller
@@ -54,7 +106,8 @@ Console report: PASS/FAIL for each check (health, SHA, deployedAt, SPA root) plu
 
 - Does NOT run functional or integration tests — use `smaqit.validation` for test suites.
 - Does NOT restart or redeploy if checks fail — reports only.
-- Does NOT verify TLS certificate validity — use `curl -vI` manually or a future `smaqit.infrastructure-domain-tls` skill.
+- Does NOT verify TLS certificate validity — use `curl -vI` manually or a future `smaqit.infrastructure-domain-tls` skill. For `existing-k3s` `own-tls`, `smaqit.infrastructure-deploy-k3s-app` waits for the `Certificate` instead.
+- Does NOT read pod logs to decide a result, and never uses `pods/exec` — in-cluster mode's verdict is the probe Job's status.
 
 ## Examples
 
@@ -62,7 +115,16 @@ Console report: PASS/FAIL for each check (health, SHA, deployedAt, SPA root) plu
 
 **Input (with explicit SHA):** After a CI/CD deploy where local HEAD may not match the deployed revision, the orchestrator passes `--expected-sha <deploy-run-headSha>`.
 
-**Output:**
+**Input (existing-k3s, in-cluster):** After `smaqit.infrastructure-deploy-k3s-app` rolls out to a `private-mesh` test machine, it invokes verify with `--environment test --expected-sha <sha>`.
+
+**Output (in-cluster):**
+```
+PASS: Deployment runs ghcr.io/<org>/<repo>:<sha>
+PASS: probe Job succeeded — http://<app-slug>:80/health.json answered in cluster
+Deployment verified in cluster — SHA <sha>.
+```
+
+**Output (HTTP mode):**
 ```
 PASS: health 200
 PASS: SHA d040a5f matches
@@ -83,7 +145,9 @@ Deployment verified — SHA d040a5f, deployed at 2026-04-27T14:32:00Z.
 
 ## Completion
 
-- [ ] Target URL resolved
+- [ ] Mode chosen (HTTP, or in-cluster for an `existing-k3s` `private-mesh` / `platform-owned` row)
+- [ ] In-cluster mode: Deployment image tag matches the expected SHA, probe Job succeeded, Job deleted
+- [ ] Target URL resolved (HTTP mode)
 - [ ] Expected SHA determined (via `--expected-sha` or `git rev-parse HEAD` fallback)
 - [ ] Health check: HTTP 200 received
 - [ ] SHA match confirmed (or absence/unknown state noted with reason)
@@ -103,3 +167,7 @@ Deployment verified — SHA d040a5f, deployed at 2026-04-27T14:32:00Z.
 | Health check returns non-200 | Report the HTTP status code and response body snippet; suggest checking Docker container status (`docker ps`) |
 | SHA mismatch | Report expected vs actual SHA; suggest re-running the deploy workflow |
 | Connection refused | Report; suggest checking nginx (`sudo systemctl status nginx`) and Docker containers (`docker ps`) on the VM |
+| `existing-k3s` row can't be read (`SLOTS-SPEC-*`) | Stop and surface the lines; the fix belongs in the Infrastructure spec |
+| Probe Job forbidden (`jobs` not granted) | Stop. Ask the platform team for `create`/`delete` on `jobs` in the Namespace; never switch to HTTP checks the deployer cannot reach |
+| Probe Job fails or times out | Report FAIL with the Job status; add logs only if `pods/log` is granted. Check the health path and whether a NetworkPolicy blocks same-Namespace traffic |
+| Deployment image tag differs from the expected SHA | Report both; the rollout did not apply this commit's image |

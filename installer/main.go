@@ -76,6 +76,8 @@ func main() {
 		cmdDesign(os.Args[2:])
 	case "slots":
 		cmdSlots(os.Args[2:])
+	case "spec":
+		cmdSpec(os.Args[2:])
 	case "mcp":
 		cmdMCP(os.Args[2:])
 	case "help", "--help", "-h":
@@ -105,6 +107,7 @@ Commands:
   validate   Verify project structure integrity
   design     Render, attest, and validate canonical PlantUML designs
   slots      Resolve and validate deployment slot bindings
+  spec       Read structured Infrastructure spec data (environments)
   mcp        Run a bundled MCP server (normally invoked by an agent host)
   help       Show detailed command help
   uninstall  Remove smaqit from project
@@ -144,6 +147,12 @@ func cmdHelp() {
 	fmt.Println("                    and provisioning_mode defaults; --path=standard|existing-cicd-pr|ci-push,")
 	fmt.Println("                    --slot=<slot> for a single-slot (day-two) run, --json for agents")
 	fmt.Println("  smaqit slots validate             Validate .smaqit/slots.yml and its bound skills")
+	fmt.Println("                    For --mode=existing-k3s, the plan is refused unless the")
+	fmt.Println("                    Infrastructure spec's Environments row for --env is complete")
+	fmt.Println()
+	fmt.Println("  smaqit spec environments [--env=<env>] [--json]")
+	fmt.Println("                    Validate and print the Infrastructure spec's Environments table")
+	fmt.Println("                    (reachability, Ingress mode, host, health path, mesh access)")
 	fmt.Println()
 	fmt.Println("  smaqit mcp plantuml               Run the bundled PlantUML MCP server")
 	fmt.Println("  smaqit mcp verify                 Verify the PlantUML MCP wrapper and tools")
@@ -1130,6 +1139,19 @@ func cmdValidate() {
 	if err := validateDesigns(""); err != nil {
 		fmt.Printf("✗ %v\n", err)
 		errors++
+	}
+
+	if set, envErrs := loadInfraEnvironments("."); len(envErrs) > 0 || set != nil {
+		if len(envErrs) == 0 {
+			envErrs = validateInfraEnvironments(set, "")
+		}
+		for _, err := range envErrs {
+			fmt.Printf("✗ %v\n", err)
+		}
+		errors += len(envErrs)
+		if len(envErrs) == 0 {
+			fmt.Printf("✓ %s Environments table is valid\n", set.Spec)
+		}
 	}
 
 	if _, err := os.Stat(slotsConfigPath); err == nil {

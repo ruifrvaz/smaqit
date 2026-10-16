@@ -38,7 +38,7 @@ One environment run walks these slots in order. Day-two slots never run as part 
 
 | Slot | `provision` / `existing-owned` | `existing-shared` / `existing-unmanaged` | `existing-k3s` |
 |------|-------------------------------|------------------------------------------|----------------|
-| `platform-prereqs` | none | none | none |
+| `platform-prereqs` | none | none | deploy-k3s-app `mesh-check` (passes without probing for a `public` environment) |
 | `access-credentials` | vault-loader `access` | vault-loader `access` | vault-loader `access` |
 | `platform-onboarding` | none | none | request-k3s-onboarding `request` |
 | `target-credentials` | none | vault-loader `target` | vault-loader `target` |
@@ -50,7 +50,7 @@ One environment run walks these slots in order. Day-two slots never run as part 
 | `host-bootstrap` | vm-bootstrap `bootstrap` | vm-bootstrap `bootstrap` | none |
 | `app-deploy` | `deploy-rsync*` family `deploy` | `deploy-rsync*` family `deploy` | `deploy-k3s-app*` family `deploy` |
 | `verify` | deploy-verify `verify` | deploy-verify `verify` | deploy-verify `verify` |
-| `tls` | domain-tls `issue` | domain-tls `issue` | none (handled inside `app-deploy`) |
+| `tls` | domain-tls `issue` | domain-tls `issue` | none (`own-tls`: the Certificate is awaited inside `app-deploy`; otherwise the platform serves TLS) |
 | `replace` | none | none | none |
 | `teardown` | agent builtin destroy (`provision` only) | none | none |
 
@@ -144,6 +144,39 @@ smaqit slots validate
 | `SLOTS-BINDING-REFUSED` | The deployment path refuses a binding for that slot |
 | `SLOTS-SKILL-INVALID` | A skill's frontmatter or slot declaration is malformed |
 | `SLOTS-ARGUMENT-INVALID` | A missing or unknown command-line argument |
+| `SLOTS-SPEC-MISSING` | `existing-k3s`: no Infrastructure spec declares an `## Environments` table, or it has no row for `--env` |
+| `SLOTS-SPEC-FIELD-MISSING` | `existing-k3s`: the row (or a Constraints row it depends on) leaves a required field empty |
+| `SLOTS-SPEC-FIELD-INVALID` | `existing-k3s`: a field has a value outside its allowed set, or a value its mode forbids |
+| `SLOTS-SPEC-AMBIGUOUS` | `existing-k3s`: more than one Infrastructure spec declares an `## Environments` table |
+
+## existing-k3s Targets
+
+An `existing-k3s` app's environments can differ in two ways that change every deployment step,
+so each environment declares them in the Infrastructure spec's `## Environments` table instead of
+in `.smaqit/slots.yml` binding `params`:
+
+- **Reachability.** A `public` machine exposes its Kubernetes API and the app's Ingress to the
+  internet. A `private-mesh` machine is reachable only from peers of a private mesh network
+  (WireGuard-based meshes are common): its API and app hostnames live in the mesh's private DNS
+  zone, and CI reaches them only after joining the mesh with a per-app setup key.
+- **Ingress mode.** `own-tls` is the original behaviour: the app's Ingress asks cert-manager for
+  its own certificate. `platform-default-tls` means the platform already serves one certificate
+  (often a DNS-01 wildcard) as its ingress controller's default, so the app's Ingress has no `tls`
+  section. `platform-owned` means the platform runs the Ingress itself, for example behind its
+  single sign-on gate, and the app ships none.
+
+The default fillers read the row, not binding parameters: `mesh-check` confirms mesh access for
+`private-mesh`; `ci-generate` renders one `deploy.yml` whose steps branch on the dispatched
+machine's row (mesh join, Ingress, Certificate wait); `app-deploy` applies the Ingress the mode
+calls for; and `verify` checks the app from inside the cluster with a short-lived probe Job
+whenever the deployer can't reach it from outside (`private-mesh` or `platform-owned`). The probe's
+verdict is the Job's own status, so it works even where the platform denies `pods/log`.
+
+There is no default. `smaqit slots plan --mode=existing-k3s` refuses to plan an environment whose
+row is incomplete, and `smaqit spec environments [--env=<env>] [--json]` validates and prints the
+table — the same output the fillers consume. The trade-off is deliberate: a spec written before
+this table existed must be updated before its next deployment, in exchange for every k3s skill
+agreeing on one source of truth for what each machine is.
 
 ## Invariants
 

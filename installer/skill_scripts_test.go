@@ -131,6 +131,32 @@ case "$1" in
 esac
 `
 
+// stubKubectl answers the namespace guard's calls. STUB_KUBECTL_MODE: ok (every
+// can-i is "no"), unreachable, rejected, allow-nodes (get nodes is "yes"), or
+// flaky (one can-i call errors after the API answered).
+const stubKubectl = `#!/usr/bin/env bash
+set -u
+mode="${STUB_KUBECTL_MODE:-ok}"
+printf '%s\n' "$*" >> "$STUB_STATE/kubectl.calls"
+if [ "$1" = config ] && [ "$2" = view ]; then
+  printf '%s' "${STUB_KUBECTL_NAMESPACE:-app-shop}"; exit 0
+fi
+if [ "$1" = auth ] && [ "$2" = can-i ]; then
+  case "$mode" in
+    unreachable) echo "Unable to connect to the server: dial tcp 100.64.0.7:6443: i/o timeout" >&2; exit 1 ;;
+    rejected) echo "error: You must be logged in to the server (Unauthorized)" >&2; exit 1 ;;
+  esac
+  if [ "$3" = --list ]; then echo "Resources   Non-Resource URLs   Resource Names   Verbs"; exit 0; fi
+  case "$mode:$3:$4" in
+    allow-nodes:get:nodes) echo yes; exit 0 ;;
+    flaky:*:storageclasses) echo "error: the server was unable to return a response in the time allotted" >&2; exit 1 ;;
+  esac
+  echo no; exit 1
+fi
+echo "stub kubectl: unexpected call: $*" >&2
+exit 3
+`
+
 type scriptHarness struct {
 	t     *testing.T
 	state string
@@ -146,7 +172,7 @@ func newScriptHarness(t *testing.T) *scriptHarness {
 		}
 	}
 	bin := t.TempDir()
-	for name, body := range map[string]string{"vault": stubVault, "gh": stubGh, "terraform": stubTerraform} {
+	for name, body := range map[string]string{"vault": stubVault, "gh": stubGh, "terraform": stubTerraform, "kubectl": stubKubectl} {
 		if err := os.WriteFile(filepath.Join(bin, name), []byte(body), 0755); err != nil {
 			t.Fatal(err)
 		}

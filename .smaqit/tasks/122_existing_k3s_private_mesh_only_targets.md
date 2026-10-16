@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 103
+status: Completed
 created: "2026-10-06"
 mode: Assisted
 started: "2026-10-16"
+completed: "2026-10-16"
 ---
 
 # existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones

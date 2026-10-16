@@ -377,3 +377,36 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Docker | Dockerfile ARG | https://docs.docker.com/reference/dockerfile/ |
 | Terraform | Environment variables (TF_VAR_) | https://developer.hashicorp.com/terraform/cli/config/environment-variables |
 | Terraform | S3 backend | https://developer.hashicorp.com/terraform/language/backend/s3 |
+
+## Task 122 — existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones
+
+**Context fingerprint:** sha256:1ab3bf9382ea0be1eef806b973b3f626a842a0a251fb0bf2d44821a5e0925f42
+**Refreshed:** 2026-10-16
+
+| Tool | Section | URL |
+|------|---------|-----|
+| k3s | Documentation | https://docs.k3s.io/ |
+| k3s | Networking services (Traefik, ServiceLB) | https://docs.k3s.io/networking/networking-services |
+| Kubernetes | Jobs | https://kubernetes.io/docs/concepts/workloads/controllers/job/ |
+| Kubernetes | TTL-after-finished controller | https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/ |
+| Kubernetes | DNS for Services and Pods | https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/ |
+| Kubernetes | Ingress (TLS) | https://kubernetes.io/docs/concepts/services-networking/ingress/ |
+| Kubernetes | Persistent Volumes (claims) | https://kubernetes.io/docs/concepts/storage/persistent-volumes/ |
+| Kubernetes | kubectl wait | https://kubernetes.io/docs/reference/kubectl/generated/kubectl_wait/ |
+| Kubernetes | kubectl auth can-i | https://kubernetes.io/docs/reference/kubectl/generated/kubectl_auth/kubectl_auth_can-i/ |
+| Kubernetes | Pod Security Standards (restricted) | https://kubernetes.io/docs/concepts/security/pod-security-standards/ |
+| Traefik | Kubernetes Ingress provider | https://doc.traefik.io/traefik/providers/kubernetes-ingress/ |
+| Traefik | TLS (default certificate, TLS stores) | https://doc.traefik.io/traefik/https/tls/ |
+| cert-manager | Securing Ingress resources (ingress-shim) | https://cert-manager.io/docs/usage/ingress/ |
+| cert-manager | DNS01 challenge | https://cert-manager.io/docs/configuration/acme/dns01/ |
+| NetBird | Documentation | https://docs.netbird.io/ |
+| NetBird | Setup keys | https://docs.netbird.io/manage/peers/register-machines-using-setup-keys |
+| GitHub Actions | Workflow syntax | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub Actions | Expressions (fromJSON) | https://docs.github.com/en/actions/reference/workflows-and-actions/expressions |
+| GitHub Actions | Contexts (secrets, vars, env) | https://docs.github.com/en/actions/reference/workflows-and-actions/contexts |
+| GitHub Actions | Events that trigger workflows (workflow_dispatch) | https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows |
+| HashiCorp Vault | KV Secrets Engine v2 | https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2 |
+| HashiCorp Vault | CLI: vault kv | https://developer.hashicorp.com/vault/docs/commands/kv |
+| jq | Manual | https://jqlang.org/manual/ |
+| Go | Package testing (golden files, flags) | https://pkg.go.dev/testing |
+| Go | YAML v3 | https://pkg.go.dev/gopkg.in/yaml.v3 |

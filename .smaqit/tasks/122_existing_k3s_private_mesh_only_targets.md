@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 103
 created: "2026-10-06"
 mode: Assisted
 started: "2026-10-16"
@@ -214,33 +215,47 @@ the mesh step in an all-public render), each caught by a test; a grep of `skills
 
 ## Acceptance Criteria
 
-- [ ] A `private-mesh` + `platform-owned` spec renders a dispatch-only deploy workflow with a mesh join, no Ingress or Certificate, and in-cluster verification
-- [ ] An SSO-gated slug on a public target deploys without an app-owned Ingress and verifies in-cluster
-- [ ] An existing-k3s spec missing `reachability` or `ingress_mode` is rejected
-- [ ] A marked merge triggers exactly one deploy
-- [ ] `pvc.yaml` is applied when present
-- [ ] namespace-guard fails when the API is unreachable
-- [ ] Golden files cover every reachability × Ingress-mode combination and were regenerated deliberately
-- [ ] No platform-specific names in canonical skill text
-- [ ] `smaqit spec environments --json` emits the parsed Environments rows, and every default k3s filler and the renderer consume it
-- [ ] A `private-mesh` environment's mesh setup key loads from Vault and syncs into its machine-slug Environment without appearing in argv or output
-- [ ] The probe Job's verdict comes from Job status, so in-cluster verification works without a `pods/log` grant
+- [x] A `private-mesh` + `platform-owned` spec renders a dispatch-only deploy workflow with a mesh join, no Ingress or Certificate, and in-cluster verification
+- [x] An SSO-gated slug on a public target deploys without an app-owned Ingress and verifies in-cluster
+- [x] An existing-k3s spec missing `reachability` or `ingress_mode` is rejected
+- [x] A marked merge triggers exactly one deploy
+- [x] `pvc.yaml` is applied when present
+- [x] namespace-guard fails when the API is unreachable
+- [x] Golden files cover every reachability × Ingress-mode combination and were regenerated deliberately
+- [x] No platform-specific names in canonical skill text
+- [x] `smaqit spec environments --json` emits the parsed Environments rows, and every default k3s filler and the renderer consume it
+- [x] A `private-mesh` environment's mesh setup key loads from Vault and syncs into its machine-slug Environment without appearing in argv or output
+- [x] The probe Job's verdict comes from Job status, so in-cluster verification works without a `pods/log` grant
 
 ## Findings
 
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Added a parsed `## Environments` table to the Infrastructure spec template (`installer/infra_spec.go`), validated per reachability class and Ingress mode, and exposed it through `smaqit spec environments [--env] [--json]`
+- Gated `smaqit slots plan --mode=existing-k3s` on the targeted row (`SLOTS-SPEC-*`, reported together with binding errors) and added the row to the plan JSON as `target`; `smaqit validate` checks the whole table
+- Rewrote `deploy.yml.k3s.template` as one dispatch-only workflow branching at run time on a rendered per-machine `K3S_TARGETS` map, rendered by the new `render-k3s-deploy.sh` (jq + awk), with the mesh-join step kept only when some environment is private-mesh
+- Added the `platform-default-tls` Ingress and probe Job templates, the `mesh-check` operation (`platform-prereqs` default for existing-k3s), deploy-verify's in-cluster mode, and the mesh setup-key load/rotate/sync path
+- Made `namespace-guard.sh` fail closed: reachability preflight, and only an explicit "no" counts as denied
+- Tests: parser and gate tables, seven golden renders with `-update`, a test executing the rendered steps for every combination (with and without `pvc.yaml`), a stub `kubectl` for the guard, mesh-check against a live local listener, probe Job and default-TLS Ingress through manifest-lint, mesh-key load and sync; smoke test covers the gate and the new command through the compiled binary
 
 **Decisions made:**
-- TBD
+- Spec shape, gate location, run-time variance in one workflow, and a Job-status probe verdict on the app's own image were chosen in `task.plan` Q&A (2026-10-16)
+- The Certificate-wait step stays in the single workflow and is skipped by `if:` for non-own-tls machines; AC1 is met at run time, proven by the step-execution test rather than by the rendered file alone
+- Revision is proven from the Deployment's image tag for every class; the external check only requests the declared health path and the root
+- `own-tls` keeps `deployment/k3s/ingress.yaml`; Host, Ingress Class and ClusterIssuer became apply-time tokens so environments can differ
+- repo-config and vault-loader take the row's values (machine slug, mesh secret name) as arguments rather than reading the JSON themselves; the fillers that branch on the row (cicd-generate, deploy-k3s-app, deploy-verify, mesh-check) consume it directly
+- The deployment agent's `ci-push` path dispatches a workflow that has no push trigger; feature-new already resolves dispatch-only workflows through its dispatcher mode
+- Released as MINOR with an action-required CHANGELOG note, matching the v3.13.0 precedent
 
 **Blockers encountered:**
-- TBD
+- None; issue triage was Advisory (cert-manager ingress-shim bugs, one Traefik TLS-store leak, `actions/runner` searches rate-limited)
+- Caught during implementation: `getent` exit 2 under `pipefail` aborted mesh-check, an unescaped apostrophe broke a single-quoted skill description in `make prepare`, and actionlint flagged an unused loop variable in the rendered workflow
 
 **Follow-up identified:**
-- TBD
+- `.smaqit/definitions/skills/` entries for deploy-k3s-app, cicd-generate and deploy-verify still describe the pre-122 behaviour
+- No live run yet against a private-mesh or SSO-gated machine; the probe Job needs `jobs` create/delete and same-Namespace NetworkPolicy from the platform
+- Moving an environment off `own-tls` leaves cert-manager's old Certificate behind (cert-manager#8733); documented as a manual cleanup
 
 ## Files to Create / Modify
 

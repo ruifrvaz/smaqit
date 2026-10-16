@@ -5,7 +5,7 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
-| 122 | existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones | In Progress | High |
+| 122 | existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones | PR Open | High |
 | 113 | Business Use-Case Diagrams: No Guardrail Against Generalization-Inheritance Misuse or PlantUML-Alias Collision With the Project's Own UC-ID Convention | new | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
 | 077 | Retroactive Specifications (for Brownfield Projects) | new | Medium |

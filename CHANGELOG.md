@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Nothing to add.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
+## [3.14.0] - 2026-10-16
+
 **Action required for `existing-k3s` projects:** add an `## Environments` table to the Infrastructure spec (one row per environment, declaring `Reachability` and `Ingress Mode`), move the `Machine Slug`, `Ingress Class`, and `ClusterIssuer` Constraints rows into it, and regenerate `deploy.yml` with `smaqit.infrastructure-cicd-generate`. `smaqit slots plan --mode=existing-k3s` refuses to plan until every targeted row is complete. See Changed below for the full migration.
 
 ### Added
@@ -33,12 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `namespace-guard.sh` failed open: `kubectl auth can-i` exits non-zero for a connection error as well as for "no", so an unreachable API passed the guard. It now checks that the API answers and accepts the credential first, and treats only an explicit "no" as denied.
-
-### Security
-- Nothing to add.
-
-### Chore
-- Nothing to add.
 
 ## [3.13.0] - 2026-10-13
 

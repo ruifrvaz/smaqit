@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-repo-config
-description: 'Use when setting up, rotating, or verifying the GitHub Actions secrets and variables a project''s CI/CD needs, via the gh CLI: VM_SSH_KEY, Terraform backend and cloud credentials, GH_TERRAFORM_TOKEN, VM_HOST and DEMO_MODE, or for existing-k3s the environment-scoped KUBECONFIG secret, APP_HOST, and an optional registry credential.'
+description: 'Use when setting up, rotating, or verifying the GitHub Actions secrets and variables a project''s CI/CD needs, via the gh CLI: VM_SSH_KEY, Terraform backend and cloud credentials, GH_TERRAFORM_TOKEN, VM_HOST and DEMO_MODE, or for existing-k3s the environment-scoped KUBECONFIG secret, a private-mesh machine''s setup key, and an optional registry credential.'
 metadata:
-  version: "1.9.0"
+  version: "2.0.0"
   smaqit-slots: "environment-config=sync, environment-config=sync-machine"
 ---
 
@@ -71,7 +71,7 @@ metadata:
 5. **`existing-k3s` only — sync each target machine's GitHub Environment**, once per
    environment the Infrastructure spec declares (typically a test machine and a prod machine):
    ```bash
-   scripts/sync-k3s-env.sh <owner>/<repo> <app-slug> <machine-slug> --host <ingress-host> [--registry-org <org-slug>]
+   scripts/sync-k3s-env.sh <owner>/<repo> <app-slug> <machine-slug> [--mesh-secret <name>] [--registry-org <org-slug>]
    ```
    The Environment is named after the machine slug — the same slug that keys the app's
    kubeconfig in Vault — so each environment's distinct scoped kubeconfig has exactly one home;
@@ -81,10 +81,13 @@ metadata:
      absent — a merged onboarding request isn't enough; the platform's own hand-off must have
      delivered the kubeconfig and the `target-credentials` load stored it;
    - creates or verifies the Environment and runs `scripts/check-pat-permissions.sh` against it;
-   - pipes the kubeconfig into the `KUBECONFIG` **secret** from Vault on stdin, and sets
-     `APP_HOST` — `existing-k3s`'s analog of `VM_HOST`, a **variable** (not a secret) holding
-     the environment's Ingress hostname, which the generated workflow writes into the Ingress
-     and verifies against;
+   - pipes the kubeconfig into the `KUBECONFIG` **secret** from Vault on stdin;
+   - with `--mesh-secret <name>` — for an environment whose Environments row is `private-mesh`,
+     where `<name>` is that row's `Mesh Setup-Key Secret` — pipes the platform-issued setup key
+     from `secret/apps/<app-slug>/<machine-slug>/mesh-setup-key` into that secret, and stops
+     before writing anything if the key isn't in Vault yet (load it with
+     `PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug> MESH_SETUP_KEY=1
+     load-credentials.sh`);
    - with `--registry-org`, also syncs `REGISTRY_USERNAME`/`REGISTRY_TOKEN` from the org-scoped,
      read-only `secret/organizations/<org-slug>/github-package-read` — only when the spec's
      `Container Registry` Constraints row declares a private registry; never a platform-owned
@@ -92,7 +95,9 @@ metadata:
    - lists the Environment's secrets and variables and fails if any expected name is absent.
 
    No `ssh`/`tfstate`/`cyso`-derived secret is ever synced for this mode, and `VM_HOST` is never
-   set.
+   set. The generated workflow reads each machine's host from the Infrastructure spec's
+   Environments table, so `APP_HOST` is no longer needed; `--host` still sets it for a hand-written
+   workflow that reads it.
 
 ### Operation `sync-machine` — a machine's GitHub Environment (platform repositories)
 
@@ -137,7 +142,7 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
 
 - **`provision` / `existing-owned`:** GitHub repository configured with 7 secrets (VM_SSH_KEY, VM_SSH_PUBLIC_KEY, TF_BACKEND_ACCESS_KEY, TF_BACKEND_SECRET_KEY, OS_APPLICATION_CREDENTIAL_ID, OS_APPLICATION_CREDENTIAL_SECRET, GH_TERRAFORM_TOKEN) plus the VM_HOST variable
 - **`existing-shared` / `existing-unmanaged`:** 3 secrets only (VM_SSH_KEY, VM_SSH_PUBLIC_KEY, GH_TERRAFORM_TOKEN) plus the VM_HOST variable (set manually, not derived from Terraform) — identical set for both modes; only the reason there's no Terraform output differs (another project's Terraform vs. no Terraform at all)
-- **`existing-k3s`:** a `KUBECONFIG` secret on the GitHub Environment named after each target machine slug (never a repository-level secret), plus an `APP_HOST` variable on each Environment; if the spec's `Container Registry` row declares a private registry, also `REGISTRY_USERNAME`/`REGISTRY_TOKEN` on each Environment, sourced from the shared `secret/organizations/<org-slug>/github-package-read`. No `VM_HOST`, no `VM_SSH_KEY`, no Terraform-derived secret at all.
+- **`existing-k3s`:** a `KUBECONFIG` secret on the GitHub Environment named after each target machine slug (never a repository-level secret), plus the spec-named mesh setup-key secret on each `private-mesh` machine's Environment; if the spec's `Container Registry` row declares a private registry, also `REGISTRY_USERNAME`/`REGISTRY_TOKEN` on each Environment, sourced from the shared `secret/organizations/<org-slug>/github-package-read`. No `VM_HOST`, no `VM_SSH_KEY`, no Terraform-derived secret at all.
 - **`sync-machine`:** a GitHub Environment named after the machine slug holding 6 secrets
   (`BASE_SSH_PUBLIC_KEY`, `BASE_SSH_PRIVATE_KEY`, `CYSO_APPLICATION_CREDENTIAL_ID`,
   `CYSO_APPLICATION_CREDENTIAL_SECRET`, `CYSO_S3_ACCESS_KEY`, `CYSO_S3_SECRET_KEY`) and 2 variables
@@ -151,7 +156,7 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
 - Does NOT generate SSH keys — the caller must provide a passphrase-free deploy key file path
 - Does NOT create or configure the GitHub repository itself
 - Does NOT manage environment-level secrets, except for `provisioning_mode: existing-k3s` — that
-  mode's `KUBECONFIG` secret and `APP_HOST` variable are deliberately GitHub Environment-scoped
+  mode's `KUBECONFIG` and mesh setup-key secrets are deliberately GitHub Environment-scoped
   (one per target machine slug), not repository-level, since each environment needs its own distinct value —
   and the `sync-machine` operation, whose output is entirely one machine-slug Environment; the
   `sync` operation's VM-mode output stays repository-level only
@@ -164,7 +169,7 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
 **Output:** `gh secret list` confirms: VM_SSH_KEY, TF_BACKEND_ACCESS_KEY, TF_BACKEND_SECRET_KEY, TF_VAR_APP_CREDENTIAL_ID, TF_VAR_APP_CREDENTIAL_SECRET, GH_TERRAFORM_TOKEN. `gh variable list` confirms: VM_HOST, DEMO_MODE=true.
 
 **Input:** Namespace-scoped Kubernetes/k3s target, `provisioning_mode: existing-k3s`. Operator invokes the skill.
-**Output:** `scripts/sync-k3s-env.sh` runs once per target machine; `gh secret list --env <test-machine-slug>` and `--env <prod-machine-slug>` each confirm `KUBECONFIG`, and `gh variable list` on each confirms `APP_HOST`. No `VM_HOST`, no `VM_SSH_KEY`, at the repository level or either Environment.
+**Output:** `scripts/sync-k3s-env.sh` runs once per target machine; `gh secret list --env <test-machine-slug>` and `--env <prod-machine-slug>` each confirm `KUBECONFIG`, and the private-mesh test machine's also confirms its `MESH_SETUP_KEY`. No `VM_HOST`, no `VM_SSH_KEY`, at the repository level or either Environment.
 
 ## Gotchas
 
@@ -176,7 +181,8 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
 - **`gh auth login` scope** — ensure the `gh` session has `write:secrets` and `write:variables`. The `repo` scope alone is insufficient for variables.
 - **`KUBECONFIG` must be set per Environment, never at the repository level** — a repository-level secret can only hold one value, but each environment resolves to its own registered machine slug and its own distinct scoped kubeconfig. Setting it at the repository level would silently make one environment deploy with the wrong credential.
 - **`existing-k3s` Environments are named after machine slugs, not `test`/`prod`** — matching the Vault path `secret/apps/<app-slug>/<machine-slug>/kubeconfig` and the generated `deploy.yml`'s environment input. A project that set up `test`/`prod` Environments earlier syncs into the machine-slug Environments with `sync-k3s-env.sh` and deletes the old ones once its regenerated workflow uses the new names.
-- **`APP_HOST` is a variable, not a secret** — same reasoning as `VM_HOST`: it's a hostname, not sensitive, and the generated `deploy.yml.k3s.template` reads it directly via `${{ vars.APP_HOST }}`.
+- **The mesh setup key is per machine and platform-issued** — like the kubeconfig, it lives at `secret/apps/<app-slug>/<machine-slug>/mesh-setup-key` and is synced only into that machine's Environment, under the secret name the spec's Environments row declares (the generated workflow reads `secrets[<that name>]`). Rotate it with `rotate-credential.sh apps/<app-slug>/<machine-slug>/mesh-setup-key`, then re-sync and redeploy with a fresh dispatch.
+- **`APP_HOST` is no longer read by generated `k3s` workflows** — they carry each machine's host from the spec. An `APP_HOST` variable left on an Environment from an earlier sync is harmless; delete it once no hand-written workflow reads it.
 
 ## Completion
 
@@ -187,7 +193,7 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
 - [ ] TF_BACKEND_ACCESS_KEY and TF_BACKEND_SECRET_KEY set (from Vault), or cleanly skipped if `secret/<slug>/tfstate` is absent
 - [ ] OS_APPLICATION_CREDENTIAL_ID and OS_APPLICATION_CREDENTIAL_SECRET set (from Vault), or cleanly skipped if `secret/<slug>/cyso` is absent
 - [ ] GH_TERRAFORM_TOKEN set (from Vault; fine-grained PAT, `variables:write` scope)
-- [ ] `existing-k3s` only: `scripts/sync-k3s-env.sh` exited 0 for each target machine — `KUBECONFIG` secret and `APP_HOST` variable on each machine-slug Environment, plus `REGISTRY_USERNAME`/`REGISTRY_TOKEN` if the spec's `Container Registry` row declares a private registry
+- [ ] `existing-k3s` only: `scripts/sync-k3s-env.sh` exited 0 for each target machine — `KUBECONFIG` secret on each machine-slug Environment, the spec-named mesh setup-key secret on each `private-mesh` one, plus `REGISTRY_USERNAME`/`REGISTRY_TOKEN` if the spec's `Container Registry` row declares a private registry
 - [ ] `sync-machine` only: `scripts/sync-machine-env.sh` exited 0 — the machine-slug Environment exists with its 6 secrets and `RECONCILE_SSH_USER`, plus `FIXED_IP` after the post-apply re-run
 - [ ] `gh secret list` and `gh variable list` verified — all expected names present for the active `provisioning_mode` (pass `--env <machine-slug>` for `existing-k3s` and `sync-machine`)
 
@@ -207,6 +213,7 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
 | `gh variable set` returns 403 | Verify the PAT used for `gh auth login` has `write:variables` scope |
 | `existing-k3s`: `secret/apps/<app-slug>/<machine-slug>/kubeconfig` absent for the target environment's registered machine-slug | Stop. This is `smaqit.infrastructure-vault-loader`'s job — populate it there (out-of-band paste from the platform's onboarding hand-off) before retrying; do not fabricate a placeholder |
 | `existing-k3s`: `sync-k3s-env.sh` reports the kubeconfig missing | Stop. A merged onboarding request is not enough — the platform's own hand-off must deliver the kubeconfig; then load it with `PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug> load-credentials.sh` and re-run |
+| `existing-k3s`: `sync-k3s-env.sh` reports the mesh setup key missing | Load the platform-issued key: `PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug> MESH_SETUP_KEY=1 load-credentials.sh`, then re-run |
 | `existing-k3s`: `sync-k3s-env.sh` reports the registry credential missing | Load it once, org-wide: `PROVISIONING_MODE=existing-k3s CREDENTIAL_SCOPE=access REGISTRY_ORG=<org-slug> load-credentials.sh` |
 | Environment create returns 403 "Resource not accessible by personal access token" | The token lacks Environments write or organization-level Secrets/Variables read/write; fix the fine-grained PAT, re-authenticate `gh`, retry |
 | `gh variable set --env <name>` returns 404 | The Environment doesn't exist yet — create it first (`sync-machine` does this itself) |

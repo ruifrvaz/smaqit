@@ -13,6 +13,8 @@
 #       pull_requests:write on the platform-owned infrastructure repo, distinct from github)
 #     apps/<app-slug>/<machine-slug>/kubeconfig  (existing-k3s only — the machine-slug in the
 #       path is the distinguishing dimension; no separate environment argument)
+#     apps/<app-slug>/<machine-slug>/mesh-setup-key  (existing-k3s private-mesh only — replaced
+#       with a freshly platform-issued key, entered hidden)
 #     machines/<machine-slug>/cyso | machines/<machine-slug>/tfstate | machines/<machine-slug>/base-ssh
 #     organizations/<org-slug>/github-package-read  (the org-scoped, read-only registry pull
 #       credential: username + token)
@@ -65,7 +67,7 @@ CREDENTIAL_PATH="${1:-}"
 if [ -z "$CREDENTIAL_PATH" ]; then
   echo "Usage: $0 <path>"
   echo "  Legacy: cyso | ssh | tfstate | github"
-  echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | apps/<app-slug>/<machine-slug>/kubeconfig |"
+  echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | apps/<app-slug>/<machine-slug>/{kubeconfig,mesh-setup-key} |"
   echo "          machines/<machine-slug>/{cyso,tfstate,base-ssh} | organizations/<org-slug>/github-package-read"
   exit 1
 fi
@@ -86,6 +88,11 @@ case "$CREDENTIAL_PATH" in
     APP_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
     MACHINE_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f3)"
     ;;
+  apps/*/*/mesh-setup-key)
+    SCHEME="apps-mesh-key"
+    APP_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
+    MACHINE_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f3)"
+    ;;
   organizations/*/github-package-read)
     SCHEME="organizations"
     ORG_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
@@ -98,7 +105,7 @@ case "$CREDENTIAL_PATH" in
   *)
     echo "ERROR: Unrecognized path '$CREDENTIAL_PATH'."
     echo "  Legacy: cyso | ssh | tfstate | github"
-    echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | apps/<app-slug>/<machine-slug>/kubeconfig |"
+    echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | apps/<app-slug>/<machine-slug>/{kubeconfig,mesh-setup-key} |"
     echo "          machines/<machine-slug>/{cyso,tfstate,base-ssh} | organizations/<org-slug>/github-package-read"
     exit 1
     ;;
@@ -169,6 +176,34 @@ if [ "$SCHEME" = "apps-kubeconfig" ]; then
   echo "==> Rotation complete for ${FULL_PATH}."
   echo "    Re-run smaqit.infrastructure-repo-config to sync the new value to the relevant"
   echo "    GitHub Environment secret."
+  exit 0
+fi
+
+# ── New scheme: apps/<app-slug>/<machine-slug>/mesh-setup-key ──────────────────
+# Issued by the platform for the app's CI mesh peer; replaced with a freshly issued key, entered
+# hidden and handed to Vault on stdin. Only this machine-slug's path is touched.
+
+if [ "$SCHEME" = "apps-mesh-key" ]; then
+  FULL_PATH="secret/apps/${APP_SLUG}/${MACHINE_SLUG}/mesh-setup-key"
+  echo "==> About to rotate: $FULL_PATH"
+  echo "    This requires a FRESHLY PLATFORM-ISSUED setup key; obtain it before continuing."
+  read -r -p "    Continue? [y/N] " CONFIRM
+  case "$CONFIRM" in
+    y|Y) ;;
+    *) echo "Aborted."; exit 0 ;;
+  esac
+  read_secret MESH_KEY "mesh_setup_key"
+  if [ -z "$MESH_KEY" ]; then
+    echo "ERROR: mesh setup key for '${MACHINE_SLUG}' is empty — refusing to write a placeholder secret." >&2
+    exit 1
+  fi
+  printf '%s' "$MESH_KEY" | vault kv put "$FULL_PATH" value=- > /dev/null
+  unset MESH_KEY
+  echo "    DONE"
+  echo ""
+  echo "==> Rotation complete for ${FULL_PATH}."
+  echo "    Re-run smaqit.infrastructure-repo-config (sync-k3s-env.sh --mesh-secret <name>) and"
+  echo "    redeploy with a fresh workflow dispatch."
   exit 0
 fi
 

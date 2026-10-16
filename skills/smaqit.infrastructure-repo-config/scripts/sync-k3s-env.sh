@@ -7,14 +7,19 @@
 # scoped kubeconfig has exactly one home. The script creates or verifies the Environment,
 # preflights the token with check-pat-permissions.sh, then sets:
 #   secret   KUBECONFIG                         ← secret/apps/<app>/<machine>/kubeconfig (value)
-#   variable APP_HOST                           ← --host (the environment's Ingress hostname)
+#   secret   <name>                             ← secret/apps/<app>/<machine>/mesh-setup-key (value)
+#                                                 (only with --mesh-secret <name>, for a private-mesh
+#                                                 machine; <name> is the spec's Mesh Setup-Key Secret)
 #   secrets  REGISTRY_USERNAME, REGISTRY_TOKEN  ← secret/organizations/<org>/github-package-read
 #                                                 (only with --registry-org, for a private image)
+#   variable APP_HOST                           ← --host (optional; workflows rendered from the
+#                                                 Infrastructure spec's Environments table read the
+#                                                 host from it and no longer use this variable)
 # Secret values travel from Vault to gh on stdin — never as an argument, never printed.
 # Idempotent: re-run after any rotation in Vault.
 #
 # Usage: bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-repo-config/scripts/sync-k3s-env.sh \
-#          <owner>/<repo> <app-slug> <machine-slug> [--host <app-host>] [--registry-org <org>]
+#          <owner>/<repo> <app-slug> <machine-slug> [--mesh-secret <name>] [--registry-org <org>] [--host <app-host>]
 
 set -euo pipefail
 
@@ -22,7 +27,7 @@ export VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
-  echo "Usage: $0 <owner>/<repo> <app-slug> <machine-slug> [--host <app-host>] [--registry-org <org>]" >&2
+  echo "Usage: $0 <owner>/<repo> <app-slug> <machine-slug> [--mesh-secret <name>] [--registry-org <org>] [--host <app-host>]" >&2
   exit 1
 }
 
@@ -33,9 +38,11 @@ MACHINE_SLUG="${3:-}"
 shift 3
 APP_HOST=""
 REGISTRY_ORG=""
+MESH_SECRET=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --host)         [ "$#" -ge 2 ] || usage; APP_HOST="$2"; shift 2 ;;
+    --mesh-secret)  [ "$#" -ge 2 ] || usage; MESH_SECRET="$2"; shift 2 ;;
     --registry-org) [ "$#" -ge 2 ] || usage; REGISTRY_ORG="$2"; shift 2 ;;
     *) usage ;;
   esac
@@ -51,6 +58,11 @@ for slug in "$APP_SLUG" "$MACHINE_SLUG" ${REGISTRY_ORG:+"$REGISTRY_ORG"}; do
   fi
 done
 
+if [ -n "$MESH_SECRET" ] && { ! printf '%s' "$MESH_SECRET" | grep -Eq '^[A-Z_][A-Z0-9_]*$' || [ "${MESH_SECRET#GITHUB_}" != "$MESH_SECRET" ]; }; then
+  echo "ERROR: --mesh-secret '$MESH_SECRET' must be an uppercase GitHub secret name (A-Z, 0-9, _), not starting with GITHUB_." >&2
+  exit 1
+fi
+
 if ! vault token lookup > /dev/null 2>&1; then
   echo "ERROR: No valid Vault token. Run smaqit.infrastructure-vault-loader first." >&2
   exit 1
@@ -62,6 +74,7 @@ fi
 
 KUBECONFIG_PATH="secret/apps/${APP_SLUG}/${MACHINE_SLUG}/kubeconfig"
 REGISTRY_PATH="secret/organizations/${REGISTRY_ORG}/github-package-read"
+MESH_PATH="secret/apps/${APP_SLUG}/${MACHINE_SLUG}/mesh-setup-key"
 
 # ── 1. Every source path must exist before anything is written ─────────────────
 
@@ -69,6 +82,11 @@ if ! vault kv get -field=value "$KUBECONFIG_PATH" > /dev/null 2>&1; then
   echo "ERROR: ${KUBECONFIG_PATH} is missing. A merged onboarding request is not enough — the" >&2
   echo "       platform's own hand-off must deliver the kubeconfig. Then load it with:" >&2
   echo "       PROVISIONING_MODE=existing-k3s MACHINE_SLUG=${MACHINE_SLUG} load-credentials.sh" >&2
+  exit 1
+fi
+if [ -n "$MESH_SECRET" ] && ! vault kv get -field=value "$MESH_PATH" > /dev/null 2>&1; then
+  echo "ERROR: ${MESH_PATH} is missing. Load the platform-issued setup key with:" >&2
+  echo "       PROVISIONING_MODE=existing-k3s MACHINE_SLUG=${MACHINE_SLUG} MESH_SETUP_KEY=1 load-credentials.sh" >&2
   exit 1
 fi
 if [ -n "$REGISTRY_ORG" ] && ! vault kv get "$REGISTRY_PATH" > /dev/null 2>&1; then
@@ -104,6 +122,10 @@ sync_secret() {
 echo "==> Syncing into Environment '${MACHINE_SLUG}'..."
 sync_secret KUBECONFIG "$KUBECONFIG_PATH" value
 EXPECTED_SECRETS="KUBECONFIG"
+if [ -n "$MESH_SECRET" ]; then
+  sync_secret "$MESH_SECRET" "$MESH_PATH" value
+  EXPECTED_SECRETS="$EXPECTED_SECRETS $MESH_SECRET"
+fi
 if [ -n "$REGISTRY_ORG" ]; then
   sync_secret REGISTRY_USERNAME "$REGISTRY_PATH" username
   sync_secret REGISTRY_TOKEN "$REGISTRY_PATH" token

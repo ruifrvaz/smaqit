@@ -253,6 +253,9 @@ workflow, templated or not, must avoid them:
   nothing to the plan: the reviewed configuration change produces the destroy, and the guard
   accepts only a pure destroy of that address. Pass the input to the step through `env:`, never
   interpolated into the script.
+- **Both inputs are typed by a human, never filled from guard output.** A workflow or agent must not
+  derive the replace/remove address from a BLOCKED plan; when the guard blocks, the run fails and a
+  human decides. Never add a step that retries the guard with addresses parsed from its own output.
 
 ## Completion
 

@@ -38,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Each row gives the fix: use `--subresource=<name>`; bracket the command with `set +e`; never append `|| true`. These rows were meant for v3.16.0 but reached its branch after PR #105 had merged.
 
+## [3.17.1] - 2026-10-18
+
+### Fixed
+- **`plan-guard.sh` no longer suggests going around itself when it blocks.** Its BLOCKED message used to end "only then apply outside of this guarded path". It now tells the reader to stop, report the plan and wait for a human decision, and never to re-run with `--allow-delete` or `--allow-replace` for an address taken from its own output. An allowed address must be one a human named before the plan ran: the request, the reviewed pull request, or a gated dispatch input. The same rule is now stated in `smaqit.infrastructure-provision-cyso` (1.10.1: guard step and failure table), `smaqit.infrastructure-cicd-generate` (3.2.1: gated replace/remove inputs), the Deployment agent's guard invariant, and the platform-repositories guide. The guard's verdict logic, flags and exit codes are unchanged.
+
 ## [3.17.0] - 2026-10-18
 
 **Action required:** a phase you start yourself now pauses for review. `/smaqit.development`, `/smaqit.deployment`, and `/smaqit.validation` (and the phase agents you pick in GitHub Copilot or Codex) default to **assisted** mode; say "run autonomously" to go straight through. `smaqit.new-greenfield-project`, `smaqit.feature-new`, and phases Claude starts on its own default to **autonomous**, and their review and sign-off gates now apply only in assisted mode. Run `smaqit update` in each project to refresh its `AGENTS.md` section. Specification gates also became stricter: a request that names only a project, or that relied on the agent filling in the gaps, now returns `NEEDS-INPUT` instead of generating specifications.

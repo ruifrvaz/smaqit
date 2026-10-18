@@ -697,6 +697,105 @@ func TestPlanGuardAllowsOnlyTheNamedReplacement(t *testing.T) {
 	}
 }
 
+const breakGlassRule = "openstack_networking_secgroup_rule_v2.break_glass"
+
+func TestPlanGuardAllowsOnlyTheNamedDestroy(t *testing.T) {
+	h := newScriptHarness(t)
+	out, code := runPlanGuard(t, h, 2, []planChange{
+		{breakGlassRule, []string{"delete"}},
+		{"openstack_networking_secgroup_v2.app", []string{"update"}},
+	}, "--allow-delete", breakGlassRule)
+	if code != 0 || !strings.Contains(out, "destroys only the explicitly allowed") || !strings.Contains(out, breakGlassRule) {
+		t.Errorf("allowed destroy: exit %d\n%s", code, out)
+	}
+	if strings.Contains(h.argv("terraform"), "-replace=") {
+		t.Errorf("--allow-delete changed the plan arguments: %q", h.argv("terraform"))
+	}
+
+	cases := []struct {
+		name    string
+		exit    int
+		changes []planChange
+		want    []string
+	}{
+		{"another delete beside the allowed destroy", 2, []planChange{
+			{breakGlassRule, []string{"delete"}},
+			{"openstack_networking_secgroup_rule_v2.https", []string{"delete"}},
+		}, []string{"openstack_networking_secgroup_rule_v2.https: delete"}},
+		{"allowed address replaced instead", 2, []planChange{{breakGlassRule, []string{"create", "delete"}}},
+			[]string{"does not purely destroy", breakGlassRule + " (planned: create,delete)"}},
+		{"allowed address only updated", 2, []planChange{{breakGlassRule, []string{"update"}}},
+			[]string{"does not purely destroy", breakGlassRule + " (planned: update)"}},
+		{"allowed address absent from the plan", 2, []planChange{{"openstack_networking_secgroup_v2.app", []string{"update"}}},
+			[]string{"does not purely destroy", breakGlassRule + " (planned: not in the plan)"}},
+		{"allowed address with no changes", 0, nil, []string{"nothing was replaced or destroyed", breakGlassRule + " (--allow-delete)"}},
+	}
+	for _, c := range cases {
+		out, code := runPlanGuard(t, h, c.exit, c.changes, "--allow-delete", breakGlassRule)
+		if code != 1 {
+			t.Errorf("%s: exit %d, want 1\n%s", c.name, code, out)
+		}
+		for _, want := range c.want {
+			if !strings.Contains(out, want) {
+				t.Errorf("%s: output does not mention %q\n%s", c.name, want, out)
+			}
+		}
+	}
+
+	// Repeatable: every listed address must be destroyed.
+	second := "openstack_networking_secgroup_rule_v2.public_port"
+	if out, code := runPlanGuard(t, h, 2, []planChange{{breakGlassRule, []string{"delete"}}, {second, []string{"delete"}}},
+		"--allow-delete", breakGlassRule, "--allow-delete", second); code != 0 {
+		t.Errorf("two allowed destroys: exit %d\n%s", code, out)
+	}
+	if out, code := runPlanGuard(t, h, 2, []planChange{{breakGlassRule, []string{"delete"}}},
+		"--allow-delete", breakGlassRule, "--allow-delete", second); code != 1 || !strings.Contains(out, second+" (planned: not in the plan)") {
+		t.Errorf("second allowed address not destroyed: exit %d\n%s", code, out)
+	}
+
+	// A pure destroy allowed only as a replacement stays blocked.
+	if out, code := runPlanGuard(t, h, 2, []planChange{{breakGlassRule, []string{"delete"}}},
+		"--allow-replace", breakGlassRule); code != 1 || !strings.Contains(out, breakGlassRule+": delete") {
+		t.Errorf("destroy allowed only as a replacement: exit %d\n%s", code, out)
+	}
+}
+
+func TestPlanGuardCombinesAllowedDestroyReplaceAndOut(t *testing.T) {
+	h := newScriptHarness(t)
+	kept := filepath.Join(h.work, "guarded.tfplan")
+	out, code := runPlanGuard(t, h, 2, []planChange{
+		{instance, []string{"create", "delete"}},
+		{breakGlassRule, []string{"delete"}},
+	}, "--allow-replace", instance, "--allow-delete", breakGlassRule, "--out", "guarded.tfplan")
+	if code != 0 {
+		t.Fatalf("combined: exit %d\n%s", code, out)
+	}
+	for _, want := range []string{"replaces only the explicitly allowed", "destroys only the explicitly allowed", instance, breakGlassRule, "terraform apply " + kept} {
+		if !strings.Contains(out, want) {
+			t.Errorf("combined PASS does not mention %q\n%s", want, out)
+		}
+	}
+	argv := h.argv("terraform")
+	if !strings.Contains(argv, "-replace="+instance+"\x00") || strings.Contains(argv, "-replace="+breakGlassRule) {
+		t.Errorf("plan arguments: %q", argv)
+	}
+	if _, err := os.Stat(kept); err != nil {
+		t.Fatalf("plan not kept: %v", err)
+	}
+
+	// The allowed replacement does not excuse an unlisted destroy, and the kept plan is discarded.
+	out, code = runPlanGuard(t, h, 2, []planChange{
+		{instance, []string{"create", "delete"}},
+		{breakGlassRule, []string{"delete"}},
+	}, "--allow-replace", instance, "--out", "guarded.tfplan")
+	if code != 1 || !strings.Contains(out, breakGlassRule+": delete") {
+		t.Errorf("unlisted destroy beside an allowed replacement: exit %d\n%s", code, out)
+	}
+	if _, err := os.Stat(kept); err == nil {
+		t.Error("blocked plan left on disk")
+	}
+}
+
 func TestPlanGuardOutKeepsOnlyAGuardedPlan(t *testing.T) {
 	h := newScriptHarness(t)
 	kept := filepath.Join(h.work, "guarded.tfplan") // relative to the caller, not the tf directory
@@ -727,8 +826,10 @@ func TestPlanGuardRejectsBadUsage(t *testing.T) {
 	for _, args := range [][]string{
 		{"--bogus"},
 		{"--allow-replace"},
+		{"--allow-delete"},
 		{"--out"},
 		{"extra-dir"},
+		{"--allow-delete", breakGlassRule, "--allow-replace", breakGlassRule},
 	} {
 		if out, code := runPlanGuard(t, h, 0, nil, args...); code != 2 {
 			t.Errorf("args %q: exit %d, want 2\n%s", args, code, out)

@@ -4,7 +4,7 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit
-**Refreshed:** 2026-10-11
+**Refreshed:** 2026-10-18
 
 | Tool | Section | URL |
 |------|---------|-----|
@@ -410,3 +410,20 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | jq | Manual | https://jqlang.org/manual/ |
 | Go | Package testing (golden files, flags) | https://pkg.go.dev/testing |
 | Go | YAML v3 | https://pkg.go.dev/gopkg.in/yaml.v3 |
+
+## Task 135 — plan-guard.sh: `--allow-delete <address>` for a Reviewed Pure Destroy
+
+**Context fingerprint:** sha256:fc69da7972ce721d046fc8cd26c7be285452017c9b2edd7962161e11a342e179
+**Refreshed:** 2026-10-18
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Terraform | JSON output format (resource_changes actions) | https://developer.hashicorp.com/terraform/internals/json-format |
+| Terraform | Command: plan (-replace, -detailed-exitcode, -out) | https://developer.hashicorp.com/terraform/cli/commands/plan |
+| Terraform | Command: show -json | https://developer.hashicorp.com/terraform/cli/commands/show |
+| Terraform | Resource addressing | https://developer.hashicorp.com/terraform/cli/state/resource-addressing |
+| jq | Manual | https://jqlang.org/manual/ |
+| Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |
+| Bash | The Set builtin (-e, -u, pipefail) | https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html |
+| Go | Package testing | https://pkg.go.dev/testing |
+| Go | Package os/exec | https://pkg.go.dev/os/exec |

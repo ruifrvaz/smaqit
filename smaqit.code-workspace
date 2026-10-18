@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/135-plan-guard-sh-allow-delete-address-for-a-reviewed-pure-destroy",
+      "path": "../smaqit-wt-task-135-plan-guard-sh-allow-delete-address-for-a-reviewed-pure-destroy"
     }
   ],
   "settings": {

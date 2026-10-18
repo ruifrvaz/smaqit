@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Nothing to add.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
+## [3.18.0] - 2026-10-18
+
 **Action required:**
 - **The orchestrators now pause for review when you start them.** Typing `/smaqit.feature-new` or `/smaqit.new-project` (or a Codex `$` mention, or a skill-menu pick) defaults to **assisted**, which reviews at every gate. Say "run autonomously" to go straight through.
 - **`smaqit.new-greenfield-project` is now `smaqit.new-project`.** Invoke it as `/smaqit.new-project`; the old name no longer exists. The next `smaqit update` or install removes the old directory automatically.

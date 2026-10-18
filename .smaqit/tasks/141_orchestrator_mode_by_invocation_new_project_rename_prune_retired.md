@@ -6,7 +6,7 @@ mode: Assisted
 started: "2026-10-18"
 ---
 
-# Orchestrator Skills Default by Invocation; Rename new-greenfield-project to new-project; Prune Retired Skills
+# Orchestrator Skills Default by Invocation; Rename new-greenfield-project to project-new; Prune Retired Skills
 
 ## Description
 
@@ -22,7 +22,7 @@ design. That design is now superseded. The rule is: explicit user invocation mea
 model choosing the skill itself means `autonomous`. The managed `AGENTS.md` section ships the old rule
 to every downstream repository (spotted in a downstream review of the v3.17.2 upgrade).
 
-The greenfield skill is also renamed `smaqit.new-project`, everywhere the text means that skill, with
+The greenfield skill is also renamed `smaqit.project-new`, everywhere the text means that skill, with
 no alias.
 
 Renaming exposes a long-standing installer gap: global install only writes files, so a retired or
@@ -44,7 +44,7 @@ skills are removed from machines.
 Resolved by `task.plan` on 2026-10-18.
 
 - **Mode trigger: explicit invocation syntax only.** These count as user-started (`assisted`):
-  - a typed `/smaqit.new-project` or `/smaqit.feature-new`;
+  - a typed `/smaqit.project-new` or `/smaqit.feature-new`;
   - a Codex `$` mention;
   - a pick from the `/skills` menu.
 
@@ -54,11 +54,11 @@ Resolved by `task.plan` on 2026-10-18.
 - **Phase agents keep "picked or named" as user-started.** In Codex, asking it to spawn an agent by name
   is the only way to start a phase agent. The docs note the asymmetry.
 - **Full rename, every mention that means this skill or its phases.** For example, "greenfield Phase 4"
-  becomes "new-project Phase 4". This includes the H1, the stale `/zero.to.prod` example, and the
+  becomes "project-new Phase 4". This includes the H1, the stale `/zero.to.prod` example, and the
   `design_test.go` test name. Released CHANGELOG entries, history files and task records stay unchanged
   as historical facts.
 - **No alias for the old name** (no backwards compatibility). The skill version becomes 3.0.0.
-- **Distinguish the description from smaqit-extensions' `smaqit.project-init`.** The `smaqit.new-project`
+- **Distinguish the description from smaqit-extensions' `smaqit.project-init`.** The `smaqit.project-new`
   name is free; `project-init` is a different skill. The new description must say this skill goes from
   raw assets to production, whereas `project-init` only sets up instruction files and base directories.
   It must stay within 400 characters.
@@ -93,7 +93,7 @@ Resolved by `task.plan` on 2026-10-18.
 
 *Phase B — rename (parallel with Phase A)*
 
-4. `git mv skills/smaqit.new-greenfield-project skills/smaqit.new-project`. Then update:
+4. `git mv skills/smaqit.new-greenfield-project skills/smaqit.project-new`. Then update:
    - the `name:` field, the H1 and the self-path at `SKILL.md:177`;
    - `references/diagrams.md:3` and the stale `/zero.to.prod` example;
    - the version, to 3.0.0;
@@ -128,7 +128,7 @@ Resolved by `task.plan` on 2026-10-18.
    - uninstall follows the manifest.
 9. A guard test: no shipped file contains `new-greenfield-project`.
 10. `scripts/smoke-test-installer.sh`: pre-create the old skill directory in the temporary home, install,
-    and assert that only `smaqit.new-project` remains.
+    and assert that only `smaqit.project-new` remains.
 11. CHANGELOG with an action-required note, `make test`, `make smoke-test`, and release.
 
 ## Known Issues Triage
@@ -157,20 +157,20 @@ Resolved by `task.plan` on 2026-10-18.
 
 ## Acceptance Criteria
 
-- [x] `/smaqit.new-project` and `/smaqit.feature-new` (and Codex `$` or `/skills` picks) default to
+- [x] `/smaqit.project-new` and `/smaqit.feature-new` (and Codex `$` or `/skills` picks) default to
       `assisted`; when Claude chooses them they default to `autonomous`; a stated mode wins; sub-phases
       inherit the resolved mode
 - [x] The AGENTS.md template, framework, input skills, README, wiki and compendium state one invocation
       rule; none lists the orchestrators as autonomous by default
-- [x] `skills/smaqit.new-project` replaces `smaqit.new-greenfield-project`; no shipped file references the
+- [x] `skills/smaqit.project-new` replaces `smaqit.new-greenfield-project`; no shipped file references the
       old name (guarded by a test); historical records unchanged
-- [x] The `smaqit.new-project` description separates it from smaqit-extensions' `smaqit.project-init` and
+- [x] The `smaqit.project-new` description separates it from smaqit-extensions' `smaqit.project-init` and
       stays within 400 characters
 - [x] Global install writes a manifest and removes entries the current release no longer ships; a seed
       list removes previously retired names only when the `SKILL.md` name matches; smaqit-extensions and
       user files are never removed; uninstall uses the manifest (Go tests with a temporary `HOME`)
 - [x] The smoke test proves that installing over a home holding the old skill leaves only
-      `smaqit.new-project`
+      `smaqit.project-new`
 - [x] `make test` and `make smoke-test` pass; CHANGELOG has an action-required note; released
 
 ## Findings
@@ -180,7 +180,7 @@ Resolved by `task.plan` on 2026-10-18.
   - Both orchestrators' Phase 0 now resolve their mode from how they were invoked. A slash command, a Codex `$` mention or a skill-menu pick means assisted; the model choosing the skill means autonomous. Each run announces its mode in one line.
   - One rule now appears everywhere it is stated: the three input skills, the three phase agents, the `AGENTS.md` template, `framework/AGENTS.md`, the README, the wiki and the compendium.
 - **Rename:**
-  - `git mv` moved the skill to `smaqit.new-project` (3.0.0). Its new 392-character description sets it apart from `smaqit.project-init`.
+  - `git mv` moved the skill to `smaqit.project-new` (3.0.0). Its new 392-character description sets it apart from `smaqit.project-init`.
   - Every other mention was rewritten one phrase at a time, never with a blanket word replacement: the exact name, then each "greenfield" phrase that refers to this skill. Released history was left as it was.
 - **Pruning:**
   - The new `installer/global_manifest.go` writes a manifest called `.smaqit-installed.json` in each global destination. The next install removes the files the previous release installed and this one no longer ships.
@@ -203,8 +203,10 @@ Resolved by `task.plan` on 2026-10-18.
 **Blockers encountered:**
 - None.
 
+- **Final name `smaqit.project-new`, not `smaqit.new-project`.** The user changed it in review so it matches `smaqit.feature-new` (noun then verb; diagnostics read "Project New Phase N"). It was renamed again on the same PR (#109). The guard test also rejects the interim name, which was never released, so it needs no seed entry.
+
 **Follow-up identified:**
-- A one-line wording fix is needed in smaqit-extensions: `smaqit.project-init`'s description ("start… a smaqit project") overlaps with `smaqit.new-project`.
+- A one-line wording fix is needed in smaqit-extensions: `smaqit.project-init`'s description ("start… a smaqit project") overlaps with `smaqit.project-new`.
 - Downstream repositories pick up the corrected `AGENTS.md` section on their next `smaqit update`.
 - Claude Code hooks for deterministic invocation detection were researched and explicitly declined by the user; there is no task for them.
 
@@ -212,7 +214,7 @@ Resolved by `task.plan` on 2026-10-18.
 
 | File | Action |
 |------|--------|
-| skills/smaqit.new-greenfield-project/** → skills/smaqit.new-project/** | Rename + Modify |
+| skills/smaqit.new-greenfield-project/** → skills/smaqit.project-new/** | Rename + Modify |
 | skills/smaqit.feature-new/SKILL.md | Modify |
 | skills/smaqit.input-{development,deployment,validation}/SKILL.md | Modify |
 | skills/smaqit.infrastructure-{cicd-generate,deploy-rsync,deploy-rsync-python-tornado,provision-cyso,deploy-k3s-app,request-k3s-onboarding}/** | Modify |
@@ -228,6 +230,6 @@ Resolved by `task.plan` on 2026-10-18.
 - Supersedes task 138's design decision that orchestrator skills default to autonomous. Raised while
   reviewing a downstream repository's v3.17.2 upgrade PR.
 - Follow-up outside this repo: smaqit-extensions' `smaqit.project-init` description ("start… a smaqit
-  project") overlaps with `new-project`. A one-line wording fix belongs there.
+  project") overlaps with `project-new`. A one-line wording fix belongs there.
 - Downstream repositories pick up the corrected `AGENTS.md` section on their next `smaqit update`.
 - Closes the installer retired-skill pruning gap noted in earlier sessions.

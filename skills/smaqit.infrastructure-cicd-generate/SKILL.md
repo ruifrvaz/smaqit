@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-cicd-generate
 description: 'Use when generating or updating GitHub Actions CI/CD workflows: the VM set (deploy.yml, provision.yml, post-merge-deploy.yml) for Node.js + React via Terraform and Docker Compose, or the k3s two-job deploy.yml + post-merge-deploy.yml, or when an operator invokes /cicd.generate. Inside smaqit.new-greenfield-project the deployment agent generates them itself. Never generates copilot-setup-steps.yml.'
 metadata:
-  version: "3.2.0"
+  version: "3.2.2"
   smaqit-slots: "ci-generate=generate"
 ---
 
@@ -275,6 +275,8 @@ workflow, templated or not, must avoid them:
 | Gathered input is ambiguous | Flag the ambiguity and ask for clarification |
 | Subagent invocation fails | Report the failure with context; do not silently retry |
 | Output artifact already exists | Confirm with user before overwriting |
+| A step the project added to the generated `deploy.yml` checks a permission with `kubectl auth can-i <verb> <resource>/<subresource>` and gets `yes` despite the platform denying it | kubectl read `<resource>/<subresource>` as a named resource. Rewrite it with `--subresource=<name>` (see Gotchas); don't trust or act on the misleading `yes`. |
+| A step the project added ends on a command that was expected to fail (a `can-i` "no", a refused `kubectl exec`) before its verdict runs | GitHub's `bash -e` stopped it. Bracket the command with `set +e` … `RC=$?` … `set -e` and decide from the captured result, or call the vendored `exec-refused.sh`. Never `\|\| true`, which also turns a real error into a pass. |
 | Workflows already exist and differ | Show a diff summary; ask whether to overwrite or merge |
 | Infrastructure spec not available | Default `__APP_DIR__` to `/opt/<project-slug>` (`full`/`deploy-only`); note the value used in the report. `k3s` cannot render without the spec's Environments table — stop and name it |
 | `smaqit spec environments` reports `SLOTS-SPEC-*` lines (`k3s`) | Stop and surface them verbatim; the fix belongs in the Infrastructure spec, never in a hand-filled workflow |
@@ -282,5 +284,5 @@ workflow, templated or not, must avoid them:
 | A template's content needs to differ from the shipped `assets/*.template` for this specific project | Treat that as a reason to add a new template variant to this skill (or flag it as a limitation), not to hand-edit the copied output — hand edits silently diverge from the validated template on the next re-generation |
 | `deploy-only` or `k3s` mode requested but a `provision.yml` already exists from a prior `full` generation | Delete the stale `provision.yml` and the vendored `deployment/scripts/*.sh` — leaving them in place would plan/guard Terraform that no longer matches this project's `provisioning_mode` |
 | `deployment/scripts/plan-guard.sh` or `ownership-guard.sh` already exist and differ from the skill directory's current copies | Overwrite — they are generated output, regenerated on every run (see Step 5) |
-| `deployment/k3s/scripts/namespace-guard.sh` or `manifest-lint.sh` already exist and differ from `smaqit.infrastructure-deploy-k3s-app`'s current copies | Overwrite — same generated-output rule as the Terraform guards |
+| `deployment/k3s/scripts/namespace-guard.sh`, `manifest-lint.sh`, or `exec-refused.sh` already exist and differ from `smaqit.infrastructure-deploy-k3s-app`'s current copies | Overwrite — same generated-output rule as the Terraform guards |
 | `k3s` mode requested but the project's existing `deploy.yml` references SSH/Terraform (stale, from a prior `full`/`deploy-only` generation) | Overwrite with `assets/deploy.yml.k3s.template`, remove the stale `deployment/scripts/*.sh` and `provision.yml` if present, and vendor `deployment/k3s/scripts/*.sh` instead — a mode switch means the target itself changed; do not attempt to merge old VM-specific steps into the new job |

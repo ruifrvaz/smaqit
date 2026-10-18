@@ -4,6 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | Not Started | High |
 | 136 | existing-k3s: Fixes From the First Live Private-Mesh Deploy | Not Started | High |
 | 135 | plan-guard.sh: `--allow-delete <address>` for a Reviewed Pure Destroy | PR Open | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |

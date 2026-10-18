@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 109
 created: "2026-10-18"
 mode: Assisted
 started: "2026-10-18"
@@ -156,37 +157,56 @@ Resolved by `task.plan` on 2026-10-18.
 
 ## Acceptance Criteria
 
-- [ ] `/smaqit.new-project` and `/smaqit.feature-new` (and Codex `$` or `/skills` picks) default to
+- [x] `/smaqit.new-project` and `/smaqit.feature-new` (and Codex `$` or `/skills` picks) default to
       `assisted`; when Claude chooses them they default to `autonomous`; a stated mode wins; sub-phases
       inherit the resolved mode
-- [ ] The AGENTS.md template, framework, input skills, README, wiki and compendium state one invocation
+- [x] The AGENTS.md template, framework, input skills, README, wiki and compendium state one invocation
       rule; none lists the orchestrators as autonomous by default
-- [ ] `skills/smaqit.new-project` replaces `smaqit.new-greenfield-project`; no shipped file references the
+- [x] `skills/smaqit.new-project` replaces `smaqit.new-greenfield-project`; no shipped file references the
       old name (guarded by a test); historical records unchanged
-- [ ] The `smaqit.new-project` description separates it from smaqit-extensions' `smaqit.project-init` and
+- [x] The `smaqit.new-project` description separates it from smaqit-extensions' `smaqit.project-init` and
       stays within 400 characters
-- [ ] Global install writes a manifest and removes entries the current release no longer ships; a seed
+- [x] Global install writes a manifest and removes entries the current release no longer ships; a seed
       list removes previously retired names only when the `SKILL.md` name matches; smaqit-extensions and
       user files are never removed; uninstall uses the manifest (Go tests with a temporary `HOME`)
-- [ ] The smoke test proves that installing over a home holding the old skill leaves only
+- [x] The smoke test proves that installing over a home holding the old skill leaves only
       `smaqit.new-project`
-- [ ] `make test` and `make smoke-test` pass; CHANGELOG has an action-required note; released
+- [x] `make test` and `make smoke-test` pass; CHANGELOG has an action-required note; released
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- **Mode:**
+  - Both orchestrators' Phase 0 now resolve their mode from how they were invoked. A slash command, a Codex `$` mention or a skill-menu pick means assisted; the model choosing the skill means autonomous. Each run announces its mode in one line.
+  - One rule now appears everywhere it is stated: the three input skills, the three phase agents, the `AGENTS.md` template, `framework/AGENTS.md`, the README, the wiki and the compendium.
+- **Rename:**
+  - `git mv` moved the skill to `smaqit.new-project` (3.0.0). Its new 392-character description sets it apart from `smaqit.project-init`.
+  - Every other mention was rewritten one phrase at a time, never with a blanket word replacement: the exact name, then each "greenfield" phrase that refers to this skill. Released history was left as it was.
+- **Pruning:**
+  - The new `installer/global_manifest.go` writes a manifest called `.smaqit-installed.json` in each global destination. The next install removes the files the previous release installed and this one no longer ships.
+  - A seed list covers skills retired before the manifest existed. It only removes a skill whose SKILL.md `name:` still matches.
+  - Uninstall also removes the manifest's leftovers.
+  - `copyEmbeddedDir` and the new helpers now take `fs.FS`, so tests can use `fstest.MapFS`.
+- **Verification:**
+  - New Go tests cover pruning, the name-matched seed, untrusted manifests, uninstall, and that the seed never names a skill still shipped. A guard test checks that no shipped file names `new-greenfield-project`.
+  - The smoke test upgrades the real binary over a home that already holds the old skill.
+  - Three deliberate breaks were each caught by a test.
 
 **Decisions made:**
-- TBD
+- **The manifest lives inside each destination,** not in a central `~/.config` file. It then follows `CLAUDE_CONFIG_DIR`, `COPILOT_HOME` and `CODEX_HOME`, stays isolated by the existing tests, and can't leak into the real config through `XDG_CONFIG_HOME`.
+- **The seed list comes from git history and release tags,** not the CHANGELOG. It holds only `smaqit.`-prefixed skills that a v3 release installed globally: `smaqit.new-greenfield-project` and `smaqit.infrastructure-onboard-k3s-app`. `assessment`, `feature-deploy` and `project-zero-to-prod` were never installed globally, and no agent has been retired since v3.0.0.
+- **An untrusted manifest stops the install before anything is removed.** That covers bad JSON, an unknown schema, and paths that leave the destination.
+- **The seed removes a retired skill's whole directory, but only after its SKILL.md name matches,** because pre-manifest releases recorded no file list.
+- **Mode detection stays inference-based.** Research confirmed that Claude Code offers deterministic signals: `UserPromptExpansion` fires for a typed command, and `PreToolUse` on the `Skill` tool fires for a model invocation. Both would need hooks in `~/.claude/settings.json` or a plugin, though. The user chose not to pursue that.
+- **Phase agents keep "picked or named" as a user start,** because Codex starts agents by name. The asymmetry is documented in `framework/AGENTS.md`.
 
 **Blockers encountered:**
-- TBD
+- None.
 
 **Follow-up identified:**
-- TBD
+- A one-line wording fix is needed in smaqit-extensions: `smaqit.project-init`'s description ("start… a smaqit project") overlaps with `smaqit.new-project`.
+- Downstream repositories pick up the corrected `AGENTS.md` section on their next `smaqit update`.
+- Claude Code hooks for deterministic invocation detection were researched and explicitly declined by the user; there is no task for them.
 
 ## Files to Create / Modify
 

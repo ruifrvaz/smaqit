@@ -4,6 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
+| 139 | Guardrail: Reject `kubectl auth can-i <verb> <resource>/<subresource>` in Project Workflows and Scripts | Not Started | Medium |
 | 138 | Phase Mode Defaults by Trigger (Commands Assisted, Skills Autonomous) and Requirements Provenance | In Progress | High |
 | 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | Not Started | High |
 | 136 | existing-k3s: Fixes From the First Live Private-Mesh Deploy | PR Open | High |

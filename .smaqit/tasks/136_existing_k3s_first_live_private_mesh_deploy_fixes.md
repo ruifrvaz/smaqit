@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 105
 created: "2026-10-17"
 mode: Assisted
 started: "2026-10-18"
@@ -202,31 +203,46 @@ Resolved by `task.plan` on 2026-10-18.
 
 ## Acceptance Criteria
 
-- [ ] A merged PR carrying `smaqit:deploy` dispatches `deploy.yml` from a job with no checkout, in every CI mode
-- [ ] No rendered workflow (k3s, `full`, `deploy-only`, post-merge) contains a `${{ secrets.* }}` expression inside a `run:` script or passes a secret on a command line, enforced by a test across every template; the kubeconfig and the VM SSH key are owner-only and removed whatever the outcome
-- [ ] The rendered deploy workflow fails when the deployer can exec into pods, and passes on this platform shape (`can-i --subresource=exec` answering `no` and a real exec refused as Forbidden), proven by a stub-kubectl test under `bash -e`
-- [ ] `Deployer Exec: allowed` turns an exec `yes` or a successful exec into a warning; errors, timeouts and unclear answers fail closed under both settings
-- [ ] A private `Container Registry` renders a pull-Secret step that passes no secret on argv; a public or absent one renders none
-- [ ] The `deploy` job has a per-machine concurrency group with `cancel-in-progress: false`
-- [ ] An app image with only `python3` (no curl or wget) verifies in-cluster with Probe Client `python3`
-- [ ] The cicd-generate and deploy-k3s-app skills document the `can-i` TYPE/NAME and `bash -e` traps
-- [ ] Golden files regenerated deliberately; no platform-specific names in canonical skill text
+- [x] A merged PR carrying `smaqit:deploy` dispatches `deploy.yml` from a job with no checkout, in every CI mode
+- [x] No rendered workflow (k3s, `full`, `deploy-only`, post-merge) contains a `${{ secrets.* }}` expression inside a `run:` script or passes a secret on a command line, enforced by a test across every template; the kubeconfig and the VM SSH key are owner-only and removed whatever the outcome
+- [x] The rendered deploy workflow fails when the deployer can exec into pods, and passes on this platform shape (`can-i --subresource=exec` answering `no` and a real exec refused as Forbidden), proven by a stub-kubectl test under `bash -e`
+- [x] `Deployer Exec: allowed` turns an exec `yes` or a successful exec into a warning; errors, timeouts and unclear answers fail closed under both settings
+- [x] A private `Container Registry` renders a pull-Secret step that passes no secret on argv; a public or absent one renders none
+- [x] The `deploy` job has a per-machine concurrency group with `cancel-in-progress: false`
+- [x] An app image with only `python3` (no curl or wget) verifies in-cluster with Probe Client `python3`
+- [x] The cicd-generate and deploy-k3s-app skills document the `can-i` TYPE/NAME and `bash -e` traps
+- [x] Golden files regenerated deliberately; no platform-specific names in canonical skill text
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Spec contract first: `infra_spec.go` gained the `python3` Probe Client and two optional Constraints rows, `Container Registry` (`<host>, public|private`) and `Deployer Exec` (`denied` default, or `allowed`). Both are exposed in `smaqit spec environments --json`.
+- Exec checks went into vendored scripts rather than inline workflow steps, so local deploys get them too and the stub harness tests them: `namespace-guard.sh --deployer-exec` asks `can-i create|get pods --subresource=exec`, and the new `exec-refused.sh` attempts a real exec after the rollout.
+- Templates:
+  - every secret reaches its step through `env:`;
+  - the kubeconfig and VM SSH key are written under `umask 077` and removed by an `always()` step;
+  - the post-merge dispatcher passes `--repo`;
+  - the k3s `deploy` job gained per-machine concurrency;
+  - a marker-wrapped dockerconfigjson pull-Secret step is kept by the renderer only for a private registry.
+- Tests run rendered steps the way GitHub does (`bash --noprofile --norc -eo pipefail`, step `env:` applied) against stub `kubectl`/`gh`. A contract test covers every workflow template. The `python3` probe runs with only `python3` on `PATH`. Seven deliberate breaks were each caught.
 
 **Decisions made:**
-- TBD
+- Gap 6 (credential slots under a scripts-only Vault policy) moved to the independent task 137, together with its settled design: a spec handoff-and-verify row, deploy-verify `ci-evidence`, and runtime secrets.
+- The exec check fails by default; `Deployer Exec: allowed` downgrades a permitted exec to a warning, while errors, timeouts and NotFound fail closed under both settings. An exec that reaches the container but whose command fails (for example on a distroless image) counts as permitted.
+- The secrets and dispatcher fixes apply to every CI mode, since the post-merge template is shared and both VM templates interpolated `VM_SSH_KEY`. The PR number in `provision.yml` also moved to `env:` so the rule has no exceptions.
+- `namespace-guard.sh` usage errors now exit 2, matching the other guard scripts; no caller depended on the old exit 1.
+- `deploy-verify` needed no change: it runs the committed probe Job, which carries the fetch command.
+- The renderer now drops the blank line after a removed block, which also removes a double blank line that all-public renders had before this task.
 
 **Blockers encountered:**
-- TBD
+- None.
 
 **Follow-up identified:**
-- TBD
+- Task 137: credential slots under a scripts-only Vault policy, app runtime secrets, and verify from the CI run.
+- A one-off in-Namespace Job template (admin bootstrap) is still missing.
+- VM `full`/`deploy-only` workflows still deploy twice on a marked merge (a push trigger plus the dispatch).
+- The first live merge carrying `smaqit:deploy` after this release is the real proof of the dispatcher fix; the test uses a stub `gh`.
+- Task 135 (PR #104) also edits the cicd-generate skill and the CHANGELOG, so whichever task merges second rebases.
 
 ## Files to Create / Modify
 

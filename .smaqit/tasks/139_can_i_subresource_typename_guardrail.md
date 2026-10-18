@@ -1,5 +1,5 @@
 ---
-status: Not Started
+status: Abandoned
 created: "2026-10-18"
 ---
 
@@ -110,6 +110,10 @@ TBD — to be confirmed during assessment. Recorded starting points:
 | docs/wiki/workflows/deployment-slots.md, .smaqit/compendium.md, CHANGELOG.md | Modify |
 
 ## Notes
+
+- **Abandoned 2026-10-18 before starting:** the user judged a static pattern check too brittle. The
+  traps are covered instead by gotchas and failure-handling rows in the `deploy-k3s-app` and
+  `cicd-generate` skills, shipped with task 136 (PR #105).
 
 - Follow-up of task 136 (PR #105, v3.16.0). Start it after #105 merges, so it builds on the shipped
   `namespace-guard.sh` and the documented gotchas.

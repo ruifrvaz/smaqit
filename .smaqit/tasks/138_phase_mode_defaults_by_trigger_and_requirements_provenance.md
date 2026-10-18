@@ -97,7 +97,7 @@ The approved model: smaqit has human-triggered entry points (the three phase com
 - [x] `PHASE-PARAMETERS` carries `user_request` verbatim; phase agents pass `user_request`, `answers`, and `mode` unchanged to specification agents
 - [x] Layer gates count only user-stated requirements (`user_request`, `answers`, user-pointed files including `.smaqit/requirements-extract.md`); project/directory names, model world knowledge, and orchestrator paraphrase never satisfy a required section in either mode; autonomous also counts upstream specs; assisted requires each layer's required sections to trace to the user's own statements, with upstream specs for cross-layer coherence only
 - [x] No specification or phase agent directive permits filling a required section with an assumption; Coverage's inferred risk-profile clause is removed, and Stack's "agent's recommendation" counts only when the user states it
-- [!] e2e-claude has `empty-request` (bare `/smaqit.development`) and `title-only` (plain self-invoked "Let's build mario-app" in a `mario-app` project) scenarios, each asserting `NEEDS-INPUT` and no files under `specs/`; `assisted` passes without asking for assisted mode; all six scenarios pass live — scenarios written and syntax-checked; the live run is pending and must pass before the PR merges
+- [x] e2e-claude has `empty-request` (bare `/smaqit.development`) and `title-only` (plain self-invoked "Let's build mario-app" in a `mario-app` project) scenarios, each asserting `NEEDS-INPUT` and no files under `specs/`; `assisted` passes without asking for assisted mode; all six scenarios pass live
 - [x] `framework/AGENTS.md`, `framework/PHASES.md`, `templates/AGENTS.md.template` (heading `## When to use smaqit` unchanged), README, wiki, and compendium describe the new defaults; `make prepare`, `make test`, `make smoke-test` pass; CHANGELOG has an action-required note
 
 ## Findings
@@ -123,12 +123,11 @@ The approved model: smaqit has human-triggered entry points (the three phase com
 - The `AGENTS.md` template no longer claims the spec agents are directly invocable on Copilot (they are `user-invocable: false`)
 
 **Blockers encountered:**
-- The live `make -C installer e2e-claude` run was not performed before opening the PR, at the user's direction; acceptance criterion 7 is marked `[!]` until the six scenarios pass live
+- None. The live `make -C installer e2e-claude` run ran after the PR opened, at the user's direction, and all six scenarios passed on Claude Code 2.1.296 (about $5.19 in total): `empty-request` and `title-only` stopped at the Business gate with `NEEDS-INPUT` and wrote nothing; `assisted` paused per layer on the default; `self-invocation`, `happy-path`, and `needs-input` resolved autonomous and completed
 
 **Follow-up identified:**
-- Run the six e2e-claude scenarios live (empty-request and title-only first) before merging; `title-only` may fail its `NEEDS-INPUT` check if Claude answers a plain "Let's build mario-app." with its own questions instead of routing to smaqit, even though nothing is written
 - A `scripts/generate-agents.py` check that every phase command and agent states the trigger-based default, as input-skill reachability is checked today
-- claude-code #82456 (an undocumented directive against unrequested Agent-tool use) may stop model-started phases from delegating to the proactive phase subagents; the self-invocation and title-only scenarios will show which path fires
+- claude-code #82456 (an undocumented directive against unrequested Agent-tool use) did not bite: `title-only` routed by invoking the `/smaqit.development` command as a skill, and `self-invocation` delegated; keep watching it, since the command path is now the one model-started phases rely on
 
 ## Files to Create / Modify
 

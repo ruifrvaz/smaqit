@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 104
+status: Completed
 created: "2026-10-14"
 mode: Assisted
 started: "2026-10-18"
+completed: "2026-10-18"
 ---
 
 # plan-guard.sh: `--allow-delete <address>` for a Reviewed Pure Destroy

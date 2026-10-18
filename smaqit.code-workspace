@@ -11,6 +11,10 @@
     {
       "name": "task/138-phase-mode-defaults-by-trigger-commands-assisted-skills-autonomous-and-requirements-provenance",
       "path": "../smaqit-wt-task-138-phase-mode-defaults-by-trigger-commands-assisted-skills-autonomous-and-requirements-provenance"
+    },
+    {
+      "name": "task/140-plan-guard-blocked-guidance-stop-and-report-never-take-an-allow-flag-address-from-the-guard-s-output",
+      "path": "../smaqit-wt-task-140-plan-guard-blocked-guidance-stop-and-report-never-take-an-allow-flag-address-from-the-guard-s-output"
     }
   ],
   "settings": {

@@ -469,3 +469,15 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | OpenAI Codex | Repository | https://github.com/openai/codex |
 | OpenAI Codex | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
 | OpenAI Codex | AGENTS.md | https://learn.chatgpt.com/docs/agent-configuration/agents-md |
+
+## Task 140 — plan-guard BLOCKED Guidance: Stop and Report, Never Take an Allow-Flag Address From the Guard's Output
+
+**Context fingerprint:** sha256:f905124be2b8b66d0cc100d0ead626f21fe6311a44643eebfd65bc00fc45c5e1
+**Refreshed:** 2026-10-18
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Terraform | Command: plan (-detailed-exitcode, -out) | https://developer.hashicorp.com/terraform/cli/commands/plan |
+| Terraform | JSON output format (resource_changes actions) | https://developer.hashicorp.com/terraform/internals/json-format |
+| Terraform | Command: apply (saved plan) | https://developer.hashicorp.com/terraform/cli/commands/apply |
+| Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |

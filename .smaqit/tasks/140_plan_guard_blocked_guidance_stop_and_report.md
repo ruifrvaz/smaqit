@@ -1,6 +1,8 @@
 ---
-status: Not Started
+status: In Progress
 created: "2026-10-18"
+mode: Assisted
+started: "2026-10-18"
 ---
 
 # plan-guard BLOCKED Guidance: Stop and Report, Never Take an Allow-Flag Address From the Guard's Output
@@ -63,8 +65,16 @@ projects guard their own apply paths.
 7. `make -C installer prepare`, `make test`, `make smoke-test`; CHANGELOG.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-18
+**Tools searched:** Terraform (`hashicorp/terraform`, session-cached result from task 135's triage)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#29618 JSON plan output gives less sensitivity detail than CLI for blocks backed by sets](https://github.com/hashicorp/terraform/issues/29618) — `hashicorp/terraform` — opened 2021-09-21 — bug, confirmed. Sensitivity detail only; does not affect the actions the guard reads or the message it prints.
+- [#33112 Resource block plan detail is hidden due to sensitive values since 1.4](https://github.com/hashicorp/terraform/issues/33112) — `hashicorp/terraform` — opened 2023-04-28 — bug, cli. Human-readable rendering only.
+
+### Unresolvable Tools
+- Bash — GNU Bash is not hosted on GitHub; the registry lookup matched an unrelated repository
 
 ## Acceptance Criteria
 

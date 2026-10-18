@@ -159,7 +159,7 @@ next: Show the user these files and ask them to approve or give feedback. Then r
    - **If `specification_mode: prevalidated`:**
      - Verify each handed-off spec path exists at the expected location.
      - Verify each spec file has valid YAML frontmatter with required fields (`id`, `status`, `created`).
-     - If any path is missing, malformed, or incoherent → stop and return diagnostic: "Prevalidated spec handoff incomplete. Return to the caller's specification phase (Feature New Phase 1, or New Project Phase 2) to refresh the handoff. Missing/malformed: [paths]".
+     - If any path is missing, malformed, or incoherent → stop and return diagnostic: "Prevalidated spec handoff incomplete. Return to the caller's specification phase (Feature New Phase 1, or Project New Phase 2) to refresh the handoff. Missing/malformed: [paths]".
      - Skip spec-agent invocation entirely. Proceed directly to Step 3 (Consolidation).
    - **If `specification_mode: orchestrate` (default):**
      - For each required spec layer in fixed sequence — business → functional → stack:

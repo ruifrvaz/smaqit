@@ -1,6 +1,6 @@
 ---
 name: smaqit.infrastructure-request-k3s-onboarding
-description: Use when an existing-k3s app needs one environment onboarded onto a platform-owned k3s cluster whose onboarding accepts PR-mergeable registry-file requests (new-project Phases 4 and 5, before deploy-k3s-app). Opens a PR against the platform repository and gates on its merge; never needs direct commit or workflow_dispatch access, and never assumes how the platform converges.
+description: Use when an existing-k3s app needs one environment onboarded onto a platform-owned k3s cluster whose onboarding accepts PR-mergeable registry-file requests (project-new Phases 4 and 5, before deploy-k3s-app). Opens a PR against the platform repository and gates on its merge; never needs direct commit or workflow_dispatch access, and never assumes how the platform converges.
 metadata:
   version: "1.2.0"
   smaqit-slots: "platform-onboarding=request"

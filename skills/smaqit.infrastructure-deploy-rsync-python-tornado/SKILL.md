@@ -1,6 +1,6 @@
 ---
 name: smaqit.infrastructure-deploy-rsync-python-tornado
-description: Use when deploying a Python/Tornado application (single-process monolith, no Docker, no build step, systemd-managed, SQLite) to a remote VM via rsync, in the new-project Phase 4 dev sweep or as a manual fallback. For Node.js + Vite/React use smaqit.infrastructure-deploy-rsync; for FastAPI + Next.js use smaqit.infrastructure-deploy-rsync-python-nextjs.
+description: Use when deploying a Python/Tornado application (single-process monolith, no Docker, no build step, systemd-managed, SQLite) to a remote VM via rsync, in the project-new Phase 4 dev sweep or as a manual fallback. For Node.js + Vite/React use smaqit.infrastructure-deploy-rsync; for FastAPI + Next.js use smaqit.infrastructure-deploy-rsync-python-nextjs.
 metadata:
   version: "1.2.0"
   smaqit-slots: "app-deploy=deploy"
@@ -113,7 +113,7 @@ nginx serving via the shared `write-vhost.sh`-written vhost, deploy stamps prese
 ## Examples
 
 **Input:** Python/Tornado + SQLite + nginx + systemd stack; Phase 4 dev sweep of
-`smaqit.new-project` (or a manual operator invocation) determines this profile matches
+`smaqit.project-new` (or a manual operator invocation) determines this profile matches
 the declared stack and invokes this skill directly — no synthesis required.
 
 **Output:** `src/` rsynced to `<host>:__APP_DIR__/app/` (excluding `*.db`), systemd unit installed

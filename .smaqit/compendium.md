@@ -74,7 +74,7 @@ The self-update flow re-execs the newly downloaded binary after replacing the fi
 
 **Does `smaqit update` remove a skill that a release retires from an already-installed global directory?**
 
-Yes, since the release that renamed `smaqit.new-greenfield-project` to `smaqit.new-project` (task 141). Global install, which `smaqit update` and the shell installer both run, works like this:
+Yes, since the release that renamed `smaqit.new-greenfield-project` to `smaqit.project-new` (task 141). Global install, which `smaqit update` and the shell installer both run, works like this:
 
 - **It records what it installed.** It writes a manifest, `.smaqit-installed.json`, inside each global destination: `~/.agents/skills/`, and the Claude, Copilot and Codex agent, command and skill directories, honouring `CLAUDE_CONFIG_DIR`, `COPILOT_HOME` and `CODEX_HOME`.
 - **It removes what was dropped.** On the next install, it deletes every file the previous manifest lists that the current release no longer ships, then removes any directory that leaves empty. A file the manifest never listed is never touched: user-added files inside a smaqit skill directory, and everything smaqit-extensions or smaqit-adk installs into the same directories.
@@ -164,7 +164,7 @@ Mostly, they don't ask; they return. Claude Code removes `AskUserQuestion` from 
 
 The main conversation owns the loop. That is the `/smaqit.<phase>` command body, or an orchestrating skill like `smaqit.feature-new`. It applies the phase input skill itself, passes the agent an explicit `PHASE-PARAMETERS` block, asks the user whatever a signal lists, and resumes the same subagent by sending its agent ID the `answers`. If resuming isn't possible, it invokes the agent again with `answers` plus `approved_spec_paths`. Approved specs count as current even while `draft`, so a fresh run never regenerates them.
 
-On GitHub Copilot, all eight non-QA agents have `vscode/askQuestions` and can ask directly; a `runSubagent` child that can't ask returns the signal to its parent. Before task 131 this was broken on Claude Code: the input gates never ran, Assisted mode was unreachable on every platform because nothing set the mode, and new-project re-ran every specification agent after its own specification phase. See also: what agent orchestration pattern does smaqit's phase orchestration match? When are the `smaqit.input-*` skills invoked?
+On GitHub Copilot, all eight non-QA agents have `vscode/askQuestions` and can ask directly; a `runSubagent` child that can't ask returns the signal to its parent. Before task 131 this was broken on Claude Code: the input gates never ran, Assisted mode was unreachable on every platform because nothing set the mode, and project-new re-ran every specification agent after its own specification phase. See also: what agent orchestration pattern does smaqit's phase orchestration match? When are the `smaqit.input-*` skills invoked?
 
 ---
 
@@ -176,7 +176,7 @@ There are two families, and each runs at a different point:
 - **The three phase skills** (`input-development`, `-deployment`, `-validation`) resolve execution parameters for a phase: `mode` (assisted when the user started the phase or invoked the orchestrating skill running it, autonomous when the model started it), the user's request verbatim as `user_request`, the `specification_mode` the caller sets, the phase's own preferences and, for deployment, `provisioning_mode`, environment, deployment path and the slot plan from `smaqit slots plan`.
   - Every parameter has a default, so these skills ask only about blocking ambiguity.
   - They output a `PHASE-PARAMETERS` block.
-  - The caller runs them in the main conversation and passes the block in: the `/smaqit.<phase>` command body, `smaqit.feature-new` Phase 3, or new-project Phases 4–6.
+  - The caller runs them in the main conversation and passes the block in: the `/smaqit.<phase>` command body, `smaqit.feature-new` Phase 3, or project-new Phases 4–6.
   - A phase agent applies its own preloaded copy only when it was invoked without a block.
 
 On Claude Code every agent preloads exactly its own input skill through `skills:`. That's the only way it can reach the skill, since agent `tools:` lists omit `Skill`. Their "Invoke automatically when…" descriptions matter only in the main conversation, where Claude can choose a skill by its description. See also: how do smaqit agents ask the user questions when they run as subagents?
@@ -185,7 +185,7 @@ On Claude Code every agent preloads exactly its own input skill through `skills:
 
 **What mode does a smaqit phase run in, and what counts as a requirement?**
 
-It depends on what started the phase. A phase the user starts (a typed `/smaqit.<phase>`, or a Copilot/Codex phase agent they picked) defaults to `assisted`, and so does a phase agent invoked with no parameter block. A phase the model starts on its own defaults to `autonomous`. The orchestrating skills `smaqit.new-project` and `smaqit.feature-new` resolve one mode for every phase they run: `assisted` when the user invoked them (slash command, Codex `$` mention, or skill-menu pick), `autonomous` when the model chose them, including when the user only named them in plain words. A mode the user states always wins. The phase input skills resolve this; they never ask about it.
+It depends on what started the phase. A phase the user starts (a typed `/smaqit.<phase>`, or a Copilot/Codex phase agent they picked) defaults to `assisted`, and so does a phase agent invoked with no parameter block. A phase the model starts on its own defaults to `autonomous`. The orchestrating skills `smaqit.project-new` and `smaqit.feature-new` resolve one mode for every phase they run: `assisted` when the user invoked them (slash command, Codex `$` mention, or skill-menu pick), `autonomous` when the model chose them, including when the user only named them in plain words. A mode the user states always wins. The phase input skills resolve this; they never ask about it.
 
 - **Assisted:** every specification layer works only from requirements the user stated and pauses with `REVIEW-REQUESTED`, and the phase ends by asking the user to review it before the next one.
 - **Autonomous:** best effort end to end. Upstream specifications count as requirement sources, and the run stops only for `NEEDS-INPUT` and human operations such as a PR merge, a credential prompt, or the release. The orchestrators' review and sign-off gates are assisted-only.
@@ -210,7 +210,7 @@ Phase 0 (Task Creation) uses `smaqit.task-create` and `smaqit.task-start` to set
 
 **Does the Deployment agent itself know about `provisioning_mode` values like `existing-k3s`, `existing-shared`, or `existing-unmanaged`?**
 
-Only through the slot plan it executes. `agents/deployment.md` contains no per-mode branches: `provisioning_mode` selects the default filler for each deployment slot, `smaqit slots plan` resolves that into an ordered plan (applying the project's `.smaqit/slots.yml` bindings and the deployment path's rules), and the agent walks the plan — reading each filler's `SKILL.md` from its resolved path and following the named operation. The orchestrating skills (`smaqit.new-project` Phases 4–6, `smaqit.feature-new` Phase 3) resolve the mode and the plan through `smaqit.input-deployment` and invoke the agent; they never call infrastructure skills directly. Adding a `provisioning_mode` value or a deploy-skill family therefore means adding its defaults to the catalogue in `installer/slots.go` and having its skills declare `metadata.smaqit-slots` — not editing the agent or the orchestrators' step lists. The agent's own orthogonal knobs remain `specification_mode` (`orchestrate`/`prevalidated`) and `deployment_path` (`standard`, `existing-cicd-pr`, `ci-push`). See also: how does a project bind its own skill to a deployment step?
+Only through the slot plan it executes. `agents/deployment.md` contains no per-mode branches: `provisioning_mode` selects the default filler for each deployment slot, `smaqit slots plan` resolves that into an ordered plan (applying the project's `.smaqit/slots.yml` bindings and the deployment path's rules), and the agent walks the plan — reading each filler's `SKILL.md` from its resolved path and following the named operation. The orchestrating skills (`smaqit.project-new` Phases 4–6, `smaqit.feature-new` Phase 3) resolve the mode and the plan through `smaqit.input-deployment` and invoke the agent; they never call infrastructure skills directly. Adding a `provisioning_mode` value or a deploy-skill family therefore means adding its defaults to the catalogue in `installer/slots.go` and having its skills declare `metadata.smaqit-slots` — not editing the agent or the orchestrators' step lists. The agent's own orthogonal knobs remain `specification_mode` (`orchestrate`/`prevalidated`) and `deployment_path` (`standard`, `existing-cicd-pr`, `ci-push`). See also: how does a project bind its own skill to a deployment step?
 
 ---
 
@@ -246,7 +246,7 @@ To run only Develop, use `/smaqit.development <request>`:
 3. It consolidates the specs and runs `smaqit plan --phase=develop`, which also checks the design gate.
 4. It implements, builds and tests the application, and generates design-sequence diagrams.
 
-Deploy runs only when you invoke `/smaqit.deployment`. The specification agents have no slash command on Claude Code, but you can ask Claude to delegate to one by name (for example `smaqit-business`). The full lifecycle runs through the `smaqit.new-project` and `smaqit.feature-new` skills, which also need smaqit-extensions for task lifecycle. See also: when are the `smaqit.input-*` skills invoked?
+Deploy runs only when you invoke `/smaqit.deployment`. The specification agents have no slash command on Claude Code, but you can ask Claude to delegate to one by name (for example `smaqit-business`). The full lifecycle runs through the `smaqit.project-new` and `smaqit.feature-new` skills, which also need smaqit-extensions for task lifecycle. See also: when are the `smaqit.input-*` skills invoked?
 
 ---
 
@@ -286,7 +286,7 @@ In the smaqit source repository, product commands exist only as generated instal
 
 ## Infrastructure Skills
 
-**How does `smaqit.new-project` pick a deploy skill when a project's stack matches none of the existing `smaqit.infrastructure-deploy-rsync*` family?**
+**How does `smaqit.project-new` pick a deploy skill when a project's stack matches none of the existing `smaqit.infrastructure-deploy-rsync*` family?**
 
 Phase 4 reads the declared stack from the stack specification, compares it generically against installed deploy skills, and synthesizes a new skill when no match exists. The synthesized skill uses the existing deploy-rsync family as exemplars and preserves shared conventions such as the `__APP_DIR__` token, `write-vhost.sh`, deploy stamps, and guard-script reuse. A human checkpoint is required before first invocation unless prior autonomous approval exists.
 
@@ -471,7 +471,7 @@ A PR merged under any other title (for example a `fix(...)` title) lands its cod
 
 **Can a shipped skill reference files under `framework/`?**
 
-No. The installer's `go:embed` manifest in `installer/main.go` only ships `agents-*`, `commands-claude`, `skills-*`, and the `AGENTS.md`/`CLAUDE.md` templates — `framework/` is never installed into a consumer project. It exists only in this canonical repo as agent-facing documentation for developing smaqit itself. A skill that depends on framework-documented mechanics (e.g. the Incremental Spec Updates decision table, spec state transitions) must distill the relevant content into its own `references/` file rather than pointing at `framework/*.md`, the same way `smaqit.new-project` stays fully self-contained with zero `framework/` references.
+No. The installer's `go:embed` manifest in `installer/main.go` only ships `agents-*`, `commands-claude`, `skills-*`, and the `AGENTS.md`/`CLAUDE.md` templates — `framework/` is never installed into a consumer project. It exists only in this canonical repo as agent-facing documentation for developing smaqit itself. A skill that depends on framework-documented mechanics (e.g. the Incremental Spec Updates decision table, spec state transitions) must distill the relevant content into its own `references/` file rather than pointing at `framework/*.md`, the same way `smaqit.project-new` stays fully self-contained with zero `framework/` references.
 
 ---
 
@@ -487,7 +487,7 @@ Separately, a generic smaqit product skill must never hardcode one specific cont
 
 **Where does the task-lifecycle tooling (`task-start`, `task-create`, `task-complete`, `task-list`, `utils.worktree`) live, and does `smaqit init` install it?**
 
-It is owned entirely by the sibling `smaqit-extensions` repository, not by `smaqit`'s own `skills/` directory or its shipped product skills. `smaqit init` does not install it — a consumer project only gets task-lifecycle skills (branch/worktree creation, parent-child task ownership, assisted/autonomous mode) if `smaqit-extensions` is installed separately. Shipped smaqit skills that reference the lifecycle (`smaqit.new-project`, `smaqit.feature-new`) call `smaqit.task-start`/`smaqit.task-create`/`smaqit.task-complete` by name without re-implementing any of their branch, worktree, or merge mechanics — those skills assume the lifecycle tooling is present, they do not provide a fallback if it isn't. In this repo, the copies under `.github/skills/`, `.claude/skills/`, and `.agents/skills/` for task-lifecycle skill names are committed dogfooding install output from `smaqit-extensions`, not canonical smaqit source.
+It is owned entirely by the sibling `smaqit-extensions` repository, not by `smaqit`'s own `skills/` directory or its shipped product skills. `smaqit init` does not install it — a consumer project only gets task-lifecycle skills (branch/worktree creation, parent-child task ownership, assisted/autonomous mode) if `smaqit-extensions` is installed separately. Shipped smaqit skills that reference the lifecycle (`smaqit.project-new`, `smaqit.feature-new`) call `smaqit.task-start`/`smaqit.task-create`/`smaqit.task-complete` by name without re-implementing any of their branch, worktree, or merge mechanics — those skills assume the lifecycle tooling is present, they do not provide a fallback if it isn't. In this repo, the copies under `.github/skills/`, `.claude/skills/`, and `.agents/skills/` for task-lifecycle skill names are committed dogfooding install output from `smaqit-extensions`, not canonical smaqit source.
 
 `smaqit-extensions` also ships a parent-owned subtask lifecycle (`Parent: NNN` task metadata): a child task joins its parent's existing branch/worktree and inherits its mode instead of creating its own; only the parent merges and cleans up, and only once every declared child is `Completed`. `smaqit.feature-new` adopts this contract for its own five-phase structure (one shared feature-cycle parent, five phase children) rather than spawning a separate branch per phase.
 

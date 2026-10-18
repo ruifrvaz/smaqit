@@ -8,7 +8,7 @@ whose credential is restricted to a single Namespace, lint the app's manifests a
 platform's Pod Security `restricted` and quota guardrails, apply them into the app's own
 Namespace, wait for rollout, stamp the Deployment with the commit SHA as pod environment, wait
 for the Ingress host's `Certificate` to become `Ready`, and verify externally over HTTPS. Used
-in Phase 4 (Dev Environment Sweep) of `smaqit.new-project` for `provisioning_mode:
+in Phase 4 (Dev Environment Sweep) of `smaqit.project-new` for `provisioning_mode:
 existing-k3s`, invoked via Phase 4 Step 6's family-aware match/synthesis procedure, and again
 from the generated `deploy.yml` (`smaqit.infrastructure-cicd-generate`'s `k3s` mode) for Phase
 5's CI/CD production deploy. Also usable as a manual fallback for direct deployment into an

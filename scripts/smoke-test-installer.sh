@@ -65,7 +65,7 @@ for skills in "$CLAUDE_CONFIG_DIR/skills" "$HOME/.agents/skills"; do
     echo "[ERROR] Retired skill survived the install: $skills/smaqit.new-greenfield-project" >&2
     exit 1
   fi
-  assert_file "$skills/smaqit.new-project/SKILL.md" "renamed global skill"
+  assert_file "$skills/smaqit.project-new/SKILL.md" "renamed global skill"
   assert_file "$skills/smaqit.task-start/SKILL.md" "another tool's global skill"
   assert_file "$skills/.smaqit-installed.json" "global install manifest"
 done

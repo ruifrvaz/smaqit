@@ -350,7 +350,7 @@ func TestRenderRejectsInvalidPlantUMLSyntax(t *testing.T) {
 	}
 }
 
-func TestNewProjectReferencePlantUMLIsValid(t *testing.T) {
+func TestProjectNewReferencePlantUMLIsValid(t *testing.T) {
 	major, err := installedNodeMajor()
 	if err != nil || major < minimumNodeMajor {
 		t.Skipf("Node %d+ is the mandatory consumer prerequisite: %v", minimumNodeMajor, err)
@@ -364,7 +364,7 @@ func TestNewProjectReferencePlantUMLIsValid(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer session.Close()
-	content, err := os.ReadFile(filepath.Join("..", "skills", "smaqit.new-project", "references", "diagrams.md"))
+	content, err := os.ReadFile(filepath.Join("..", "skills", "smaqit.project-new", "references", "diagrams.md"))
 	if err != nil {
 		t.Fatal(err)
 	}

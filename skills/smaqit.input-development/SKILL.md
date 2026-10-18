@@ -22,7 +22,7 @@ Validate session context for development execution preferences before the Develo
 **Default:** Set by what started the phase:
 - `assisted` — the user started it: they typed `/smaqit.development`, or picked or named the `smaqit.development` agent. This is also the default when the phase agent applies this skill itself because no block was passed.
 - `autonomous` — it started automatically: the model routed a request here on its own.
-- An orchestrating skill (`smaqit.new-project`, `smaqit.feature-new`) passes the `mode` it resolved for its own run: `assisted` when the user invoked the skill (its slash command, a Codex `$` mention, or a skill-menu pick), `autonomous` when the model chose it. Use the passed mode.
+- An orchestrating skill (`smaqit.project-new`, `smaqit.feature-new`) passes the `mode` it resolved for its own run: `assisted` when the user invoked the skill (its slash command, a Codex `$` mention, or a skill-menu pick), `autonomous` when the model chose it. Use the passed mode.
 
 **Override:** A mode the user states always wins. "Assisted" or "review each specification" resolves to `assisted`; "autonomous", "run straight through", or "no review pauses" resolves to `autonomous`.
 **Elicit when:** Never — what started the phase, or the user's own words, decides it
@@ -34,7 +34,7 @@ Assisted works only from requirements the user stated, pauses with `REVIEW-REQUE
 **Elicit when:** Never. An empty request is not blocking here: each specification layer's input gate decides whether the requirements are sufficient
 
 ### Specification Mode
-**Default:** `orchestrate`. The value is `prevalidated`, with exact `spec_paths`, only when the caller passes it (e.g. `smaqit.feature-new`, or `smaqit.new-project` after its own specification phase)  
+**Default:** `orchestrate`. The value is `prevalidated`, with exact `spec_paths`, only when the caller passes it (e.g. `smaqit.feature-new`, or `smaqit.project-new` after its own specification phase)  
 **Elicit when:** Never — the caller determines it
 
 ### Build Options

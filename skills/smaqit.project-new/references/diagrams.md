@@ -1,6 +1,6 @@
 # New Project Workflow — Diagrams
 
-Five complementary PlantUML views of the `smaqit.new-project` orchestrator workflow.
+Five complementary PlantUML views of the `smaqit.project-new` orchestrator workflow.
 
 ## 1. Activity — End-to-End Journey
 
@@ -39,7 +39,7 @@ stop
 @startuml
 autonumber
 actor Operator
-participant "new-project\nOrchestrator" as Orch
+participant "project-new\nOrchestrator" as Orch
 participant "task-* skills" as Tasks
 participant "requirements-extract" as Req
 participant "Specification Agents" as Specs
@@ -120,7 +120,7 @@ end note
 @startuml
 left to right direction
 actor Operator
-component "New Project\nOrchestrator" as Orch
+component "project-new\nOrchestrator" as Orch
 component "Specification Agents\nBusiness / Functional / Stack\nInfrastructure / Coverage" as Specs
 component "PlantUML MCP +\nVisual Design Gate" as Design
 component "Development Agent" as Dev

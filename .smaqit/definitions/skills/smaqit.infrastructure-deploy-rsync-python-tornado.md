@@ -7,7 +7,7 @@ step, systemd-managed, SQLite persistence) to a remote VM via rsync. Synthesized
 match neither `smaqit.infrastructure-deploy-rsync` (Node.js + Vite/React, Docker Compose) nor
 `smaqit.infrastructure-deploy-rsync-python-nextjs` (FastAPI + Next.js, Docker Compose) — this
 variant has no container runtime, no frontend build, and no `backend/`/`frontend/` split. Used in
-Phase 4 (Dev Environment Sweep) of `smaqit.new-project`, invoked via its Phase 4 Step 6
+Phase 4 (Dev Environment Sweep) of `smaqit.project-new`, invoked via its Phase 4 Step 6
 no-match/synthesis procedure. Also usable as a manual fallback for direct VM deployment outside
 the CI/CD pipeline.
 

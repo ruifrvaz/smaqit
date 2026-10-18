@@ -27,7 +27,7 @@ const globalManifestName = ".smaqit-installed.json"
 // these names is theirs.
 var retiredSkills = []string{
 	"smaqit.infrastructure-onboard-k3s-app", // v3.4.0–v3.5.0, removed by task 119
-	"smaqit.new-greenfield-project",         // v3.0.0–v3.17.2, renamed smaqit.new-project
+	"smaqit.new-greenfield-project",         // v3.0.0–v3.17.2, renamed smaqit.project-new
 }
 
 type globalManifest struct {

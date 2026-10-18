@@ -106,7 +106,7 @@ func requireSlotError(t *testing.T, errs []error, code string) {
 }
 
 // With no slots.yml, the standard full sequence per mode reproduces the
-// current new-project dev-sweep wiring.
+// current project-new dev-sweep wiring.
 func TestSlotPlanDefaultsMatchCurrentBehaviour(t *testing.T) {
 	root := slotsTestProject(t)
 	vm := map[string]string{

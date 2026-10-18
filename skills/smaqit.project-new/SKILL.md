@@ -1,11 +1,11 @@
 ---
-name: smaqit.new-project
+name: smaqit.project-new
 description: 'Use when taking a new project from raw assets to a running production application: "take this from zero to prod", "run the full smaqit pipeline", or "build and ship this new project". Runs requirements extraction, all five specification layers, development, a dev-environment sweep, CI/CD deployment, validation, and release. Not for scaffolding instruction files alone (smaqit.project-init).'
 metadata:
   version: "3.0.0"
 ---
 
-# New Project: Raw Assets to Production
+# New Project Workflow: Raw Assets to Production
 
 ## Steps
 
@@ -55,7 +55,7 @@ When an agent returns `NEEDS-INPUT` or `REVIEW-REQUESTED`, ask the user what it 
 
 How this skill was started sets the default execution mode:
 
-- **Assisted** — the user invoked it explicitly: they typed `/smaqit.new-project`, mentioned it as `$smaqit.new-project` in Codex, or picked it from a skill menu (`/` in Copilot chat, `/skills` in Codex).
+- **Assisted** — the user invoked it explicitly: they typed `/smaqit.project-new`, mentioned it as `$smaqit.project-new` in Codex, or picked it from a skill menu (`/` in Copilot chat, `/skills` in Codex).
 - **Autonomous** — you chose this skill yourself to handle a broader request. A user who only names the skill in plain words, without one of those invocations, also gets autonomous.
 
 A mode the user states always wins ("assisted", "review each phase", "run autonomously"). Before Phase 0 continues, tell the user in one line which mode the run uses and how to change it.
@@ -179,7 +179,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 ### Phase 8 — Release
 
 1. Confirm all phase tasks (1–7) are closed in `PLANNING.md`. If any remain open, resolve before continuing.
-2. Run the amendment scan: `bash [SMAQIT_SKILLS_DIR]/smaqit.new-project/scripts/check-amendments.sh specs/`. If the script reports matches, review each `amendment:` annotation against the `Blockers encountered` and `Follow-up identified` fields of the relevant phase task and confirm all are resolved or accepted. If no matches are found, skip this step entirely.
+2. Run the amendment scan: `bash [SMAQIT_SKILLS_DIR]/smaqit.project-new/scripts/check-amendments.sh specs/`. If the script reports matches, review each `amendment:` annotation against the `Blockers encountered` and `Follow-up identified` fields of the relevant phase task and confirm all are resolved or accepted. If no matches are found, skip this step entirely.
 3. Invoke `smaqit.release-analysis` → `smaqit.release-approval` → `smaqit.release-prepare-files`.
 4. Invoke `smaqit.release-git-local` (or `smaqit.release-git-pr` for PR-based releases).
 5. **Final output:** Application running at `https://<domain>/` (or `http://<fixed_ip>/` if Phase 6 was skipped), with a tagged release on GitHub.
@@ -222,7 +222,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 
 ## Examples
 
-**Input:** `assets/raw/code.txt` contains a React prototype. User invokes `/smaqit.new-project`.
+**Input:** `assets/raw/code.txt` contains a React prototype. User invokes `/smaqit.project-new`.
 **Output:** All 9 phases completed. Application running at `https://<domain>/`, tagged as v1.0.0 on GitHub, all specs `status: deployed`, MVP task closed.
 
 ## Completion

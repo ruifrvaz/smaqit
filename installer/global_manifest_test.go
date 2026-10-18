@@ -89,7 +89,7 @@ func TestInstallGlobalTreePrunesWhatTheNextReleaseDrops(t *testing.T) {
 // Skills installed before manifests existed are removed by name, and only when
 // their SKILL.md still carries that name and this release doesn't ship it.
 func TestInstallGlobalTreeRemovesRetiredSkillsByName(t *testing.T) {
-	release := fstest.MapFS{"skills/smaqit.new-project/SKILL.md": skillFile("smaqit.new-project")}
+	release := fstest.MapFS{"skills/smaqit.project-new/SKILL.md": skillFile("smaqit.project-new")}
 
 	dst := t.TempDir()
 	writeTestFile(t, filepath.Join(dst, "smaqit.new-greenfield-project", "SKILL.md"), string(skillFile("smaqit.new-greenfield-project").Data))
@@ -105,7 +105,7 @@ func TestInstallGlobalTreeRemovesRetiredSkillsByName(t *testing.T) {
 	if !exists(filepath.Join(dst, "smaqit.infrastructure-onboard-k3s-app", "SKILL.md")) {
 		t.Error("a directory whose SKILL.md names a different skill was removed")
 	}
-	if !exists(filepath.Join(dst, "smaqit.new-project", "SKILL.md")) {
+	if !exists(filepath.Join(dst, "smaqit.project-new", "SKILL.md")) {
 		t.Error("the shipped skill was not installed")
 	}
 
@@ -203,8 +203,10 @@ func TestRetiredSkillsAreNotShippedNames(t *testing.T) {
 	}
 }
 
-// No shipped file refers to the skill's old name.
-func TestShippedFilesNeverNameNewGreenfieldProject(t *testing.T) {
+// No shipped file refers to the orchestrator's retired name, or to the
+// interim name that was never released.
+func TestShippedFilesNeverNameOldOrchestratorNames(t *testing.T) {
+	oldNames := []string{"new-greenfield-project", "smaqit.new-project"}
 	for root, embedded := range map[string]fs.FS{
 		"skills-shared": skillFilesShared, "skills-claude": skillFilesClaude,
 		"agents-copilot": agentFiles, "agents-claude": claudeAgentFiles, "agents-codex": codexAgentFiles,
@@ -218,8 +220,10 @@ func TestShippedFilesNeverNameNewGreenfieldProject(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			if strings.Contains(string(data), "new-greenfield-project") {
-				t.Errorf("%s still names new-greenfield-project", path)
+			for _, old := range oldNames {
+				if strings.Contains(string(data), old) {
+					t.Errorf("%s still names %s", path, old)
+				}
 			}
 			return nil
 		})
@@ -232,8 +236,10 @@ func TestShippedFilesNeverNameNewGreenfieldProject(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if strings.Contains(string(data), "new-greenfield-project") {
-			t.Errorf("%s still names new-greenfield-project", path)
+		for _, old := range oldNames {
+			if strings.Contains(string(data), old) {
+				t.Errorf("%s still names %s", path, old)
+			}
 		}
 	}
 }

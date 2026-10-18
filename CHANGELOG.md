@@ -31,8 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.18.0] - 2026-10-18
 
 **Action required:**
-- **The orchestrators now pause for review when you start them.** Typing `/smaqit.feature-new` or `/smaqit.new-project` (or a Codex `$` mention, or a skill-menu pick) defaults to **assisted**, which reviews at every gate. Say "run autonomously" to go straight through.
-- **`smaqit.new-greenfield-project` is now `smaqit.new-project`.** Invoke it as `/smaqit.new-project`; the old name no longer exists. The next `smaqit update` or install removes the old directory automatically.
+- **The orchestrators now pause for review when you start them.** Typing `/smaqit.feature-new` or `/smaqit.project-new` (or a Codex `$` mention, or a skill-menu pick) defaults to **assisted**, which reviews at every gate. Say "run autonomously" to go straight through.
+- **`smaqit.new-greenfield-project` is now `smaqit.project-new`.** Invoke it as `/smaqit.project-new`; the old name no longer exists. The next `smaqit update` or install removes the old directory automatically.
 - **Downstream repositories** pick up the corrected `AGENTS.md` section on their next `smaqit update`.
 
 ### Added
@@ -40,11 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests:
   - Go tests (with a temporary home) for pruning, the seed, untrusted manifests and uninstall;
   - a guard test that no shipped file names `new-greenfield-project`;
-  - a smoke-test upgrade case: an install over a home that holds the old skill leaves only `smaqit.new-project`.
+  - a smoke-test upgrade case: an install over a home that holds the old skill leaves only `smaqit.project-new`.
 
 ### Changed
-- **Orchestrator execution mode follows how the skill was started.** `smaqit.feature-new` and `smaqit.new-project` default to `assisted` when the user explicitly invokes them (their slash command, a Codex `$` mention, or a skill-menu pick), and to `autonomous` when the model chooses them, including when the user only names the skill in plain words. A stated mode always wins, and the resolved mode passes to every phase. This replaces v3.17.0's rule, under which both skills were always autonomous. The `AGENTS.md` template, `framework/AGENTS.md`, the phase input skills and agents, the README and the wiki now state one rule.
-- **Breaking:** `smaqit.new-greenfield-project` is renamed `smaqit.new-project` (3.0.0), with no alias. Every mention that means this skill or its phases follows ("greenfield Phase 4" is now "new-project Phase 4"), in the deploy, CI/CD and input skills and in `ownership-guard.sh`'s messages. The new description sets it apart from smaqit-extensions' `smaqit.project-init`.
+- **Orchestrator execution mode follows how the skill was started.** `smaqit.feature-new` and `smaqit.project-new` default to `assisted` when the user explicitly invokes them (their slash command, a Codex `$` mention, or a skill-menu pick), and to `autonomous` when the model chooses them, including when the user only names the skill in plain words. A stated mode always wins, and the resolved mode passes to every phase. This replaces v3.17.0's rule, under which both skills were always autonomous. The `AGENTS.md` template, `framework/AGENTS.md`, the phase input skills and agents, the README and the wiki now state one rule.
+- **Breaking:** `smaqit.new-greenfield-project` is renamed `smaqit.project-new` (3.0.0), with no alias. Every mention that means this skill or its phases follows ("greenfield Phase 4" is now "project-new Phase 4"), in the deploy, CI/CD and input skills and in `ownership-guard.sh`'s messages. The new description sets it apart from smaqit-extensions' `smaqit.project-init`.
 
 ## [3.17.2] - 2026-10-18
 

@@ -1,7 +1,7 @@
-# Skill Definition: smaqit.new-project
+# Skill Definition: smaqit.project-new
 
 ## Identity
-- **Name:** smaqit.new-project
+- **Name:** smaqit.project-new
 - **Version:** 1.0.0
 - **Description:** Orchestrate the complete SDLC from raw project input to a running production application accessible via browser. Strict-sequential — executes all phases in order with explicit human gates at phase boundaries. Invokes smaqit layer agents (business, functional, stack, infrastructure, coverage, development, deployment, validation) plus operational skills (cicd-generate, github-repo-config, provision-target, vm-bootstrap, app-deploy-rsync, deploy-verify). Re-entrant: use the pre-condition checklist to resume at any phase.
 
@@ -126,5 +126,5 @@ If skipped: application is accessible at `http://<fixed_ip>`. Note as open item.
 | Subagent invocation fails | Report the failure; request user decision to retry, skip, or abort |
 
 ## Examples
-**Input:** `assets/raw/code.txt` contains a React prototype. User invokes `/smaqit.new-project`.
+**Input:** `assets/raw/code.txt` contains a React prototype. User invokes `/smaqit.project-new`.
 **Output:** All 9 phases completed. Application running at `https://himcorp.com/`, tagged as v1.0.0 on GitHub, all specs `status: deployed`, MVP task closed.

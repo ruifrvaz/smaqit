@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **`plan-guard.sh --allow-delete <address>`** (`smaqit.infrastructure-provision-cyso` 1.10.0): a guarded repository can now apply a reviewed removal of a single resource, such as closing a temporary firewall opening or retiring one public port, without going around the guard. The flag mirrors `--allow-replace`. It adds nothing to `terraform plan` and accepts only a pure destroy (actions exactly `delete`) of the named address. It stays fail-closed: every other delete is still blocked, as is a listed address the plan replaces, updates or doesn't touch, and a no-change plan. A BLOCKED line now shows what the plan does with each listed address instead (`planned: …`). The flag is repeatable and combines with `--allow-replace` and `--out`. Naming one address in both flags is a usage error. Without the flag, the guard behaves exactly as before. Documented in provision-cyso, cicd-generate (3.1.0: a gated "remove this resource" dispatch input) and the platform-repositories guide.
+- Nothing to add.
 
 ### Changed
 - Nothing to add.
@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chore
 - Nothing to add.
+
+## [3.15.0] - 2026-10-18
+
+### Added
+- **`plan-guard.sh --allow-delete <address>`** (`smaqit.infrastructure-provision-cyso` 1.10.0): a guarded repository can now apply a reviewed removal of a single resource, such as closing a temporary firewall opening or retiring one public port, without going around the guard. The flag mirrors `--allow-replace`. It adds nothing to `terraform plan` and accepts only a pure destroy (actions exactly `delete`) of the named address. It stays fail-closed: every other delete is still blocked, as is a listed address the plan replaces, updates or doesn't touch, and a no-change plan. A BLOCKED line now shows what the plan does with each listed address instead (`planned: …`). The flag is repeatable and combines with `--allow-replace` and `--out`. Naming one address in both flags is a usage error. Without the flag, the guard behaves exactly as before. Documented in provision-cyso, cicd-generate (3.1.0: a gated "remove this resource" dispatch input) and the platform-repositories guide.
 
 ## [3.14.0] - 2026-10-16
 

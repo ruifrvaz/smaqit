@@ -481,3 +481,27 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Terraform | JSON output format (resource_changes actions) | https://developer.hashicorp.com/terraform/internals/json-format |
 | Terraform | Command: apply (saved plan) | https://developer.hashicorp.com/terraform/cli/commands/apply |
 | Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |
+
+## Task 141 — Orchestrator Skills Default by Invocation; Rename new-greenfield-project to new-project; Prune Retired Skills
+
+**Context fingerprint:** sha256:37f1f9a9ee7934b035ec365c3f113767395093394498dfce0a7e41ef3f71b3fc
+**Refreshed:** 2026-10-18
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Claude Code | Agent Skills (invocation, user-invocable) | https://code.claude.com/docs/en/skills |
+| Claude Code | Slash commands | https://code.claude.com/docs/en/slash-commands |
+| Claude Code | Subagents | https://code.claude.com/docs/en/sub-agents |
+| Claude Code | Memory (CLAUDE.md imports) | https://code.claude.com/docs/en/memory |
+| GitHub Copilot | Agent skills | https://docs.github.com/en/copilot/concepts/agents/about-agent-skills |
+| GitHub Copilot | VS Code agent skills | https://code.visualstudio.com/docs/agent-customization/agent-skills |
+| GitHub Copilot | VS Code custom agents | https://code.visualstudio.com/docs/agent-customization/custom-agents |
+| OpenAI Codex | Skills | https://learn.chatgpt.com/docs/build-skills |
+| OpenAI Codex | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
+| OpenAI Codex | AGENTS.md | https://learn.chatgpt.com/docs/agent-configuration/agents-md |
+| Go | Package embed | https://pkg.go.dev/embed |
+| Go | Package io/fs (WalkDir) | https://pkg.go.dev/io/fs |
+| Go | Package os (UserConfigDir, RemoveAll) | https://pkg.go.dev/os |
+| Go | Package testing | https://pkg.go.dev/testing |
+| Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |
+| Python | shutil (copytree, rmtree) | https://docs.python.org/3/library/shutil.html |

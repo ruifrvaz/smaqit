@@ -1,6 +1,8 @@
 ---
-status: Not Started
+status: In Progress
 created: "2026-10-18"
+mode: Assisted
+started: "2026-10-18"
 ---
 
 # Orchestrator Skills Default by Invocation; Rename new-greenfield-project to new-project; Prune Retired Skills
@@ -129,8 +131,28 @@ Resolved by `task.plan` on 2026-10-18.
 11. CHANGELOG with an action-required note, `make test`, `make smoke-test`, and release.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-18
+**Tools searched:** Claude Code (`anthropics/claude-code`), OpenAI Codex (`openai/codex`, from the research map's project table), GitHub Copilot (`microsoft/vscode-copilot-release`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#95469 Stacked skills: only the first is treated as user-invoked, so a disable-model-invocation skill in position 2+ is refused](https://github.com/anthropics/claude-code/issues/95469) — `anthropics/claude-code` — opened 2026-09-18 — bug, has repro, platform:windows, area:skills. Claude Code already distinguishes user-invoked from model-invoked skills. Only the first skill in a stacked invocation counts as user-invoked, which is an edge case for the mode rule. This task sets no `disable-model-invocation`.
+- [#87113 Stacked slash-skill invocations load only the first skill on the SDK / --print path](https://github.com/anthropics/claude-code/issues/87113) — `anthropics/claude-code` — opened 2026-08-16 — bug, has repro, area:cli, area:skills. Relevant only if headless e2e stacks two skills in one prompt.
+- [#78523 disable-model-invocation: true breaks explicit /skill-name invocation](https://github.com/anthropics/claude-code/issues/78523) — `anthropics/claude-code` — opened 2026-07-17 — bug, area:skills. A reason not to restrict the orchestrators to user-only invocation: they must stay model-invocable for the autonomous path anyway.
+- [#44172 Skills across ~/.codex/skills and ~/.agents/skills appear duplicated due to path-based deduplication](https://github.com/openai/codex/issues/44172) — `openai/codex` — opened 2026-09-09 — bug, windows-os, app, skills. Duplicate skill listings are what the pruning half of this task removes for retired names. smaqit installs Codex skills only under `~/.agents/skills`.
+- [#41576 $ opens Skills/Apps popup and cannot be disabled](https://github.com/openai/codex/issues/41576) — `openai/codex` — opened 2026-08-29 — bug, app, skills. Confirms `$` as Codex's explicit skill-invocation syntax.
+
+### Historical (Closed)
+- [#19695 Explicit-only skills need a visible, reliable explicit invocation contract](https://github.com/openai/codex/issues/19695) — `openai/codex` — closed 2026-04-26
+- [#43727 TUI skill picker uses display_name casing, causing explicit-only skill invocation to fail](https://github.com/openai/codex/issues/43727) — `openai/codex` — closed 2026-10-12
+- [#73774 Skill tool re-invoked after slash command already loaded skill](https://github.com/anthropics/claude-code/issues/73774) — `anthropics/claude-code` — closed 2026-08-17
+- [#14147 Separate invocation namespace for prompt files vs skills in the slash picker](https://github.com/microsoft/vscode-copilot-release/issues/14147) — `microsoft/vscode-copilot-release` — closed 2026-03-03 (confirms that Copilot lists skills in its `/` picker)
+
+### Unresolvable Tools
+- OpenAI Codex — the helper's registry lookup matched an unrelated repository (`steipete/CodexBar`); used `openai/codex` from the research map instead
+
+### Omitted Tools
+- Go, Bash, Python — build, test and installer tooling only; no task feature dimension to search
 
 ## Acceptance Criteria
 

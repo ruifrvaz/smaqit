@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-cicd-generate
 description: 'Use when generating or updating GitHub Actions CI/CD workflows: the VM set (deploy.yml, provision.yml, post-merge-deploy.yml) for Node.js + React via Terraform and Docker Compose, or the k3s two-job deploy.yml + post-merge-deploy.yml, or when an operator invokes /cicd.generate. Inside smaqit.new-greenfield-project the deployment agent generates them itself. Never generates copilot-setup-steps.yml.'
 metadata:
-  version: "3.2.0"
+  version: "3.2.1"
   smaqit-slots: "ci-generate=generate"
 ---
 
@@ -253,6 +253,9 @@ workflow, templated or not, must avoid them:
   nothing to the plan: the reviewed configuration change produces the destroy, and the guard
   accepts only a pure destroy of that address. Pass the input to the step through `env:`, never
   interpolated into the script.
+- **Both inputs are typed by a human, never filled from guard output.** A workflow or agent must not
+  derive the replace/remove address from a BLOCKED plan; when the guard blocks, the run fails and a
+  human decides. Never add a step that retries the guard with addresses parsed from its own output.
 
 ## Completion
 

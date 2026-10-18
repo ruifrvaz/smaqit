@@ -184,8 +184,10 @@ if [ -n "$BLOCKED" ] || [ -n "$MISSING_REPLACE" ] || [ -n "$MISSING_DELETE" ]; t
     echo "$MISSING_DELETE" >&2
   fi
   echo "" >&2
-  echo "Do not apply this plan unattended. Review it manually, confirm the destroy/replace is" >&2
-  echo "intentional, and only then apply outside of this guarded path." >&2
+  echo "STOP. Do not apply this plan, and do not re-run with --allow-delete or --allow-replace for an" >&2
+  echo "address taken from this output. An allowed address must be one a human named before this plan" >&2
+  echo "ran (the request, the reviewed pull request, or a gated dispatch input). Report this plan and" >&2
+  echo "wait for a human decision." >&2
   discard_kept_plan
   exit 1
 fi

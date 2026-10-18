@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing to add.
 
 ### Fixed
-- Nothing to add.
+- **`plan-guard.sh` no longer suggests going around itself when it blocks.** Its BLOCKED message used to end "only then apply outside of this guarded path". It now tells the reader to stop, report the plan and wait for a human decision, and never to re-run with `--allow-delete` or `--allow-replace` for an address taken from its own output. An allowed address must be one a human named before the plan ran: the request, the reviewed pull request, or a gated dispatch input. The same rule is now stated in `smaqit.infrastructure-provision-cyso` (1.10.1: guard step and failure table), `smaqit.infrastructure-cicd-generate` (3.2.1: gated replace/remove inputs), the Deployment agent's guard invariant, and the platform-repositories guide. The guard's verdict logic, flags and exit codes are unchanged.
 
 ### Security
 - Nothing to add.

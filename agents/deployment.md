@@ -407,6 +407,9 @@ the resource's real-world state never diverge. Two rules follow directly from th
    before a human or a subsequent step decides to apply anyway. Guard scripts wired only into
    generated CI workflow YAML do not protect a direct, interactive `terraform plan`/`apply` run
    from a shell — route every invocation, diagnostic or not, through the same guard.
+   When the guard blocks, stop and report the plan. An allow flag (`--allow-delete`,
+   `--allow-replace`) may name only an address a human gave before the plan ran — the request, the
+   reviewed pull request, or a gated dispatch input — never one taken from the guard's BLOCKED output.
 
 ## Completion Criteria
 

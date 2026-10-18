@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-provision-cyso
 description: Use when provisioning a project's VM on Cyso Cloud (OpenStack) with Terraform, re-running Terraform after infrastructure changes, or when an operator invokes /provision.cyso. Covers application credentials, the Object Storage backend, the SSH keypair, terraform init/plan/apply, and the fixed IP, producing an SSH-reachable VM with a Cinder data volume and ports 22/80/443 open.
 metadata:
-  version: "1.10.0"
+  version: "1.10.1"
   smaqit-slots: "provision=apply"
 ---
 
@@ -141,6 +141,12 @@ be hand-edited in a target project expecting the edit to persist.
    only one of them. A gated workflow passes the reviewed address as a dispatch input, never a
    hard-coded value.
 
+   **Where an allowed address comes from:** only from a human, before the plan ran — the request,
+   the reviewed pull request, or a gated dispatch input. Never take one from the guard's BLOCKED
+   output: a blocked delete or replacement is a side effect nobody reviewed (for example, removing
+   one element of a `count` list plans a delete of the *last* index). When the guard blocks, stop,
+   report the plan, and wait for a human decision.
+
 7. **Apply the guarded plan (only after `plan-guard.sh` exits 0):**
    ```bash
    terraform apply tfplan
@@ -268,5 +274,5 @@ accessible with the project's deploy keypair, Terraform state in `<project-slug>
 | Image ID not found | Run `openstack image list`; update `variables.tf` with current ID |
 | Keypair replacement shown in plan | Strip trailing newline; re-export `TF_VAR_ssh_public_key` using `tr -d '\n'` |
 | SSH access fails after apply | Verify security group allows port 22; confirm key fingerprint matches uploaded keypair |
-| `scripts/plan-guard.sh` exits non-zero | Do NOT apply. Review the named resource(s). An intentional replacement of a named resource: re-run with `--allow-replace <address> --out tfplan` and apply `tfplan`. A reviewed removal of one resource: re-run with `--allow-delete <address> --out tfplan` and apply `tfplan`. Destroying a whole target: the `teardown` slot, with explicit sign-off |
-| `plan-guard.sh` reports an `--allow-replace` address the plan does not replace, or an `--allow-delete` address it does not purely destroy | The line shows what the plan does with it instead (`planned: …`). `not in the plan` means the address is wrong or already gone — check `terraform state list`. A replace where a destroy was allowed (or the reverse) means the change is not the one reviewed. Correct it; never fall back to an unguarded apply |
+| `scripts/plan-guard.sh` exits non-zero | Do NOT apply, and do NOT re-run with an allow flag naming an address from the BLOCKED output. Stop and report the plan. Only when a human named the address before the plan ran (the request, the reviewed pull request, a gated dispatch input): `--allow-replace <address>` for a replacement or `--allow-delete <address>` for a removal, with `--out tfplan`, then apply `tfplan`. Destroying a whole target: the `teardown` slot, with explicit sign-off |
+| `plan-guard.sh` reports an `--allow-replace` address the plan does not replace, or an `--allow-delete` address it does not purely destroy | The line shows what the plan does with it instead (`planned: …`). `not in the plan` means the address is wrong or already gone — check `terraform state list`. A replace where a destroy was allowed (or the reverse) means the change is not the one reviewed. Stop and report; never swap flags, never substitute an address from the output, never fall back to an unguarded apply |

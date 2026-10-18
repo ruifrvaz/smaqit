@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 109
+status: Completed
 created: "2026-10-18"
 mode: Assisted
 started: "2026-10-18"
+completed: "2026-10-18"
 ---
 
 # Orchestrator Skills Default by Invocation; Rename new-greenfield-project to project-new; Prune Retired Skills

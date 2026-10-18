@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 107
 created: "2026-10-18"
 mode: Assisted
 started: "2026-10-18"
@@ -78,27 +79,32 @@ projects guard their own apply paths.
 
 ## Acceptance Criteria
 
-- [ ] The guard's BLOCKED output tells the reader to stop and report, forbids taking an allow-flag address from that output, and no longer suggests applying outside the guard
-- [ ] provision-cyso, cicd-generate and the deployment agent state the same rule, for both `--allow-delete` and `--allow-replace`
-- [ ] A Go test asserts the BLOCKED wording; all existing guard tests pass unchanged
-- [ ] No change to the guard's verdict logic, flags or exit codes
-- [ ] Released as a patch, with a CHANGELOG entry
+- [x] The guard's BLOCKED output tells the reader to stop and report, forbids taking an allow-flag address from that output, and no longer suggests applying outside the guard
+- [x] provision-cyso, cicd-generate and the deployment agent state the same rule, for both `--allow-delete` and `--allow-replace`
+- [x] A Go test asserts the BLOCKED wording; all existing guard tests pass unchanged
+- [x] No change to the guard's verdict logic, flags or exit codes
+- [x] Released as a patch, with a CHANGELOG entry
 
 ## Findings
 
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Replaced the guard's BLOCKED footer ("only then apply outside of this guarded path") with a stop-and-report rule naming both allow flags; the script diff touches only `echo` lines.
+- Stated the same rule in provision-cyso (a "Where an allowed address comes from" paragraph using the `count`-index trap as its example, plus both failure-table rows), the Deployment agent's guard invariant, cicd-generate's gated replace/remove inputs, the platform-repositories guide and the compendium.
+- Added `TestPlanGuardBlockedOutputSaysStopAndReport`, covering an unlisted delete and a listed address the plan doesn't destroy; restoring the old footer makes it fail. All other guard tests pass unchanged.
 
 **Decisions made:**
-- TBD
+- Wording only: a human-confirmation gate (terminal confirmation, break-glass, CI-only applies for Environment targets) was assessed and not adopted; downstream projects guard their own apply paths.
+- The rule covers `--allow-replace` as well as `--allow-delete`, since the same gap has existed since task 115.
+- Skill patch bumps: provision-cyso 1.10.0 → 1.10.1, cicd-generate 3.2.0 → 3.2.1.
 
 **Blockers encountered:**
-- TBD
+- None.
 
 **Follow-up identified:**
-- TBD
+- Deferred by the user: CI-only applies for GitHub Environment targets (credential placement, separate test state, OIDC where the provider supports it).
+- Wording guides an agent but cannot stop one that ignores it; only credential placement would make local applies to Environment targets impossible.
 
 ## Files to Create / Modify
 

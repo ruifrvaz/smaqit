@@ -70,6 +70,11 @@ It reports independent failures together. `validateDesigns` (`installer/design.g
 
 The self-update flow re-execs the newly downloaded binary after replacing the file on disk, because Go's `//go:embed` content is fixed in the running process. The fresh binary refreshes the global agent/skill payload through its internal bootstrap and re-scaffolds project-local assets only when the current directory is already a smaqit project. Updaters older than v3.0.0 predate global-payload bootstrapping: after such an updater first replaces itself with v3+, run `smaqit update` once more or rerun the shell installer to install the global payload.
 
+Already being on the latest release doesn't make `smaqit update` a no-op. It still reinstalls the global payload, which also removes anything an older release installed and this one no longer ships, then re-initializes project assets if the current directory has `.smaqit/`.
+
+That re-initialization asks before overwriting `.smaqit/templates/`. In a non-interactive shell the question gets no answer and init prints "Installation cancelled". The global step has already run by then, and only the project step is skipped. Answer it explicitly with `printf 'y\n' | smaqit update`, or run `echo y | smaqit init .` afterwards.
+
+To refresh only the global agents and skills, without touching any project, run `smaqit update` from a directory that has no `.smaqit/`. See also: does `smaqit update` remove a skill that a release retires from an already-installed global directory?
 ---
 
 **Does `smaqit update` remove a skill that a release retires from an already-installed global directory?**
@@ -223,6 +228,26 @@ Through deployment slots. The deploy phase runs a fixed, ordered sequence of slo
 ---
 
 ## Claude Code Support
+
+**Can smaqit tell deterministically whether the user typed a slash command or the model invoked a skill?**
+
+No. Commands and orchestrator skills tell the model which mode to use: a typed `/smaqit.<phase>`, `/smaqit.feature-new` or `/smaqit.project-new` (or a Codex `$` mention, or a skill-menu pick) means `assisted`, and the model choosing it means `autonomous`. The model then judges from the conversation which case it is in. Live Claude Code runs have shown this working for both the typed and the self-invoked paths.
+
+Claude Code does offer deterministic signals:
+
+- a `UserPromptExpansion` hook fires when a user-typed command expands, with its `command_name` and arguments, and `PreToolUse` doesn't fire on that path;
+- a `PreToolUse` hook matching the `Skill` tool fires only when the model invokes a skill;
+- both can add `additionalContext` that the model reads.
+
+smaqit doesn't use them, for three reasons:
+
+- they would have to be registered in the user's `~/.claude/settings.json` or in a plugin, because hooks in a skill's own frontmatter register only after that skill is invoked;
+- GitHub Copilot and Codex have no verified equivalent;
+- splitting each skill into a user-only (`disable-model-invocation: true`) entry and a model entry would double every listing.
+
+See also: what mode does a smaqit phase run in, and what counts as a requirement?
+
+---
 
 **How do I start a new project with smaqit on Claude Code, and how do I run only the Develop phase?**
 
@@ -395,6 +420,23 @@ Never write `can-i … pods/exec`: kubectl reads that as a pod named `exec`. A `
 
 ---
 
+**Do the `kubectl auth can-i` TYPE/NAME trap and the `bash -e` trap affect smaqit's k3s deploys, and who guards against them?**
+
+Both traps are kubectl and GitHub Actions behaviour that smaqit can't remove:
+
+- **The TYPE/NAME trap.** `kubectl auth can-i create pods/exec` reads `pods/exec` as "a pod named exec", so any deployer allowed to create pods gets `yes`. The correct form is `--subresource=exec`. `can-i` doesn't validate subresource names, so a misspelled one silently answers `no`.
+- **The `bash -e` trap.** GitHub runs every `run:` step with `bash -e`, so a step that captures a command expected to exit non-zero ends before it reads the answer. That includes a `can-i` "no" and a `kubectl exec` that must be refused.
+
+smaqit's own checks are immune to both:
+
+- `namespace-guard.sh` asks with `--subresource=exec`.
+- `exec-refused.sh` brackets its real exec attempt with `set +e` and decides from the captured output.
+- The generated `deploy.yml` runs both, and tests pin these forms and run the rendered steps under `bash -e`.
+
+For steps a project adds itself, smaqit gives guidance, not enforcement. The `smaqit.infrastructure-deploy-k3s-app` and `smaqit.infrastructure-cicd-generate` skills describe both traps as gotchas, and their failure-handling tables say what to do when a project's own check answers misleadingly or ends on its expected failure. A static checker for project files was considered and rejected as too brittle. See also: how does an `existing-k3s` app deploy to a private-mesh or platform-owned target?
+
+---
+
 **How do smaqit skills read or write Vault without running `vault` commands?**
 
 Through purpose-named scripts; skill text never tells an agent or operator to run `vault` directly, and a Go test (`installer/skill_text_test.go`) fails if a run-able `vault` command or a `Bash(vault:*)` grant appears in any shipped skill document. Scripts may call `vault` internally. The interface:
@@ -434,6 +476,21 @@ The total shipped skill count is asserted in `installer/main_test.go` in two tes
 ---
 
 ## Release Workflow
+
+**How do I push to, or open a PR on, a repository in another GitHub organisation from this workstation?**
+
+The default git credential on this workstation only reaches the user's own repositories, so a fetch or push to another organisation's repository fails with HTTP 403. Load that organisation's token through the Vault scripts, never with `vault` directly:
+
+- `bash ~/projects/scripts/vault-gh-token.sh --list` shows the available token references (names and paths only).
+- `source ~/projects/scripts/vault-gh-token.sh organizations/<org>` exports `GH_TOKEN` into the current shell without printing it. Each tool call is a fresh shell, so source it in every command that needs it.
+
+`gh` reads `GH_TOKEN` directly. For `git`, set `gh` as the credential helper for one command only, so the user's git config never changes:
+
+`git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push -u origin <branch>`
+
+Organisation tokens may lack scopes that some `gh` subcommands need, such as reading check runs. `gh pr view --json body` can also fail on GitHub's retired Projects (classic) API; reading and patching the PR through `gh api repos/<owner>/<repo>/pulls/<n>` works instead.
+
+---
 
 **Why can a release worktree remain after its release PR has merged and published?**
 

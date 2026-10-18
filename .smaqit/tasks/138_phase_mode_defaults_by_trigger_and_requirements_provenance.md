@@ -1,6 +1,8 @@
 ---
-status: Not Started
+status: In Progress
 created: "2026-10-18"
+mode: Assisted
+started: "2026-10-18"
 ---
 
 # Phase Mode Defaults by Trigger (Commands Assisted, Skills Autonomous) and Requirements Provenance
@@ -68,8 +70,23 @@ The approved model: smaqit has human-triggered entry points (the three phase com
 8. **Verify.** `make -C installer prepare`, `make -C installer test`, `make -C installer smoke-test`; grep generated `installer/agents-*`/`skills-*` for the trigger-based default wording, `user_request`, no remaining "Flag assumptions"/"Document assumptions" in spec and phase agents, no unconditional "User reviews and approves"/"User signs off" in the orchestrators; `SCENARIOS=empty-request,title-only make -C installer e2e-claude`, then all six scenarios.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-18
+**Tools searched:** Claude Code (`anthropics/claude-code`), GitHub Copilot (`github/copilot-docs`), OpenAI Codex (`openai/codex`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#82456 Undocumented system-prompt directive "Do not call the AgentTool unless the user requested it" contradicts documented description-based subagent delegation](https://github.com/anthropics/claude-code/issues/82456) — `anthropics/claude-code` — opened 2026-07-30 — area:agents, stale. Bears directly on model-started phases: Claude may decline to delegate to a "Use proactively" phase subagent without being asked. The task routes self-starts through the model-invocable command as well as the subagent, and the e2e `self-invocation` and `title-only` scenarios observe which path actually fires; don't rely on proactive delegation alone.
+- [#77795 Skills with disable-model-invocation: true are silently ignored when invoked via agent prompts](https://github.com/anthropics/claude-code/issues/77795) — `anthropics/claude-code` — opened 2026-07-15 — bug, platform:macos, area:agents, area:skills. Not hit: the task keeps the phase commands model-invocable and adds no `disable-model-invocation`. Relevant only if that option is revisited.
+- [#95730 Background subagents give the user zero visibility; model waits silently for 15+ minutes](https://github.com/anthropics/claude-code/issues/95730) — `anthropics/claude-code` — opened 2026-09-20 — enhancement, platform:macos, area:agents, area:agent-view. Same family as the known detached-subagent behavior (#75043). Assisted-by-default means more `REVIEW-REQUESTED` round-trips through background phase agents; the e2e `assisted` scenario's resume loop is the check.
+- [#101519 Every subagent is told "Do NOT Write report/summary/findings/analysis .md files" even when its task prompt asks for exactly that](https://github.com/anthropics/claude-code/issues/101519) — `anthropics/claude-code` — opened 2026-10-12 — bug, area:agents. Pre-existing and not changed by this task, but the phase agents write `.smaqit/reports/*-phase-report-*.md` as subagents; if the e2e `report_exists` check starts failing, check this first.
+- [#46048 Codex CLI subagent completes, but main thread reports "No agents completed yet"](https://github.com/openai/codex/issues/46048) — `openai/codex` — opened 2026-09-16 — bug, CLI, subagent. Affects relaying `NEEDS-INPUT`/`REVIEW-REQUESTED` from Codex phase subagents, which assisted-by-default makes more frequent. Not reproducible in this repo's tests (no Codex e2e).
+- [#54896 Injected subagent instructions incorrectly claim full-history forks always inherit the parent model and effort](https://github.com/openai/codex/issues/54896) — `openai/codex` — opened 2026-10-17 — documentation, CLI, subagent, config. Unrelated to mode or provenance; recorded for completeness of the subagent surface.
+
+### Historical (Closed)
+- [#31893 GPT-5.6 forces a restricted spawn_agent schema that makes documented custom agents unusable](https://github.com/openai/codex/issues/31893) — `openai/codex` — closed 2026-07-09. Fixed; Codex named custom agents spawn as documented.
+
+### Search Warnings
+- `github/copilot-docs` — the helper resolved GitHub Copilot to its documentation repository; its open and closed searches returned no issues, which is weak evidence about Copilot's custom-agent runtime (the VS Code extension's tracker was not searched).
 
 ## Acceptance Criteria
 

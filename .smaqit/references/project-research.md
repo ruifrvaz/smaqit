@@ -451,3 +451,21 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | kubectl | kubectl create secret generic | https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_generic/ |
 | Docker | Docker config.json (credential format) | https://docs.docker.com/reference/cli/docker/#configuration-files |
 | jq | Manual | https://jqlang.org/manual/ |
+
+## Task 138 — Phase Mode Defaults by Trigger (Commands Assisted, Skills Autonomous) and Requirements Provenance
+
+**Context fingerprint:** sha256:cf3ff3a9a37912339f822e1c638491400742fd30b4c7daf767dbb840a133ba5d
+**Refreshed:** 2026-10-18
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Claude Code | Agent Skills (model invocation, when_to_use) | https://code.claude.com/docs/en/skills |
+| Claude Code | Slash commands | https://code.claude.com/docs/en/slash-commands |
+| Claude Code | Subagents (proactive delegation) | https://code.claude.com/docs/en/sub-agents |
+| Claude Code | Headless mode (claude -p) | https://code.claude.com/docs/en/headless |
+| Claude Code | Memory (CLAUDE.md imports, AGENTS.md) | https://code.claude.com/docs/en/memory |
+| GitHub Copilot | VS Code custom agents | https://code.visualstudio.com/docs/agent-customization/custom-agents |
+| GitHub Copilot | Agent skills | https://docs.github.com/en/copilot/concepts/agents/about-agent-skills |
+| OpenAI Codex | Repository | https://github.com/openai/codex |
+| OpenAI Codex | Subagents | https://learn.chatgpt.com/docs/agent-configuration/subagents |
+| OpenAI Codex | AGENTS.md | https://learn.chatgpt.com/docs/agent-configuration/agents-md |

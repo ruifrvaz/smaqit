@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 138 | Phase Mode Defaults by Trigger (Commands Assisted, Skills Autonomous) and Requirements Provenance | Not Started | High |
+| 138 | Phase Mode Defaults by Trigger (Commands Assisted, Skills Autonomous) and Requirements Provenance | In Progress | High |
 | 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | Not Started | High |
 | 136 | existing-k3s: Fixes From the First Live Private-Mesh Deploy | PR Open | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |

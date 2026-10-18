@@ -5,7 +5,7 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 136 | existing-k3s: Fixes From the First Live Private-Mesh Deploy | Not Started | High |
-| 135 | plan-guard.sh: `--allow-delete <address>` for a Reviewed Pure Destroy | In Progress | High |
+| 135 | plan-guard.sh: `--allow-delete <address>` for a Reviewed Pure Destroy | PR Open | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 113 | Business Use-Case Diagrams: No Guardrail Against Generalization-Inheritance Misuse or PlantUML-Alias Collision With the Project's Own UC-ID Convention | new | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |

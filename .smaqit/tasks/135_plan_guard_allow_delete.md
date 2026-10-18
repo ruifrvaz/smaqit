@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 104
 created: "2026-10-14"
 mode: Assisted
 started: "2026-10-18"
@@ -97,30 +98,39 @@ destroy of exactly the listed address, and keep blocking everything else.
 
 ## Acceptance Criteria
 
-- [ ] `plan-guard.sh --allow-delete <address>` passes a plan whose only delete is a pure destroy of
+- [x] `plan-guard.sh --allow-delete <address>` passes a plan whose only delete is a pure destroy of
       that address, and blocks unlisted deletes, a listed address that is replaced, and a listed
       address the plan doesn't destroy
-- [ ] `--allow-delete` is repeatable and combines with `--allow-replace` and `--out`; without it,
+- [x] `--allow-delete` is repeatable and combines with `--allow-replace` and `--out`; without it,
       behaviour is unchanged (existing guard tests still pass)
-- [ ] Go tests cover every case above; `go test ./...` passes
-- [ ] The provision-cyso SKILL.md and the platform-repositories guide document the flag
-- [ ] Released, with a CHANGELOG entry
+- [x] Go tests cover every case above; `go test ./...` passes
+- [x] The provision-cyso SKILL.md and the platform-repositories guide document the flag
+- [x] Released, with a CHANGELOG entry
 
 ## Findings
 
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Added a second repeatable allow-list to `plan-guard.sh`. The jq verdict now computes `replaced` (listed and delete+create) and `destroyed` (listed and exactly `["delete"]`) side by side, and blocks every delete in neither set.
+- A listed address that wasn't acted on as listed is reported per flag with what the plan does instead (`planned: create,delete`, `planned: update`, `planned: not in the plan`), so "replaced instead of destroyed" and "mistyped" read differently.
+- `--allow-delete` adds nothing to the `terraform plan` arguments; the no-change branch blocks when either list is non-empty.
+- Two new Go tests (`TestPlanGuardAllowsOnlyTheNamedDestroy`, `TestPlanGuardCombinesAllowedDestroyReplaceAndOut`) and two bad-usage cases; the four existing guard tests pass unchanged.
+- Three deliberate breaks (destroy matching any delete, the no-change branch ignoring the flag, the overlap not rejected) were each caught by a test.
 
 **Decisions made:**
-- TBD
+- The same address in both lists is a usage error (exit 2) checked before Terraform runs; the guard never chooses between a replace and a destroy.
+- A pure destroy of an `--allow-replace` address stays blocked, so the existing replace semantics are unchanged.
+- `forget` (a `removed` block with `destroy = false`) is not a delete action and stays outside the guard's filter (triage, hashicorp/terraform#38641).
+- No workflow template changed: the generated workflows call the guard without allow flags; cicd-generate documents a gated "remove this resource" dispatch input passed through `env:`.
+- Skill versions: provision-cyso 1.9.0 → 1.10.0, cicd-generate 3.0.0 → 3.1.0.
 
 **Blockers encountered:**
-- TBD
+- None. The task file's original step to hand-mirror the script into `installer/skills-*` was replaced at start with `make prepare` (that staging is gitignored build output).
 
 **Follow-up identified:**
-- TBD
+- The consuming downstream platform repository re-vendors the guard and adds an `allow_delete` dispatch input once this releases.
+- Like `--allow-replace`, a flag value starting with `-` is taken as an address (e.g. `--allow-delete --out`); harmless since Terraform addresses never start with `-`, but not explicitly rejected.
 
 ## Files to Create / Modify
 

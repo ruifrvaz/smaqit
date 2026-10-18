@@ -147,7 +147,7 @@ Tasks that were started but abandoned due to being superseded, no longer relevan
 
 | ID | Title | Reason |
 |----|-------|--------|
-| 139 | Guardrail: Reject `kubectl auth can-i <verb> <resource>/<subresource>` in Project Workflows and Scripts | A static pattern check over project files was judged too brittle. Replaced by gotchas plus failure-handling rows in the deploy-k3s-app and cicd-generate skills, shipped with task 136 (PR #105). |
+| 139 | Guardrail: Reject `kubectl auth can-i <verb> <resource>/<subresource>` in Project Workflows and Scripts | A static pattern check over project files was judged too brittle. Replaced by gotchas (shipped in v3.16.0) plus failure-handling rows in the deploy-k3s-app and cicd-generate skills. The rows (commit fc568e0) reached the task 136 branch after PR #105 merged, so they are still unreleased. |
 | 025 | Integrate Testing Agent with CI/CD | Original scope (Makefile target, report-parsing script, automatic PR/release triggers) superseded by e2e-test.yml workflow (manual dispatch). Criteria never implemented. |
 | 075 | Dual Release Architecture: SDK and Product | Requires deep refactoring with high risk to existing codebase. SDK extracted to separate repository (smaqit-sdk) for clean development without contaminating product. |
 | 076 | Separate SDK and App Installers | Duplicate of Task 075 (more comprehensive dual-release architecture) |

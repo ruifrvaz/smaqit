@@ -112,8 +112,9 @@ TBD — to be confirmed during assessment. Recorded starting points:
 ## Notes
 
 - **Abandoned 2026-10-18 before starting:** the user judged a static pattern check too brittle. The
-  traps are covered instead by gotchas and failure-handling rows in the `deploy-k3s-app` and
-  `cicd-generate` skills, shipped with task 136 (PR #105).
+  traps are covered instead by gotchas (shipped in v3.16.0 with task 136) and failure-handling rows
+  in the `deploy-k3s-app` and `cicd-generate` skills. The rows (commit fc568e0) were pushed to the
+  task 136 branch after PR #105 had merged, so they still need their own PR.
 
 - Follow-up of task 136 (PR #105, v3.16.0). Start it after #105 merges, so it builds on the shipped
   `namespace-guard.sh` and the documented gotchas.

@@ -192,7 +192,8 @@ The default mode depends on what started the phase. A mode the user states ("ass
 | The user: a typed `/smaqit.<phase>`, or a Copilot/Codex phase agent the user picked or named | `assisted` |
 | A phase agent invoked with no parameter block | `assisted` (it assumes the user picked it) |
 | The model, routing a plain request on its own | `autonomous` |
-| `smaqit.new-greenfield-project` or `smaqit.feature-new` (their Phase 0) | `autonomous` |
+| The user invoking `smaqit.new-project` or `smaqit.feature-new`: a typed `/smaqit.new-project`, a Codex `$` mention, or a skill-menu pick | `assisted`, for every phase it runs |
+| The model choosing one of those skills on its own, including when the user only names it in plain words | `autonomous`, for every phase it runs |
 
 Assisted mode pauses with `REVIEW-REQUESTED` after each specification layer, works only from requirements the user stated, and ends each phase by asking the user to review it. Autonomous runs straight through and stops only for `NEEDS-INPUT` and human operations such as a PR merge. In both modes, a project name, the model's own knowledge, or a caller's paraphrase never counts as a requirement (`framework/AGENTS.md`, Session Context).
 

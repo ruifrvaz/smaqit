@@ -22,16 +22,21 @@ All items below must be satisfied before starting. When re-entering at a later p
 - [ ] CI/CD workflows exist (`.github/workflows/deploy.yml` at minimum)
 - [ ] Local Vault initialised and running with this project's existing credential paths populated (populated during the original MVP cycle; the Deployment agent's `access-credentials`/`target-credentials` slots top up anything rotated or missing)
 
-If no Infrastructure spec exists yet under `specs/infrastructure/` — this project has not been through an MVP cycle — stop and flag to the user that `smaqit.new-greenfield-project` is the correct skill instead. Do not proceed silently.
+If no Infrastructure spec exists yet under `specs/infrastructure/` — this project has not been through an MVP cycle — stop and flag to the user that `smaqit.new-project` is the correct skill instead. Do not proceed silently.
 
 ---
 
 ### Phase 0 — Task Creation (Entry Point)
 
-The operator triggers this phase manually. Execution mode is **Autonomous** unless the operator asks for assisted mode (for example "assisted" or "review each phase"); a mode the operator states always wins. Phase 0 creates a dedicated feature-cycle parent task whose branch and worktree are shared by all five phase children.
+How this skill was started sets the default execution mode:
 
-1. Decide execution mode:
-   - **Autonomous** (default) — all phases run sequentially on a best-effort basis, stopping only for `NEEDS-INPUT` and human operations: credential prompts, the deploy PR merge, and the release PR merge. Gates marked *(assisted only)* are skipped; every other gate is a check the run must still pass. The operator reviews at Phase 5.
+- **Assisted** — the user invoked it explicitly: they typed `/smaqit.feature-new`, mentioned it as `$smaqit.feature-new` in Codex, or picked it from a skill menu (`/` in Copilot chat, `/skills` in Codex).
+- **Autonomous** — you chose this skill yourself to handle a broader request. A user who only names the skill in plain words, without one of those invocations, also gets autonomous.
+
+A mode the user states always wins ("assisted", "review each phase", "run autonomously"). Before Phase 0 continues, tell the user in one line which mode the run uses and how to change it. Phase 0 creates a dedicated feature-cycle parent task whose branch and worktree are shared by all five phase children.
+
+1. Resolve the execution mode by the rule above:
+   - **Autonomous** — all phases run sequentially on a best-effort basis, stopping only for `NEEDS-INPUT` and human operations: credential prompts, the deploy PR merge, and the release PR merge. Gates marked *(assisted only)* are skipped; every other gate is a check the run must still pass. The operator reviews at Phase 5.
    - **Assisted** — the operator is present at each gate; phases do not advance without explicit approval, and every specification layer works only from requirements the operator stated.
 2. **Create the feature-cycle parent task:**
    ```
@@ -244,8 +249,8 @@ Phase 5 is the last child task. It runs the release chain on the feature branch,
 ## Scope
 
 - Covers post-MVP iterative feature work on a project that already has a deployed target. Requires an existing Infrastructure spec with `status: deployed` (or resolves `provisioning_mode` to `existing-shared` for a co-hosted target another project manages, `existing-unmanaged` for a dedicated target nobody's Terraform manages, or `existing-k3s` for a Namespace-scoped Kubernetes/k3s target with no VM at all).
-- Does NOT cover greenfield project setup — no requirements extraction, no from-scratch 5-layer spec generation, no dev-VM sweep. Use `smaqit.new-greenfield-project` for that.
-- Does NOT retrofit `smaqit.new-greenfield-project` itself to invoke this skill for its own post-Phase-8 iterative work — that is a sensible future task once this skill is proven, not in scope here.
+- Does NOT cover new-project setup — no requirements extraction, no from-scratch 5-layer spec generation, no dev-VM sweep. Use `smaqit.new-project` for that.
+- Does NOT retrofit `smaqit.new-project` itself to invoke this skill for its own post-Phase-8 iterative work — that is a sensible future task once this skill is proven, not in scope here.
 - Does NOT build an automated "is this project past MVP" detector. The Pre-conditions check (Infrastructure spec with a deployed target) and the `provisioning_mode` resolution fallback (flag to the user if it resolves to `provision`) are the only maturity signals used.
 - Does NOT modify the `smaqit-extensions` task lifecycle contract. The parent-owned subtask lifecycle (`Parent: NNN`, child-aware `task.start`/`task.complete`, resolver script) is already shipped in `smaqit-extensions v1.10.0`. This skill only adopts it.
 
@@ -256,7 +261,7 @@ Phase 5 is the last child task. It runs the release chain on the feature branch,
 - **Two PRs from the same feature branch, at different points in history.** Phase 3 opens a deploy PR; Phase 5 opens a release PR. Both are from the same feature branch to `main`. GitHub handles this correctly: the second PR shows only the commits added since the first PR was merged (Phase 4 amendments + release prep). No rebase or branch recreation is needed between PRs. The feature branch survives both PR merges — it is only deleted at parent cleanup.
 - **Repo auto-deletes head branch on PR merge — handled correctly.** If the target repo has "Automatically delete head branches" enabled, the release PR merge (Phase 5) deletes the feature branch remotely. When parent `task.complete` runs, the merge step skips silently ("branch does not exist"). Worktree removal still happens (local directory, unaffected by remote branch deletion). Post-deploy amendments and release prep are already on `main` via the release PR, so nothing is lost. No configuration change needed.
 - **`check-amendments.sh` matches a bare substring, not the canonical tag format.** The script (`grep -rl "amendment:" <dir>`) is case-sensitive and matches the literal substring `amendment:` anywhere in a file — it does not require the full `<!-- amendment: DATE — description -->` HTML-comment form. A note using different wording or capitalization (e.g. `**Amendment (...)**`) will not match. Phase 2 instructs the canonical lowercase tag specifically so the gate fires.
-- **`provisioning_mode` default-override lives in this skill, not in `smaqit.input-deployment`.** `smaqit.input-deployment`'s own default of `provision` is correct for its primary caller (`smaqit.new-greenfield-project`'s brand-new-project case); do not change that default. The override — `existing-k3s` when a deployed Infrastructure spec declares the k3s Constraints rows, otherwise `existing-owned` when it shows a deployed target — is this skill's own Phase 3 Step 5 logic.
+- **`provisioning_mode` default-override lives in this skill, not in `smaqit.input-deployment`.** `smaqit.input-deployment`'s own default of `provision` is correct for its primary caller (`smaqit.new-project`'s brand-new-project case); do not change that default. The override — `existing-k3s` when a deployed Infrastructure spec declares the k3s Constraints rows, otherwise `existing-owned` when it shows a deployed target — is this skill's own Phase 3 Step 5 logic.
 - **No dev-VM sweep, by design.** A dev-environment validation pass makes sense for a brand-new deploy pipeline being proven for the first time; it is wasted cloud spend and time for the Nth feature landing on a pipeline already proven. If `provisioning_mode` ever resolves to `provision` here, that is itself a signal this project isn't actually past MVP — stop and flag rather than silently provisioning.
 - **Amendment gate runs every time, deploy-now or defer.** Deferred deploys still run the gate at Phase 3 — deferring the push must not mean deferring visibility into unresolved spec divergence.
 - **Context collapse / phase re-read** — in long sessions the conversation is summarised by the model, and summaries capture phase names and outcomes but not the exact tool calls each phase requires. At every phase boundary, re-read this SKILL.md for the upcoming phase before executing any step rather than relying on a conversation summary.
@@ -289,7 +294,7 @@ Phase 5 is the last child task. It runs the release chain on the feature branch,
 
 | Situation | Action |
 |-----------|--------|
-| No Infrastructure spec with `status: deployed` exists (Pre-conditions) | Stop. Flag that `smaqit.new-greenfield-project` is the correct skill instead. |
+| No Infrastructure spec with `status: deployed` exists (Pre-conditions) | Stop. Flag that `smaqit.new-project` is the correct skill instead. |
 | `provisioning_mode` resolves to `provision` despite Pre-conditions passing | Stop. Flag to the user before provisioning a new VM. |
 | Amendment gate reports unresolved matches | Stop at the Phase 3 gate. Resolve or explicitly accept each annotation before continuing. |
 | `deploy-verify` fails | Stop. Report the failing check. Do not mark the Phase 3 task as complete. |

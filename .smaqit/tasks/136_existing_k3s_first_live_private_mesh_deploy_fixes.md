@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 105
+status: Completed
 created: "2026-10-17"
 mode: Assisted
 started: "2026-10-18"
+completed: "2026-10-18"
 ---
 
 # existing-k3s: Fixes From the First Live Private-Mesh Deploy

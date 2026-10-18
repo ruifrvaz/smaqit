@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Kubeconfig and SSH key handling in generated workflows:**
   - the kubeconfig is written with `umask 077` to `$RUNNER_TEMP/kubeconfig` and shredded by a final `if: always()` step;
   - the VM templates' `~/.ssh/deploy_key` gets the same treatment.
-- `smaqit.infrastructure-deploy-k3s-app` 2.1.0 and `smaqit.infrastructure-cicd-generate` 3.2.0 document the `can-i` TYPE/NAME trap (`pods/exec` is read as "a pod named exec") and the `bash -e` trap (a check expecting a non-zero exit ends the step on the correct answer).
+- `smaqit.infrastructure-deploy-k3s-app` 2.1.0 and `smaqit.infrastructure-cicd-generate` 3.2.0 document the `can-i` TYPE/NAME trap (`pods/exec` is read as "a pod named exec") and the `bash -e` trap (a check expecting a non-zero exit ends the step on the correct answer), as gotchas and as failure-handling rows for checks a project adds itself.
 - Generated k3s workflows no longer leave two blank lines where a dropped block was.
 
 ### Fixed

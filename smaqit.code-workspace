@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "release/v3.17.2-k3s-trap-failure-rows",
-      "path": "../smaqit-wt-release-v3.17.2-k3s-trap-failure-rows"
     }
   ],
   "settings": {

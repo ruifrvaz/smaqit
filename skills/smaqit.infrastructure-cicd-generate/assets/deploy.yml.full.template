@@ -82,11 +82,14 @@ jobs:
           VITE_DEMO_MODE: ${{ vars.VITE_DEMO_MODE }}
         run: npm run build
 
+      # The key reaches the step through env:, never pasted into the script text, and the file is
+      # owner-only from the moment it exists. The last step removes it whatever the outcome.
       - name: Set up SSH key
+        env:
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s' "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          (umask 077 && printf '%s' "$VM_SSH_KEY" > ~/.ssh/deploy_key)
           ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
 
       # CRITICAL: mkdir -p the full dist path before rsyncing. The trailing slash on
@@ -123,3 +126,7 @@ jobs:
       # start-on-next-boot, so nginx may never have actually started.
       - name: Reload nginx
         run: ssh -i ~/.ssh/deploy_key "ubuntu@$VM_HOST" "sudo nginx -t && sudo systemctl reload-or-restart nginx"
+
+      - name: Remove SSH key
+        if: always()
+        run: shred -u ~/.ssh/deploy_key 2>/dev/null || rm -f ~/.ssh/deploy_key

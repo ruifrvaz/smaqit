@@ -336,7 +336,17 @@ Three app-scoped fields (four for a `private-mesh` machine), all under `secret/a
 
 Each environment declares it in one row of the Infrastructure spec's `## Environments` table: `Reachability` (`public` or `private-mesh`) and `Ingress Mode` (`own-tls`, `platform-default-tls`, or `platform-owned`), plus its machine slug, host, Ingress class, ClusterIssuer (`own-tls` only), health path, and for `private-mesh` the mesh setup-key secret name and the API's mesh name. Constraints rows add the mesh-join action (a pinned `uses:` reference and its input names) and the `Probe Client`. There is no default: `installer/infra_spec.go` parses the table, `smaqit slots plan --mode=existing-k3s` refuses an incomplete row with `SLOTS-SPEC-*` lines, and `smaqit spec environments --json` prints the rows the fillers read.
 
-The default fillers branch on the row. `platform-prereqs` runs `deploy-k3s-app`'s `mesh-check`, which confirms the API answers over the mesh from this machine. `ci-generate` renders a single dispatch-only `deploy.yml` (`render-k3s-deploy.sh`) for every environment. It carries a per-machine `K3S_TARGETS` map, and its steps branch with `if:` on the dispatched machine: mesh join first for `private-mesh`; `ingress.yaml`, `ingress-default-tls.yaml`, or no Ingress; the `Certificate` wait only for `own-tls`. Verification runs in-cluster whenever the runner can't reach the app (`private-mesh` or `platform-owned`): a probe Job runs the app's own image against the Service over cluster DNS, and its verdict is the Job's status, so no `pods/log` grant is needed. Every run also checks that the Deployment's image tag is the commit SHA. Golden files under `installer/testdata/k3s-deploy/` cover every combination. See also: what Vault credentials does `provisioning_mode: existing-k3s` use?
+The default fillers branch on the row. `platform-prereqs` runs `deploy-k3s-app`'s `mesh-check`, which confirms the API answers over the mesh from this machine. `ci-generate` renders a single dispatch-only `deploy.yml` (`render-k3s-deploy.sh`) for every environment. It carries a per-machine `K3S_TARGETS` map, and its steps branch with `if:` on the dispatched machine: mesh join first for `private-mesh`; `ingress.yaml`, `ingress-default-tls.yaml`, or no Ingress; the `Certificate` wait only for `own-tls`. Verification runs in-cluster whenever the runner can't reach the app (`private-mesh` or `platform-owned`): a probe Job runs the app's own image against the Service over cluster DNS, and its verdict is the Job's status, so no `pods/log` grant is needed. Every run also checks that the Deployment's image tag is the commit SHA. Golden files under `installer/testdata/k3s-deploy/` cover every combination.
+
+**Exec checks.** The workflow fails when the deployer can exec into pods, and it checks this twice:
+- before any apply, `namespace-guard.sh` runs `kubectl auth can-i create|get pods --subresource=exec`;
+- after the rollout, `exec-refused.sh` makes a real `kubectl exec`, which must be refused as Forbidden.
+
+Never write `can-i … pods/exec`: kubectl reads that as a pod named `exec`. A `Deployer Exec: allowed` Constraints row turns a deliberate exec grant into a warning.
+
+**Spec-wide Constraints rows.** `Probe Client` may be `curl`, `wget`, or `python3`. A private `Container Registry` (`<host>, private`) renders the pull-Secret step.
+
+**Secrets.** Every secret reaches a step through `env:`, never inside a `run:` script or on a command line. The kubeconfig is written owner-only to `$RUNNER_TEMP` and removed by an `always()` step. Concurrency allows one deploy per machine at a time. See also: what Vault credentials does `provisioning_mode: existing-k3s` use?
 
 ---
 

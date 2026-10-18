@@ -5,7 +5,9 @@
 # prints it (validated there). Output is one deploy.yml for every environment: the dispatch
 # options list each machine slug, K3S_TARGETS carries each machine's row, and steps branch on
 # the dispatched machine's row at run time. The mesh-join step is kept, with the spec's pinned
-# action and input names, only when some environment is private-mesh.
+# action and input names, only when some environment is private-mesh. The imagePullSecret step is
+# kept, with the registry host, only when the spec's Container Registry is private. The spec's
+# Deployer Exec row (default denied) becomes the deploy job's DEPLOYER_EXEC.
 #
 # Usage: render-k3s-deploy.sh <environments.json> <app-slug> [--default-env <environment>] [--template <path>]
 #   <environments.json>  output of `smaqit spec environments --json` ("-" reads stdin)
@@ -79,6 +81,25 @@ DEFAULT_MACHINE="$(jq -r --arg e "$DEFAULT_ENV" '.environments[] | select(.envir
 OPTIONS="$(jq -r '.environments[].machineSlug' <<<"$SPEC")"
 TARGETS="$(jq '[.environments[] | {key: .machineSlug, value: {environment, reachability, ingressMode, host, ingressClass, clusterIssuer, healthPath, meshSetupKeySecret, meshWaitForHost}}] | from_entries' <<<"$SPEC")"
 
+DEPLOYER_EXEC="$(jq -r '.deployerExec // "denied" | if . == "" then "denied" else . end' <<<"$SPEC")"
+case "$DEPLOYER_EXEC" in
+  denied|allowed) ;;
+  *) fail "deployerExec '${DEPLOYER_EXEC}' must be denied or allowed" ;;
+esac
+
+KEEP_PULL=0
+REGISTRY_HOST=""
+REGISTRY_VISIBILITY="$(jq -r '.registry.visibility // "public"' <<<"$SPEC")"
+case "$REGISTRY_VISIBILITY" in
+  public) ;;
+  private)
+    KEEP_PULL=1
+    REGISTRY_HOST="$(jq -r '.registry.host // ""' <<<"$SPEC")"
+    [[ "$REGISTRY_HOST" =~ ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?$ ]] \
+      || fail "a private Container Registry needs a registry host (got '${REGISTRY_HOST}')" ;;
+  *) fail "Container Registry visibility '${REGISTRY_VISIBILITY}' must be public or private" ;;
+esac
+
 KEEP_MESH=0
 MESH_ACTION="" MESH_KEY_INPUT="" MESH_WAIT_INPUT=""
 if jq -e '.environments | any(.reachability == "private-mesh")' >/dev/null <<<"$SPEC"; then
@@ -92,6 +113,7 @@ fi
 
 OUTPUT="$(OPTIONS="$OPTIONS" TARGETS="$TARGETS" APP_SLUG="$APP_SLUG" DEFAULT_MACHINE="$DEFAULT_MACHINE" \
   KEEP_MESH="$KEEP_MESH" MESH_ACTION="$MESH_ACTION" MESH_KEY_INPUT="$MESH_KEY_INPUT" MESH_WAIT_INPUT="$MESH_WAIT_INPUT" \
+  KEEP_PULL="$KEEP_PULL" REGISTRY_HOST="$REGISTRY_HOST" DEPLOYER_EXEC="$DEPLOYER_EXEC" \
   awk '
   # Literal (non-regex) token replacement, so no value is ever read as a pattern.
   function repl(s, token, value,    out, i) {
@@ -107,9 +129,15 @@ OUTPUT="$(OPTIONS="$OPTIONS" TARGETS="$TARGETS" APP_SLUG="$APP_SLUG" DEFAULT_MAC
     n = split(text, parts, "\n")
     for (k = 1; k <= n; k++) print indent parts[k]
   }
+  # A dropped block also drops the blank line after it, so no double blank is left behind.
+  dropped && $0 == "" { dropped = 0; next }
+  { dropped = 0 }
   /# smaqit:mesh-join:begin/ { in_mesh = 1; next }
-  /# smaqit:mesh-join:end/ { in_mesh = 0; next }
+  /# smaqit:mesh-join:end/ { in_mesh = 0; dropped = ENVIRON["KEEP_MESH"] != "1"; next }
   in_mesh && ENVIRON["KEEP_MESH"] != "1" { next }
+  /# smaqit:pull-secret:begin/ { in_pull = 1; next }
+  /# smaqit:pull-secret:end/ { in_pull = 0; dropped = ENVIRON["KEEP_PULL"] != "1"; next }
+  in_pull && ENVIRON["KEEP_PULL"] != "1" { next }
   index($0, "__MACHINE_SLUG_OPTIONS__") {
     n = split(ENVIRON["OPTIONS"], slugs, "\n")
     indent = substr($0, 1, index($0, "__") - 1)
@@ -124,14 +152,19 @@ OUTPUT="$(OPTIONS="$OPTIONS" TARGETS="$TARGETS" APP_SLUG="$APP_SLUG" DEFAULT_MAC
     line = repl(line, "__MESH_JOIN_ACTION__", ENVIRON["MESH_ACTION"])
     line = repl(line, "__MESH_SETUP_KEY_INPUT__", ENVIRON["MESH_KEY_INPUT"])
     line = repl(line, "__MESH_WAIT_FOR_INPUT__", ENVIRON["MESH_WAIT_INPUT"])
+    line = repl(line, "__REGISTRY_HOST__", ENVIRON["REGISTRY_HOST"])
+    line = repl(line, "__DEPLOYER_EXEC__", ENVIRON["DEPLOYER_EXEC"])
     print line
   }
 ' "$TEMPLATE")"
 
 # Every render-time token must be gone; the remaining __TOKEN__s are stamped at run time.
-LEFT="$(grep -oE '__(APP_SLUG|DEFAULT_MACHINE_SLUG|MACHINE_SLUG_OPTIONS|K3S_TARGETS|MESH_[A-Z_]+)__' <<<"$OUTPUT" | sort -u | tr '\n' ' ' || true)"
+LEFT="$(grep -oE '__(APP_SLUG|DEFAULT_MACHINE_SLUG|MACHINE_SLUG_OPTIONS|K3S_TARGETS|MESH_[A-Z_]+|REGISTRY_HOST|DEPLOYER_EXEC)__' <<<"$OUTPUT" | sort -u | tr '\n' ' ' || true)"
 [ -z "$LEFT" ] || fail "unrendered token(s) left in the workflow: ${LEFT}"
 if [ "$KEEP_MESH" != "1" ] && grep -q 'smaqit:mesh-join' "$TEMPLATE" && grep -q 'Join the mesh' <<<"$OUTPUT"; then
   fail "the mesh-join step survived an all-public render"
+fi
+if [ "$KEEP_PULL" != "1" ] && grep -q 'smaqit:pull-secret' "$TEMPLATE" && grep -q 'Create imagePullSecret' <<<"$OUTPUT"; then
+  fail "the imagePullSecret step survived a public-registry render"
 fi
 printf '%s\n' "$OUTPUT"

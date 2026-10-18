@@ -151,14 +151,16 @@ These rules are specific to the Infrastructure layer and must be followed when p
 - When any environment is `private-mesh`, populate the Constraints rows `Mesh Join Action` (a pinned
   `uses:` reference), `Mesh Setup-Key Input`, and `Mesh Wait-For Input` from the platform team's
   documentation; when any environment is `private-mesh` or `platform-owned`, populate `Probe Client`
-  (`curl` or `wget`, whichever the app's own image contains)
+  (`curl`, `wget`, or `python3`, whichever the app's own image contains)
 - Keep every existing-k3s environment in one Infrastructure spec's `## Environments` table, and run
   `smaqit spec environments` before handoff; fix every `SLOTS-SPEC-*` line it reports
 - For that same `existing-k3s` target, also populate the Constraints table's `Container Registry`
-  row (registry host and public/private visibility) — unlike the platform-sourced fields above,
+  row as `<host>, public` or `<host>, private` — unlike the platform-sourced fields above,
   this is a per-project decision the operator makes, not a fact to source from the platform
   team's documentation; still never default it silently (e.g. assuming GHCR or assuming public)
   without an explicit operator answer
+- Leave the `Deployer Exec` Constraints row out (meaning `denied`) unless the operator confirms the
+  platform deliberately grants the deployer `pods/exec`; only then set it to `allowed`
 
 ### MUST NOT
 

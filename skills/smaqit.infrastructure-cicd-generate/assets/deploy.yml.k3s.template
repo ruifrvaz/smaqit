@@ -68,8 +68,16 @@ jobs:
     # The target machine's GitHub Environment: the dispatch input, or the default machine when
     # post-merge-deploy.yml dispatches without one.
     environment: ${{ inputs.environment || '__DEFAULT_MACHINE_SLUG__' }}
+    # One deploy per machine at a time. A second dispatch waits for the running one instead of
+    # cancelling it mid-rollout.
+    concurrency:
+      group: deploy-${{ inputs.environment || '__DEFAULT_MACHINE_SLUG__' }}
+      cancel-in-progress: false
     env:
       MACHINE: ${{ inputs.environment || '__DEFAULT_MACHINE_SLUG__' }}
+      # The spec's Deployer Exec row: denied fails the deploy when the deployer can exec into
+      # pods; allowed turns that into a warning.
+      DEPLOYER_EXEC: __DEPLOYER_EXEC__
       # One entry per machine slug, from the Infrastructure spec's Environments table.
       K3S_TARGETS: |
         __K3S_TARGETS__
@@ -120,36 +128,47 @@ jobs:
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
 
+      # The secret reaches the step through env:, never pasted into the script text. The file is
+      # owner-only from the moment it exists, and the last step removes it whatever the outcome.
       - name: Write kubeconfig
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
         run: |
-          install -m 700 -d "$HOME/.kube"
-          printf '%s' "${{ secrets.KUBECONFIG }}" > "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
-          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
+          set -euo pipefail
+          (umask 077 && printf '%s' "$KUBECONFIG_DATA" > "$RUNNER_TEMP/kubeconfig")
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
 
       # Refuses to proceed if the API is unreachable, if the kubeconfig's context targets any
-      # namespace other than app-__APP_SLUG__, or if any cluster-scoped verb is permitted — see
+      # namespace other than app-__APP_SLUG__, if any cluster-scoped verb is permitted, or if the
+      # deployer may exec into pods (unless the spec's Deployer Exec row allows it) — see
       # smaqit.infrastructure-deploy-k3s-app/scripts/namespace-guard.sh. Never widen scope to
       # work around a guard refusal.
       - name: Namespace guard
         run: |
-          bash deployment/k3s/scripts/namespace-guard.sh "$KUBECONFIG" "app-__APP_SLUG__"
-        # deployment/k3s/scripts/namespace-guard.sh and manifest-lint.sh below are vendored,
-        # checked-in copies of smaqit.infrastructure-deploy-k3s-app's bundled scripts (see
-        # smaqit.infrastructure-cicd-generate Step 5) — this runner has no access to the smaqit
-        # skill directory itself.
+          bash deployment/k3s/scripts/namespace-guard.sh "$KUBECONFIG" "app-__APP_SLUG__" --deployer-exec "$DEPLOYER_EXEC"
+        # deployment/k3s/scripts/namespace-guard.sh, manifest-lint.sh and exec-refused.sh below
+        # are vendored, checked-in copies of smaqit.infrastructure-deploy-k3s-app's bundled
+        # scripts (see smaqit.infrastructure-cicd-generate Step 5) — this runner has no access to
+        # the smaqit skill directory itself.
 
-      # Only present when the spec names a private registry — see
-      # smaqit.infrastructure-deploy-k3s-app/SKILL.md Step 4. Omit this step entirely for a
-      # public image.
-      # - name: Create imagePullSecret
-      #   run: |
-      #     kubectl create secret docker-registry app-registry \
-      #       --namespace "app-__APP_SLUG__" \
-      #       --docker-server=<registry-host> \
-      #       --docker-username="${{ secrets.REGISTRY_USERNAME }}" \
-      #       --docker-password="${{ secrets.REGISTRY_TOKEN }}" \
-      #       --dry-run=client -o yaml | kubectl apply -n "app-__APP_SLUG__" -f -
+      # smaqit:pull-secret:begin
+      # The spec's Container Registry is private: create the app-registry pull Secret the
+      # manifests name under imagePullSecrets. The credential reaches the step through env:, and
+      # kubectl reads the .dockerconfigjson from a file descriptor, never from a command-line
+      # argument, where the runner's process list would show it.
+      - name: Create imagePullSecret
+        env:
+          REGISTRY_HOST: __REGISTRY_HOST__
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          kubectl create secret generic app-registry \
+            --namespace "app-__APP_SLUG__" \
+            --type=kubernetes.io/dockerconfigjson \
+            --from-file=.dockerconfigjson=<(jq -n '{auths: {(env.REGISTRY_HOST): {username: env.REGISTRY_USERNAME, password: env.REGISTRY_TOKEN, auth: ("\(env.REGISTRY_USERNAME):\(env.REGISTRY_TOKEN)" | @base64)}}}') \
+            --dry-run=client -o yaml | kubectl apply -n "app-__APP_SLUG__" -f -
+      # smaqit:pull-secret:end
 
       # Chooses the manifests for this machine's Ingress mode and stamps them. own-tls applies
       # ingress.yaml (tls, issuer annotation); platform-default-tls applies ingress-default-tls.yaml
@@ -211,6 +230,13 @@ jobs:
       - name: Wait for rollout
         run: |
           kubectl rollout status -n "app-__APP_SLUG__" "deployment/__APP_SLUG__" --timeout=180s
+
+      # Proves what the guard asked: a real exec into the running app must be refused as
+      # Forbidden. The refusal is a non-zero exit, so exec-refused.sh captures it under set +e
+      # rather than letting this step's bash -e end on the expected answer.
+      - name: Exec refused
+        run: |
+          bash deployment/k3s/scripts/exec-refused.sh "app-__APP_SLUG__" "__APP_SLUG__" --deployer-exec "$DEPLOYER_EXEC"
 
       # Only an own-tls Ingress requests its own certificate. The RBAC allowlist grants read
       # access to this object specifically — it covers the TLS-validity gap
@@ -279,3 +305,8 @@ jobs:
           done
           echo "Deployment verification did not succeed within 60s" >&2
           exit 1
+
+      - name: Remove kubeconfig
+        if: always()
+        run: |
+          shred -u "$RUNNER_TEMP/kubeconfig" 2>/dev/null || rm -f "$RUNNER_TEMP/kubeconfig"

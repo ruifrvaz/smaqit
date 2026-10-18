@@ -92,6 +92,13 @@ if [ "$1" = "api" ]; then
   fi
   echo "HTTP/2.0 200 OK"; echo; echo "{}"; exit 0
 fi
+if [ "$1 ${2:-}" = "workflow run" ]; then
+  # Like the real gh: without --repo/-R or GH_REPO it infers the repository from git.
+  case " $* " in *" --repo "*|*" -R "*) exit 0 ;; esac
+  [ -n "${GH_REPO:-}" ] && exit 0
+  git rev-parse --git-dir >/dev/null 2>&1 || { echo "failed to run git: fatal: not a git repository (or any of the parent directories): .git" >&2; exit 1; }
+  exit 0
+fi
 kind="$1"; verb="$2"; shift 2
 name=""; env=""; body=""; has_body=0
 while [ "$#" -gt 0 ]; do
@@ -131,9 +138,13 @@ case "$1" in
 esac
 `
 
-// stubKubectl answers the namespace guard's calls. STUB_KUBECTL_MODE: ok (every
-// can-i is "no"), unreachable, rejected, allow-nodes (get nodes is "yes"), or
-// flaky (one can-i call errors after the API answered).
+// stubKubectl answers the namespace guard's and exec-refused's calls.
+// STUB_KUBECTL_MODE: ok (every can-i is "no"), unreachable, rejected,
+// allow-nodes (get nodes is "yes"), flaky (one can-i call errors after the API
+// answered), exec-yes (both pods/exec checks are "yes"), exec-get-yes (only
+// get pods/exec is "yes"), or exec-unclear (the pods/exec checks error).
+// STUB_KUBECTL_EXEC sets a real exec's result: forbidden (default), runs,
+// command-fails, notfound, or hang.
 const stubKubectl = `#!/usr/bin/env bash
 set -u
 mode="${STUB_KUBECTL_MODE:-ok}"
@@ -147,11 +158,31 @@ if [ "$1" = auth ] && [ "$2" = can-i ]; then
     rejected) echo "error: You must be logged in to the server (Unauthorized)" >&2; exit 1 ;;
   esac
   if [ "$3" = --list ]; then echo "Resources   Non-Resource URLs   Resource Names   Verbs"; exit 0; fi
-  case "$mode:$3:$4" in
-    allow-nodes:get:nodes) echo yes; exit 0 ;;
-    flaky:*:storageclasses) echo "error: the server was unable to return a response in the time allotted" >&2; exit 1 ;;
+  case "$mode:$3:$4:${5:-}" in
+    allow-nodes:get:nodes:*) echo yes; exit 0 ;;
+    flaky:*:storageclasses:*) echo "error: the server was unable to return a response in the time allotted" >&2; exit 1 ;;
+    exec-yes:*:pods:--subresource=exec|exec-get-yes:get:pods:--subresource=exec) echo yes; exit 0 ;;
+    exec-unclear:*:pods:--subresource=exec) echo "error: context deadline exceeded" >&2; exit 1 ;;
   esac
   echo no; exit 1
+fi
+if [ "$1" = create ] && [ "$2" = secret ]; then
+  for arg in "$@"; do
+    case "$arg" in --from-file=*=*) cat "${arg#*=*=}" > "$STUB_STATE/dockerconfigjson" ;; esac
+  done
+  echo "apiVersion: v1"; echo "kind: Secret"; exit 0
+fi
+if [ "$1" = apply ]; then
+  cat > "$STUB_STATE/kubectl.applied"; exit 0
+fi
+if [ "$1" = exec ]; then
+  case "${STUB_KUBECTL_EXEC:-forbidden}" in
+    runs) exit 0 ;;
+    command-fails) echo 'error: Internal error occurred: error executing command in container: failed to exec in container: OCI runtime exec failed: exec: "true": executable file not found in $PATH: unknown' >&2; exit 1 ;;
+    notfound) echo 'Error from server (NotFound): deployments.apps "shop" not found' >&2; exit 1 ;;
+    hang) sleep 30; exit 0 ;;
+    *) echo 'Error from server (Forbidden): pods "shop-7d9f-abcde" is forbidden: User "system:serviceaccount:app-shop:deployer" cannot create resource "pods/exec" in API group "" in the namespace "app-shop"' >&2; exit 1 ;;
+  esac
 fi
 echo "stub kubectl: unexpected call: $*" >&2
 exit 3

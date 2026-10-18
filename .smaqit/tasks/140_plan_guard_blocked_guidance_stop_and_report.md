@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 107
+status: Completed
 created: "2026-10-18"
 mode: Assisted
 started: "2026-10-18"
+completed: "2026-10-18"
 ---
 
 # plan-guard BLOCKED Guidance: Stop and Report, Never Take an Allow-Flag Address From the Guard's Output

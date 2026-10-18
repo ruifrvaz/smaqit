@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 140 | plan-guard BLOCKED Guidance: Stop and Report, Never Take an Allow-Flag Address From the Guard's Output | PR Open | High |
 | 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | Not Started | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 113 | Business Use-Case Diagrams: No Guardrail Against Generalization-Inheritance Misuse or PlantUML-Alias Collision With the Project's Own UC-ID Convention | new | Medium |
@@ -17,6 +16,7 @@
 
 | ID | Title |
 |----|-------|
+| 140 | plan-guard BLOCKED Guidance: Stop and Report, Never Take an Allow-Flag Address From the Guard's Output |
 | 136 | existing-k3s: Fixes From the First Live Private-Mesh Deploy |
 | 138 | Phase Mode Defaults by Trigger (Commands Assisted, Skills Autonomous) and Requirements Provenance |
 | 135 | plan-guard.sh: `--allow-delete <address>` for a Reviewed Pure Destroy |

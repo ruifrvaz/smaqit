@@ -821,6 +821,33 @@ func TestPlanGuardOutKeepsOnlyAGuardedPlan(t *testing.T) {
 	}
 }
 
+// The BLOCKED message is what an agent reads when it decides what to do next, so it must
+// say stop, and must never invite taking an allow-flag address from the blocked list.
+func TestPlanGuardBlockedOutputSaysStopAndReport(t *testing.T) {
+	h := newScriptHarness(t)
+	for name, run := range map[string]func() (string, int){
+		"unlisted delete": func() (string, int) {
+			return runPlanGuard(t, h, 2, []planChange{{breakGlassRule, []string{"delete"}}})
+		},
+		"listed address not destroyed": func() (string, int) {
+			return runPlanGuard(t, h, 2, []planChange{{breakGlassRule, []string{"update"}}}, "--allow-delete", breakGlassRule)
+		},
+	} {
+		out, code := run()
+		if code != 1 {
+			t.Fatalf("%s: exit %d, want 1\n%s", name, code, out)
+		}
+		for _, want := range []string{"STOP. Do not apply this plan", "address taken from this output", "a human named before this plan", "wait for a human decision"} {
+			if !strings.Contains(out, want) {
+				t.Errorf("%s: BLOCKED output lacks %q\n%s", name, want, out)
+			}
+		}
+		if strings.Contains(out, "outside of this guarded path") {
+			t.Errorf("%s: BLOCKED output still suggests applying outside the guard\n%s", name, out)
+		}
+	}
+}
+
 func TestPlanGuardRejectsBadUsage(t *testing.T) {
 	h := newScriptHarness(t)
 	for _, args := range [][]string{

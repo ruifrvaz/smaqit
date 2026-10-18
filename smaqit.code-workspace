@@ -7,6 +7,10 @@
     {
       "name": "task/136-existing-k3s-fixes-from-the-first-live-private-mesh-deploy",
       "path": "../smaqit-wt-task-136-existing-k3s-fixes-from-the-first-live-private-mesh-deploy"
+    },
+    {
+      "name": "task/138-phase-mode-defaults-by-trigger-commands-assisted-skills-autonomous-and-requirements-provenance",
+      "path": "../smaqit-wt-task-138-phase-mode-defaults-by-trigger-commands-assisted-skills-autonomous-and-requirements-provenance"
     }
   ],
   "settings": {

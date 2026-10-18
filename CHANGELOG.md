@@ -28,6 +28,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.16.0] - 2026-10-18
+
+**Action required:** regenerate CI/CD workflows with `smaqit.infrastructure-cicd-generate` in every mode. The post-merge dispatcher it generated never dispatched, and every template now passes secrets through `env:`. For `existing-k3s`, also re-vendor `deployment/k3s/scripts/` (now including `exec-refused.sh`). A k3s deploy now **fails when the deployer can exec into pods**: ask the platform to remove `pods/exec` from the deployer's Role, or add `Deployer Exec: allowed` to the Infrastructure spec's Constraints if the grant is deliberate. A private image's pull Secret is now rendered from the `Container Registry` row, which must read `<host>, public` or `<host>, private`.
+
+### Added
+- **Exec checks for `existing-k3s` deploys.** `namespace-guard.sh --deployer-exec denied|allowed` asks `kubectl auth can-i create|get pods --subresource=exec` before any apply, and the new `exec-refused.sh` (`smaqit.infrastructure-deploy-k3s-app`) attempts a real `kubectl exec` after the rollout and passes only when it is refused as Forbidden. Both run in the generated `deploy.yml`.
+- **`Deployer Exec` Constraints row** (`denied` by default, or `allowed`): `allowed` turns a permitted exec into a warning. Errors, timeouts, and unclear answers fail closed under both settings.
+- **`python3` Probe Client**: the in-cluster probe Job can verify an image that has `python3` but neither `curl` nor `wget` (a `python:*-slim` image), with a standard-library `urllib` request.
+- **Private registry pull Secret in the generated k3s `deploy.yml`**: rendered only when the `Container Registry` row is private. It builds the `.dockerconfigjson` with `jq` from `env:` and hands it to `kubectl` through a file descriptor.
+- **Per-machine `concurrency`** on the k3s `deploy` job (`cancel-in-progress: false`): a second dispatch to the same machine waits instead of rolling out over the first.
+- Tests:
+  - rendered steps run as GitHub runs them (`bash -eo pipefail`) against a stub `kubectl`, for the guard, the exec check, kubeconfig handling, and the pull Secret;
+  - the dispatcher runs outside a git repository;
+  - a contract test fails any workflow template with a secret or event value inside a `run:` script, or a registry password on a command line;
+  - the `python3` probe runs with only `python3` on `PATH`.
+
+### Changed
+- `smaqit spec environments --json` now carries `registry` and `deployerExec`; the Infrastructure spec template and agent document both rows and the `python3` Probe Client.
+- **Kubeconfig and SSH key handling in generated workflows:**
+  - the kubeconfig is written with `umask 077` to `$RUNNER_TEMP/kubeconfig` and shredded by a final `if: always()` step;
+  - the VM templates' `~/.ssh/deploy_key` gets the same treatment.
+- `smaqit.infrastructure-deploy-k3s-app` 2.1.0 and `smaqit.infrastructure-cicd-generate` 3.2.0 document the `can-i` TYPE/NAME trap (`pods/exec` is read as "a pod named exec") and the `bash -e` trap (a check expecting a non-zero exit ends the step on the correct answer).
+- Generated k3s workflows no longer leave two blank lines where a dropped block was.
+
+### Fixed
+- **`post-merge-deploy.yml` never dispatched** (all modes). It runs with no checkout, so `gh workflow run` failed with `fatal: not a git repository`. It now passes `--repo`, and the base ref arrives through `env:` instead of being interpolated into the script.
+
+### Security
+- **No secret or event value inside a `run:` script, and no secret on a command line, in any generated workflow:**
+  - the k3s `KUBECONFIG`, the VM `VM_SSH_KEY`, the registry credential, and the PR number now reach their steps through `env:`;
+  - the commented `--docker-password` example is gone from the k3s template and the deploy-k3s-app skill.
+
 ## [3.15.0] - 2026-10-18
 
 ### Added

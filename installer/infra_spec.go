@@ -21,10 +21,13 @@ const environmentsHeading = "## Environments"
 var (
 	reachabilityClasses = []string{"public", "private-mesh"}
 	ingressModes        = []string{"own-tls", "platform-default-tls", "platform-owned"}
-	probeClients        = []string{"curl", "wget"}
+	probeClients        = []string{"curl", "wget", "python3"}
+	deployerExecModes   = []string{"denied", "allowed"}
+	registryVisibility  = []string{"public", "private"}
 
 	envSlugPattern       = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
 	hostPattern          = regexp.MustCompile(`^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$`)
+	registryHostPattern  = regexp.MustCompile(`^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?$`)
 	secretNamePattern    = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 	actionRefPattern     = regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[A-Za-z0-9_./-]+$`)
 	actionInputPattern   = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_-]*$`)
@@ -63,12 +66,23 @@ type meshAccess struct {
 	WaitForInput  string `json:"waitForInput"`
 }
 
+// containerRegistry is the `Container Registry` Constraints row
+// (`<host>, public|private`). Absent means a public image.
+type containerRegistry struct {
+	Host       string `json:"host"`
+	Visibility string `json:"visibility"`
+}
+
 type infraEnvironments struct {
 	SchemaVersion int                `json:"schemaVersion"`
 	Spec          string             `json:"spec"`
 	Environments  []infraEnvironment `json:"environments"`
 	Mesh          *meshAccess        `json:"mesh"`
 	ProbeClient   string             `json:"probeClient"`
+	Registry      *containerRegistry `json:"registry"`
+	DeployerExec  string             `json:"deployerExec"`
+
+	registryRaw string
 }
 
 func (set *infraEnvironments) find(name string) *infraEnvironment {
@@ -267,6 +281,15 @@ func parseInfraEnvironments(text string) (*infraEnvironments, []error) {
 		set.Mesh = &meshAccess{Action: action, SetupKeyInput: constraints["Mesh Setup-Key Input"], WaitForInput: constraints["Mesh Wait-For Input"]}
 	}
 	set.ProbeClient = constraints["Probe Client"]
+	set.DeployerExec = constraints["Deployer Exec"]
+	if set.DeployerExec == "" {
+		set.DeployerExec = "denied"
+	}
+	if raw := constraints["Container Registry"]; raw != "" {
+		set.registryRaw = raw
+		host, visibility, _ := strings.Cut(raw, ",")
+		set.Registry = &containerRegistry{Host: strings.TrimSpace(host), Visibility: strings.TrimSpace(visibility)}
+	}
 	return set, errs
 }
 
@@ -386,6 +409,12 @@ func validateSharedConstraints(set *infraEnvironments, rows []infraEnvironment) 
 	case set.ProbeClient != "" && !containsString(probeClients, set.ProbeClient):
 		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Probe Client\" %q must be one of %s", set.ProbeClient, strings.Join(probeClients, ", ")))
 	}
+	if !containsString(deployerExecModes, set.DeployerExec) {
+		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Deployer Exec\" %q must be one of %s", set.DeployerExec, strings.Join(deployerExecModes, ", ")))
+	}
+	if r := set.Registry; r != nil && (!registryHostPattern.MatchString(r.Host) || !containsString(registryVisibility, r.Visibility)) {
+		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Container Registry\" %q must be \"<host>, public\" or \"<host>, private\" (for example \"ghcr.io, private\")", set.registryRaw))
+	}
 	return errs
 }
 
@@ -469,6 +498,10 @@ func cmdSpec(args []string) {
 	if set.ProbeClient != "" {
 		fmt.Printf("  probe client: %s\n", set.ProbeClient)
 	}
+	if set.Registry != nil {
+		fmt.Printf("  container registry: %s (%s)\n", set.Registry.Host, set.Registry.Visibility)
+	}
+	fmt.Printf("  deployer exec: %s\n", set.DeployerExec)
 }
 
 func orDash(value string) string {

@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-deploy-k3s-app
 description: Use when deploying an app into a Namespace-scoped Kubernetes cluster (k3s, or any cluster issuing a per-app kubeconfig), including provisioning_mode existing-k3s in greenfield Phase 4 and its deploy.yml. Checks mesh reachability for private-mesh targets, lints manifests against Pod Security restricted, applies the Ingress the spec's mode calls for, waits for rollout, and verifies.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
   smaqit-slots: "platform-prereqs=mesh-check, app-deploy=deploy"
 ---
 
@@ -17,6 +17,10 @@ row for the target environment, read through `smaqit spec environments --env=<en
 | `reachability` | `public` / `private-mesh` | `private-mesh`: the API (and the app) are reachable only from mesh peers — this machine must be on the mesh (`mesh-check`), and CI joins it first |
 | `ingressMode` | `own-tls` / `platform-default-tls` / `platform-owned` | which Ingress is applied, if any, and whether a `Certificate` is awaited |
 | `host`, `ingressClass`, `clusterIssuer`, `healthPath` | from the platform team | stamped into the Ingress / probe at apply time |
+
+The same JSON carries three spec-wide values: `probeClient` (`curl`, `wget`, or `python3`),
+`registry` (`{host, visibility}`, or `null` for a public image), and `deployerExec` (`denied`
+unless the spec's `Deployer Exec` row says `allowed`).
 
 Verification runs **inside the cluster** (a probe Job) when the deployer cannot reach the app
 from outside — `private-mesh`, or `platform-owned` (for example behind the platform's SSO gate)
@@ -96,25 +100,30 @@ joins the mesh itself, so this operation runs only for local deployments.
 
 3. **Run the namespace guard before touching anything else:**
    ```bash
-   scripts/namespace-guard.sh "$KUBECONFIG" "app-${APP_SLUG}"
+   scripts/namespace-guard.sh "$KUBECONFIG" "app-${APP_SLUG}" --deployer-exec <deployerExec>
    ```
    It confirms the API answers and accepts the credential, that the kubeconfig's current context
-   targets exactly `app-__APP_SLUG__`, and that no cluster-scoped verb is permitted. It fails
-   closed: only an explicit "no" counts as denied, so an unreachable API is a FAIL, not a PASS. A
-   non-zero exit means stop — do not proceed with a broader credential than the onboarding
-   contract issues, and do not retry with different flags.
+   targets exactly `app-__APP_SLUG__`, that no cluster-scoped verb is permitted, and that the
+   deployer cannot exec into pods (`kubectl auth can-i create|get pods --subresource=exec` must
+   both answer `no`). It fails closed: only an explicit "no" counts as denied, so an unreachable
+   API is a FAIL, not a PASS. Under `--deployer-exec allowed` an exec grant is a warning instead
+   of a failure; an unclear answer still fails. A non-zero exit means stop — do not proceed with
+   a broader credential than the onboarding contract issues, and do not retry with different flags.
 
-4. **Create an `imagePullSecret`, only if the spec names a private registry:**
+4. **Create an `imagePullSecret`, only if the spec's `registry` is private.** The credential
+   reaches `kubectl` through a file descriptor, never as a command-line argument, where the
+   process list would show it:
    ```bash
-   kubectl create secret docker-registry app-registry \
+   REGISTRY_HOST=<registry host> \
+   kubectl create secret generic app-registry \
      --namespace "app-${APP_SLUG}" \
-     --docker-server=<registry-host> \
-     --docker-username="$REGISTRY_USERNAME" \
-     --docker-password="$REGISTRY_TOKEN" \
+     --type=kubernetes.io/dockerconfigjson \
+     --from-file=.dockerconfigjson=<(jq -n '{auths: {(env.REGISTRY_HOST): {username: env.REGISTRY_USERNAME, password: env.REGISTRY_TOKEN, auth: ("\(env.REGISTRY_USERNAME):\(env.REGISTRY_TOKEN)" | @base64)}}}') \
      --dry-run=client -o yaml | kubectl apply -n "app-${APP_SLUG}" -f -
    ```
-   `REGISTRY_USERNAME`/`REGISTRY_TOKEN` come from the app's own GitHub Environment secret, never
-   anything platform-owned. Skip this step entirely for a public image.
+   `REGISTRY_USERNAME`/`REGISTRY_TOKEN` come from the app's own GitHub Environment secret (in CI,
+   through the step's `env:`), never anything platform-owned. Skip this step entirely for a
+   public image; the generated `deploy.yml` renders it only for a private registry.
 
 5. **Render the manifests the spec's environments need from the shared templates** — never
    hand-write them — once, and commit them. Substitute only `__APP_SLUG__` (and, for the probe,
@@ -130,10 +139,19 @@ joins the mesh itself, so this operation runs only for local deployments.
    ```bash
    sed -e "s/__APP_SLUG__/${APP_SLUG}/g" assets/ingress.yaml.template > deployment/k3s/ingress.yaml
    sed -e "s/__APP_SLUG__/${APP_SLUG}/g" -e "s/__RUN_AS_USER__/<deployment's runAsUser>/" \
-     -e "s#__PROBE_FETCH__#wget -q -O /dev/null#" assets/probe-job.yaml.template > deployment/k3s/probe-job.yaml
+     -e "s#__PROBE_FETCH__#<fetch command>#" assets/probe-job.yaml.template > deployment/k3s/probe-job.yaml
    ```
-   `__PROBE_FETCH__` follows the spec's `Probe Client`: `curl -fsS -o /dev/null` or
-   `wget -q -O /dev/null`. `platform-owned` needs no Ingress file at all. For this run, stamp a
+   `<fetch command>` follows the spec's `Probe Client`:
+
+   | Probe Client | Fetch command |
+   |---|---|
+   | `curl` | `curl -fsS -o /dev/null` |
+   | `wget` | `wget -q -O /dev/null` |
+   | `python3` | `python3 -c 'import sys, urllib.request; urllib.request.urlopen(sys.argv[1], timeout=5)'` |
+
+   Pick the client the app's own image already contains (a `python:*-slim` image has `python3` but
+   neither `curl` nor `wget`); never add an OS package to the production image only for the probe.
+   `platform-owned` needs no Ingress file at all. For this run, stamp a
    temporary copy, never the committed file:
    ```bash
    STAMPED="$(mktemp -d)"
@@ -168,10 +186,15 @@ joins the mesh itself, so this operation runs only for local deployments.
    timestamp, at apply time — never a file written to a host path; this credential has no host
    filesystem to write to.
 
-8. **Wait for rollout:**
+8. **Wait for rollout, then prove exec is refused:**
    ```bash
    kubectl rollout status -n "app-${APP_SLUG}" "deployment/${APP_SLUG}" --timeout=180s
+   scripts/exec-refused.sh "app-${APP_SLUG}" "${APP_SLUG}" --deployer-exec <deployerExec>
    ```
+   `exec-refused.sh` attempts a real `kubectl exec` into the Deployment and passes only when the
+   API refuses it as Forbidden. An exec that goes through (even one whose command then fails
+   inside the container) fails under `denied` and warns under `allowed`; NotFound, a timeout, or
+   any other answer fails closed.
 
 9. **`own-tls` only — wait for the `Certificate` to reach `Ready`.** The RBAC allowlist grants
    read access to this object specifically, and it covers the TLS-validity gap
@@ -210,7 +233,9 @@ this commit's image, and the health path answers in-cluster or over HTTPS.
   instructions; CI's mesh join is a workflow step the spec configures.
 - Does NOT rely on pod logs for verification — the verdict is the probe Job's status or the HTTPS
   checks. Whether the scoped credential may read `pods/log` is the platform's decision; when it
-  can, a failed rollout's or probe's logs may be read for diagnosis. Never `pods/exec`.
+  can, a failed rollout's or probe's logs may be read for diagnosis. Never `pods/exec`:
+  `namespace-guard.sh` and `exec-refused.sh` fail the deploy when the deployer could exec, unless
+  the spec's `Deployer Exec` row records a deliberate grant.
 - Does NOT touch anything cluster-scoped — `namespace-guard.sh` refuses to proceed if the
   kubeconfig's own permissions would even allow it.
 - Does NOT request onboarding on the app's behalf — if the kubeconfig secret is absent, it
@@ -244,6 +269,16 @@ confirms the Deployment runs this commit's image.
 - **Never widen scope to work around a guard refusal.** `namespace-guard.sh` failing signals the
   onboarding contract or the supplied kubeconfig is wrong, or the API is unreachable — not an
   obstacle to route around.
+- **`kubectl auth can-i <verb> pods/exec` asks the wrong question.** kubectl parses its argument
+  as `TYPE`, `TYPE/NAME`, or a non-resource URL, so `pods/exec` means "a pod named exec", and any
+  deployer allowed to create pods gets `yes`. Name a subresource with `--subresource`:
+  `kubectl auth can-i create pods --subresource=exec`. `can-i` does not check that the
+  subresource exists, so a misspelled one answers silently — copy the exact flag.
+- **`bash -e` ends a check on the answer it was waiting for.** GitHub runs every `run:` step with
+  `bash -e`, so `ANSWER="$(kubectl auth can-i …)"` (exit 1 means "no") or a `kubectl exec` that
+  must be refused ends the step before the answer is evaluated. Bracket the command with
+  `set +e` … `RC=$?` … `set -e` and decide from the captured output and exit code, as
+  `namespace-guard.sh` and `exec-refused.sh` do.
 - **An unreachable API used to pass the guard.** `kubectl auth can-i` exits non-zero both for
   "no" and for a connection error; the guard now accepts only an explicit "no", and checks that
   the API answers first. A private-mesh machine reached before the mesh is joined fails here.
@@ -293,6 +328,7 @@ confirms the Deployment runs this commit's image.
 - [ ] `manifest-lint.sh` passed before any `kubectl apply`
 - [ ] `kubectl apply -n app-__APP_SLUG__` succeeded (`pvc.yaml` first when present; no Ingress for `platform-owned`)
 - [ ] `kubectl rollout status` succeeded
+- [ ] `exec-refused.sh` passed (exec refused as Forbidden, or permitted with a warning under `Deployer Exec: allowed`)
 - [ ] `Certificate` reached `Ready` (`own-tls` only)
 - [ ] `smaqit.infrastructure-deploy-verify` invoked for the environment with the expected SHA, and passed
 
@@ -303,7 +339,8 @@ confirms the Deployment runs this commit's image.
 | `smaqit spec environments` reports `SLOTS-SPEC-*` lines | Stop and surface them verbatim. The fix belongs in the Infrastructure spec, with values from the platform team — never a guessed one. |
 | `mesh-check` fails (mesh name doesn't resolve, or the API port doesn't answer) | Stop. Join the platform's mesh on this machine and run the slot again. Do not reach the API another way. |
 | Kubeconfig secret absent for the target environment | Stop. A merged onboarding request is not enough: the platform's own hand-off must deliver the kubeconfig, then the `target-credentials` load stores it (`PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug> load-credentials.sh`). Point at the platform's onboarding playbook. Never attempt a cluster-scoped fix. |
-| `namespace-guard.sh` refuses (API unreachable, check undetermined, cluster-scoped verb permitted, or Namespace mismatch) | Stop immediately. For an unreachable API on a `private-mesh` target, join the mesh first. Do not proceed with a broader credential than the onboarding contract issues. |
+| `namespace-guard.sh` refuses (API unreachable, check undetermined, cluster-scoped verb permitted, exec into pods permitted, or Namespace mismatch) | Stop immediately. For an unreachable API on a `private-mesh` target, join the mesh first. For an exec grant, ask the platform team to remove `pods/exec` from the deployer's Role; set `Deployer Exec: allowed` only when the operator confirms the grant is deliberate. Do not proceed with a broader credential than the onboarding contract issues. |
+| `exec-refused.sh` fails | Stop. A real exec went through (fix the Role as above), or the attempt gave no clear answer (NotFound, timeout): check the Deployment name and the API connection, then run again. |
 | `manifest-lint.sh` rejects a manifest | Stop before any `kubectl apply`. Report the exact offending field. Fix the manifest, not the check. |
 | `kubectl apply` fails (admission rejection) | Report the admission error verbatim. Do not retry with `--force` or widened scope. |
 | `kubectl rollout status` times out | Report the timeout and the last known state from `kubectl get deployment`/`kubectl get events`. If the platform grants `pods/log`, include the failing container's `kubectl logs`; never `pods/exec`. |

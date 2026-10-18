@@ -14,7 +14,11 @@ jobs:
     if: github.event.pull_request.merged == true && contains(github.event.pull_request.body, 'smaqit:deploy')
     runs-on: ubuntu-latest
     steps:
+      # This job has no checkout, so gh cannot infer the repository from a git remote: name it
+      # with --repo. Event values reach the script through env:, never interpolated into it.
       - name: Dispatch deploy.yml
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run deploy.yml --ref "${{ github.event.pull_request.base.ref }}"
+          GH_REPO: ${{ github.repository }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: gh workflow run deploy.yml --repo "$GH_REPO" --ref "$BASE_REF"

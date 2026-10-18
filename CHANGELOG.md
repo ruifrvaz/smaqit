@@ -28,6 +28,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.17.0] - 2026-10-18
+
+**Action required:** a phase you start yourself now pauses for review. `/smaqit.development`, `/smaqit.deployment`, and `/smaqit.validation` (and the phase agents you pick in GitHub Copilot or Codex) default to **assisted** mode; say "run autonomously" to go straight through. `smaqit.new-greenfield-project`, `smaqit.feature-new`, and phases Claude starts on its own default to **autonomous**, and their review and sign-off gates now apply only in assisted mode. Run `smaqit update` in each project to refresh its `AGENTS.md` section. Specification gates also became stricter: a request that names only a project, or that relied on the agent filling in the gaps, now returns `NEEDS-INPUT` instead of generating specifications.
+
+### Added
+- **`user_request` phase parameter**: the user's own words, verbatim, carried in `PHASE-PARAMETERS` from the phase command or orchestrating skill to the phase agent and on to every specification agent, never a summary or expansion.
+- **Requirement Sources** in all five layer input skills: a required section is satisfied only by the user's request, their `answers`, their own messages, or files they pointed at (including `.smaqit/requirements-extract.md`). A project or directory name, the model's own knowledge, and a caller's paraphrase never count.
+- **`empty-request` and `title-only` scenarios** in `make -C installer e2e-claude`: a bare `/smaqit.development`, and "Let's build mario-app." in a project named `mario-app`, must each return `NEEDS-INPUT` with nothing written under `specs/`.
+
+### Changed
+- **Mode defaults by trigger.** The phase input skills resolve `mode` from what started the phase (assisted when the user did, autonomous when the model or an orchestrator did) and no longer ask about it. A mode the user states always wins. A phase agent invoked without a parameter block defaults to assisted.
+- **Assisted mode** passes `mode` to specification agents, so each layer traces every required section to the user's own statements, and ends each phase by asking the user to review it and naming the next phase's entry point. **Autonomous mode** also counts upstream specifications as requirement sources and stops only for `NEEDS-INPUT` and human operations.
+- **Orchestrators default to autonomous.** `smaqit.new-greenfield-project` and `smaqit.feature-new` Phase 0 resolve Autonomous unless the operator asks for assisted. Their task-set confirmation, inventory check, spec-set approval, and validation sign-off gates are assisted-only. feature-new still starts its parent task in Assisted task mode, because the release PR merge is a human operation.
+- **No assumption-filling.** Specification agents may no longer "flag assumptions when clarification is unavailable", and phase agents no longer "document assumptions when specs are underspecified": a gap in a required section returns `NEEDS-INPUT`. Coverage's Test Scope no longer accepts a scope inferred from the system's risk profile, and Stack accepts "agent's recommendation" only when the user says it.
+- The `AGENTS.md` template's "When to use smaqit" section states the mode rule. The development and deployment agents' handovers now name `/smaqit.deployment` and `/smaqit.validation` instead of the specification agents.
+
+### Fixed
+- The `AGENTS.md` template no longer claims the five specification agents are directly invocable on GitHub Copilot; they are `user-invocable: false` there.
+
 ## [3.16.0] - 2026-10-18
 
 **Action required:** regenerate CI/CD workflows with `smaqit.infrastructure-cicd-generate` in every mode. The post-merge dispatcher it generated never dispatched, and every template now passes secrets through `env:`. For `existing-k3s`, also re-vendor `deployment/k3s/scripts/` (now including `exec-refused.sh`). A k3s deploy now **fails when the deployer can exec into pods**: ask the platform to remove `pods/exec` from the deployer's Role, or add `Deployer Exec: allowed` to the Infrastructure spec's Constraints if the grant is deliberate. A private image's pull Secret is now rendered from the `Container Registry` row, which must read `<host>, public` or `<host>, private`.

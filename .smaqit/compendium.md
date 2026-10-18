@@ -168,13 +168,24 @@ On GitHub Copilot, all eight non-QA agents have `vscode/askQuestions` and can as
 There are two families, and each runs at a different point:
 
 - **The five layer gates** (`input-business`, `-functional`, `-stack`, `-infrastructure`, `-coverage`) run inside their specification agent, before it writes anything. A specification agent MUST apply its gate (`framework/AGENTS.md`, Session Context). The gate checks the layer's required sections (for Business: Actors, Use Cases, Success Metrics), flags contradictions, and checks whether to add new specs or revise existing ones. It asks the user directly where it can, and otherwise returns `NEEDS-INPUT` with stable question ids.
-- **The three phase skills** (`input-development`, `-deployment`, `-validation`) resolve execution parameters for a phase: `mode` (autonomous by default), the `specification_mode` the caller sets, the phase's own preferences and, for deployment, `provisioning_mode`, environment, deployment path and the slot plan from `smaqit slots plan`.
+- **The three phase skills** (`input-development`, `-deployment`, `-validation`) resolve execution parameters for a phase: `mode` (assisted when the user started the phase, autonomous when the model or an orchestrating skill did), the user's request verbatim as `user_request`, the `specification_mode` the caller sets, the phase's own preferences and, for deployment, `provisioning_mode`, environment, deployment path and the slot plan from `smaqit slots plan`.
   - Every parameter has a default, so these skills ask only about blocking ambiguity.
   - They output a `PHASE-PARAMETERS` block.
   - The caller runs them in the main conversation and passes the block in: the `/smaqit.<phase>` command body, `smaqit.feature-new` Phase 3, or greenfield Phases 4–6.
   - A phase agent applies its own preloaded copy only when it was invoked without a block.
 
 On Claude Code every agent preloads exactly its own input skill through `skills:`. That's the only way it can reach the skill, since agent `tools:` lists omit `Skill`. Their "Invoke automatically when…" descriptions matter only in the main conversation, where Claude can choose a skill by its description. See also: how do smaqit agents ask the user questions when they run as subagents?
+
+---
+
+**What mode does a smaqit phase run in, and what counts as a requirement?**
+
+It depends on what started the phase. A phase the user starts (a typed `/smaqit.<phase>`, or a Copilot/Codex phase agent they picked) defaults to `assisted`, and so does a phase agent invoked with no parameter block. A phase the model starts on its own, and every phase `smaqit.new-greenfield-project` or `smaqit.feature-new` runs, defaults to `autonomous`. A mode the user states always wins. The phase input skills resolve this; they never ask about it.
+
+- **Assisted:** every specification layer works only from requirements the user stated and pauses with `REVIEW-REQUESTED`, and the phase ends by asking the user to review it before the next one.
+- **Autonomous:** best effort end to end. Upstream specifications count as requirement sources, and the run stops only for `NEEDS-INPUT` and human operations such as a PR merge, a credential prompt, or the release. The orchestrators' review and sign-off gates are assisted-only.
+
+In both modes the layer gates count only what the user stated: the request, passed verbatim as `user_request`, their `answers`, their own messages, and files they pointed at such as `.smaqit/requirements-extract.md`. A project or directory name, the model's own knowledge, and a caller's paraphrase never satisfy a required section, and no agent may fill a required section with an assumption; it returns `NEEDS-INPUT` instead. A blank project titled "mario-app" therefore stops at the Business gate rather than producing a Mario-themed app. An empty request blocks only when a layer actually has to be generated. Earlier releases defaulted every direct phase run to autonomous, and their gates accepted inferred requirements. See also: when are the `smaqit.input-*` skills invoked?
 
 ---
 
@@ -258,7 +269,7 @@ Several layers work together, and none is enough alone. The managed `AGENTS.md` 
 
 Descriptions are the routing signal. On Claude Code, the phase commands are skills the model can invoke itself, each with a "Use when…" `description` plus `when_to_use` trigger phrases. The development, deployment, validation, and QA subagents say "Use proactively when…", the wording Anthropic's subagent docs recommend for encouraging automatic delegation. Copilot and Codex have no "proactively" convention, so their entry-agent descriptions just lead with "Use when…" (v3.10.1), and `AGENTS.md` remains their main signal. The instructions alone leave Claude to infer which agent fits a request, and the descriptions alone can't carry the specs-first rule, the exemptions, or the return-signal rule.
 
-The five specification agents are deliberately never proactive: delegating to one directly would skip its phase's parameter resolution and ordering. The commands stay the preferred path, because they resolve phase parameters before delegating. Direct delegation to a proactive phase agent is safe for two reasons: an agent invoked without a `PHASE-PARAMETERS` block applies its preloaded defaults, and the `AGENTS.md` rule makes the main conversation put every `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user, never answer it itself, and resume the agent with `answers`. Skill and command descriptions stay at 400 characters or fewer, because Claude Code drops descriptions from the least-invoked skills first when its listing exceeds its budget; `make prepare` enforces the limit. See also: does `smaqit init` install `copilot-instructions.md`, `CLAUDE.md`, or `AGENTS.md`?
+The five specification agents are deliberately never proactive: delegating to one directly would skip its phase's parameter resolution and ordering. The commands stay the preferred path, because they resolve phase parameters before delegating. Direct delegation to a proactive phase agent is safe for two reasons: an agent invoked without a `PHASE-PARAMETERS` block applies its preloaded defaults (including `mode: assisted`, the safe direction if a self-delegation forgets its block), and the `AGENTS.md` rule makes the main conversation put every `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user, never answer it itself, and resume the agent with `answers`. Skill and command descriptions stay at 400 characters or fewer, because Claude Code drops descriptions from the least-invoked skills first when its listing exceeds its budget; `make prepare` enforces the limit. See also: does `smaqit init` install `copilot-instructions.md`, `CLAUDE.md`, or `AGENTS.md`?
 
 ---
 
@@ -477,12 +488,17 @@ Run `make -C installer e2e-claude`. Credentials come from `CLAUDE_CODE_OAUTH_TOK
 3. Installs smaqit globally there and runs `smaqit init` in a fresh project per scenario.
 4. Drives headless `claude -p` with live questions disabled, in Claude Code's `auto` permission mode.
 
-There are four scenarios, all building the `scripts/e2e/hello-site/` static site:
+There are six scenarios. Four build the `scripts/e2e/hello-site/` static site:
 
-- `happy-path`
+- `happy-path`: complete requirements and "run autonomously"
 - `needs-input`: thin requirements → `NEEDS-INPUT` → a `--resume` turn with answers
-- `assisted`: `REVIEW-REQUESTED` after each layer, and approved specs never regenerated
-- `self-invocation`: a plain request with no slash command still reaches `smaqit-development`
+- `assisted`: no mode stated, so the typed command defaults to assisted: `REVIEW-REQUESTED` after each layer, and approved specs never regenerated
+- `self-invocation`: a plain request with no slash command still reaches `smaqit-development` and runs autonomously
+
+Two build nothing and pass only if nothing is written under `specs/` and the run returns `NEEDS-INPUT`:
+
+- `empty-request`: a bare `/smaqit.development`
+- `title-only`: the plain request "Let's build mario-app." in a project named `mario-app` whose README is only its title
 
 Checks use smaqit's own CLI (`validate`, `plan --phase=develop`, `status`), the site's `node --test`, and the stream-json session log, never the exit code alone. Evidence lands in `installer/test/e2e-claude/<timestamp>/`.
 

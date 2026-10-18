@@ -28,18 +28,18 @@ If no Infrastructure spec exists yet under `specs/infrastructure/` — this proj
 
 ### Phase 0 — Task Creation (Entry Point)
 
-The operator triggers this phase manually and sets execution mode before any work begins. Phase 0 creates a dedicated feature-cycle parent task whose branch and worktree are shared by all five phase children.
+The operator triggers this phase manually. Execution mode is **Autonomous** unless the operator asks for assisted mode (for example "assisted" or "review each phase"); a mode the operator states always wins. Phase 0 creates a dedicated feature-cycle parent task whose branch and worktree are shared by all five phase children.
 
 1. Decide execution mode:
-   - **Assisted** — operator is present at each gate; phases do not advance without explicit approval.
-   - **Autonomous** — all phases run sequentially without gate interruptions; operator reviews at Phase 5.
+   - **Autonomous** (default) — all phases run sequentially on a best-effort basis, stopping only for `NEEDS-INPUT` and human operations: credential prompts, the deploy PR merge, and the release PR merge. Gates marked *(assisted only)* are skipped; every other gate is a check the run must still pass. The operator reviews at Phase 5.
+   - **Assisted** — the operator is present at each gate; phases do not advance without explicit approval, and every specification layer works only from requirements the operator stated.
 2. **Create the feature-cycle parent task:**
    ```
    smaqit.task-create "Feature: <brief feature description>"
    ```
    - Record the returned task number as `$PARENT`.
    - The parent task file describes the feature at a high level. Its Acceptance Criteria are: all 5 phase children completed, amendment gate clear, release tagged (if deployed).
-3. **Start the parent** (in Assisted mode by default):
+3. **Start the parent** in Assisted task mode, whichever execution mode Phase 0 resolved: the task lifecycle's Autonomous mode self-merges the task's PR, and the release PR merge is a human operation:
    ```
    smaqit.task-start $PARENT
    ```
@@ -56,7 +56,7 @@ The operator triggers this phase manually and sets execution mode before any wor
    - Each child's task file gets `**Parent:** $PARENT` and is written into the parent's worktree.
    - Each child's Acceptance Criteria are the phase-specific gates from this skill (unchanged).
    - Record the children's task numbers as `$P1`–`$P5`.
-5. **Gate:** All 6 task files exist in `.smaqit/tasks/`. All 6 entries appear in the parent worktree's `PLANNING.md` (Active table, Not Started). Operator confirms mode and the task set.
+5. **Gate:** All 6 task files exist in `.smaqit/tasks/`. All 6 entries appear in the parent worktree's `PLANNING.md` (Active table, Not Started). *(Assisted only)* Operator confirms mode and the task set.
 
 ### Phase 1 — Spec Revalidation
 
@@ -70,10 +70,11 @@ Phase 1 is the sole owner of incremental specification generation/revalidation f
    - No new branch or worktree is created. The child inherits the parent's mode.
    - Message to user: `"Task $P1 joined parent Task $PARENT at <worktree-path>."`
 2. Invoke the `smaqit.business` → `smaqit.functional` → `smaqit.stack` → `smaqit.infrastructure` → `smaqit.coverage` specification agents as needed: through the Task tool on Claude Code, `runSubagent` on GitHub Copilot, or by spawning the named subagent on Codex (these agents have no slash command on Claude Code). At each, apply the Incremental Spec Updates decision table in [references/spec-lifecycle-reference.md](references/spec-lifecycle-reference.md).
+   - Pass each specification agent `mode` from Phase 0 and `user_request`: the operator's own words describing the feature, verbatim, never a summary or expansion.
    - A specification agent that cannot ask the user returns `NEEDS-INPUT` and writes nothing. Ask the user its questions, then resume the agent (or invoke it again) with the answers as `answers`. Never answer on the user's behalf.
 3. Invoke `smaqit.design-validate` for every touched/confirmed pair, then run `smaqit design validate` and `smaqit plan --phase=develop` (no `--regen`) to confirm design readiness and scope — see the Incremental Plan Resolution table in the same reference for exact behavior.
 4. For any spec needing only a status bump with no content change (e.g. re-confirming `implemented` still holds after this feature's tests pass), use `smaqit.spec-status-update` rather than re-invoking a full spec agent.
-5. **Gate:** All touched specs have `status: draft` (new/updated) or their existing status confirmed still accurate; every active touched spec has a current visually reviewed same-layer design pair. User reviews and approves the touched spec/design set.
+5. **Gate:** All touched specs have `status: draft` (new/updated) or their existing status confirmed still accurate; every active touched spec has a current visually reviewed same-layer design pair. *(Assisted only)* User reviews and approves the touched spec/design set.
 6. **Record durable spec handoff** in the Phase 1 task under `Decisions made`. List exact touched/confirmed spec paths grouped by consumer:
    - **Develop** — Business, Functional, and Stack spec paths plus their exact PlantUML design Markdown paths
    - **Deploy** — Infrastructure spec paths + Stack spec paths (for runtime context) plus their exact PlantUML design Markdown paths
@@ -94,7 +95,7 @@ Phase 1 is the sole owner of incremental specification generation/revalidation f
    ```
    - Joins the parent worktree. No new branch or worktree is created.
 2. Re-read the Phase 1 task file. Extract the **Develop** handoff paths (Business, Functional, Stack specs).
-3. Invoke `/smaqit.development` with `mode` from Phase 0, `specification_mode: prevalidated`, and the Develop handoff paths as `spec_paths`. The Development agent skips specification generation, reads the confirmed specs, consolidates, plans, and implements.
+3. Invoke `/smaqit.development` with `mode` from Phase 0, `user_request`, `specification_mode: prevalidated`, and the Develop handoff paths as `spec_paths`. The Development agent skips specification generation, reads the confirmed specs, consolidates, plans, and implements.
    - If the agent returns `NEEDS-INPUT` or `REVIEW-REQUESTED`, ask the user what it lists, then resume the agent with the answers as `answers` (or invoke it again with the same parameters plus `answers` and the signal's `approved_spec_paths`) until it returns a final result. Never answer a signal on the user's behalf.
    - Explicitly instruct the agent to use the canonical `<!-- amendment: DATE — description -->` tag for any spec divergence (package mismatch, config change, structural adaptation) — not a prose blockquote.
 4. **Gate:** Build passes. All this feature's acceptance criteria met. Development agent sets touched specs and linked designs to `status: implemented` under the least-advanced linked-spec rule, then reruns `smaqit design validate`.
@@ -125,7 +126,7 @@ This phase creates a **deploy PR** (feature-branch → `main`) to land the featu
    - Otherwise, if the Infrastructure spec shows `status: deployed`, default to `existing-owned`. Both override `smaqit.input-deployment`'s generic `provision` default.
    - Only fall through to `smaqit.input-deployment`'s standard elicitation if genuinely ambiguous (e.g. co-hosting on another project's VM → `existing-shared`; a second, dedicated VM that's provisioned out-of-band and will never be Terraform-managed → `existing-unmanaged`).
    - If resolution falls through to `provision` — this contradicts the Pre-conditions check; stop and flag.
-6. Invoke `smaqit.input-deployment` with the resolved `provisioning_mode`, the production environment name, `deployment_path: existing-cicd-pr`, `mode` from Phase 0, `specification_mode: prevalidated`, and the Deploy handoff paths as `spec_paths`. It outputs the `PHASE-PARAMETERS` block and resolves the **slot plan** via `smaqit slots plan --phase=deploy --mode=<mode> --env=<env> --path=existing-cicd-pr --json`. If it reports any `SLOTS-*` failure, stop — the project's `.smaqit/slots.yml` or a bound skill must be fixed first. On this path the plan refuses `iac-generate`, `ci-generate`, `provision`, and `host-bootstrap`, and marks `artifact-build`/`app-deploy` as CI-executed.
+6. Invoke `smaqit.input-deployment` with the resolved `provisioning_mode`, the production environment name, `deployment_path: existing-cicd-pr`, `mode` from Phase 0, `user_request`, `specification_mode: prevalidated`, and the Deploy handoff paths as `spec_paths`. It outputs the `PHASE-PARAMETERS` block and resolves the **slot plan** via `smaqit slots plan --phase=deploy --mode=<mode> --env=<env> --path=existing-cicd-pr --json`. If it reports any `SLOTS-*` failure, stop — the project's `.smaqit/slots.yml` or a bound skill must be fixed first. On this path the plan refuses `iac-generate`, `ci-generate`, `provision`, and `host-bootstrap`, and marks `artifact-build`/`app-deploy` as CI-executed.
 7. Require `.github/workflows/deploy.yml`. If absent, stop and flag.
 8. **Apply the deterministic trigger decision table** by reading `.github/workflows/deploy.yml` and any sibling PR-close/dispatch workflows:
    1. If `deploy.yml` has a `push` trigger covering the PR base branch → omit any deployment marker and plan to monitor the resulting `push` run. A marker-gated dispatcher may coexist but must remain false.
@@ -138,6 +139,7 @@ This phase creates a **deploy PR** (feature-branch → `main`) to land the featu
 
 10. Invoke `/smaqit.deployment` once with the step 6 `PHASE-PARAMETERS` block, which carries:
     - `mode` from Phase 0
+    - `user_request`, verbatim
     - `specification_mode: prevalidated`
     - `deployment_path: existing-cicd-pr`
     - The Deploy handoff paths (Infrastructure + Stack)
@@ -168,10 +170,10 @@ This phase creates a **deploy PR** (feature-branch → `main`) to land the featu
    ```
    - Joins the parent worktree. No new branch or worktree is created.
 2. Re-read the Phase 1 task file. Extract the **Validate** handoff paths (Coverage specs + all upstream specs referenced by Coverage).
-3. Invoke `/smaqit.validation` with `mode` from Phase 0, `specification_mode: prevalidated`, and the Validate handoff paths as `spec_paths`. The Validation agent skips coverage specification generation, reads the confirmed specs, consolidates, generates test artifacts, and executes tests against the deployed system.
+3. Invoke `/smaqit.validation` with `mode` from Phase 0, `user_request`, `specification_mode: prevalidated`, and the Validate handoff paths as `spec_paths`. The Validation agent skips coverage specification generation, reads the confirmed specs, consolidates, generates test artifacts, and executes tests against the deployed system.
    - If the agent returns `NEEDS-INPUT` or `REVIEW-REQUESTED`, ask the user what it lists, then resume the agent with the answers as `answers` (or invoke it again with the same parameters plus `answers` and the signal's `approved_spec_paths`) until it returns a final result. Never answer a signal on the user's behalf.
 4. If any spec is found inconsistent with the live system: amend in-place on the feature branch with the canonical `amendment:` annotation. These post-deployment amendments will be carried to `main` by the Phase 5 release PR.
-5. **Gate:** All validation checks pass. User signs off.
+5. **Gate:** All validation checks pass. *(Assisted only)* User signs off.
 6. **Complete the Phase 4 child:**
    ```
    smaqit.task-complete $P4

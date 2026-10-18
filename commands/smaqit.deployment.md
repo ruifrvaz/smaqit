@@ -5,10 +5,10 @@ when_to_use: Requests like "deploy this", "ship it to test" or "to production", 
 
 Run the Deployment phase through the `smaqit-deployment` subagent. The subagent cannot ask the user anything, so this conversation owns every question.
 
-1. **Resolve parameters.** Apply the `smaqit.input-deployment` skill here, against the user's request and session context. Ask the user any blocking question it raises. The skill outputs a `PHASE-PARAMETERS` block.
+1. **Resolve parameters.** Apply the `smaqit.input-deployment` skill here, against the user's request and session context. Tell it what started this phase: the user typed `/smaqit.deployment` (mode defaults to `assisted`), or you invoked this command yourself to route the user's request (mode defaults to `autonomous`). A mode the user states always wins. Ask the user any blocking question it raises. The skill outputs a `PHASE-PARAMETERS` block, with the user's own words verbatim in `user_request`.
    The block includes the resolved `provisioning_mode`, environment, deployment path, and `slot_plan`. A `SLOTS-*` failure stops the phase here: show it verbatim; it is not a question for the user.
-   If the skill isn't available, skip this step: the subagent then applies its own preloaded copy and returns `NEEDS-INPUT` when a parameter is blocking.
-2. **Delegate.** Invoke the `smaqit-deployment` subagent via the Task tool. Pass the user's request, the session context relevant to it, and the `PHASE-PARAMETERS` block.
+   If the skill isn't available, skip this step: the subagent then applies its own preloaded copy, defaulting to `assisted`. When you invoked this command yourself, still pass `mode: autonomous` and `user_request` so that default doesn't apply.
+2. **Delegate.** Tell the user in one line which mode the phase runs in and how to change it. Then invoke the `smaqit-deployment` subagent via the Task tool. Pass the `PHASE-PARAMETERS` block and, separately, the session context relevant to the request. Never rewrite, summarize, or expand the user's request: `user_request` carries their words unchanged, because specification agents count only requirements the user actually stated.
 3. **Handle return signals.** If the result starts with `NEEDS-INPUT` or `REVIEW-REQUESTED`:
    - Ask the user with the question tool. For `NEEDS-INPUT`, ask each listed question, using its `why` as context. For `REVIEW-REQUESTED`, point the user to the listed specification and design files and ask them to approve or give feedback.
    - If no question tool is available, for example in a headless `claude -p` run, print each question with its id (or the files to review), then end your turn. The user's next message carries the answers; treat it as the reply and continue with the next bullet.

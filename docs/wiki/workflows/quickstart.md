@@ -50,7 +50,7 @@ The agent will:
 2. Build the application code
 3. Run tests to verify it works
 
-If your requirements are unclear or incomplete, the agent asks clarifying questions before writing anything. Answer them in the chat and it continues where it left off. To review and approve each specification layer before the code is written, ask for **assisted** mode (for example, "use assisted mode, I want to review each specification").
+If your requirements are unclear or incomplete, the agent asks clarifying questions before writing anything. Answer them in the chat and it continues where it left off. Because you started the phase yourself, it runs in **assisted** mode: it pauses after each specification layer so you can review and approve it before the code is written. To go straight through instead, say so (for example, "run autonomously, no review pauses"). Only what you state counts as a requirement: a project name such as "mario-hello" on its own is not enough, so describe what you want built.
 
 ## Expected Output
 

@@ -70,14 +70,16 @@ Agent-driven user testing (the `smaqit.user-testing` agent and the `smaqit.test-
 4. **Drives** headless `claude -p` through the scenarios below. Live questions are turned off, so every question has to come back through smaqit's return signals.
 5. **Checks** the results with smaqit's own CLI and the fixture's tests, and keeps the evidence.
 
-Every scenario builds the same fixture, `scripts/e2e/hello-site/`: a one-page "Hello, Mario!" site in plain HTML, CSS, and JavaScript, tested with `node --test`.
+The building scenarios share one fixture, `scripts/e2e/hello-site/`: a one-page "Hello, Mario!" site in plain HTML, CSS, and JavaScript, tested with `node --test`. The `empty-request` and `title-only` scenarios build nothing: they pass only if the run stops before writing a specification.
 
 | Scenario | What it proves |
 |---|---|
-| `happy-path` | `/smaqit.development` with complete requirements finishes the Develop phase: specifications for every layer, `smaqit validate` passing, nothing pending in `smaqit plan --phase=develop`, the site built, its tests passing, and a development report |
-| `needs-input` | With thin requirements, the first turn writes no specification and returns `NEEDS-INPUT`. A `--resume` turn with the answers then completes the phase |
-| `assisted` | Assisted mode pauses with `REVIEW-REQUESTED` after each specification layer. Approvals resume it, and approved specifications are never regenerated |
-| `self-invocation` | A plain request with no slash command still runs through smaqit: the session log shows a delegation to `smaqit-development` |
+| `happy-path` | `/smaqit.development` with complete requirements and "run autonomously" finishes the Develop phase: specifications for every layer, `smaqit validate` passing, nothing pending in `smaqit plan --phase=develop`, the site built, its tests passing, and a development report |
+| `needs-input` | With thin requirements (and "run autonomously"), the first turn writes no specification and returns `NEEDS-INPUT`. A `--resume` turn with the answers then completes the phase |
+| `assisted` | With no mode stated, a typed `/smaqit.development` defaults to assisted mode and pauses with `REVIEW-REQUESTED` after each specification layer. Approvals resume it, and approved specifications are never regenerated |
+| `self-invocation` | A plain request with no slash command still runs through smaqit: the session log shows a delegation to `smaqit-development`, and the model-started phase runs autonomously to completion in one turn |
+| `empty-request` | A bare `/smaqit.development` in a fresh project writes no specification and returns `NEEDS-INPUT` |
+| `title-only` | In a project named `mario-app` whose README is only `# mario-app`, the plain request "Let's build mario-app." writes no specification and returns `NEEDS-INPUT`: a name is not a requirement |
 
 **Credentials.** The script uses the first of these it finds:
 1. `CLAUDE_CODE_OAUTH_TOKEN` (a claude.ai subscription token from `claude setup-token`) or `ANTHROPIC_API_KEY` (pay-per-use) in your environment.
@@ -86,7 +88,7 @@ Every scenario builds the same fixture, `scripts/e2e/hello-site/`: a one-page "H
 Either way, nothing is copied into the scratch folder, and the run fails if a credential file ever appears there.
 
 **Cost.** Every run spends real model usage, so it is a manual pre-release check, not part of CI. These variables control it:
-- `SCENARIOS`: which scenarios run, for example `SCENARIOS=happy-path`. The default is all four.
+- `SCENARIOS`: which scenarios run, for example `SCENARIOS=happy-path`. The default is all six.
 - `E2E_BUDGET_USD`: spend cap per turn (default 10)
 - `E2E_TIMEOUT`: seconds per turn (default 3600)
 - `E2E_MAX_TURNS`: turn cap per run (default 200)

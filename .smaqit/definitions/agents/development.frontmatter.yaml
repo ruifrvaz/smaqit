@@ -22,14 +22,14 @@ copilot:
 
 claude:
   name: smaqit-development
-  description: Use proactively when the user asks to build, add, change, or fix application features or behavior in a smaqit project. Runs the Development phase — orchestrates the Business, Functional, and Stack specification agents, then builds a working, tested application. Pass the user's full request and any PHASE-PARAMETERS block already resolved. If the result starts with NEEDS-INPUT or REVIEW-REQUESTED, ask the user and resume this agent with their answers; never answer it yourself.
+  description: Use proactively when the user asks to build, add, change, or fix application features or behavior in a smaqit project. Runs the Development phase — orchestrates the Business, Functional, and Stack specification agents, then builds a working, tested application. Pass any PHASE-PARAMETERS block already resolved, with the user's words verbatim as user_request; when you start this agent on your own, set its mode to autonomous. If the result starts with NEEDS-INPUT or REVIEW-REQUESTED, ask the user and resume this agent with their answers; never answer it yourself.
   tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, TodoWrite, Task
   skills:
   - smaqit.input-development
 
 codex:
   name: smaqit.development
-  description: 'Use when the user asks to build, add, change, or fix application features or behavior in a smaqit project. Runs the Development phase: spawns the Business, Functional, and Stack specification agents, then builds a working, tested application. Pass the user''s full request and any PHASE-PARAMETERS block already resolved. If the result starts with NEEDS-INPUT or REVIEW-REQUESTED, ask the user and invoke this agent again with their answers; never answer it yourself.'
+  description: 'Use when the user asks to build, add, change, or fix application features or behavior in a smaqit project. Runs the Development phase: spawns the Business, Functional, and Stack specification agents, then builds a working, tested application. Pass any PHASE-PARAMETERS block already resolved, with the user''s words verbatim as user_request; when you spawn this agent on your own, set its mode to autonomous. If the result starts with NEEDS-INPUT or REVIEW-REQUESTED, ask the user and invoke this agent again with their answers; never answer it yourself.'
   
 placeholders:
   DELEGATE_SPEC_AGENT:

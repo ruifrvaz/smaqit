@@ -2,21 +2,38 @@
 name: smaqit.input-business
 description: Validate and elicit business requirements before Business spec generation. Invoke automatically when beginning Business layer specification work to ensure requirements are sufficient.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Business Input
 
-Validate that session context contains sufficient business requirements before generating Business specifications. This is a gate — spec generation only proceeds when all required sections are satisfied.
+Validate that the user has stated sufficient business requirements before generating Business specifications. This is a gate — spec generation only proceeds when all required sections are satisfied.
 
 ## Steps
 
-1. **Extract from session context** — Scan current session, compacted blocks, and open tasks for existing requirements
-2. **Check existing specs** — Scan `specs/business/` for existing documents. If specs already exist and neither session context nor `answers` says whether to add new specs or revise existing ones, record that as an open `add-or-revise` question for step 5.
+1. **Extract user-stated requirements** — Collect requirements only from the sources listed under Requirement Sources, and note the `mode` the caller passed (`assisted` when none was passed)
+2. **Check existing specs** — Scan `specs/business/` for existing documents. If specs already exist and neither the user's own words nor `answers` say whether to add new specs or revise existing ones, record that as an open `add-or-revise` question for step 5.
 3. **Assess requirements** — Check whether content is substantive: not generic, not a placeholder, actionable enough to produce testable acceptance criteria
 4. **Check for conflicts** — If requirements contain internal contradictions or conflict with each other, flag them explicitly before proceeding; do not silently resolve. Each unresolved conflict becomes an open question for step 5.
 5. **Resolve open questions** — Gather every insufficient required section (with its targeted question below), every unresolved conflict from step 4, and any open question from step 2. If you can ask the user directly, ask one section at a time. Otherwise stop before generating anything: write no specification or design, and return `NEEDS-INPUT` (see below) listing every open question at once.
-6. **Confirm readiness** — Once all required sections are satisfied, from session context or from `answers` passed back on a later invocation, proceed directly to Business spec generation without requesting further confirmation
+6. **Confirm readiness** — Once all required sections are satisfied, from the Requirement Sources or from `answers` passed back on a later invocation, proceed directly to Business spec generation without requesting further confirmation
+
+## Requirement Sources
+
+A required section is satisfied only by requirements the user stated:
+
+- `user_request`: the user's own words, verbatim, as the caller passed them
+- `answers`: the user's replies to an earlier `NEEDS-INPUT` from this gate
+- The user's own messages and the open tasks they wrote, when this gate reads the conversation directly rather than through a caller's retelling
+- Files the user pointed at, including `.smaqit/requirements-extract.md`, which is extracted from the user's own assets
+
+Never sufficient, in any mode:
+
+- A project, repository, or directory name, or a document title. "mario-app" names a project; it states no requirement
+- Your own knowledge of the domain, or of anything a name evokes
+- A caller's summary, paraphrase, or expansion of the request. When it differs from `user_request`, `user_request` wins
+
+A required section is never filled with an assumption. When the sources leave it insufficient, it is an open question for step 5.
 
 ## Required Sections
 
@@ -62,4 +79,4 @@ questions:
 next: Ask the user these questions, then resume this agent (or invoke it again) with the answers as `answers`, keyed by id.
 ```
 
-Question ids: the required-section slugs (`actors`, `use-cases`, `success-metrics`), an optional-section slug when its omission would break the spec, `add-or-revise`, and `conflict-1`, `conflict-2`, … for conflicts. On the next invocation, treat each answer as session-context requirements and run this gate again from step 1.
+Question ids: the required-section slugs (`actors`, `use-cases`, `success-metrics`), an optional-section slug when its omission would break the spec, `add-or-revise`, and `conflict-1`, `conflict-2`, … for conflicts. On the next invocation, treat each answer as a user-stated requirement and run this gate again from step 1.

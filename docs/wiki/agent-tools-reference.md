@@ -158,7 +158,7 @@ Agents usually run as subagents, and a subagent often cannot ask the user anythi
 | `NEEDS-INPUT` | An input skill or agent that found a gap it cannot ask about | Lists every open question, each with an id and why it's needed. Nothing was written |
 | `REVIEW-REQUESTED` | A phase agent in Assisted mode, after a specification layer | Lists the produced spec and design paths, the iteration count, and the specs approved so far |
 
-Callers pass phase agents an explicit `PHASE-PARAMETERS` block (`mode`, `specification_mode`, `spec_paths`, `approved_spec_paths`, deployment parameters, and `answers` on resume), produced by the phase input skill.
+Callers pass phase agents an explicit `PHASE-PARAMETERS` block (`mode`, `user_request`, `specification_mode`, `spec_paths`, `approved_spec_paths`, deployment parameters, and `answers` on resume), produced by the phase input skill.
 
 | Platform | Who asks the user | How the run continues |
 |---|---|---|
@@ -174,14 +174,27 @@ A session should reach for smaqit without the user typing a slash command. These
 |---|---|---|
 | Project instructions | The managed section of the project's `AGENTS.md` ("When to use smaqit"), loaded in every session on every platform | Routes feature, build, deploy, test, and framework-question requests to the matching entry point, puts specifications first, lists the trivial changes that may skip the workflow, and states the return-signal rule |
 | Commands | `commands/*.md` → `~/.claude/commands/` | Claude Code treats commands as skills it can invoke itself. Each has a "Use when…" `description` plus `when_to_use` trigger phrases. The command body resolves phase parameters and owns the ask-and-resume loop |
-| Phase subagents | `claude:` `description` in `.smaqit/definitions/agents/{development,deployment,validation,qa}.frontmatter.yaml` | "Use proactively when…" lets Claude delegate directly. The description asks for the user's full request plus any resolved `PHASE-PARAMETERS` block, and repeats the return-signal rule |
-| Copilot and Codex entry agents | `copilot:` and `codex:` `description` in the same four files | Lead with "Use when…" and the user requests each agent serves, so the right agent is picked from the Copilot agent picker or spawned by Codex. Copilot phase agents ask the user directly (`vscode/askQuestions`), so their descriptions carry only the trigger. Codex phase-agent descriptions also tell the spawning session to pass the full request and any `PHASE-PARAMETERS` block, and to relay `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user |
+| Phase subagents | `claude:` `description` in `.smaqit/definitions/agents/{development,deployment,validation,qa}.frontmatter.yaml` | "Use proactively when…" lets Claude delegate directly. The description asks for any resolved `PHASE-PARAMETERS` block with the user's words verbatim as `user_request`, and `mode` autonomous when the conversation starts the agent itself, and repeats the return-signal rule |
+| Copilot and Codex entry agents | `copilot:` and `codex:` `description` in the same four files | Lead with "Use when…" and the user requests each agent serves, so the right agent is picked from the Copilot agent picker or spawned by Codex. Copilot phase agents ask the user directly (`vscode/askQuestions`), so their descriptions carry only the trigger. Codex phase-agent descriptions also tell the spawning session to pass any `PHASE-PARAMETERS` block with the user's words verbatim as `user_request` (and `mode` autonomous when it spawns the agent on its own), and to relay `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user |
 
-Direct delegation skips the command body. A phase agent without a parameter block applies its preloaded defaults, and the `AGENTS.md` rule makes the main conversation relay any `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user rather than answering it. The commands stay the preferred path.
+Direct delegation skips the command body. A phase agent without a parameter block applies its preloaded defaults, including `mode: assisted`, and the `AGENTS.md` rule makes the main conversation relay any `NEEDS-INPUT`/`REVIEW-REQUESTED` to the user rather than answering it. The commands stay the preferred path.
 
 `smaqit init` and `smaqit update` replace the managed section between the `smaqit:instructions` markers with the current template, so trigger changes reach existing projects; content outside the markers is never touched.
 
 **Description budget:** Claude Code lists every skill and command description at session start under a budget of about 1% of the context window, and drops descriptions from the least-invoked entries first; each entry is also cut at 1,536 characters. A skill whose description is dropped is rarely invoked automatically. smaqit therefore keeps every skill and command description at 400 characters or fewer, leading with the key use case, and `scripts/generate-agents.py` fails `make prepare` on a longer description or on frontmatter that isn't strict YAML. Detail that doesn't fit belongs in the skill body.
+
+## Execution Mode Defaults
+
+The default mode depends on what started the phase. A mode the user states ("assisted", "run autonomously") always wins.
+
+| Started by | Default mode |
+|---|---|
+| The user: a typed `/smaqit.<phase>`, or a Copilot/Codex phase agent the user picked or named | `assisted` |
+| A phase agent invoked with no parameter block | `assisted` (it assumes the user picked it) |
+| The model, routing a plain request on its own | `autonomous` |
+| `smaqit.new-greenfield-project` or `smaqit.feature-new` (their Phase 0) | `autonomous` |
+
+Assisted mode pauses with `REVIEW-REQUESTED` after each specification layer, works only from requirements the user stated, and ends each phase by asking the user to review it. Autonomous runs straight through and stops only for `NEEDS-INPUT` and human operations such as a PR merge. In both modes, a project name, the model's own knowledge, or a caller's paraphrase never counts as a requirement (`framework/AGENTS.md`, Session Context).
 
 ## Codex Agent Metadata
 

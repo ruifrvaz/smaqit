@@ -411,13 +411,14 @@ func cmdInstallGlobal() {
 		srcDir     string
 		kind       string
 		label      string
+		skills     bool
 	}{
-		{agentFiles, "agents-copilot", "copilot-agents", "Copilot agents"},
-		{skillFilesShared, "skills-shared", "shared-skills", "shared Copilot/Codex skills"},
-		{claudeAgentFiles, "agents-claude", "claude-agents", "Claude agents"},
-		{claudeCommandFiles, "commands-claude", "claude-commands", "Claude commands"},
-		{skillFilesClaude, "skills-claude", "claude-skills", "Claude skills"},
-		{codexAgentFiles, "agents-codex", "codex-agents", "Codex agents"},
+		{agentFiles, "agents-copilot", "copilot-agents", "Copilot agents", false},
+		{skillFilesShared, "skills-shared", "shared-skills", "shared Copilot/Codex skills", true},
+		{claudeAgentFiles, "agents-claude", "claude-agents", "Claude agents", false},
+		{claudeCommandFiles, "commands-claude", "claude-commands", "Claude commands", false},
+		{skillFilesClaude, "skills-claude", "claude-skills", "Claude skills", true},
+		{codexAgentFiles, "agents-codex", "codex-agents", "Codex agents", false},
 	}
 	for _, mapping := range mappings {
 		destination, err := resolveGlobalDir(mapping.kind)
@@ -425,11 +426,16 @@ func cmdInstallGlobal() {
 			fmt.Fprintf(os.Stderr, "Error resolving %s path: %v\n", mapping.label, err)
 			os.Exit(1)
 		}
-		if err := copyEmbeddedDir(mapping.embeddedFS, mapping.srcDir, destination); err != nil {
+		removed, err := installGlobalTree(mapping.embeddedFS, mapping.srcDir, destination, mapping.skills)
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error installing %s: %v\n", mapping.label, err)
 			os.Exit(1)
 		}
-		fmt.Printf("✓ Installed %s to %s\n", mapping.label, destination)
+		if removed > 0 {
+			fmt.Printf("✓ Installed %s to %s (removed %d item(s) this release no longer ships)\n", mapping.label, destination, removed)
+		} else {
+			fmt.Printf("✓ Installed %s to %s\n", mapping.label, destination)
+		}
 	}
 }
 
@@ -772,7 +778,7 @@ func installInstructionsFileOrExit(embeddedFS embed.FS, srcPath, dstPath string)
 
 // copyEmbeddedDir copies files from an embedded FS to a target directory
 // If dstDir contains "templates/specs", performs version substitution
-func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
+func copyEmbeddedDir(embeddedFS fs.FS, srcDir, dstDir string) error {
 	substituteVersion := strings.Contains(dstDir, "templates/specs")
 
 	return fs.WalkDir(embeddedFS, srcDir, func(path string, d fs.DirEntry, err error) error {
@@ -785,7 +791,7 @@ func copyEmbeddedDir(embeddedFS embed.FS, srcDir, dstDir string) error {
 		}
 
 		// Read embedded file
-		content, err := embeddedFS.ReadFile(path)
+		content, err := fs.ReadFile(embeddedFS, path)
 		if err != nil {
 			return fmt.Errorf("reading %s: %w", path, err)
 		}
@@ -1018,6 +1024,9 @@ func cmdUninstall() {
 			_, err = removeEmbeddedSkillDirs(mapping.embeddedFS, mapping.srcDir, dir)
 		} else {
 			_, err = removeEmbeddedFiles(mapping.embeddedFS, mapping.srcDir, dir)
+		}
+		if err == nil {
+			err = uninstallGlobalManifest(mapping.embeddedFS, mapping.srcDir, dir)
 		}
 		if err != nil {
 			fmt.Printf("Error removing global smaqit payload from %s: %v\n", dir, err)

@@ -1,6 +1,6 @@
 ---
 name: smaqit.infrastructure-deploy-k3s-app
-description: Use when deploying an app into a Namespace-scoped Kubernetes cluster (k3s, or any cluster issuing a per-app kubeconfig), including provisioning_mode existing-k3s in greenfield Phase 4 and its deploy.yml. Checks mesh reachability for private-mesh targets, lints manifests against Pod Security restricted, applies the Ingress the spec's mode calls for, waits for rollout, and verifies.
+description: Use when deploying an app into a Namespace-scoped Kubernetes cluster (k3s, or any cluster issuing a per-app kubeconfig), including provisioning_mode existing-k3s in project-new Phase 4 and its deploy.yml. Checks mesh reachability for private-mesh targets, lints manifests against Pod Security restricted, applies the Ingress the spec's mode calls for, waits for rollout, and verifies.
 metadata:
   version: "2.1.1"
   smaqit-slots: "platform-prereqs=mesh-check, app-deploy=deploy"

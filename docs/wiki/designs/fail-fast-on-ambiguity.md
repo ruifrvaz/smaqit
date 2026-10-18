@@ -89,8 +89,8 @@ How strictly upstream specifications count depends on the mode:
 
 | Mode | Upstream specifications |
 |---|---|
-| `assisted` (the default when the user starts a phase) | Context for coherence only. Every required section traces to the user's own statements, so each layer may ask for what the user hasn't said yet |
-| `autonomous` (the default for orchestrating skills and model-started phases) | Count as requirement sources, since they passed their own gate. The run asks only where nothing upstream covers a section |
+| `assisted` (the default when the user starts a phase or invokes an orchestrating skill) | Context for coherence only. Every required section traces to the user's own statements, so each layer may ask for what the user hasn't said yet |
+| `autonomous` (the default when the model starts a phase or chooses an orchestrating skill) | Count as requirement sources, since they passed their own gate. The run asks only where nothing upstream covers a section |
 
 ### 5. No Assumption-Flagging for Required Sections
 

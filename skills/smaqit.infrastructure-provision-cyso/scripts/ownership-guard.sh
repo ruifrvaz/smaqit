@@ -2,7 +2,7 @@
 # Pre-flight ownership guard for smaqit.infrastructure-provision-cyso.
 #
 # Defense-in-depth for a direct/manual invocation of this skill that bypasses
-# smaqit.new-greenfield-project's provisioning_mode branching. If a target VM
+# smaqit.project-new's provisioning_mode branching. If a target VM
 # is already declared (via an explicit argument, the VM_HOST env var, or the
 # VM_HOST repository variable) but this project's own Terraform state has no
 # matching openstack_compute_instance_v2 resource, provisioning would silently
@@ -21,7 +21,7 @@
 #            Do NOT run `terraform apply`. Use provisioning_mode: existing-shared
 #            (another project's Terraform owns it) or existing-unmanaged (no
 #            Terraform owns it at all) instead, whichever applies (see
-#            smaqit.new-greenfield-project Phase 4/5 and
+#            smaqit.project-new Phase 4/5 and
 #            smaqit.infrastructure-vault-loader / smaqit.infrastructure-repo-config
 #            for the restricted-path handling both modes need).
 
@@ -73,7 +73,7 @@ if [ -z "$INSTANCE_ADDRS" ]; then
   echo "another project owns and manages it via its own Terraform state (co-hosting), or" >&2
   echo "nobody's Terraform manages it at all (a dedicated VM provisioned out-of-band)." >&2
   echo "Use provisioning_mode: existing-shared or existing-unmanaged instead, whichever" >&2
-  echo "applies — see smaqit.new-greenfield-project Phase 4/5 for the branch, and skip" >&2
+  echo "applies — see smaqit.project-new Phase 4/5 for the branch, and skip" >&2
   echo "this skill entirely for either path." >&2
   exit 1
 fi
@@ -105,6 +105,6 @@ echo "This looks like a deploy onto a VM this project's Terraform doesn't manage
 echo "another project owns and manages it via its own Terraform state (co-hosting), or" >&2
 echo "nobody's Terraform manages it at all (a dedicated VM provisioned out-of-band)." >&2
 echo "Use provisioning_mode: existing-shared or existing-unmanaged instead, whichever" >&2
-echo "applies — see smaqit.new-greenfield-project Phase 4/5 for the branch, and skip" >&2
+echo "applies — see smaqit.project-new Phase 4/5 for the branch, and skip" >&2
 echo "this skill entirely for either path." >&2
 exit 1

@@ -21,7 +21,8 @@ Validate session context for validation execution preferences before the Validat
 ### Mode
 **Default:** Set by what started the phase:
 - `assisted` — the user started it: they typed `/smaqit.validation`, or picked or named the `smaqit.validation` agent. This is also the default when the phase agent applies this skill itself because no block was passed.
-- `autonomous` — it started automatically: the model routed a request here on its own, or an orchestrating skill (`smaqit.new-greenfield-project`, `smaqit.feature-new`) passed its own `mode`.
+- `autonomous` — it started automatically: the model routed a request here on its own.
+- An orchestrating skill (`smaqit.project-new`, `smaqit.feature-new`) passes the `mode` it resolved for its own run: `assisted` when the user invoked the skill (its slash command, a Codex `$` mention, or a skill-menu pick), `autonomous` when the model chose it. Use the passed mode.
 
 **Override:** A mode the user states always wins. "Assisted" or "review the coverage specification" resolves to `assisted`; "autonomous", "run straight through", or "no review pauses" resolves to `autonomous`.
 **Elicit when:** Never — what started the phase, or the user's own words, decides it
@@ -33,7 +34,7 @@ Assisted works only from requirements the user stated, pauses with `REVIEW-REQUE
 **Elicit when:** Never. An empty request is not blocking here: the Coverage input gate decides whether the requirements are sufficient
 
 ### Specification Mode
-**Default:** `orchestrate`. The value is `prevalidated`, with exact `spec_paths`, only when the caller passes it (e.g. `smaqit.feature-new`, or `smaqit.new-greenfield-project` after its own specification phase)  
+**Default:** `orchestrate`. The value is `prevalidated`, with exact `spec_paths`, only when the caller passes it (e.g. `smaqit.feature-new`, or `smaqit.project-new` after its own specification phase)  
 **Elicit when:** Never — the caller determines it
 
 ### Execution Scope

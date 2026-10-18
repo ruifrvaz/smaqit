@@ -1,11 +1,11 @@
 ---
-name: smaqit.new-greenfield-project
-description: 'Use when taking a new project from raw assets to a running production application: "take this from zero to prod", "run the full smaqit pipeline", or starting a freshly initialized repository. Orchestrates requirements extraction, all five specification layers, development, a dev-environment sweep, CI/CD production deployment, optional domain/TLS, validation, and release. Re-entrant at any phase.'
+name: smaqit.project-new
+description: 'Use when taking a new project from raw assets to a running production application: "take this from zero to prod", "run the full smaqit pipeline", or "build and ship this new project". Runs requirements extraction, all five specification layers, development, a dev-environment sweep, CI/CD deployment, validation, and release. Not for scaffolding instruction files alone (smaqit.project-init).'
 metadata:
-  version: "2.4.0"
+  version: "3.0.0"
 ---
 
-# Project: Zero to Production
+# New Project Workflow: Raw Assets to Production
 
 ## Steps
 
@@ -53,10 +53,15 @@ When an agent returns `NEEDS-INPUT` or `REVIEW-REQUESTED`, ask the user what it 
 
 ### Phase 0 — Task Creation (Entry Point)
 
-The operator triggers this phase manually. Execution mode is **Autonomous** unless the operator asks for assisted mode (for example "assisted" or "review each phase"); a mode the operator states always wins.
+How this skill was started sets the default execution mode:
 
-1. Decide execution mode:
-   - **Autonomous** (default) — all phases run sequentially on a best-effort basis, stopping only for `NEEDS-INPUT` and human operations: credential prompts, the synthesized-skill checkpoint, PR merges, and the release. Gates marked *(assisted only)* are skipped; every other gate is a check the run must still pass. The operator reviews at Phase 8.
+- **Assisted** — the user invoked it explicitly: they typed `/smaqit.project-new`, mentioned it as `$smaqit.project-new` in Codex, or picked it from a skill menu (`/` in Copilot chat, `/skills` in Codex).
+- **Autonomous** — you chose this skill yourself to handle a broader request. A user who only names the skill in plain words, without one of those invocations, also gets autonomous.
+
+A mode the user states always wins ("assisted", "review each phase", "run autonomously"). Before Phase 0 continues, tell the user in one line which mode the run uses and how to change it.
+
+1. Resolve the execution mode by the rule above:
+   - **Autonomous** — all phases run sequentially on a best-effort basis, stopping only for `NEEDS-INPUT` and human operations: credential prompts, the synthesized-skill checkpoint, PR merges, and the release. Gates marked *(assisted only)* are skipped; every other gate is a check the run must still pass. The operator reviews at Phase 8.
    - **Assisted** — the operator is present at each gate; phases do not advance without explicit approval, and every specification layer works only from requirements the operator stated.
 2. Invoke `smaqit.task-create` once for each of Phases 1–7 (include Phase 6 if domain/TLS is planned). Each task covers one phase; acceptance criteria are sourced from the respective phase gate.
 3. **Gate:** All task files created in `.smaqit/tasks/`. *(Assisted only)* Operator confirms mode and approves the task set.
@@ -174,7 +179,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 ### Phase 8 — Release
 
 1. Confirm all phase tasks (1–7) are closed in `PLANNING.md`. If any remain open, resolve before continuing.
-2. Run the amendment scan: `bash [SMAQIT_SKILLS_DIR]/smaqit.new-greenfield-project/scripts/check-amendments.sh specs/`. If the script reports matches, review each `amendment:` annotation against the `Blockers encountered` and `Follow-up identified` fields of the relevant phase task and confirm all are resolved or accepted. If no matches are found, skip this step entirely.
+2. Run the amendment scan: `bash [SMAQIT_SKILLS_DIR]/smaqit.project-new/scripts/check-amendments.sh specs/`. If the script reports matches, review each `amendment:` annotation against the `Blockers encountered` and `Follow-up identified` fields of the relevant phase task and confirm all are resolved or accepted. If no matches are found, skip this step entirely.
 3. Invoke `smaqit.release-analysis` → `smaqit.release-approval` → `smaqit.release-prepare-files`.
 4. Invoke `smaqit.release-git-local` (or `smaqit.release-git-pr` for PR-based releases).
 5. **Final output:** Application running at `https://<domain>/` (or `http://<fixed_ip>/` if Phase 6 was skipped), with a tagged release on GitHub.
@@ -217,7 +222,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 
 ## Examples
 
-**Input:** `assets/raw/code.txt` contains a React prototype. User invokes `/zero.to.prod`.
+**Input:** `assets/raw/code.txt` contains a React prototype. User invokes `/smaqit.project-new`.
 **Output:** All 9 phases completed. Application running at `https://<domain>/`, tagged as v1.0.0 on GitHub, all specs `status: deployed`, MVP task closed.
 
 ## Completion

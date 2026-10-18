@@ -13,7 +13,7 @@ does not manage via its own Terraform state — either because a *different* pro
 manages it via its own Terraform state (co-hosting), or because *nobody's* Terraform manages it
 (a dedicated VM provisioned out-of-band and staying that way) — do not invoke this skill at all;
 use `provisioning_mode: existing-shared` or `existing-unmanaged` instead, respectively (see
-`smaqit.new-greenfield-project` Phase 4/5). Step 0 below is a defense-in-depth guard for a
+`smaqit.project-new` Phase 4/5). Step 0 below is a defense-in-depth guard for a
 direct/manual invocation that bypasses that orchestration.
 
 ## Canonical vs. vendored guard scripts

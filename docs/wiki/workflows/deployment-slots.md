@@ -4,7 +4,7 @@ The deployment phase runs a fixed, ordered sequence of **slots** (variation poin
 
 ## Why Slots
 
-Before slots, the infrastructure wiring — credentials, CI generation, provisioning, host bootstrap, deploy, verify, TLS — was hardcoded per `provisioning_mode` inside two app-centric orchestrator skills (`smaqit.new-greenfield-project` and `smaqit.feature-new`). That worked for an app deploying onto its own VM, but a repository that owns machines rather than an app (a platform repository) had no way in: every canonical infrastructure skill assumed an app-owned VM over public SSH, and adding one more `provisioning_mode` branch per repository shape does not scale.
+Before slots, the infrastructure wiring — credentials, CI generation, provisioning, host bootstrap, deploy, verify, TLS — was hardcoded per `provisioning_mode` inside two app-centric orchestrator skills (`smaqit.project-new` and `smaqit.feature-new`). That worked for an app deploying onto its own VM, but a repository that owns machines rather than an app (a platform repository) had no way in: every canonical infrastructure skill assumed an app-owned VM over public SSH, and adding one more `provisioning_mode` branch per repository shape does not scale.
 
 Slots keep the determinism smaqit relies on — the order is fixed and resolution is mechanical — while letting each repository own the parts that genuinely differ. This follows the thin-dispatcher precedent of the k3s onboarding skills: the repository that owns a mechanism defines its contract; smaqit defines the hand-off points.
 
@@ -30,7 +30,7 @@ One environment run walks these slots in order. Day-two slots never run as part 
 | — | `replace` | Replace a target in place (day two) | Target identity | Replacement target | Replacement verified |
 | — | `teardown` | Destroy the target through the guarded IaC tool (day two) | IaC state | Removed target | Guarded destroy succeeds |
 
-`tls` defaults to none in every full sequence; it runs as a single-slot run (greenfield's conditional Phase 6) or when bound, and its filler requires a custom domain declared in the Infrastructure specification.
+`tls` defaults to none in every full sequence; it runs as a single-slot run (project-new's conditional Phase 6) or when bound, and its filler requires a custom domain declared in the Infrastructure specification.
 
 ## Default Fillers by Provisioning Mode
 
@@ -64,9 +64,9 @@ The deployment path adjusts the profile:
 
 | Path | Used by | Effect |
 |------|---------|--------|
-| `standard` | Local runs (greenfield dev sweep) | Every slot executes locally; `environment-config` and `tls` default to none |
+| `standard` | Local runs (project-new dev sweep) | Every slot executes locally; `environment-config` and `tls` default to none |
 | `existing-cicd-pr` | `smaqit.feature-new` | `iac-generate`, `ci-generate`, `provision`, `host-bootstrap` are **refused** (the PR path never regenerates workflows or provisions directly); `platform-onboarding` and `tls` default to none; `artifact-build` and `app-deploy` are executed by CI and monitored |
-| `ci-push` | Greenfield production | `iac-generate`, `ci-generate`, `host-bootstrap`, `tls` default to none (workflows were committed in the dev sweep; under `provision`/`existing-owned` cloud-init configures the production host, and under `existing-shared`/`existing-unmanaged` the host is already bootstrapped); `artifact-build`, `provision`, `app-deploy` are executed by CI and monitored |
+| `ci-push` | Project-new production | `iac-generate`, `ci-generate`, `host-bootstrap`, `tls` default to none (workflows were committed in the dev sweep; under `provision`/`existing-owned` cloud-init configures the production host, and under `existing-shared`/`existing-unmanaged` the host is already bootstrapped); `artifact-build`, `provision`, `app-deploy` are executed by CI and monitored |
 
 Two rules hold on every path:
 

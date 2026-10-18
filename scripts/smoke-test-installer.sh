@@ -50,7 +50,25 @@ assert_absent() {
 echo "[INFO] Installer: $binary"
 echo "[INFO] Temporary project: $smoke_root"
 
+# An upgrade from a release that shipped the skill under its old name, beside a
+# skill another tool (smaqit-extensions) installed into the same directories.
+for skills in "$CLAUDE_CONFIG_DIR/skills" "$HOME/.agents/skills"; do
+  mkdir -p "$skills/smaqit.new-greenfield-project/references" "$skills/smaqit.task-start"
+  printf -- '---\nname: smaqit.new-greenfield-project\ndescription: old\n---\n' > "$skills/smaqit.new-greenfield-project/SKILL.md"
+  printf '%s\n' 'old diagrams' > "$skills/smaqit.new-greenfield-project/references/diagrams.md"
+  printf -- '---\nname: smaqit.task-start\ndescription: extension\n---\n' > "$skills/smaqit.task-start/SKILL.md"
+done
+
 "$binary" --install-global
+for skills in "$CLAUDE_CONFIG_DIR/skills" "$HOME/.agents/skills"; do
+  if [[ -e "$skills/smaqit.new-greenfield-project" ]]; then
+    echo "[ERROR] Retired skill survived the install: $skills/smaqit.new-greenfield-project" >&2
+    exit 1
+  fi
+  assert_file "$skills/smaqit.project-new/SKILL.md" "renamed global skill"
+  assert_file "$skills/smaqit.task-start/SKILL.md" "another tool's global skill"
+  assert_file "$skills/.smaqit-installed.json" "global install manifest"
+done
 assert_file "$COPILOT_HOME/agents/smaqit.business.agent.md" "global Copilot agent"
 assert_file "$CLAUDE_CONFIG_DIR/agents/smaqit.business.md" "global Claude agent"
 assert_file "$CLAUDE_CONFIG_DIR/commands/smaqit.development.md" "global Claude command"
@@ -152,5 +170,8 @@ assert_file "$project/.smaqit/slots.yml" "project slot bindings kept by uninstal
 assert_absent "$COPILOT_HOME/agents/smaqit.business.agent.md"
 assert_absent "$HOME/.agents/skills/smaqit.feature-new/SKILL.md"
 assert_file "$HOME/.agents/skills/custom-skill/SKILL.md" "user-owned global skill"
+assert_file "$HOME/.agents/skills/smaqit.task-start/SKILL.md" "another tool's global skill kept by uninstall"
+assert_absent "$HOME/.agents/skills/.smaqit-installed.json"
+assert_absent "$CLAUDE_CONFIG_DIR/skills/.smaqit-installed.json"
 
 echo "[PASS] Global installer smoke test completed successfully"

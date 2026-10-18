@@ -205,7 +205,7 @@ var deploymentPathRules = map[string]pathRule{
 		DefaultNone: slotSet("platform-onboarding", "tls"),
 		CIExecuted:  slotSet("artifact-build", "app-deploy"),
 	},
-	// ci-push mirrors greenfield production: workflows were generated and
+	// ci-push mirrors project-new production: workflows were generated and
 	// committed in the dev sweep and the pipeline provisions and deploys. No
 	// default bootstraps the production host: under provision/existing-owned
 	// cloud-init configures it; under existing-shared/existing-unmanaged the host

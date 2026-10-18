@@ -126,7 +126,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
   - Otherwise return `REVIEW-REQUESTED` (see Return Signals) and stop. The caller resumes you with the user's decision in `answers`.
   - On approval, add the reviewed paths to `approved_spec_paths` and proceed to the next layer. On feedback, invoke the spec agent again with the feedback as `answers`.
   - Maximum 3 review iterations per spec layer; if the cap is reached, surface unresolved issues and proceed.
-- **Autonomous** (the default when the phase started automatically, through a model-routed request or an orchestrating skill): Proceed through all workflow steps without user breaks, on a best-effort basis. Spec agents are invoked in sequence; implementation begins immediately after consolidation. Stop only for `NEEDS-INPUT`.
+- **Autonomous** (the default when the phase started automatically, through a model-routed request, or when an orchestrating skill passes `autonomous` because the model chose it): Proceed through all workflow steps without user breaks, on a best-effort basis. Spec agents are invoked in sequence; implementation begins immediately after consolidation. Stop only for `NEEDS-INPUT`.
 
 Mode comes from the `mode` execution parameter. Assisted is the default when no mode is passed. Pass `mode` to every specification agent you invoke: it decides how strictly that agent's input gate traces requirements to the user's own words.
 
@@ -159,7 +159,7 @@ next: Show the user these files and ask them to approve or give feedback. Then r
    - **If `specification_mode: prevalidated`:**
      - Verify each handed-off spec path exists at the expected location.
      - Verify each spec file has valid YAML frontmatter with required fields (`id`, `status`, `created`).
-     - If any path is missing, malformed, or incoherent → stop and return diagnostic: "Prevalidated spec handoff incomplete. Return to the caller's specification phase (Feature New Phase 1, or New Greenfield Project Phase 2) to refresh the handoff. Missing/malformed: [paths]".
+     - If any path is missing, malformed, or incoherent → stop and return diagnostic: "Prevalidated spec handoff incomplete. Return to the caller's specification phase (Feature New Phase 1, or Project New Phase 2) to refresh the handoff. Missing/malformed: [paths]".
      - Skip spec-agent invocation entirely. Proceed directly to Step 3 (Consolidation).
    - **If `specification_mode: orchestrate` (default):**
      - For each required spec layer in fixed sequence — business → functional → stack:

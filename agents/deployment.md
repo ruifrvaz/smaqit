@@ -154,7 +154,7 @@ When user requirements conflict with upstream specs, flag the conflict rather th
   - Otherwise return `REVIEW-REQUESTED` (see Return Signals) and stop. The caller resumes you with the user's decision in `answers`.
   - On approval, add the reviewed paths to `approved_spec_paths` and proceed to deployment. On feedback, invoke the spec agent again with the feedback as `answers`.
   - Maximum 3 review iterations; if the cap is reached, surface unresolved issues and proceed.
-- **Autonomous** (the default when the phase started automatically, through a model-routed request or an orchestrating skill): Proceed through all workflow steps without user breaks, on a best-effort basis. The Infrastructure agent is invoked first; deployment begins immediately after consolidation. Stop only for `NEEDS-INPUT` and human operations such as a PR merge or a credential prompt.
+- **Autonomous** (the default when the phase started automatically, through a model-routed request, or when an orchestrating skill passes `autonomous` because the model chose it): Proceed through all workflow steps without user breaks, on a best-effort basis. The Infrastructure agent is invoked first; deployment begins immediately after consolidation. Stop only for `NEEDS-INPUT` and human operations such as a PR merge or a credential prompt.
 
 Mode comes from the `mode` execution parameter. Assisted is the default when no mode is passed. Pass `mode` to every specification agent you invoke: it decides how strictly that agent's input gate traces requirements to the user's own words.
 

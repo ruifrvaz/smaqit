@@ -8,7 +8,7 @@ process accepts requests via a PR-mergeable registry file. Given a declared plat
 registry-file path, and operator-supplied entry content, opens a PR against that external
 repository adding the app's registry entry for one named machine, then gates on that PR being
 approved and merged before reporting success. Used in Phase 4 (test) and Phase 5 (prod) of
-`smaqit.new-greenfield-project`, before invoking `smaqit.infrastructure-deploy-k3s-app`. This is
+`smaqit.project-new`, before invoking `smaqit.infrastructure-deploy-k3s-app`. This is
 the app-side *request* half of onboarding: a smaqit-declared, opinionated convention for how an
 app repo requests k3s onboarding, owned entirely by this skill — never inherited from or dependent
 on how any particular platform repo actually fulfills the request. Whatever happens after the PR

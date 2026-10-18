@@ -1,6 +1,6 @@
 ---
 name: smaqit.infrastructure-cicd-generate
-description: 'Use when generating or updating GitHub Actions CI/CD workflows: the VM set (deploy.yml, provision.yml, post-merge-deploy.yml) for Node.js + React via Terraform and Docker Compose, or the k3s two-job deploy.yml + post-merge-deploy.yml, or when an operator invokes /cicd.generate. Inside smaqit.new-greenfield-project the deployment agent generates them itself. Never generates copilot-setup-steps.yml.'
+description: 'Use when generating or updating GitHub Actions CI/CD workflows: the VM set (deploy.yml, provision.yml, post-merge-deploy.yml) for Node.js + React via Terraform and Docker Compose, or the k3s two-job deploy.yml + post-merge-deploy.yml, or when an operator invokes /cicd.generate. Inside smaqit.project-new the deployment agent generates them itself. Never generates copilot-setup-steps.yml.'
 metadata:
   version: "3.2.2"
   smaqit-slots: "ci-generate=generate"
@@ -21,13 +21,13 @@ validated with `actionlint`/`yamllint`/`shellcheck` (Task 085).
 - **`full`** (default) — this project provisions and manages its own VM's Terraform state.
   Generates all 3 workflows with a `provision` job.
 - **`deploy-only`** — `provisioning_mode: existing-shared` or `existing-unmanaged` (see
-  `smaqit.new-greenfield-project` Phase 4/5): no Terraform step is generated at all, and
+  `smaqit.project-new` Phase 4/5): no Terraform step is generated at all, and
   `provision.yml` is not generated, whether because this project deploys onto a VM a *different*
   project owns and provisions (`existing-shared`, co-hosting), or because the target VM is
   dedicated to this project but nobody's Terraform manages it (`existing-unmanaged`, provisioned
   out-of-band). Both modes produce the identical generated output — the underlying reason there's
   no Terraform step doesn't change what gets written.
-- **`k3s`** — `provisioning_mode: existing-k3s` (see `smaqit.new-greenfield-project` Phase 4/5):
+- **`k3s`** — `provisioning_mode: existing-k3s` (see `smaqit.project-new` Phase 4/5):
   the target is a Namespace-scoped Kubernetes/k3s cluster, not a VM at all. No Terraform, no SSH,
   no nginx, no `VM_HOST` — `deploy.yml` is dispatch-only and has a `build` job (builds the
   repository's own `Dockerfile`, pushes to GHCR tagged by commit SHA with the repository name

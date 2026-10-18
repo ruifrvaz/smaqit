@@ -427,3 +427,27 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Bash | The Set builtin (-e, -u, pipefail) | https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html |
 | Go | Package testing | https://pkg.go.dev/testing |
 | Go | Package os/exec | https://pkg.go.dev/os/exec |
+
+## Task 136 — existing-k3s: Fixes From the First Live Private-Mesh Deploy
+
+**Context fingerprint:** sha256:97ebcc4a4907c2710981da023bf5267ba9c3d66f11635cfaeb153df42c581a0b
+**Refreshed:** 2026-10-18
+
+| Tool | Section | URL |
+|------|---------|-----|
+| GitHub Actions | Workflow syntax (shell defaults, bash -e, concurrency) | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub Actions | Control workflow concurrency | https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency |
+| GitHub Actions | Using secrets in workflows | https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets |
+| GitHub Actions | Security hardening (script injection) | https://docs.github.com/en/actions/reference/security/secure-use |
+| GitHub Actions | Store information in variables (RUNNER_TEMP) | https://docs.github.com/en/actions/reference/workflows-and-actions/variables |
+| GitHub CLI | gh workflow run | https://cli.github.com/manual/gh_workflow_run |
+| GitHub CLI | gh environment variables (GH_REPO, GH_TOKEN) | https://cli.github.com/manual/gh_help_environment |
+| Kubernetes (k3s) | k3s Documentation | https://docs.k3s.io/ |
+| Kubernetes (k3s) | Pull an image from a private registry | https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/ |
+| Kubernetes (k3s) | Jobs | https://kubernetes.io/docs/concepts/workloads/controllers/job/ |
+| Kubernetes (k3s) | RBAC authorization (subresources) | https://kubernetes.io/docs/reference/access-authn-authz/rbac/ |
+| kubectl | kubectl auth can-i | https://kubernetes.io/docs/reference/kubectl/generated/kubectl_auth/kubectl_auth_can-i/ |
+| kubectl | kubectl exec | https://kubernetes.io/docs/reference/kubectl/generated/kubectl_exec/ |
+| kubectl | kubectl create secret generic | https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_generic/ |
+| Docker | Docker config.json (credential format) | https://docs.docker.com/reference/cli/docker/#configuration-files |
+| jq | Manual | https://jqlang.org/manual/ |

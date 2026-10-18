@@ -1,0 +1,112 @@
+---
+status: Not Started
+created: "2026-10-18"
+---
+
+# plan-guard BLOCKED Guidance: Stop and Report, Never Take an Allow-Flag Address From the Guard's Output
+
+## Description
+
+When `plan-guard.sh` blocks a plan, every piece of guidance a coding agent reads at that moment
+points the wrong way:
+
+1. **The guard's own BLOCKED message** ends with "Review it manually, confirm the destroy/replace is
+   intentional, and only then apply outside of this guarded path." That is the text an agent reads at
+   the moment it decides what to do next, and it suggests bypassing the guard.
+2. **The provision-cyso failure table** (added in task 135, v3.15.0) says a reviewed removal can
+   "re-run with `--allow-delete <address>`", without saying where that address may come from.
+3. **The deployment agent's guard invariant** requires every plan/apply to go through the guard, but
+   says nothing about what to do when the guard blocks.
+
+Together they let an agent turn a blocked side-effect delete or replacement into an allowed one: copy
+the address from the BLOCKED output into `--allow-delete` or `--allow-replace` and re-run. The guard
+verifies that the plan matches the flags, not that the flags match anyone's intent, so it passes.
+The same gap has applied to `--allow-replace` since task 115.
+
+This task fixes the wording only. A human-confirmation gate (terminal confirmation, break-glass, or
+CI-only applies for Environment targets) was assessed on 2026-10-18 and not adopted: downstream
+projects guard their own apply paths.
+
+## Issue Triage Context
+
+**Mode:** Auto
+**Technologies:** Terraform, Bash
+**Platforms/Environments:** None
+**Features/Integrations:** plan-guard.sh BLOCKED message, smaqit.infrastructure-provision-cyso failure handling, deployment agent guard invariant, smaqit.infrastructure-cicd-generate gated dispatch input, platform-repositories guide
+**Versions/Constraints:** Terraform 1.15.x, wording only, no change to the guard's verdict logic, flags or exit codes
+
+## Design Decisions
+
+- **One rule, stated everywhere an agent reads it:** on BLOCKED, stop and report the plan; an
+  allow-flag address must be one a human named before the plan ran (the request, the reviewed PR, a
+  gated dispatch input), never one taken from the guard's output.
+- **The guard's message carries the rule**, because it is the only text guaranteed to be in front of
+  the agent at the decision point. It must no longer suggest applying outside the guard.
+- **Both flags:** the rule covers `--allow-replace` as well as `--allow-delete`.
+- **Wording only:** the verdict logic, the flags and the exit codes are unchanged; existing guard tests
+  must pass untouched apart from the message assertion added here.
+- **Patch release:** no behaviour change.
+
+## Implementation Steps
+
+1. `skills/smaqit.infrastructure-provision-cyso/scripts/plan-guard.sh`: replace the BLOCKED footer
+   ("Do not apply this plan unattended … apply outside of this guarded path") with the stop-and-report
+   rule, naming both allow flags.
+2. `skills/smaqit.infrastructure-provision-cyso/SKILL.md`: state the rule in the guard step and in the
+   two failure-table rows; bump the skill's patch version.
+3. `agents/deployment.md`: add the rule to the guard invariant (every plan/apply through the guard).
+4. `skills/smaqit.infrastructure-cicd-generate/SKILL.md`: the gated "replace/remove this resource"
+   inputs take a human-typed address only; bump the skill's patch version.
+5. `docs/wiki/workflows/platform-repositories.md` and `.smaqit/compendium.md`: one sentence each.
+6. `installer/skill_scripts_test.go`: assert the BLOCKED output carries the stop rule and no longer
+   says "outside of this guarded path".
+7. `make -C installer prepare`, `make test`, `make smoke-test`; CHANGELOG.
+
+## Known Issues Triage
+
+[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+
+## Acceptance Criteria
+
+- [ ] The guard's BLOCKED output tells the reader to stop and report, forbids taking an allow-flag address from that output, and no longer suggests applying outside the guard
+- [ ] provision-cyso, cicd-generate and the deployment agent state the same rule, for both `--allow-delete` and `--allow-replace`
+- [ ] A Go test asserts the BLOCKED wording; all existing guard tests pass unchanged
+- [ ] No change to the guard's verdict logic, flags or exit codes
+- [ ] Released as a patch, with a CHANGELOG entry
+
+## Findings
+
+[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
+
+**Implementation approach:**
+- TBD
+
+**Decisions made:**
+- TBD
+
+**Blockers encountered:**
+- TBD
+
+**Follow-up identified:**
+- TBD
+
+## Files to Create / Modify
+
+| File | Action |
+|------|--------|
+| `skills/smaqit.infrastructure-provision-cyso/scripts/plan-guard.sh` | Modify |
+| `skills/smaqit.infrastructure-provision-cyso/SKILL.md` | Modify |
+| `agents/deployment.md` | Modify |
+| `skills/smaqit.infrastructure-cicd-generate/SKILL.md` | Modify |
+| `docs/wiki/workflows/platform-repositories.md` | Modify |
+| `.smaqit/compendium.md` | Modify |
+| `installer/skill_scripts_test.go` | Modify |
+| `CHANGELOG.md` | Modify |
+
+## Notes
+
+- Found on 2026-10-18 while assessing a Bench suite for task 135's `--allow-delete`. A live Terraform
+  probe showed the count-index trap: removing one element of a `count` list plans a delete of the
+  *last* index, so the BLOCKED output names an address nobody asked to remove.
+- Out of scope, deferred by the user: CI-only applies for GitHub Environment targets (credential
+  placement, separate test state, OIDC where the provider supports it).

@@ -289,7 +289,36 @@ Phase 4 reads the declared stack from the stack specification, compares it gener
 
 **Why must every `terraform plan` or `apply` against already-provisioned infrastructure go through `plan-guard.sh`, even for diagnosis?**
 
-The risk of a destructive delete or replace plan is the same whether the operator intends to apply it or only inspect it. Routing every invocation through `plan-guard.sh` ensures direct interactive commands receive the same protection as generated CI workflows.
+The risk of a destructive delete or replace plan is the same whether the operator intends to apply it or only inspect it. Routing every invocation through `plan-guard.sh` ensures direct interactive commands receive the same protection as generated CI workflows. See also: where may a `plan-guard.sh` allow-flag address come from?
+
+---
+
+**Where may a `plan-guard.sh` allow-flag address come from, and can the guard stop an agent from allowing the wrong resource?**
+
+Only from a human, before the plan ran: the request, the reviewed pull request, or a gated dispatch input. Never from the guard's own BLOCKED output. `--allow-delete` and `--allow-replace` make the guard accept a destroy or replacement of exactly the listed addresses. The guard checks that the plan matches the flags, not that the flags match anyone's intent. So an agent that copied a blocked address into a flag and re-ran would pass. A blocked delete is usually a side effect nobody reviewed. For example, removing one element of a `count` list plans a delete of the *last* index and updates the others.
+
+The guard therefore says what to do in its BLOCKED message, the text an agent reads at that moment: stop, report the plan, and wait for a human decision. The provision-cyso failure table, cicd-generate's gated inputs, and the Deployment agent's guard rule state the same rule. This guidance is wording only. smaqit ships no human-confirmation gate (terminal confirmation, break-glass procedure): a downstream project that needs one enforces it on its own apply path. See also: does a destroy through `plan-guard.sh` always require a pull request?
+
+---
+
+**Does a destroy through `plan-guard.sh` always require a pull request?**
+
+No. The guard inspects only the plan, never git state. A local run can edit Terraform files in a working copy, then run `plan-guard.sh --allow-delete <address> --out tfplan` and `terraform apply tfplan` against shared remote state, with nothing committed or reviewed. A plan can also destroy a resource without any file change, when an input changes (for example `count = var.enable_x` with `TF_VAR_enable_x=false` in the environment).
+
+A pull request is required only where the repository enforces it: branch protection requiring PRs on `main`, plus applies that run only from `main` in CI through an Environment branch policy. The generated `deploy.yml` (full mode) runs the guard with no allow flags, so it never applies a destroy. It also has a `workflow_dispatch` trigger, so without an Environment branch policy it can be dispatched from an unmerged branch. See also: can smaqit prevent local applies to GitHub Environment targets?
+
+---
+
+**Can smaqit prevent local applies or deploys to targets that have a GitHub Environment?**
+
+Not today; local applies are supported by design. `terraform-env.sh` exports a machine's cloud and state-backend credentials into a local shell. `credential-file.sh` hands out an app's deploy SSH key and a machine's kubeconfig as local files. provision-cyso performs its first `terraform apply` locally.
+
+A policy limiting local runs to test targets could only be enforced where the credentials live:
+- the scripts that hand credentials to a local shell refuse Environment-target credentials, which only the Environment sync scripts read;
+- test targets use separate state and credentials;
+- GitHub OIDC short-lived credentials would remove long-lived secrets entirely, if the cloud provider supports federation.
+
+Agents reach Vault only through scripts, so a script-level refusal would stop an agent. A human with direct Vault access still could, deliberately. A `GITHUB_ACTIONS` check inside scripts can be set by anyone, so it only produces clear errors. Bootstrapping (loading credentials into Vault and syncing them into the Environment) stays local either way; it configures rather than deploys.
 
 ---
 

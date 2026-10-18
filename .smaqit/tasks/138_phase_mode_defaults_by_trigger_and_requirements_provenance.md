@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 106
+status: Completed
 created: "2026-10-18"
 mode: Assisted
 started: "2026-10-18"
+completed: "2026-10-18"
 ---
 
 # Phase Mode Defaults by Trigger (Commands Assisted, Skills Autonomous) and Requirements Provenance

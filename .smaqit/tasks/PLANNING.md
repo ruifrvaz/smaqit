@@ -5,7 +5,6 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 140 | plan-guard BLOCKED Guidance: Stop and Report, Never Take an Allow-Flag Address From the Guard's Output | In Progress | High |
-| 138 | Phase Mode Defaults by Trigger (Commands Assisted, Skills Autonomous) and Requirements Provenance | PR Open | High |
 | 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | Not Started | High |
 | 136 | existing-k3s: Fixes From the First Live Private-Mesh Deploy | PR Open | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
@@ -19,6 +18,7 @@
 
 | ID | Title |
 |----|-------|
+| 138 | Phase Mode Defaults by Trigger (Commands Assisted, Skills Autonomous) and Requirements Provenance |
 | 135 | plan-guard.sh: `--allow-delete <address>` for a Reviewed Pure Destroy |
 | 122 | existing-k3s: Support Private (Mesh-Only) Cluster Targets Alongside Public Ones |
 | 123 | existing-k3s Skill Family: Stale Text, Cross-Skill Drift, Raw Vault Usage, and an Un-Upstreamed vault-loader Patch |

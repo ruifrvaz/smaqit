@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Nothing to add.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
+## [3.17.0] - 2026-10-18
+
 **Action required:** a phase you start yourself now pauses for review. `/smaqit.development`, `/smaqit.deployment`, and `/smaqit.validation` (and the phase agents you pick in GitHub Copilot or Codex) default to **assisted** mode; say "run autonomously" to go straight through. `smaqit.new-greenfield-project`, `smaqit.feature-new`, and phases Claude starts on its own default to **autonomous**, and their review and sign-off gates now apply only in assisted mode. Run `smaqit update` in each project to refresh its `AGENTS.md` section. Specification gates also became stricter: a request that names only a project, or that relied on the agent filling in the gaps, now returns `NEEDS-INPUT` instead of generating specifications.
 
 ### Added
@@ -23,21 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - The `AGENTS.md` template no longer claims the five specification agents are directly invocable on GitHub Copilot; they are `user-invocable: false` there.
-
-### Deprecated
-- Nothing to add.
-
-### Removed
-- Nothing to add.
-
-### Fixed
-- Nothing to add.
-
-### Security
-- Nothing to add.
-
-### Chore
-- Nothing to add.
 
 ## [3.16.0] - 2026-10-18
 

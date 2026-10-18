@@ -80,3 +80,56 @@ func TestCicdTemplatesNeverAutoApprove(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// No workflow template interpolates a secret or an event value into a run:
+// script, where it becomes part of the script text, and none passes a
+// registry password on a command line.
+func TestWorkflowTemplatesKeepSecretsOutOfScripts(t *testing.T) {
+	checked := 0
+	err := fs.WalkDir(skillFilesShared, "skills-shared", func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.Contains(path, "/assets/") || !strings.HasSuffix(path, ".template") {
+			return err
+		}
+		data, err := fs.ReadFile(skillFilesShared, path)
+		if err != nil {
+			return err
+		}
+		for _, banned := range []string{"--docker-password", "--password="} {
+			if strings.Contains(string(data), banned) {
+				t.Errorf("%s contains %q", path, banned)
+			}
+		}
+		if !strings.Contains(string(data), "\njobs:") {
+			return nil
+		}
+		var workflow struct {
+			Jobs map[string]struct {
+				Steps []struct {
+					Name string `yaml:"name"`
+					Run  string `yaml:"run"`
+				} `yaml:"steps"`
+			} `yaml:"jobs"`
+		}
+		if err := yaml.Unmarshal(data, &workflow); err != nil {
+			t.Errorf("%s is not valid YAML: %v", path, err)
+			return nil
+		}
+		checked++
+		for job, spec := range workflow.Jobs {
+			for _, step := range spec.Steps {
+				for _, banned := range []string{"${{ secrets.", "${{ secrets[", "${{ github.event."} {
+					if strings.Contains(step.Run, banned) {
+						t.Errorf("%s job %s step %q interpolates %s…}} into its script; pass it through env:", path, job, step.Name, banned)
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if checked < 5 {
+		t.Errorf("checked %d workflow templates, want at least 5", checked)
+	}
+}

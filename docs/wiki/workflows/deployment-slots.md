@@ -172,6 +172,14 @@ calls for; and `verify` checks the app from inside the cluster with a short-live
 whenever the deployer can't reach it from outside (`private-mesh` or `platform-owned`). The probe's
 verdict is the Job's own status, so it works even where the platform denies `pods/log`.
 
+Three spec-wide Constraints rows apply to every environment:
+- `Probe Client`: `curl`, `wget`, or `python3`, whichever the app's image already contains.
+- `Container Registry`: `<host>, private` makes the generated workflow create the pull Secret.
+- `Deployer Exec`: defaults to `denied`. The deploy then fails when the deployer could exec into
+  pods, checked both by asking the API and by a real `kubectl exec` that must be refused. A
+  platform that grants exec on purpose is recorded as `allowed`, which turns the failure into a
+  warning.
+
 There is no default. `smaqit slots plan --mode=existing-k3s` refuses to plan an environment whose
 row is incomplete, and `smaqit spec environments [--env=<env>] [--json]` validates and prints the
 table — the same output the fillers consume. The trade-off is deliberate: a spec written before

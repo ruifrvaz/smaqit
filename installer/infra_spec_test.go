@@ -35,7 +35,7 @@ func k3sSpec(rows []k3sEnvRow, constraints map[string]string) string {
 	}
 	b.WriteString("\n## Constraints\n\n| Constraint | Description | Impact |\n|---|---|---|\n")
 	b.WriteString("| Platform Repo | example-org/platform | onboarding PR target |\n")
-	for _, name := range []string{"Mesh Join Action", "Mesh Setup-Key Input", "Mesh Wait-For Input", "Probe Client"} {
+	for _, name := range []string{"Mesh Join Action", "Mesh Setup-Key Input", "Mesh Wait-For Input", "Probe Client", "Container Registry", "Deployer Exec"} {
 		if value, ok := constraints[name]; ok {
 			b.WriteString("| " + name + " | " + value + " | used by the k3s fillers |\n")
 		}
@@ -96,6 +96,23 @@ func TestInfraEnvironmentsParseTheTable(t *testing.T) {
 	if set.find("dev").verifiesInCluster() {
 		t.Error("a public own-tls environment must verify externally")
 	}
+	if set.Registry != nil || set.DeployerExec != "denied" {
+		t.Errorf("absent rows: registry=%+v deployerExec=%q, want nil and denied", set.Registry, set.DeployerExec)
+	}
+
+	writeInfraSpec(t, root, "platform.md", k3sSpec(k3sFixtureRows, copyConstraints(map[string]string{
+		"Container Registry": "`registry.example.com:5000, private`",
+		"Deployer Exec":      "allowed",
+		"Probe Client":       "python3",
+	})))
+	set, errs = loadInfraEnvironments(root)
+	if errs = append(errs, validateInfraEnvironments(set, "")...); len(errs) > 0 {
+		t.Fatalf("optional rows: %v", errs)
+	}
+	if set.Registry == nil || set.Registry.Host != "registry.example.com:5000" || set.Registry.Visibility != "private" ||
+		set.DeployerExec != "allowed" || set.ProbeClient != "python3" {
+		t.Errorf("optional rows: registry=%+v deployerExec=%q probe=%q", set.Registry, set.DeployerExec, set.ProbeClient)
+	}
 }
 
 func TestInfraEnvironmentsRejectIncompleteRows(t *testing.T) {
@@ -132,6 +149,10 @@ func TestInfraEnvironmentsRejectIncompleteRows(t *testing.T) {
 		{"unpinned mesh action", k3sFixtureRows, copyConstraints(map[string]string{"Mesh Join Action": "example-org/mesh-join"}), "test", `"Mesh Join Action" "example-org/mesh-join" must be a pinned`},
 		{"no probe client for in-cluster verify", k3sFixtureRows, copyConstraints(nil, "Probe Client"), "prod", `Constraints row "Probe Client"`},
 		{"unknown probe client", k3sFixtureRows, copyConstraints(map[string]string{"Probe Client": "httpie"}), "", `"Probe Client" "httpie" must be one of`},
+		{"registry without visibility", k3sFixtureRows, copyConstraints(map[string]string{"Container Registry": "ghcr.io"}), "", `"Container Registry" "ghcr.io" must be`},
+		{"registry with unknown visibility", k3sFixtureRows, copyConstraints(map[string]string{"Container Registry": "ghcr.io, internal"}), "", `"Container Registry" "ghcr.io, internal" must be`},
+		{"registry host with a path", k3sFixtureRows, copyConstraints(map[string]string{"Container Registry": "ghcr.io/org, private"}), "", `"Container Registry" "ghcr.io/org, private" must be`},
+		{"unknown deployer exec", k3sFixtureRows, copyConstraints(map[string]string{"Deployer Exec": "maybe"}), "", `"Deployer Exec" "maybe" must be one of denied, allowed`},
 		{"no row for the environment", k3sFixtureRows, nil, "staging", `SLOTS-SPEC-MISSING: specs/infrastructure/platform.md "## Environments" table has no row for environment "staging"`},
 		{"duplicate environment", append(append([]k3sEnvRow(nil), k3sFixtureRows...), k3sFixtureRows[0]), nil, "", `environment "dev" is declared more than once`},
 	}

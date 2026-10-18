@@ -10,7 +10,10 @@
 #   __APP_SLUG__     — the app slug; the Namespace is always app-__APP_SLUG__
 #   __RUN_AS_USER__  — the same numeric UID the app's Deployment sets (manifest-lint.sh requires one)
 #   __PROBE_FETCH__  — the Infrastructure spec's Probe Client as a fetch command:
-#                      curl → curl -fsS -o /dev/null      wget → wget -q -O /dev/null
+#                      curl    → curl -fsS -o /dev/null
+#                      wget    → wget -q -O /dev/null
+#                      python3 → python3 -c 'import sys, urllib.request; urllib.request.urlopen(sys.argv[1], timeout=5)'
+#                      (each exits non-zero on an HTTP error status or a connection failure)
 # Left in the committed file and stamped at apply time:
 #   __IMAGE__        — this run's image reference
 #   __HEALTH_PATH__  — the environment's Health Path

@@ -53,6 +53,7 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           {
             echo "### Terraform Plan — verdict: \`${verdict}\`"
@@ -61,4 +62,4 @@ jobs:
             cat /tmp/plan-guard-output.txt
             echo '```'
           } > /tmp/pr-comment.md
-          gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/pr-comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/pr-comment.md

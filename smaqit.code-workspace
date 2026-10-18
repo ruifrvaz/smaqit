@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/141-orchestrator-skills-default-by-invocation-rename-new-greenfield-project-to-new-project-prune-retired-skills",
-      "path": "../smaqit-wt-task-141-orchestrator-skills-default-by-invocation-rename-new-greenfield-project-to-new-project-prune-retired-skills"
     }
   ],
   "settings": {

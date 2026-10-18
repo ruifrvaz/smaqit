@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.17.2] - 2026-10-18
+
+### Changed
+- **Failure handling for checks a project adds itself** (`smaqit.infrastructure-deploy-k3s-app` 2.1.1, `smaqit.infrastructure-cicd-generate` 3.2.2). New rows cover three cases:
+  - a `kubectl auth can-i` check answers `yes` for something the platform denies, because it used the `TYPE/NAME` form (`pods/exec` is read as "a pod named exec");
+  - a `--subresource` check answers `no` for everything, because `can-i` does not validate subresource names, so a misspelling passes silently;
+  - a check step ends on the very non-zero exit it was waiting for, because of GitHub's `bash -e`.
+
+  Each row gives the fix: use `--subresource=<name>`; bracket the command with `set +e`; never append `|| true`. These rows were meant for v3.16.0 but reached its branch after PR #105 had merged.
+
 ## [3.17.1] - 2026-10-18
 
 ### Fixed

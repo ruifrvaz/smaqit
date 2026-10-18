@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-provision-cyso
 description: Use when provisioning a project's VM on Cyso Cloud (OpenStack) with Terraform, re-running Terraform after infrastructure changes, or when an operator invokes /provision.cyso. Covers application credentials, the Object Storage backend, the SSH keypair, terraform init/plan/apply, and the fixed IP, producing an SSH-reachable VM with a Cinder data volume and ports 22/80/443 open.
 metadata:
-  version: "1.9.0"
+  version: "1.10.0"
   smaqit-slots: "provision=apply"
 ---
 
@@ -128,6 +128,19 @@ be hand-edited in a target project expecting the edit to persist.
    scripts/plan-guard.sh . --allow-replace openstack_compute_instance_v2.app --out tfplan
    ```
 
+   **Deliberate removal of one resource** (e.g. closing a temporary firewall opening, or retiring
+   one public port — a reviewed change whose plan is a pure destroy): name the address with
+   `--allow-delete`. It adds nothing to the plan; the guard accepts a destroy (actions exactly
+   `delete`) of exactly that address, and still blocks every other delete, a replacement of it,
+   and an address the plan doesn't destroy. Destroying a whole target is the `teardown` slot,
+   not this flag:
+   ```bash
+   scripts/plan-guard.sh . --allow-delete openstack_networking_secgroup_rule_v2.break_glass --out tfplan
+   ```
+   Both flags are repeatable and combine with each other and `--out`; one address can be named by
+   only one of them. A gated workflow passes the reviewed address as a dispatch input, never a
+   hard-coded value.
+
 7. **Apply the guarded plan (only after `plan-guard.sh` exits 0):**
    ```bash
    terraform apply tfplan
@@ -236,7 +249,7 @@ accessible with the project's deploy keypair, Terraform state in `<project-slug>
 - [ ] Backend variables set (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 - [ ] Terraform provider variables set (correct casing; `TF_VAR_github_token`; ssh key newline stripped)
 - [ ] `terraform init` succeeded with remote state backend
-- [ ] `scripts/plan-guard.sh --out tfplan` run and exited 0 — plan is additive/update-only, or replaces only an address named with `--allow-replace`
+- [ ] `scripts/plan-guard.sh --out tfplan` run and exited 0 — plan is additive/update-only, or replaces only addresses named with `--allow-replace` and destroys only addresses named with `--allow-delete`
 - [ ] `terraform apply tfplan` succeeded; `fixed_ip` noted from outputs
 - [ ] SSH access to VM confirmed via the project's deploy keypair
 - [ ] `.terraform.lock.hcl` committed if regenerated
@@ -255,5 +268,5 @@ accessible with the project's deploy keypair, Terraform state in `<project-slug>
 | Image ID not found | Run `openstack image list`; update `variables.tf` with current ID |
 | Keypair replacement shown in plan | Strip trailing newline; re-export `TF_VAR_ssh_public_key` using `tr -d '\n'` |
 | SSH access fails after apply | Verify security group allows port 22; confirm key fingerprint matches uploaded keypair |
-| `scripts/plan-guard.sh` exits non-zero | Do NOT apply. Review the named resource(s). An intentional replacement of a named resource: re-run with `--allow-replace <address> --out tfplan` and apply `tfplan`. A genuine destroy: apply manually outside this guarded path with explicit sign-off |
-| `plan-guard.sh` reports an `--allow-replace` address the plan does not replace | The address is wrong or already gone; check `terraform state list` and correct it — never fall back to an unguarded apply |
+| `scripts/plan-guard.sh` exits non-zero | Do NOT apply. Review the named resource(s). An intentional replacement of a named resource: re-run with `--allow-replace <address> --out tfplan` and apply `tfplan`. A reviewed removal of one resource: re-run with `--allow-delete <address> --out tfplan` and apply `tfplan`. Destroying a whole target: the `teardown` slot, with explicit sign-off |
+| `plan-guard.sh` reports an `--allow-replace` address the plan does not replace, or an `--allow-delete` address it does not purely destroy | The line shows what the plan does with it instead (`planned: …`). `not in the plan` means the address is wrong or already gone — check `terraform state list`. A replace where a destroy was allowed (or the reverse) means the change is not the one reviewed. Correct it; never fall back to an unguarded apply |

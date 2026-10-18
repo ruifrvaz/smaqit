@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-cicd-generate
 description: 'Use when generating or updating GitHub Actions CI/CD workflows: the VM set (deploy.yml, provision.yml, post-merge-deploy.yml) for Node.js + React via Terraform and Docker Compose, or the k3s two-job deploy.yml + post-merge-deploy.yml, or when an operator invokes /cicd.generate. Inside smaqit.new-greenfield-project the deployment agent generates them itself. Never generates copilot-setup-steps.yml.'
 metadata:
-  version: "3.0.0"
+  version: "3.1.0"
   smaqit-slots: "ci-generate=generate"
 ---
 
@@ -216,6 +216,12 @@ workflow, templated or not, must avoid them:
   apply with `terraform apply tfplan`. The guard plans with `-replace=`, accepts only that
   replacement, and keeps the exact plan it inspected; a bare `terraform plan -replace=… && apply`
   bypasses it. `prevent_destroy` on that resource must be lifted for the run, or the plan fails.
+- **A deliberate removal of one resource goes through the guard the same way.** A gated workflow
+  that offers a "remove this resource" input (closing a temporary firewall opening, retiring one
+  port) passes it as `plan-guard.sh <dir> --allow-delete "$INPUT" --out tfplan`. The flag adds
+  nothing to the plan: the reviewed configuration change produces the destroy, and the guard
+  accepts only a pure destroy of that address. Pass the input to the step through `env:`, never
+  interpolated into the script.
 
 ## Completion
 

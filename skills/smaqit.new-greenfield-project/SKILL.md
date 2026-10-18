@@ -47,31 +47,31 @@ Applicability below depends on `provisioning_mode` (resolved by `smaqit.input-de
 
 Invoke smaqit agents by name: through the Task tool on Claude Code, `runSubagent` on GitHub Copilot, or by spawning the named subagent on Codex. A phase agent's slash command (`/smaqit.development`, `/smaqit.deployment`, `/smaqit.validation`) is equivalent where it exists. Specification agents have no slash command on Claude Code.
 
-Pass every phase agent an explicit parameter block. It holds `mode` (the Phase 0 execution mode), `specification_mode`, `spec_paths`, and any deployment parameters, because a subagent does not see this conversation. Specifications the user approved in Phase 2 are always handed on as `specification_mode: prevalidated` with exact `spec_paths`; otherwise the phase agent would find them still `draft` and generate them again.
+Pass every phase agent an explicit parameter block. It holds `mode` (the Phase 0 execution mode), `user_request` (the operator's own words that started this run, verbatim, never a summary or expansion), `specification_mode`, `spec_paths`, and any deployment parameters, because a subagent does not see this conversation. Specifications the user approved in Phase 2 are always handed on as `specification_mode: prevalidated` with exact `spec_paths`; otherwise the phase agent would find them still `draft` and generate them again.
 
 When an agent returns `NEEDS-INPUT` or `REVIEW-REQUESTED`, ask the user what it lists. Then resume that agent with the answers as `answers`, or invoke it again with the same parameters plus `answers` and the signal's `approved_spec_paths`. Repeat until it returns a final result. Never answer a signal on the user's behalf.
 
 ### Phase 0 — Task Creation (Entry Point)
 
-The operator triggers this phase manually and sets execution mode before any work begins.
+The operator triggers this phase manually. Execution mode is **Autonomous** unless the operator asks for assisted mode (for example "assisted" or "review each phase"); a mode the operator states always wins.
 
 1. Decide execution mode:
-   - **Assisted** — operator is present at each gate; phases do not advance without explicit approval.
-   - **Autonomous** — all phases run sequentially without gate interruptions; operator reviews at Phase 8.
+   - **Autonomous** (default) — all phases run sequentially on a best-effort basis, stopping only for `NEEDS-INPUT` and human operations: credential prompts, the synthesized-skill checkpoint, PR merges, and the release. Gates marked *(assisted only)* are skipped; every other gate is a check the run must still pass. The operator reviews at Phase 8.
+   - **Assisted** — the operator is present at each gate; phases do not advance without explicit approval, and every specification layer works only from requirements the operator stated.
 2. Invoke `smaqit.task-create` once for each of Phases 1–7 (include Phase 6 if domain/TLS is planned). Each task covers one phase; acceptance criteria are sourced from the respective phase gate.
-3. **Gate:** All task files created in `.smaqit/tasks/`. Operator confirms mode and approves the task set.
+3. **Gate:** All task files created in `.smaqit/tasks/`. *(Assisted only)* Operator confirms mode and approves the task set.
 
 ### Phase 1 — Requirements Extraction
 
 1. Invoke `smaqit.task-start` for the Phase 1 task.
 2. Invoke `smaqit.requirements-extract`.
-3. Review the flagged ambiguities with the user. Resolve any that would block specification (e.g., conflicting data model shapes, undefined score ranges).
-4. **Gate:** Confirm extracted inventory is sufficient to proceed to specs.
+3. Review the flagged ambiguities with the user. Resolve any that would block specification (e.g., conflicting data model shapes, undefined score ranges); these are questions for the user in either mode, never answered on their behalf.
+4. **Gate:** *(Assisted only)* Confirm extracted inventory is sufficient to proceed to specs.
 5. Invoke `smaqit.task-complete` for the Phase 1 task.
 
 ### Phase 2 — Specification
 
-Run each specification agent sequentially. Each agent reads the previous layer's output and applies its own input skill. An agent that cannot ask the user returns `NEEDS-INPUT` instead of writing anything; handle it as described in Agent Invocation and Return Signals.
+Run each specification agent sequentially. Pass each one `mode` from Phase 0, `user_request`, and `.smaqit/requirements-extract.md` as a requirements file the user pointed at: it was extracted from the operator's own assets, so its content counts as user-stated. Each agent reads the previous layer's output and applies its own input skill. An agent that cannot ask the user returns `NEEDS-INPUT` instead of writing anything; handle it as described in Agent Invocation and Return Signals.
 
 1. Invoke `smaqit.task-start` for the Phase 2 task.
 2. Invoke the `smaqit.business` specification agent.
@@ -80,7 +80,7 @@ Run each specification agent sequentially. Each agent reads the previous layer's
 5. Invoke the `smaqit.infrastructure` specification agent.
 6. Invoke the `smaqit.coverage` specification agent.
 7. Invoke `smaqit.design-validate` for every generated pair. Confirm `smaqit design validate` passes and the active agent has opened each PNG; PlantUML-source reading is not a visual-review fallback.
-8. **Gate:** All specs have `status: draft`, acceptance criteria written, and current visually approved same-layer design pairs. User reviews and approves the full spec/design set. Record the approved specification paths per layer: they are the **Phase 2 spec set** that later phases hand on as `spec_paths`.
+8. **Gate:** All specs have `status: draft`, acceptance criteria written, and current visually approved same-layer design pairs. *(Assisted only)* User reviews and approves the full spec/design set. Record the specification paths per layer (the approved ones, in assisted mode): they are the **Phase 2 spec set** that later phases hand on as `spec_paths`.
 9. Invoke `smaqit.task-complete` for the Phase 2 task.
 
 ### Phase 3 — Development
@@ -168,7 +168,7 @@ If skipped: application is accessible at `http://<fixed_ip>`. Document as an ope
 1. Invoke `smaqit.task-start` for the Phase 7 task.
 2. Invoke the `smaqit.validation` agent with `mode` from Phase 0, `specification_mode: prevalidated`, and the Phase 2 Coverage specs as `spec_paths`.
 3. If any spec is found inconsistent with the live system: amend in-place with an `amendment:` annotation.
-4. **Gate:** All validation checks pass. User signs off.
+4. **Gate:** All validation checks pass. *(Assisted only)* User signs off.
 5. Invoke `smaqit.task-complete` for the Phase 7 task, ensuring any amendments are captured under `Decisions made`.
 
 ### Phase 8 — Release

@@ -9,7 +9,7 @@ smaqit agents are designed to stop and request clarification when input is uncle
 **When input is unclear:**
 - Stop and request clarification
 - Do not invent requirements
-- Flag assumptions explicitly
+- Never fill a required section with an assumption
 
 The cost of clarification is lower than the cost of rework from incorrect assumptions.
 
@@ -77,16 +77,24 @@ Implementation agents validate cross-layer coherence:
 
 Don't silently choose one layer over another. Stop and report the conflict.
 
-### 4. Explicit Assumption Flagging
+### 4. Requirements Come From the User
 
-When agents must proceed with uncertainty:
+A gate counts only what the user actually stated: their request (passed verbatim as `user_request`), their answers to an earlier question, their own messages, and files they pointed at, such as `.smaqit/requirements-extract.md`. Three things look like requirements and are not:
 
-```markdown
-**Assumption:** User data is stored in relational database (not specified)
-**Flag:** Confirm database type before implementation
-```
+- **A name.** A blank project titled "mario-app" states no actor, no use case, and no success metric. An LLM will happily turn "Mario" into a fan site with a greeting and a button, and that is exactly the opinionated cycle this rule exists to prevent.
+- **The agent's own knowledge.** Knowing what a typical checkout flow looks like is not knowing what this user's checkout must do.
+- **A caller's retelling.** When a main conversation or orchestrator hands the request to a subagent, its summary can quietly add detail. The verbatim `user_request` is what counts.
 
-Make assumptions visible so users can correct them.
+How strictly upstream specifications count depends on the mode:
+
+| Mode | Upstream specifications |
+|---|---|
+| `assisted` (the default when the user starts a phase) | Context for coherence only. Every required section traces to the user's own statements, so each layer may ask for what the user hasn't said yet |
+| `autonomous` (the default for orchestrating skills and model-started phases) | Count as requirement sources, since they passed their own gate. The run asks only where nothing upstream covers a section |
+
+### 5. No Assumption-Flagging for Required Sections
+
+Earlier versions let an agent proceed with a flagged assumption when it couldn't reach the user. That escape hatch is gone: every agent can now return `NEEDS-INPUT`, so clarification is always available, and a flagged assumption was in practice an invented requirement with a label. Optional sections may still use a default, as long as the specification states it as a default.
 
 ## Trade-offs
 
@@ -125,10 +133,10 @@ Agent: "Please specify: Which cloud provider? Budget constraints? Geographic req
 
 ## When to Bend the Rule
 
-Don't fail-fast on:
+Don't fail-fast on (outside required sections):
 - Minor stylistic details (agent can choose)
-- Standard industry practices (agent can assume best practices)
-- Easily reversible decisions (agent can proceed with default)
+- Standard industry practices (agent can assume best practices, and states the choice)
+- Easily reversible decisions (agent can proceed with a stated default)
 
 **Good:** Stop for "what authentication methods?"  
 **Bad:** Stop for "what hex color for error messages?"

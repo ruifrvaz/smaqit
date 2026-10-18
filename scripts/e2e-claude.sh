@@ -11,7 +11,7 @@
 #      the refresh token is never used, so the run cannot rotate your live login.
 #
 # Usage: scripts/e2e-claude.sh [--binary PATH] [--scenarios LIST]
-#   SCENARIOS        comma-separated: happy-path,needs-input,assisted,self-invocation (default all)
+#   SCENARIOS        comma-separated: happy-path,needs-input,assisted,self-invocation,empty-request,title-only (default all)
 #   E2E_BUDGET_USD   spend cap per claude turn (default 10)
 #   E2E_TIMEOUT      wall-clock seconds per claude turn (default 3600)
 #   E2E_MAX_TURNS    main-thread turn cap per claude turn (default 200)
@@ -27,7 +27,7 @@ fixture="$script_dir/e2e/hello-site"
 log_check="$script_dir/e2e/log_check.py"
 
 binary_input="$repo_root/installer/dist/smaqit-dev"
-scenarios="${SCENARIOS:-happy-path,needs-input,assisted,self-invocation}"
+scenarios="${SCENARIOS:-happy-path,needs-input,assisted,self-invocation,empty-request,title-only}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --binary) binary_input="$2"; shift 2 ;;
@@ -81,8 +81,8 @@ fi
 IFS=',' read -r -a selected <<< "$scenarios"
 for scenario in "${selected[@]}"; do
   case "$scenario" in
-    happy-path|needs-input|assisted|self-invocation) ;;
-    *) fail "Unknown scenario: '$scenario' (choose from happy-path, needs-input, assisted, self-invocation)" ;;
+    happy-path|needs-input|assisted|self-invocation|empty-request|title-only) ;;
+    *) fail "Unknown scenario: '$scenario' (choose from happy-path, needs-input, assisted, self-invocation, empty-request, title-only)" ;;
   esac
 done
 
@@ -229,10 +229,11 @@ hashes_unchanged() {  # hashes_unchanged <project> <snapshot>
   done < "$2"
 }
 
-new_project() {  # new_project <scenario> -> prints project path
-  local project="$e2e_root/projects/$1"
+new_project() {  # new_project <scenario> [dir-name] [readme-title] -> prints project path
+  local project="$e2e_root/projects/${2:-$1}"
   mkdir -p "$project"
   git -C "$project" init -q
+  [[ -z "${3:-}" ]] || printf '# %s\n' "$3" > "$project/README.md"
   (cd "$project" && smaqit init) > "$evidence_root/$1/init.log"
   grep -Fxq '## When to use smaqit' "$project/AGENTS.md" || fail "$1: AGENTS.md lacks the 'When to use smaqit' block"
   echo "$project"
@@ -255,7 +256,7 @@ finish_scenario() {  # finish_scenario <scenario> <project>
 scenario_happy_path() {
   local dir="$evidence_root/happy-path" project
   project="$(new_project happy-path)" || fail "happy-path: project setup failed"
-  run_turn "$project" "$dir" 1 "/smaqit.development $(cat "$fixture/requirements.md")"
+  run_turn "$project" "$dir" 1 "/smaqit.development Run autonomously, with no review pauses. $(cat "$fixture/requirements.md")"
   develop_checks "$project" "$dir/checks.txt"
   finish_scenario happy-path "$project"
 }
@@ -263,7 +264,7 @@ scenario_happy_path() {
 scenario_needs_input() {
   local dir="$evidence_root/needs-input" project
   project="$(new_project needs-input)" || fail "needs-input: project setup failed"
-  run_turn "$project" "$dir" 1 "/smaqit.development $(cat "$fixture/thin-requirements.md")"
+  run_turn "$project" "$dir" 1 "/smaqit.development Run autonomously, with no review pauses. $(cat "$fixture/thin-requirements.md")"
   check "$dir/checks.txt" "turn 1 wrote no specification" no_specs "$project"
   check "$dir/checks.txt" "turn 1 returned NEEDS-INPUT" signal_in "$dir/turn-1.jsonl" NEEDS-INPUT
   if [[ -n "$last_session" ]]; then
@@ -277,7 +278,8 @@ scenario_assisted() {
   local dir="$evidence_root/assisted" project turn=1 approved="$e2e_root/assisted-approved.sha256"
   project="$(new_project assisted)" || fail "assisted: project setup failed"
   : > "$approved"
-  run_turn "$project" "$dir" 1 "/smaqit.development Use assisted mode: I want to review and approve each specification layer before you continue. $(cat "$fixture/requirements.md")"
+  run_turn "$project" "$dir" 1 "/smaqit.development $(cat "$fixture/requirements.md")"
+  # No mode is stated: a typed phase command must default to assisted.
   check "$dir/checks.txt" "turn 1 returned REVIEW-REQUESTED" signal_in "$dir/turn-1.jsonl" REVIEW-REQUESTED
   check "$dir/checks.txt" "turn 1 stopped after the business layer" has_specs "$project" business
   check "$dir/checks.txt" "turn 1 wrote no functional spec yet" test "$(spec_count "$project" functional)" -eq 0
@@ -302,6 +304,26 @@ scenario_self_invocation() {
   finish_scenario self-invocation "$project"
 }
 
+# The provenance guard: neither a bare command nor a project name is a requirement. Both runs
+# must stop at the first specification gate with NEEDS-INPUT and write nothing.
+scenario_empty_request() {
+  local dir="$evidence_root/empty-request" project
+  project="$(new_project empty-request)" || fail "empty-request: project setup failed"
+  run_turn "$project" "$dir" 1 "/smaqit.development"
+  check "$dir/checks.txt" "bare command wrote no specification" no_specs "$project"
+  check "$dir/checks.txt" "bare command returned NEEDS-INPUT" signal_in "$dir/turn-1.jsonl" NEEDS-INPUT
+  finish_scenario empty-request "$project"
+}
+
+scenario_title_only() {  # a self-invoked (autonomous) run whose only context is the project's name
+  local dir="$evidence_root/title-only" project
+  project="$(new_project title-only mario-app mario-app)" || fail "title-only: project setup failed"
+  run_turn "$project" "$dir" 1 "$(cat "$fixture/title-only-request.md")"
+  check "$dir/checks.txt" "title-only request wrote no specification" no_specs "$project"
+  check "$dir/checks.txt" "title-only request returned NEEDS-INPUT" signal_in "$dir/turn-1.jsonl" NEEDS-INPUT
+  finish_scenario title-only "$project"
+}
+
 for scenario in "${selected[@]}"; do
   mkdir -p "$evidence_root/$scenario"
   scenario_failures=0
@@ -311,6 +333,8 @@ for scenario in "${selected[@]}"; do
     needs-input) scenario_needs_input ;;
     assisted) scenario_assisted ;;
     self-invocation) scenario_self_invocation ;;
+    empty-request) scenario_empty_request ;;
+    title-only) scenario_title_only ;;
     *) fail "Unknown scenario: $scenario" ;;
   esac
 done

@@ -55,7 +55,7 @@ The Develop phase transforms user requirements into a working, tested applicatio
 Implementation agents perform pre-orchestration validation to verify readiness (see AGENTS.md Pre-Orchestration Validation concept). For Development phase, validation includes:
 
 - Input sufficiency check for session context
-- Context sufficiency check — session context contains actionable requirements for spec generation
+- Context sufficiency check — the user has stated actionable requirements for spec generation (see AGENTS.md Session Context: a project name, the agent's own knowledge, or a caller's paraphrase is not one)
 - Execution environment readiness
 - Automatic `smaqit plan --phase=develop` design-readiness gate after specification generation
 
@@ -98,7 +98,7 @@ The Deploy phase transforms a working application into a running system in a tar
 Implementation agents perform pre-orchestration validation to verify readiness (see AGENTS.md Pre-Orchestration Validation concept). For Deployment phase, validation includes:
 
 - Input sufficiency check for infrastructure requirements
-- Context sufficiency check — session context contains actionable deployment requirements
+- Context sufficiency check — the user has stated actionable deployment requirements, or (in `autonomous` mode) upstream specifications carry them
 - Execution environment and credentials readiness
 - Automatic `smaqit plan --phase=deploy` design-readiness gate after specification generation
 
@@ -178,7 +178,7 @@ The Validate phase verifies that the deployed system satisfies all specification
 Implementation agents perform pre-orchestration validation to verify readiness (see AGENTS.md Pre-Orchestration Validation concept). For Validation phase, validation includes:
 
 - Input sufficiency check for test requirements
-- Context sufficiency check — session context contains actionable test requirements
+- Context sufficiency check — the user has stated actionable test requirements, or (in `autonomous` mode) upstream specifications carry them
 - Deployed system accessibility and test execution environment readiness
 - Automatic `smaqit plan --phase=validate` design-readiness gate after specification generation
 

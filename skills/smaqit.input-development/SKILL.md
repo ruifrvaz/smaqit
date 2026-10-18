@@ -2,7 +2,7 @@
 name: smaqit.input-development
 description: Validate and elicit development phase parameters from session context before implementation begins. Invoke automatically before starting the Development phase to confirm or default execution preferences.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Development Input
@@ -11,7 +11,7 @@ Validate session context for development execution preferences before the Develo
 
 ## Steps
 
-1. **Extract from session context** — Take any parameter the caller already passed as resolved and never ask about it again. Scan for any explicit build preferences, environment constraints, or output requirements
+1. **Extract from session context** — Take any parameter the caller already passed as resolved and never ask about it again. Record the user's request verbatim (see User Request) and what started this phase (see Mode). Scan for any explicit build preferences, environment constraints, or output requirements
 2. **Apply defaults** — Use standard defaults for all unspecified parameters (listed below)
 3. **Resolve blocking parameters** — A parameter is blocking only if it is referenced but missing, or if its absence would cause the wrong behavior. If you can ask the user directly, ask. Otherwise return `NEEDS-INPUT` (see below), listing every blocking parameter at once
 4. **Output the parameter block** — Emit the Phase Parameters block (see Output). A caller passes it to the phase agent unchanged. A phase agent that applied this skill itself, because no block was passed, uses it directly
@@ -19,11 +19,18 @@ Validate session context for development execution preferences before the Develo
 ## Parameters
 
 ### Mode
-**Default:** `autonomous`  
-**Elicit when:** The request mentions reviewing or approving specifications before implementation but does not make clear whether every layer should pause for review  
-**Question:** "Should each specification layer pause for your review and approval before implementation continues (assisted), or run straight through (autonomous)?"
+**Default:** Set by what started the phase:
+- `assisted` — the user started it: they typed `/smaqit.development`, or picked or named the `smaqit.development` agent. This is also the default when the phase agent applies this skill itself because no block was passed.
+- `autonomous` — it started automatically: the model routed a request here on its own, or an orchestrating skill (`smaqit.new-greenfield-project`, `smaqit.feature-new`) passed its own `mode`.
 
-A request that clearly asks to review each specification resolves to `assisted` without asking.
+**Override:** A mode the user states always wins. "Assisted" or "review each specification" resolves to `assisted`; "autonomous", "run straight through", or "no review pauses" resolves to `autonomous`.
+**Elicit when:** Never — what started the phase, or the user's own words, decides it
+
+Assisted works only from requirements the user stated, pauses with `REVIEW-REQUESTED` after each specification layer, and ends the phase by asking the user to review it before moving on. Autonomous runs straight through on a best-effort basis and stops only for `NEEDS-INPUT`.
+
+### User Request
+**Value:** The user's own words that started this phase, verbatim — never a summary, paraphrase, or expansion. Empty when the user gave none (for example a bare `/smaqit.development`). An orchestrating skill passes the request the user gave it
+**Elicit when:** Never. An empty request is not blocking here: each specification layer's input gate decides whether the requirements are sufficient
 
 ### Specification Mode
 **Default:** `orchestrate`. The value is `prevalidated`, with exact `spec_paths`, only when the caller passes it (e.g. `smaqit.feature-new`, or `smaqit.new-greenfield-project` after its own specification phase)  
@@ -53,7 +60,8 @@ No required sections — defaults are always valid. Proceed immediately unless a
 ```
 PHASE-PARAMETERS
 phase: develop
-mode: autonomous
+mode: assisted
+user_request: "<the user's words, verbatim; empty if none>"
 specification_mode: orchestrate
 spec_paths: []
 approved_spec_paths: []
@@ -74,7 +82,7 @@ source: smaqit.input-development
 phase: develop
 written: nothing
 questions:
-  - id: <parameter name, e.g. mode>
+  - id: <parameter name, e.g. environment>
     question: "<the parameter's question above>"
     why: "<what makes it blocking>"
 next: Ask the user these questions, then apply this skill again (or resume the agent) with the answers as `answers`, keyed by id.

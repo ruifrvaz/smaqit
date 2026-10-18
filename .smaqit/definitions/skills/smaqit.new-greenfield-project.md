@@ -39,7 +39,7 @@ Run each specification agent sequentially. Each agent reads the previous layer's
 3. Run `smaqit.input-stack` → invoke `@smaqit.stack` agent.
 4. Run `smaqit.input-infrastructure` → invoke `@smaqit.infrastructure` agent.
 5. Run `smaqit.input-coverage` → invoke `@smaqit.coverage` agent.
-6. **Gate:** All specs have `status: draft` and acceptance criteria written. User reviews and approves spec set.
+6. **Gate:** All specs have `status: draft` and acceptance criteria written. *(Assisted only)* User reviews and approves spec set.
 
 ### Phase 3 — Task Creation + CI/CD Generation
 1. Invoke `smaqit.task-create` to create the MVP task (mode: autonomous; acceptance criteria from business spec).

@@ -5,10 +5,6 @@
       "path": "."
     },
     {
-      "name": "task/135-plan-guard-sh-allow-delete-address-for-a-reviewed-pure-destroy",
-      "path": "../smaqit-wt-task-135-plan-guard-sh-allow-delete-address-for-a-reviewed-pure-destroy"
-    },
-    {
       "name": "task/136-existing-k3s-fixes-from-the-first-live-private-mesh-deploy",
       "path": "../smaqit-wt-task-136-existing-k3s-fixes-from-the-first-live-private-mesh-deploy"
     }

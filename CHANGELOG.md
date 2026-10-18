@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Nothing to add.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
+## [3.16.0] - 2026-10-18
+
 **Action required:** regenerate CI/CD workflows with `smaqit.infrastructure-cicd-generate` in every mode. The post-merge dispatcher it generated never dispatched, and every template now passes secrets through `env:`. For `existing-k3s`, also re-vendor `deployment/k3s/scripts/` (now including `exec-refused.sh`). A k3s deploy now **fails when the deployer can exec into pods**: ask the platform to remove `pods/exec` from the deployer's Role, or add `Deployer Exec: allowed` to the Infrastructure spec's Constraints if the grant is deliberate. A private image's pull Secret is now rendered from the `Container Registry` row, which must read `<host>, public` or `<host>, private`.
 
 ### Added

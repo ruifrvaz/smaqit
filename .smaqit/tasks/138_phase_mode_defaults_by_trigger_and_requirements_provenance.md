@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 106
 created: "2026-10-18"
 mode: Assisted
 started: "2026-10-18"
@@ -90,30 +91,44 @@ The approved model: smaqit has human-triggered entry points (the three phase com
 
 ## Acceptance Criteria
 
-- [ ] With no stated mode, a user-started phase entry point (typed `/smaqit.<phase>`, or a Copilot/Codex agent the user picked) resolves `mode: assisted`; a model-started phase and greenfield/feature-new resolve `autonomous`; a mode stated in the request always wins
-- [ ] In assisted mode each layer pauses with `REVIEW-REQUESTED` and each phase's final output asks the user to review it and names the next phase's entry point; the stale Workflow Handover targets are corrected
-- [ ] In autonomous mode greenfield and feature-new stop only for `NEEDS-INPUT` and human operations (PR merges, synthesized-skill checkpoint, credential prompts); Phase 0 confirmation, inventory check, spec-set approval, and validation sign-off are assisted-only
-- [ ] `PHASE-PARAMETERS` carries `user_request` verbatim; phase agents pass `user_request`, `answers`, and `mode` unchanged to specification agents
-- [ ] Layer gates count only user-stated requirements (`user_request`, `answers`, user-pointed files including `.smaqit/requirements-extract.md`); project/directory names, model world knowledge, and orchestrator paraphrase never satisfy a required section in either mode; autonomous also counts upstream specs; assisted requires each layer's required sections to trace to the user's own statements, with upstream specs for cross-layer coherence only
-- [ ] No specification or phase agent directive permits filling a required section with an assumption; Coverage's inferred risk-profile clause is removed, and Stack's "agent's recommendation" counts only when the user states it
-- [ ] e2e-claude has `empty-request` (bare `/smaqit.development`) and `title-only` (plain self-invoked "Let's build mario-app" in a `mario-app` project) scenarios, each asserting `NEEDS-INPUT` and no files under `specs/`; `assisted` passes without asking for assisted mode; all six scenarios pass live
-- [ ] `framework/AGENTS.md`, `framework/PHASES.md`, `templates/AGENTS.md.template` (heading `## When to use smaqit` unchanged), README, wiki, and compendium describe the new defaults; `make prepare`, `make test`, `make smoke-test` pass; CHANGELOG has an action-required note
+- [x] With no stated mode, a user-started phase entry point (typed `/smaqit.<phase>`, or a Copilot/Codex agent the user picked) resolves `mode: assisted`; a model-started phase and greenfield/feature-new resolve `autonomous`; a mode stated in the request always wins
+- [x] In assisted mode each layer pauses with `REVIEW-REQUESTED` and each phase's final output asks the user to review it and names the next phase's entry point; the stale Workflow Handover targets are corrected
+- [x] In autonomous mode greenfield and feature-new stop only for `NEEDS-INPUT` and human operations (PR merges, synthesized-skill checkpoint, credential prompts); Phase 0 confirmation, inventory check, spec-set approval, and validation sign-off are assisted-only
+- [x] `PHASE-PARAMETERS` carries `user_request` verbatim; phase agents pass `user_request`, `answers`, and `mode` unchanged to specification agents
+- [x] Layer gates count only user-stated requirements (`user_request`, `answers`, user-pointed files including `.smaqit/requirements-extract.md`); project/directory names, model world knowledge, and orchestrator paraphrase never satisfy a required section in either mode; autonomous also counts upstream specs; assisted requires each layer's required sections to trace to the user's own statements, with upstream specs for cross-layer coherence only
+- [x] No specification or phase agent directive permits filling a required section with an assumption; Coverage's inferred risk-profile clause is removed, and Stack's "agent's recommendation" counts only when the user states it
+- [!] e2e-claude has `empty-request` (bare `/smaqit.development`) and `title-only` (plain self-invoked "Let's build mario-app" in a `mario-app` project) scenarios, each asserting `NEEDS-INPUT` and no files under `specs/`; `assisted` passes without asking for assisted mode; all six scenarios pass live — scenarios written and syntax-checked; the live run is pending and must pass before the PR merges
+- [x] `framework/AGENTS.md`, `framework/PHASES.md`, `templates/AGENTS.md.template` (heading `## When to use smaqit` unchanged), README, wiki, and compendium describe the new defaults; `make prepare`, `make test`, `make smoke-test` pass; CHANGELOG has an action-required note
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Mode now defaults by trigger in the three phase input skills: assisted when the user started the phase (typed command, picked agent, or a phase agent invoked with no block), autonomous when the model or an orchestrator did; a stated mode always wins and the mode question was dropped
+- Added a verbatim `user_request` field to `PHASE-PARAMETERS`; phase commands, phase agents, and both orchestrators pass it, plus `mode`, unchanged to every specification agent
+- Added a shared Requirement Sources section to all five layer gates (user request, answers, the user's own messages, user-pointed files including `requirements-extract.md`; names, model knowledge, and paraphrase never count) with a mode-dependent upstream-spec rule; spec agents' Session Context matches it
+- Replaced every assumption-filling directive in spec and phase agents and in `framework/AGENTS.md` with a `NEEDS-INPUT` rule; removed Coverage's inferred risk-profile clause and tightened Stack's "agent's recommendation"
+- Greenfield and feature-new Phase 0 default to Autonomous, with task-set confirmation, inventory check, spec-set approval, and validation sign-off marked assisted-only
+- Assisted phases end with a review prompt naming the next phase command; fixed the stale development and deployment handover targets
+- e2e-claude gained `empty-request` and `title-only` scenarios (with `new_project` directory and README seeding); `assisted` now tests the default, and `happy-path`/`needs-input` state "run autonomously"
+- Verified with `make prepare`, `make test`, `make smoke-test`, and greps of the generated Copilot, Claude, and Codex artifacts
 
 **Decisions made:**
-- TBD
+- feature-new still starts its parent task in Assisted task mode in both execution modes: the task lifecycle's Autonomous mode self-merges the task PR, which is the release, and a PR merge is a human operation (deviates from the plan's "task-start mode follows Phase 0")
+- A phase agent invoked without a parameter block defaults to assisted, so a Claude self-delegation that forgets its block fails toward an extra review pause
+- Greenfield's "structural divergences need operator approval" stop stays in autonomous runs: it fires when code cannot follow an approved spec, which is closer to `NEEDS-INPUT` than to a review gate
+- Business, the entry layer, traces required sections to the user in either mode; only downstream layers count upstream specs in autonomous mode
+- The older `.smaqit/definitions/skills/smaqit.new-greenfield-project.md` keeps `mode: autonomous` on its MVP task, which now matches the orchestrator default; only its spec-set gate was marked assisted-only
+- `scripts/e2e/log_check.py` was left unchanged: its existing `signal` and `delegated` checks cover both new scenarios
+- `qa.md` keeps its assumption directives; it answers questions and generates no specifications
+- The `AGENTS.md` template no longer claims the spec agents are directly invocable on Copilot (they are `user-invocable: false`)
 
 **Blockers encountered:**
-- TBD
+- The live `make -C installer e2e-claude` run was not performed before opening the PR, at the user's direction; acceptance criterion 7 is marked `[!]` until the six scenarios pass live
 
 **Follow-up identified:**
-- TBD
+- Run the six e2e-claude scenarios live (empty-request and title-only first) before merging; `title-only` may fail its `NEEDS-INPUT` check if Claude answers a plain "Let's build mario-app." with its own questions instead of routing to smaqit, even though nothing is written
+- A `scripts/generate-agents.py` check that every phase command and agent states the trigger-based default, as input-skill reachability is checked today
+- claude-code #82456 (an undocumented directive against unrequested Agent-tool use) may stop model-started phases from delegating to the proactive phase subagents; the self-invocation and title-only scenarios will show which path fires
 
 ## Files to Create / Modify
 

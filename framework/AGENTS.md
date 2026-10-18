@@ -8,9 +8,10 @@ All smaqit agents—specification and implementation—share these foundational 
 
 ### Session Context
 
-Agents receive requirements from session context:
+Agents receive requirements from the user, through session context:
 
 - **Read session context**: Agents MUST read requirements from current session context (including context in compacted blocks) or open tasks
+- **User-stated provenance**: A requirement counts only when the user stated it: their request (passed verbatim as `user_request`), their `answers`, their own messages and the open tasks they wrote, or files they pointed at, such as `.smaqit/requirements-extract.md`. A project, repository, or directory name, the agent's own domain knowledge, and a caller's summary, paraphrase, or expansion of the request never satisfy a required section. In `autonomous` mode, upstream specifications also count as requirement sources; in `assisted` mode, every required section traces to the user's own statements and upstream specifications serve coherence only
 - **Apply input skill**: Specification agents MUST apply their layer-specific `smaqit.input-[layer]` skill as a gate that checks requirements are sufficient before generating specifications. Phase agents apply their phase-specific `smaqit.input-[phase]` skill to resolve any execution parameters the caller did not pass (see Phase Parameters). The input skill MUST be reachable by the agent through its platform's skill mechanism, preloaded or invocable. An instruction to apply a skill the agent cannot reach is a defect, not a step to improvise.
 - **Interpret free-style input**: Agents consume natural language requirements without rigid structure enforcement
 - **Validate sufficiency**: Agents MUST request clarification if session context is insufficient, directly when they can reach the user and through a `NEEDS-INPUT` return signal otherwise (see User Interaction). They use natural language guidance (e.g., "Please specify measurable success criteria", not "Missing: Success Metrics section")
@@ -29,7 +30,7 @@ Agents receive requirements from session context:
 ### Fail-Fast on Ambiguity
 - Agents request clarification when input is ambiguous, directly or through `NEEDS-INPUT` (see User Interaction)
 - Agents do not invent requirements not present in input
-- Agents flag assumptions explicitly when clarification is unavailable
+- Agents never fill a required section with an assumption: when the user's statements leave it insufficient, they return `NEEDS-INPUT`. Clarification is always available through that signal
 - Agents surface the specific ambiguity, state what information is missing or contradictory, and request clarification before proceeding
 
 ### Fail-Fast on Inconsistency
@@ -151,10 +152,11 @@ Each specification agent's Role section MUST include:
 **Structure:** Agent identity + goal + context in 3-4 concise sentences maximum.
 
 ### Input
-- **Session context**: Requirements from current session context (user input in chat, compacted context blocks, or open tasks)
+- **Session context**: Requirements the user stated: `user_request` (the user's own words, verbatim), user input in chat, compacted context blocks, open tasks, and files the user pointed at (see Session Context: User-stated provenance)
+- **Mode**: The `mode` the caller passed (`assisted` when none was passed). It decides whether upstream specifications may serve as requirement sources
 - **Context specifications**: Documents from previous layers for coherence and traceability (not requirements)
 - **Input skill**: Each specification agent applies `smaqit.input-[layer]` as a validation gate before spec generation begins. When the gate finds gaps that the agent cannot resolve with the user directly, the agent returns `NEEDS-INPUT` and writes no specification
-- **Answers**: When invoked again with `answers` to its own `NEEDS-INPUT`, the agent treats them as session-context requirements and re-runs the gate before generating
+- **Answers**: When invoked again with `answers` to its own `NEEDS-INPUT`, the agent treats them as user-stated requirements and re-runs the gate before generating
 
 Each layer reads requirements from its session context. Upstream layers provide context for coherence, not requirements. When user requirements would create incoherence with existing specs, agents MUST flag the conflict rather than silently override.
 
@@ -264,21 +266,26 @@ A phase agent invoked as a subagent does not see its caller's conversation, so c
 
 | Parameter | Phases | Meaning |
 |-----------|--------|---------|
-| `mode` | All | `autonomous` (default) or `assisted` |
+| `mode` | All | `assisted` or `autonomous`; the default depends on what started the phase (see Execution Modes) |
+| `user_request` | All | The user's own words that started the phase, verbatim; never a summary or expansion. Passed unchanged to every specification agent |
 | `specification_mode` | All | `orchestrate` (default) or `prevalidated` |
 | `spec_paths` | All | Exact specification paths handed off under `prevalidated` |
 | `approved_spec_paths` | All | Specification paths the user already approved in this run; treated as current even while `draft` |
 | `deployment_path`, `provisioning_mode`, `environment`, `slot_plan` | Deploy | As resolved by `smaqit.input-deployment` |
 | `answers` | All | Answers to a returned `NEEDS-INPUT` or `REVIEW-REQUESTED`, keyed by question id |
 
-- **Defaults when absent** — A phase agent invoked without a parameter block applies the defaults its phase input skill defines. It returns `NEEDS-INPUT` only when a blocking parameter is ambiguous
+- **Defaults when absent** — A phase agent invoked without a parameter block applies the defaults its phase input skill defines, including `mode: assisted`, because the user started it directly. It returns `NEEDS-INPUT` only when a blocking parameter is ambiguous
 - **Passed means resolved** — A parameter the caller passed is never elicited or resolved again by the agent
 
 **Execution Modes:**
 
-Phase agents support two execution modes, selected by the `mode` parameter:
-- **Autonomous** (default) — Proceed through all workflow steps without user breaks; spec agents invoked in sequence and implementation begins immediately after consolidation
-- **Assisted** (maker-checker) — After each spec agent (maker) completes, the user (checker) reviews its output. An agent that can reach the user presents the output directly; otherwise it returns `REVIEW-REQUESTED`. Approval adds the reviewed paths to `approved_spec_paths`, and the phase continues with the next layer. Feedback invokes the spec agent again with the feedback as `answers`. The loop repeats until the output is approved or the iteration cap is reached (max 3 per layer); on cap, surface unresolved issues and proceed
+Phase agents support two execution modes, selected by the `mode` parameter. The default depends on what started the phase, and a mode the user states always wins:
+
+- **Assisted** is the default when the user started the phase: they typed the phase command, or picked or named the phase agent. A phase agent invoked without a parameter block assumes this.
+- **Autonomous** is the default when the phase started automatically: the model routed a request to it on its own, or an orchestrating skill (`smaqit.new-greenfield-project`, `smaqit.feature-new`) ran it.
+
+- **Autonomous** — Proceed through all workflow steps without user breaks, on a best-effort basis; spec agents invoked in sequence and implementation begins immediately after consolidation. Stop only for `NEEDS-INPUT` and human operations (for example a PR merge or a credential prompt)
+- **Assisted** (maker-checker) — Specification agents receive `mode: assisted` and work only from requirements the user stated. After each spec agent (maker) completes, the user (checker) reviews its output. An agent that can reach the user presents the output directly; otherwise it returns `REVIEW-REQUESTED`. Approval adds the reviewed paths to `approved_spec_paths`, and the phase continues with the next layer. Feedback invokes the spec agent again with the feedback as `answers`. The loop repeats until the output is approved or the iteration cap is reached (max 3 per layer); on cap, surface unresolved issues and proceed. When the phase completes, its final output asks the user to review it and names the next phase's entry point
 
 **Multi-Agent Coordination:**
 
@@ -426,7 +433,7 @@ The CLI aggregates phase status by scanning spec frontmatter. Agents only update
 
 **Implementation agents SHOULD:**
 - Prefer explicit over implicit behavior
-- Document assumptions when specs are underspecified
+- Record implementation choices the specs leave open (for example file layout) in the phase report; a gap in a spec's requirements or acceptance criteria is returned to the owning specification agent, never assumed
 - Request spec clarification before inventing solutions
 
 ### Cross-Layer Consolidation

@@ -50,7 +50,7 @@ smaqit init
 
 1. Open GitHub Copilot chat or Claude Code and run `/smaqit.development`; in Codex, ask it to spawn the `smaqit.development` agent
 2. The agent will validate your requirements are sufficient before proceeding — describe what you want to build when prompted
-   - If it needs more detail, it asks you in the chat and then continues where it left off. Ask for **assisted** mode to review and approve each specification layer before it's implemented
+   - If it needs more detail, it asks you in the chat and then continues where it left off. A phase you start yourself runs in **assisted** mode: it pauses after each specification layer for you to review and approve it before it's implemented. Say "run autonomously" to go straight through. `smaqit.new-greenfield-project`, `smaqit.feature-new`, and phases Claude starts on its own run autonomously unless you ask for assisted
 3. Watch specs generate, then code build
 
 See the full [Mario Hello quickstart](docs/wiki/workflows/quickstart.md) for a complete walkthrough.

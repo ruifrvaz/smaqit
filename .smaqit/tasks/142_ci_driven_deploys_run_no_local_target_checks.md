@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 110
 created: "2026-10-20"
 mode: Assisted
 started: "2026-10-20"
@@ -102,29 +103,39 @@ only its credential and runtime-secret work.
 
 ## Acceptance Criteria
 
-- [ ] On `existing-cicd-pr` and `ci-push`, the existing-k3s plan resolves `platform-prereqs` to none and `verify` to `smaqit.infrastructure-deploy-verify:ci-evidence @local` for private-mesh, platform-owned and public rows; the `standard` path and every VM mode resolve exactly as before; a project binding still overrides both slots
-- [ ] `ci-evidence.sh` passes only when `gh run view <id> --json headSha,status,conclusion,jobs` shows a finished, successful run whose `headSha` is the intended commit or contains it (`gh api` compare `identical` or `ahead`), and whose `deploy` job has a successful "Verify revision" and a successful applicable verify step for the row; it fails with a distinct line for an unfinished run, a failed run, a wrong SHA (`behind` or `diverged`), and a failed, skipped or missing step (stub `gh` JSON tests); it reads no kubeconfig, Vault or logs
-- [ ] deploy-verify declares `ci-evidence` in `metadata.smaqit-slots` and `TestDefaultFillersDeclareTheirSlots` passes
-- [ ] `agents/deployment.md`, feature-new, project-new (including its mesh precondition), input-deployment where needed, and deploy-k3s-app's mesh-check text describe `verify` by its planned operation and no longer require the operator's machine on the mesh for CI paths
-- [ ] `docs/wiki/workflows/deployment-slots.md` and `.smaqit/compendium.md` reflect the CI-path defaults
-- [ ] Task 137 no longer carries the `ci-evidence` decision, step or criterion, and points to 142 for CI-path verification
-- [ ] `make -C installer test` and `make -C installer smoke-test` pass; CHANGELOG updated, including the action-required note for deploy-verify bindings without `operation`; MINOR release published via the task PR
+- [x] On `existing-cicd-pr` and `ci-push`, the existing-k3s plan resolves `platform-prereqs` to none and `verify` to `smaqit.infrastructure-deploy-verify:ci-evidence @local` for private-mesh, platform-owned and public rows; the `standard` path and every VM mode resolve exactly as before; a project binding still overrides both slots
+- [x] `ci-evidence.sh` passes only when `gh run view <id> --json headSha,status,conclusion,jobs` shows a finished, successful run whose `headSha` is the intended commit or contains it (`gh api` compare `identical` or `ahead`), and whose `deploy` job has a successful "Verify revision" and a successful applicable verify step for the row; it fails with a distinct line for an unfinished run, a failed run, a wrong SHA (`behind` or `diverged`), and a failed, skipped or missing step (stub `gh` JSON tests); it reads no kubeconfig, Vault or logs
+- [x] deploy-verify declares `ci-evidence` in `metadata.smaqit-slots` and `TestDefaultFillersDeclareTheirSlots` passes
+- [x] `agents/deployment.md`, feature-new, project-new (including its mesh precondition), input-deployment where needed, and deploy-k3s-app's mesh-check text describe `verify` by its planned operation and no longer require the operator's machine on the mesh for CI paths
+- [x] `docs/wiki/workflows/deployment-slots.md` and `.smaqit/compendium.md` reflect the CI-path defaults
+- [x] Task 137 no longer carries the `ci-evidence` decision, step or criterion, and points to 142 for CI-path verification
+- [x] `make -C installer test` and `make -C installer smoke-test` pass; CHANGELOG updated, including the action-required note for deploy-verify bindings without `operation`; MINOR release published via the task PR
 
 ## Findings
 
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Resolver: `slotDef` gained a per-path, per-mode default table (`PathDefaults`, read through `defaultFiller`) consulted before `Defaults`; `verify` uses it for existing-k3s on `existing-cicd-pr` and `ci-push`, and both CI paths add `platform-prereqs` to `DefaultNone`.
+- `ci-evidence.sh` (deploy-verify's first script) follows `mesh-check.sh`'s conventions: row from `smaqit spec environments --json` via a path or stdin, jq, exit 0/1/2, one PASS or FAIL line. It checks status, conclusion, SHA (exact, prefix, or `gh api` compare `identical`/`ahead`), the `deploy` job, "Verify revision", then the row's verify step.
+- deploy-verify 1.4.0 declares `verify=verify, verify=ci-evidence` and documents the operation choice; the Deployment agent, feature-new 2.6.0, project-new 3.1.0, deploy-k3s-app 2.1.2, the deployment-slots wiki and the compendium describe the CI-path defaults.
+- Tests: resolver cases on both CI paths for private-mesh, platform-owned and public rows, VM modes, single-slot runs, a binding override and a binding without `operation`; `TestDefaultFillersDeclareTheirSlots` walks per-path defaults; 22 stub-`gh` cases for `ci-evidence.sh` (the stub gained `run view` and compare branches); a smoke-test assertion on the CI-path plan. Four deliberate breaks were each caught.
 
 **Decisions made:**
-- TBD
+- `--expected-sha` is the intended commit (merge SHA or pushed SHA), proven by ancestry through one compare call, because the dispatcher deploys `main`'s tip and the run's own `headSha` would compare the run with itself.
+- The row is passed as JSON like `mesh-check.sh`; the applicable step follows `verifiesInCluster()`; steps are read only from the `deploy` job; `status` was added to the `gh run view` fields to tell an unfinished run from a failed one.
+- The target machine is not checked by `ci-evidence` (the run record doesn't carry it); the agent's existing run correlation stays responsible.
+- A single-slot `--slot=platform-prereqs` on a CI path still resolves `mesh-check` (an explicit request), while per-path defaults apply to single-slot runs.
+- Version bumps: minor for feature-new and project-new (verify behaviour changed), patch for deploy-k3s-app (text only); CHANGELOG carries an action-required note for deploy-verify bindings without `operation`.
+- Task 137's removed `ci-evidence` step became a `standard`-path step: a local in-cluster verify under `operator-scripts` follows 137's handoff-then-verify rule.
 
 **Blockers encountered:**
-- TBD
+- None. One new test first bound `verify` under a project whose `provision` binding `existing-cicd-pr` refuses; it now targets the `test` environment the binding doesn't cover.
 
 **Follow-up identified:**
-- TBD
+- The deploy-verify and deploy-k3s-app definitions under `.smaqit/definitions/skills/` predate in-cluster mode and `mesh-check`, and still don't describe them.
+- No live run of `ci-evidence` against a real `gh run view` yet; the first downstream CI-path deploy after this release is its live check.
+- Task 137 should start after this merges.
 
 ## Files to Create / Modify
 

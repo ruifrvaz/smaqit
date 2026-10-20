@@ -16,13 +16,13 @@ with no way to point it elsewhere:
   `vault kv get` into `gh secret set`;
 - `smaqit.infrastructure-request-k3s-onboarding` loads the platform-repo PAT through
   `credential-file.sh`;
-- `smaqit.infrastructure-deploy-verify`'s in-cluster mode needs a local kubeconfig, which it also
-  reads from Vault through `credential-file.sh`.
+- `smaqit.infrastructure-deploy-verify`'s in-cluster mode, on a local (`standard`-path) deploy, needs
+  a local kubeconfig, which it also reads from Vault through `credential-file.sh`. CI-path deploys
+  no longer need it: task 142 made deploy-verify's `ci-evidence` the CI-path default.
 
 Under that policy, a project has to bind `access-credentials`, `target-credentials` and
-`environment-config` to `none` and perform those slots by hand. It also has to replace
-`deploy-verify` with the deploy run's own verification steps, and the onboarding PR with plain `gh`
-authentication.
+`environment-config` to `none` and perform those slots by hand. It also has to replace the onboarding
+PR's token with plain `gh` authentication.
 
 App runtime secrets have no home either: a session-signing key or a first-admin password has no
 spec field and no filler. No k3s manifest template has a `secretKeyRef` or `envFrom`, so the
@@ -36,7 +36,7 @@ This is gap 6 of task 136, found on the first live private-mesh deploy. It was s
 **Mode:** Auto
 **Technologies:** HashiCorp Vault, GitHub CLI, GitHub Actions, Kubernetes (k3s), kubectl, jq, Bash, Go
 **Platforms/Environments:** None
-**Features/Integrations:** existing-k3s credential slots, vault-loader, repo-config sync-k3s-env, request-k3s-onboarding, deploy-verify ci-evidence, runtime secrets, secretKeyRef
+**Features/Integrations:** existing-k3s credential slots, vault-loader, repo-config sync-k3s-env, request-k3s-onboarding, deploy-verify in-cluster mode, runtime secrets, secretKeyRef
 **Versions/Constraints:** breaking change allowed (MINOR with action-required note), no raw vault commands in skill text, secrets only via env: or stdin, app- and platform-agnostic
 
 ## Design Decisions
@@ -56,10 +56,10 @@ This is gap 6 of task 136, found on the first live private-mesh deploy. It was s
   The slot completes; it is not bound to `none`.
 - **Onboarding:** under `operator-scripts`, `request-k3s-onboarding` may use the operator's own
   `gh` authentication instead of the Vault-held platform-repo PAT.
-- **Verify from the CI run:** a new deploy-verify operation, `ci-evidence`, is the default when
-  verify is in-cluster and the deploy ran in CI (`ci-push` or `existing-cicd-pr`). It passes only when
-  `gh run view <id> --json jobs,headSha` shows the expected SHA and successful "Verify revision" and
-  "Verify in cluster" steps. It needs no local kubeconfig, Vault or mesh membership.
+- **CI-path verification belongs to task 142:** deploy-verify's `ci-evidence` (the default `verify`
+  for existing-k3s on `existing-cicd-pr` and `ci-push`) needs no local kubeconfig, Vault or mesh
+  membership. This task covers only the local (`standard`-path) in-cluster verify under
+  `operator-scripts`, whose kubeconfig follows the handoff-then-verify rule above.
 - **App runtime secrets:**
   - a new `## Runtime Secrets` spec table (name, Kubernetes Secret key, generated or
     operator-provided, environments), parsed by `infra_spec.go`;
@@ -81,8 +81,9 @@ This is gap 6 of task 136, found on the first live private-mesh deploy. It was s
    - an `operator-scripts` handoff with a `gh`-only verification;
    - syncing or handing off the runtime secrets.
 4. request-k3s-onboarding: under `operator-scripts`, use the operator's `gh` authentication.
-5. deploy-verify: the `ci-evidence` operation. Declare it in `metadata.smaqit-slots`, and make it
-   the default in `installer/slots.go` where these Design Decisions say.
+5. deploy-verify `verify`, `standard` path only: under `operator-scripts`, the in-cluster mode's
+   kubeconfig follows the handoff-then-verify rule instead of `credential-file.sh`. (CI-path
+   verification is task 142's `ci-evidence`.)
 6. Templates:
    - in `deploy.yml.k3s.template` and `render-k3s-deploy.sh`, create the runtime-secret
      Kubernetes Secret from `env:`;
@@ -92,7 +93,6 @@ This is gap 6 of task 136, found on the first live private-mesh deploy. It was s
    - parser refusals;
    - a stub `vault` that proves each filler makes zero `vault` calls under `operator-scripts`;
    - exact handoff text;
-   - `ci-evidence` against stub `gh run view` JSON (pass, wrong SHA, failed step, missing step);
    - the runtime-secret render, with no secret in `run:` or on argv.
 8. Update `docs/wiki/workflows/deployment-slots.md`, `.smaqit/compendium.md`, and the CHANGELOG
    (with an action-required note), then release.
@@ -107,8 +107,6 @@ This is gap 6 of task 136, found on the first live private-mesh deploy. It was s
 - [ ] Under `operator-scripts`, every existing-k3s credential filler makes zero `vault` calls (proven
       with a stub `vault`), emits an exact, tested handoff, and verifies the outcome without Vault;
       a project completes these slots without binding them to `none`
-- [ ] deploy-verify `ci-evidence` passes and fails correctly from stub `gh run view` JSON, and is the
-      default for in-cluster verification after a CI deploy
 - [ ] A `## Runtime Secrets` table is parsed, synced or handed off into the machine's Environment, and
       wired into the rendered `deploy.yml` and the deployment template, with no secret in `run:` or on argv
 - [ ] Golden files regenerated deliberately; no raw `vault` commands in skill text; no platform-specific
@@ -135,12 +133,12 @@ This is gap 6 of task 136, found on the first live private-mesh deploy. It was s
 
 | File | Action |
 |------|--------|
-| installer/infra_spec.go, installer/infra_spec_test.go, installer/slots.go | Modify |
+| installer/infra_spec.go, installer/infra_spec_test.go | Modify |
 | templates/specs/infrastructure.template.md, agents/infrastructure.md | Modify |
 | skills/smaqit.infrastructure-vault-loader/** | Modify |
 | skills/smaqit.infrastructure-repo-config/** | Modify |
 | skills/smaqit.infrastructure-request-k3s-onboarding/SKILL.md | Modify |
-| skills/smaqit.infrastructure-deploy-verify/SKILL.md | Modify |
+| skills/smaqit.infrastructure-deploy-verify/SKILL.md (`standard`-path in-cluster mode only) | Modify |
 | skills/smaqit.infrastructure-cicd-generate/assets/deploy.yml.k3s.template, scripts/render-k3s-deploy.sh | Modify |
 | skills/smaqit.infrastructure-deploy-k3s-app/assets/deployment.yaml.template | Modify |
 | installer tests and installer/testdata/k3s-deploy/* | Modify |
@@ -150,5 +148,7 @@ This is gap 6 of task 136, found on the first live private-mesh deploy. It was s
 
 - Depends on task 136, and builds on its `env:`-only secret handling and template changes. Start it
   after 136 merges.
+- Task 142 owns CI-path verification (deploy-verify `ci-evidence`, moved out of this task on
+  2026-10-20). Start this task after 142 merges.
 - A downstream project worked around this with its own scripts-only Vault helper (`--sync-only`,
   generated values). That helper is a reference point, not a dependency.

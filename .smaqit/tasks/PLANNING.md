@@ -5,6 +5,7 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 142 | CI-Driven Deploys Run No Local Target Checks | PR Open | High |
+| 143 | Bench: deploy-verify `ci-evidence` on Claude Code, Against the Previous Release | Not Started | Medium |
 | 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | Not Started | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 113 | Business Use-Case Diagrams: No Guardrail Against Generalization-Inheritance Misuse or PlantUML-Alias Collision With the Project's Own UC-ID Convention | new | Medium |

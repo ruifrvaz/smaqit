@@ -461,6 +461,20 @@ Everything else — provisioning, host baseline, machine verification, replaceme
 
 ---
 
+**When does smaqit deploy to a target from the operator's machine instead of through the CI/CD workflows?**
+
+Whenever the deployment path is `standard`, the path on which every slot runs locally. That happens in three situations:
+
+- **`smaqit.project-new` Phase 4, the dev sweep:** the first deploy, to a dev or test target, walks the slot plan on the operator's machine (provision, host bootstrap, app deploy, verify). The generated workflows are committed there and first used by Phase 5's production deploy (`ci-push`).
+- **A direct `/smaqit.deployment`:** `smaqit.input-deployment` defaults `deployment_path` to `standard` when no caller passes one, and `smaqit slots plan` without `--path` resolves `standard` too. Only `smaqit.feature-new` (`existing-cicd-pr`) and project-new Phase 5 (`ci-push`) choose a CI path.
+- **Manual fallbacks:** the deploy-rsync skills and deploy-k3s-app keep a local invocation for when no CI is configured yet. Day-two single-slot runs (`teardown`, `replace`, project-new Phase 6's `tls`) are planned without `--path`, so they also run locally.
+
+On the CI paths nothing touches the target from the operator's machine: `artifact-build` and `app-deploy` (plus `provision` on `ci-push`) run in the pipeline, `platform-prereqs` defaults to none, and an existing-k3s `verify` runs deploy-verify's `ci-evidence`, which only reads the deploy run's record. That is why deploy-k3s-app's `mesh-check` says it is "for local runs": it only ever runs on the `standard` path, to confirm the operator's machine can reach a `private-mesh` cluster before `kubectl` is used from it.
+
+deploy-k3s-app's own guidance already prefers the generated workflow even for a first deploy, because a local run exercises different commands than production. Making CI/CD the only deploy path is planned work (existing-k3s first, VM modes after their workflows support every environment); until it lands, the cases above still deploy locally. See also: does the Deployment agent itself know about `provisioning_mode` values like `existing-k3s`, `existing-shared`, or `existing-unmanaged`?
+
+---
+
 ## Codex Support
 
 **How does smaqit provide first-class Codex compatibility?**
@@ -477,16 +491,15 @@ The total shipped skill count is asserted in `installer/main_test.go` in two tes
 
 ## Release Workflow
 
-**How do I push to, or open a PR on, a repository in another GitHub organisation from this workstation?**
+**How do I push to, or open a PR on, a repository when the current GitHub credential can't write to it?**
 
-The default git credential on this workstation only reaches the user's own repositories, so a fetch or push to another organisation's repository fails with HTTP 403. Load that organisation's token through the Vault scripts, never with `vault` directly:
+Git on this workstation authenticates through `gh` (`credential.helper` is `gh auth git-credential`), so whatever token `gh` is logged in with decides which repositories a push or `gh pr create` can write to. When it can't, the push fails with HTTP 403. Switch tokens through the Vault scripts, never with `vault` directly; Vault must be running and unsealed (`bash ~/projects/scripts/vault-unseal.sh`, run by the user because it prompts for keys):
 
-- `bash ~/projects/scripts/vault-gh-token.sh --list` shows the available token references (names and paths only).
-- `source ~/projects/scripts/vault-gh-token.sh organizations/<org>` exports `GH_TOKEN` into the current shell without printing it. Each tool call is a fresh shell, so source it in every command that needs it.
+- `bash ~/projects/scripts/vault-gh-token.sh --list` shows the available token references (names and paths only), for example `apps/<app>` and `organizations/<org>`.
+- **For this repository** (the active login is often an organisation token with no write access here): `bash ~/projects/scripts/vault-gh-token.sh --login apps/smaqit`, then push and open the PR normally, then switch back with `--login organizations/<org>` (the reference that was active before). `--login` replaces `gh`'s stored token in `~/.config/gh/hosts.yml`, so the switch persists until reversed; ask the user before switching.
+- **For another organisation's repository, one command at a time:** `source ~/projects/scripts/vault-gh-token.sh organizations/<org>` exports `GH_TOKEN` into the current shell without printing it. Each tool call is a fresh shell, so source it in every command that needs it. `gh` reads `GH_TOKEN` directly; for `git`, set `gh` as the credential helper for that one command, so the user's git config never changes: `git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push -u origin <branch>`.
 
-`gh` reads `GH_TOKEN` directly. For `git`, set `gh` as the credential helper for one command only, so the user's git config never changes:
-
-`git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push -u origin <branch>`
+Neither mode shows the token to the agent. `--login` pipes it from Vault straight into `gh auth login --with-token` on stdin and prints only the reference's label; the sourced mode exports it without printing. `gh auth status` shows it masked. The agent could still read it deliberately (`gh auth token`, or `hosts.yml`), so "not exposed" means no step prints it, and any such read would be visible in the transcript.
 
 Organisation tokens may lack scopes that some `gh` subcommands need, such as reading check runs. `gh pr view --json body` can also fail on GitHub's retired Projects (classic) API; reading and patching the PR through `gh api repos/<owner>/<repo>/pulls/<n>` works instead.
 

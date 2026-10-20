@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
-| 142 | CI-Driven Deploys Run No Local Target Checks | PR Open | High |
 | 143 | Bench: deploy-verify `ci-evidence` on Claude Code, Against the Previous Release | Not Started | Medium |
 | 144 | All Deploys Go Through CI/CD Workflows (existing-k3s Enforced, VM Modes Transitional) | Not Started | High |
 | 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | Not Started | High |
@@ -19,6 +18,7 @@
 
 | ID | Title |
 |----|-------|
+| 142 | CI-Driven Deploys Run No Local Target Checks |
 | 141 | Orchestrator Skills Default by Invocation; Rename new-greenfield-project to project-new; Prune Retired Skills |
 | 140 | plan-guard BLOCKED Guidance: Stop and Report, Never Take an Allow-Flag Address From the Guard's Output |
 | 136 | existing-k3s: Fixes From the First Live Private-Mesh Deploy |

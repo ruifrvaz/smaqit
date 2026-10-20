@@ -1,14 +1,25 @@
 ---
 name: smaqit.infrastructure-deploy-verify
-description: Use after any deployment, or when re-verifying after a fix, to confirm the application is healthy before closing the task or proceeding. Checks the health endpoint, compares the deployed commit SHA with the local commit (or --expected-sha), and validates the SPA root; for an existing-k3s target the deployer can't reach, verifies inside the cluster with a probe Job. PASS/FAIL per check.
+description: Use after any deployment, or when re-verifying after a fix, to confirm the application is healthy before closing the task. Checks the health endpoint, the deployed commit SHA (local HEAD or --expected-sha) and the SPA root; for an existing-k3s target the deployer can't reach, a probe Job in the cluster; after a CI deploy of existing-k3s, the deploy run's own verify steps. PASS/FAIL per check.
 metadata:
-  version: "1.3.0"
-  smaqit-slots: "verify=verify"
+  version: "1.4.0"
+  smaqit-slots: "verify=verify, verify=ci-evidence"
 ---
 
 # Deploy Verify
 
-## Choose the mode
+## Choose the operation
+
+The deployment slot plan names the operation; run the one it names.
+
+- **`verify`** — checks the target from this machine, in HTTP or in-cluster mode (below). The
+  default for every VM mode, and for `existing-k3s` on the `standard` path (a local deploy).
+- **`ci-evidence`** — decides from the deploy run's own recorded steps (CI Evidence Steps below). The
+  default for `existing-k3s` on the `existing-cicd-pr` and `ci-push` paths: the generated `deploy.yml`
+  already verified the target from inside its mesh and cluster access, so this machine needs no mesh,
+  kubeconfig, or Vault access.
+
+## Choose the mode (operation `verify`)
 
 - **HTTP mode** (Steps 1–8) — every VM target, and an `existing-k3s` environment whose
   Environments row is `public` with an Ingress the app owns (`own-tls` or
@@ -22,7 +33,29 @@ For `existing-k3s`, the caller passes `--environment <environment>`; read its ro
 `smaqit spec environments --env=<environment> --json` and choose from `reachability` and
 `ingressMode`. Never fall back from in-cluster mode to HTTP checks the deployer cannot reach.
 
-## Kubernetes Steps (existing-k3s)
+## CI Evidence Steps (operation `ci-evidence`)
+
+Inputs from the Deployment agent: the deploy run's ID (`--run-id`), the commit the deploy was meant to
+ship (`--expected-sha`: the PR merge SHA on `existing-cicd-pr`, the pushed SHA on `ci-push`, never the
+run's own `headSha`), and the environment the run deployed (`--environment`).
+
+C1. **Run the check** with the environment's row:
+    ```bash
+    smaqit spec environments --env=<environment> --json \
+      | bash scripts/ci-evidence.sh - <environment> --run-id <run-id> --expected-sha <sha>
+    ```
+    It reads `gh run view <run-id> --json headSha,status,conclusion,jobs` and checks, in order:
+    - the run finished (`status` is `completed`) and concluded `success`;
+    - the run's `headSha` is the expected commit, or contains it: when they differ, one
+      `gh api repos/{owner}/{repo}/compare/<expected>...<headSha>` call must report `identical` or
+      `ahead` (the dispatcher deploys the branch tip at dispatch time, which may include later merges);
+    - the `deploy` job's "Verify revision" step succeeded (the Deployment runs the run's commit image);
+    - the row's verify step succeeded: "Verify in cluster" for a `private-mesh` or `platform-owned`
+      row, "Verify over HTTPS" otherwise (the same rule the workflow's `VERIFY` uses).
+
+C2. **Report** the script's single PASS or FAIL line. Exit 0 is PASS, 1 is FAIL, 2 is a usage error.
+
+## Kubernetes Steps (existing-k3s, operation `verify`)
 
 Run with the target's scoped kubeconfig already exported (see
 `smaqit.infrastructure-deploy-k3s-app`), against Namespace `app-<app-slug>`.
@@ -101,6 +134,8 @@ K5. **Clean up and report:** delete the Job (`--ignore-not-found`), then print P
 ## Output
 
 Console report: PASS/FAIL for each check (health, SHA, deployedAt, SPA root) plus a one-line summary.
+`ci-evidence` prints one `ci-evidence: PASS — …` or `ci-evidence: FAIL — …` line naming the run, its
+head commit, and the step that decided.
 
 ## Scope
 
@@ -108,6 +143,8 @@ Console report: PASS/FAIL for each check (health, SHA, deployedAt, SPA root) plu
 - Does NOT restart or redeploy if checks fail — reports only.
 - Does NOT verify TLS certificate validity — use `curl -vI` manually or a future `smaqit.infrastructure-domain-tls` skill. For `existing-k3s` `own-tls`, `smaqit.infrastructure-deploy-k3s-app` waits for the `Certificate` instead.
 - Does NOT read pod logs to decide a result, and never uses `pods/exec` — in-cluster mode's verdict is the probe Job's status.
+- `ci-evidence` reads only GitHub's run record and one commit comparison — no kubeconfig, Vault,
+  `kubectl`, mesh access, or run logs.
 
 ## Examples
 
@@ -116,6 +153,15 @@ Console report: PASS/FAIL for each check (health, SHA, deployedAt, SPA root) plu
 **Input (with explicit SHA):** After a CI/CD deploy where local HEAD may not match the deployed revision, the orchestrator passes `--expected-sha <deploy-run-headSha>`.
 
 **Input (existing-k3s, in-cluster):** After `smaqit.infrastructure-deploy-k3s-app` rolls out to a `private-mesh` test machine, it invokes verify with `--environment test --expected-sha <sha>`.
+
+**Input (existing-k3s, CI path):** After the Deployment agent watched `deploy.yml` run `9876543210`
+deploy the merge of PR #42 to `prod`, it runs `ci-evidence` with `--run-id 9876543210
+--expected-sha <merge-sha>` and `--environment prod`.
+
+**Output (ci-evidence):**
+```
+ci-evidence: PASS — run 9876543210 deployed 4f1c… (contains 4f1c…); 'Verify revision' and 'Verify in cluster' succeeded
+```
 
 **Output (in-cluster):**
 ```
@@ -141,10 +187,16 @@ Deployment verified — SHA d040a5f, deployed at 2026-04-27T14:32:00Z.
 - The `sha` field is populated from `__APP_DIR__/backend/DEPLOY_SHA`, written by the CI deploy workflow. If the workflow writes the stamp to the host path but the container only mounts a subdirectory, the field returns `"unknown"` — this is a deployment bug, not a health endpoint bug.
 - `deployedAt` is the CI timestamp when the stamp was written, not the container start time. On first deploy the field may be absent if stamp steps were omitted from the workflow.
 - Re-deploying without a new commit (re-running the same workflow on the same SHA) will produce a SHA match — this is correct and expected.
+- **`ci-evidence` takes the intended commit, not the run's `headSha`.** Passing the run's own
+  `headSha` would compare the run with itself. On `existing-cicd-pr` the dispatcher deploys `main`'s
+  tip at dispatch time, so a later merge may already be included; the compare call accepts that and
+  rejects a run that doesn't contain the merge.
 - **`--expected-sha` overrides local HEAD.** When the orchestrator knows the exact revision a CI run deployed (e.g. from `gh run view --json headSha`), passing `--expected-sha` prevents false negatives when the local checkout is on a different branch or behind the deployed revision. When absent, `git rev-parse HEAD` is the unchanged default — existing callers are unaffected.
 
 ## Completion
 
+- [ ] Operation taken from the slot plan (`verify` or `ci-evidence`)
+- [ ] `ci-evidence`: `ci-evidence.sh` printed PASS for the deploy run and the intended commit
 - [ ] Mode chosen (HTTP, or in-cluster for an `existing-k3s` `private-mesh` / `platform-owned` row)
 - [ ] In-cluster mode: Deployment image tag matches the expected SHA, probe Job succeeded, Job deleted
 - [ ] Target URL resolved (HTTP mode)
@@ -171,3 +223,9 @@ Deployment verified — SHA d040a5f, deployed at 2026-04-27T14:32:00Z.
 | Probe Job forbidden (`jobs` not granted) | Stop. Ask the platform team for `create`/`delete` on `jobs` in the Namespace; never switch to HTTP checks the deployer cannot reach |
 | Probe Job fails or times out | Report FAIL with the Job status; add logs only if `pods/log` is granted. Check the health path and whether a NetworkPolicy blocks same-Namespace traffic |
 | Deployment image tag differs from the expected SHA | Report both; the rollout did not apply this commit's image |
+| `ci-evidence`: run has not finished | Wait for the run to complete, then run the check again; never pass an unfinished run |
+| `ci-evidence`: run concluded other than `success` | Stop and report the run; the deploy itself failed |
+| `ci-evidence`: wrong SHA (`behind` or `diverged`) | Stop. The run did not deploy the intended commit; find the run that did, or redeploy |
+| `ci-evidence`: "Verify revision" or the applicable verify step failed or is missing | Stop and report the step. A missing step means `deploy.yml` predates the current template; regenerate it with `smaqit.infrastructure-cicd-generate` |
+| `ci-evidence`: applicable verify step was skipped | Stop. The workflow and the Environments row disagree on how to verify (or the run deployed another machine); regenerate `deploy.yml` or check the dispatched environment |
+| `ci-evidence`: `gh run view` or the compare call fails | Report FAIL with the reason; check the run ID, `gh`'s repository (`GH_REPO`) and token. A failed read is never a pass |

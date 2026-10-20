@@ -2,7 +2,7 @@
 name: smaqit.feature-new
 description: 'Use when adding or changing a feature in a smaqit project that is already deployed (its Infrastructure spec has `status: deployed`), e.g. ''add a feature to this project'' or ''iterate on the deployed app''. Runs spec revalidation, development, deployment to the existing target, validation, and close-out, one task per phase, with no requirements extraction, from-scratch specs, or dev-VM sweep.'
 metadata:
-  version: "2.5.0"
+  version: "2.6.0"
 ---
 
 # Post-MVP Feature Workflow
@@ -131,7 +131,7 @@ This phase creates a **deploy PR** (feature-branch → `main`) to land the featu
    - Otherwise, if the Infrastructure spec shows `status: deployed`, default to `existing-owned`. Both override `smaqit.input-deployment`'s generic `provision` default.
    - Only fall through to `smaqit.input-deployment`'s standard elicitation if genuinely ambiguous (e.g. co-hosting on another project's VM → `existing-shared`; a second, dedicated VM that's provisioned out-of-band and will never be Terraform-managed → `existing-unmanaged`).
    - If resolution falls through to `provision` — this contradicts the Pre-conditions check; stop and flag.
-6. Invoke `smaqit.input-deployment` with the resolved `provisioning_mode`, the production environment name, `deployment_path: existing-cicd-pr`, `mode` from Phase 0, `user_request`, `specification_mode: prevalidated`, and the Deploy handoff paths as `spec_paths`. It outputs the `PHASE-PARAMETERS` block and resolves the **slot plan** via `smaqit slots plan --phase=deploy --mode=<mode> --env=<env> --path=existing-cicd-pr --json`. If it reports any `SLOTS-*` failure, stop — the project's `.smaqit/slots.yml` or a bound skill must be fixed first. On this path the plan refuses `iac-generate`, `ci-generate`, `provision`, and `host-bootstrap`, and marks `artifact-build`/`app-deploy` as CI-executed.
+6. Invoke `smaqit.input-deployment` with the resolved `provisioning_mode`, the production environment name, `deployment_path: existing-cicd-pr`, `mode` from Phase 0, `user_request`, `specification_mode: prevalidated`, and the Deploy handoff paths as `spec_paths`. It outputs the `PHASE-PARAMETERS` block and resolves the **slot plan** via `smaqit slots plan --phase=deploy --mode=<mode> --env=<env> --path=existing-cicd-pr --json`. If it reports any `SLOTS-*` failure, stop — the project's `.smaqit/slots.yml` or a bound skill must be fixed first. On this path the plan refuses `iac-generate`, `ci-generate`, `provision`, and `host-bootstrap`, marks `artifact-build`/`app-deploy` as CI-executed, and defaults `platform-prereqs` to none. For `existing-k3s` it plans `verify` as `smaqit.infrastructure-deploy-verify`'s `ci-evidence`, which decides from the deploy run's own verify steps, so this machine needs no mesh access or kubeconfig for the deploy.
 7. Require `.github/workflows/deploy.yml`. If absent, stop and flag.
 8. **Apply the deterministic trigger decision table** by reading `.github/workflows/deploy.yml` and any sibling PR-close/dispatch workflows:
    1. If `deploy.yml` has a `push` trigger covering the PR base branch → omit any deployment marker and plan to monitor the resulting `push` run. A marker-gated dispatcher may coexist but must remain false.
@@ -154,11 +154,11 @@ This phase creates a **deploy PR** (feature-branch → `main`) to land the featu
 
     If the agent returns `NEEDS-INPUT` or `REVIEW-REQUESTED`, ask the user what it lists, then resume the agent with the answers as `answers` (or invoke it again with the same parameters plus `answers` and the signal's `approved_spec_paths`) until it returns a final result. Never answer a signal on the user's behalf.
 
-    The Deployment agent owns the entire contiguous operation: run the local credential and environment-configuration slots, process prevalidated specs, commit the feature's application changes (never generated IaC or workflows), run the amendment gate, push the feature branch, create the **deploy PR** with the resolved trigger plan, pause for human merge (even in Autonomous mode), monitor the exact CI run(s), run the `verify` slot's filler with `--expected-sha <deploy-run-headSha>`, update spec frontmatter to `status: deployed`, and write `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`.
+    The Deployment agent owns the entire contiguous operation: run the local credential and environment-configuration slots, process prevalidated specs, commit the feature's application changes (never generated IaC or workflows), run the amendment gate, push the feature branch, create the **deploy PR** with the resolved trigger plan, pause for human merge (even in Autonomous mode), monitor the exact CI run(s), run the `verify` slot's planned operation against the deploy run (`ci-evidence` with the deploy run ID and the PR merge SHA; any other operation with `--expected-sha <deploy-run-headSha>`), update spec frontmatter to `status: deployed`, and write `.smaqit/reports/deployment-phase-report-YYYY-MM-DD.md`.
 
 11. Validate returned evidence from the Deployment agent — must include: PR number/URL, merge SHA/time, dispatcher run ID (if applicable), deploy run ID/event/head SHA, verification result, report path, and deployed spec paths/statuses.
 12. Run the amendment gate: `bash [SMAQIT_SKILLS_DIR]/smaqit.feature-new/scripts/check-amendments.sh specs/`. If matches found, review each against the Phase 2 task and confirm all are resolved. An unresolved amendment blocks Phase 3 completion.
-13. **Gate:** Amendment gate clear. CI/CD run completed successfully. `deploy-verify` reports all checks PASS.
+13. **Gate:** Amendment gate clear. CI/CD run completed successfully. `deploy-verify` reports all checks PASS (for `existing-k3s`, `ci-evidence` PASS).
 14. **Complete the Phase 3 child:**
     ```
     smaqit.task-complete $P3

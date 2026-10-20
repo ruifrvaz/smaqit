@@ -38,7 +38,7 @@ One environment run walks these slots in order. Day-two slots never run as part 
 
 | Slot | `provision` / `existing-owned` | `existing-shared` / `existing-unmanaged` | `existing-k3s` |
 |------|-------------------------------|------------------------------------------|----------------|
-| `platform-prereqs` | none | none | deploy-k3s-app `mesh-check` (passes without probing for a `public` environment) |
+| `platform-prereqs` | none | none | deploy-k3s-app `mesh-check` (passes without probing for a `public` environment; none on the CI paths) |
 | `access-credentials` | vault-loader `access` | vault-loader `access` | vault-loader `access` |
 | `platform-onboarding` | none | none | request-k3s-onboarding `request` |
 | `target-credentials` | none | vault-loader `target` | vault-loader `target` |
@@ -49,7 +49,7 @@ One environment run walks these slots in order. Day-two slots never run as part 
 | `provision` | provision-cyso `apply` | none | none |
 | `host-bootstrap` | vm-bootstrap `bootstrap` | vm-bootstrap `bootstrap` | none |
 | `app-deploy` | `deploy-rsync*` family `deploy` | `deploy-rsync*` family `deploy` | `deploy-k3s-app*` family `deploy` |
-| `verify` | deploy-verify `verify` | deploy-verify `verify` | deploy-verify `verify` |
+| `verify` | deploy-verify `verify` | deploy-verify `verify` | deploy-verify `verify`; `ci-evidence` on the CI paths |
 | `tls` | domain-tls `issue` | domain-tls `issue` | none (`own-tls`: the Certificate is awaited inside `app-deploy`; otherwise the platform serves TLS) |
 | `replace` | none | none | none |
 | `teardown` | agent builtin destroy (`provision` only) | none | none |
@@ -65,13 +65,13 @@ The deployment path adjusts the profile:
 | Path | Used by | Effect |
 |------|---------|--------|
 | `standard` | Local runs (project-new dev sweep) | Every slot executes locally; `environment-config` and `tls` default to none |
-| `existing-cicd-pr` | `smaqit.feature-new` | `iac-generate`, `ci-generate`, `provision`, `host-bootstrap` are **refused** (the PR path never regenerates workflows or provisions directly); `platform-onboarding` and `tls` default to none; `artifact-build` and `app-deploy` are executed by CI and monitored |
-| `ci-push` | Project-new production | `iac-generate`, `ci-generate`, `host-bootstrap`, `tls` default to none (workflows were committed in the dev sweep; under `provision`/`existing-owned` cloud-init configures the production host, and under `existing-shared`/`existing-unmanaged` the host is already bootstrapped); `artifact-build`, `provision`, `app-deploy` are executed by CI and monitored |
+| `existing-cicd-pr` | `smaqit.feature-new` | `iac-generate`, `ci-generate`, `provision`, `host-bootstrap` are **refused** (the PR path never regenerates workflows or provisions directly); `platform-prereqs`, `platform-onboarding` and `tls` default to none; `artifact-build` and `app-deploy` are executed by CI and monitored; `existing-k3s`'s `verify` defaults to deploy-verify `ci-evidence` |
+| `ci-push` | Project-new production | `platform-prereqs`, `iac-generate`, `ci-generate`, `host-bootstrap`, `tls` default to none (workflows were committed in the dev sweep; under `provision`/`existing-owned` cloud-init configures the production host, and under `existing-shared`/`existing-unmanaged` the host is already bootstrapped); `artifact-build`, `provision`, `app-deploy` are executed by CI and monitored; `existing-k3s`'s `verify` defaults to deploy-verify `ci-evidence` |
 
 Two rules hold on every path:
 
-- **Single-slot runs** (`--slot=<slot>`) ignore the path's full-sequence defaults — that is how `tls` and `teardown` run on demand — but never its refusals.
-- **No split CI runs:** the slots a pipeline performs run as one pipeline run, so every locally executed slot must come before the first CI-executed slot (or be `verify`, which runs after). A local binding that would land between CI-executed slots — e.g. a bound `host-bootstrap` between CI `provision` and CI `app-deploy` under `ci-push` — is refused with `SLOTS-BINDING-REFUSED`.
+- **Single-slot runs** (`--slot=<slot>`) ignore the path's full-sequence defaults — that is how `tls` and `teardown` run on demand — but never its refusals. A path's per-mode default (`ci-evidence` for `existing-k3s` `verify` on the CI paths) still applies to a single-slot run.
+- **No split CI runs:** the slots a pipeline performs run as one pipeline run, so every locally executed slot must come before the first CI-executed slot (or be `verify`, which runs after; on the CI paths `existing-k3s`'s `ci-evidence` only reads the finished run's record). A local binding that would land between CI-executed slots — e.g. a bound `host-bootstrap` between CI `provision` and CI `app-deploy` under `ci-push` — is refused with `SLOTS-BINDING-REFUSED`.
 
 ## Configuring Slots
 
@@ -171,6 +171,15 @@ machine's row (mesh join, Ingress, Certificate wait); `app-deploy` applies the I
 calls for; and `verify` checks the app from inside the cluster with a short-lived probe Job
 whenever the deployer can't reach it from outside (`private-mesh` or `platform-owned`). The probe's
 verdict is the Job's own status, so it works even where the platform denies `pods/log`.
+
+That describes a local deploy (the `standard` path). On the CI paths (`existing-cicd-pr`,
+`ci-push`) the generated `deploy.yml` joins the mesh, applies, and verifies on its own, so nothing
+needs the operator's machine on the mesh or a local kubeconfig: `platform-prereqs` defaults to none,
+and `verify` defaults to deploy-verify's `ci-evidence`. That operation reads the deploy run with
+`gh run view --json headSha,status,conclusion,jobs` and passes only when the run succeeded, its head
+is the intended commit (the PR merge SHA, or the pushed SHA) or a later commit that contains it,
+and its `deploy` job's "Verify revision" step and the row's verify step ("Verify in cluster" or
+"Verify over HTTPS") both succeeded.
 
 Three spec-wide Constraints rows apply to every environment:
 - `Probe Client`: `curl`, `wget`, or `python3`, whichever the app's image already contains.

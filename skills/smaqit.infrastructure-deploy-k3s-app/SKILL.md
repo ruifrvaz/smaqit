@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-deploy-k3s-app
 description: Use when deploying an app into a Namespace-scoped Kubernetes cluster (k3s, or any cluster issuing a per-app kubeconfig), including provisioning_mode existing-k3s in project-new Phase 4 and its deploy.yml. Checks mesh reachability for private-mesh targets, lints manifests against Pod Security restricted, applies the Ingress the spec's mode calls for, waits for rollout, and verifies.
 metadata:
-  version: "2.1.1"
+  version: "2.1.2"
   smaqit-slots: "platform-prereqs=mesh-check, app-deploy=deploy"
 ---
 
@@ -14,7 +14,7 @@ row for the target environment, read through `smaqit spec environments --env=<en
 
 | Field | Values | Effect |
 |-------|--------|--------|
-| `reachability` | `public` / `private-mesh` | `private-mesh`: the API (and the app) are reachable only from mesh peers — this machine must be on the mesh (`mesh-check`), and CI joins it first |
+| `reachability` | `public` / `private-mesh` | `private-mesh`: the API (and the app) are reachable only from mesh peers — a local deploy needs this machine on the mesh (`mesh-check`); CI joins it first, so the CI deployment paths skip `mesh-check` |
 | `ingressMode` | `own-tls` / `platform-default-tls` / `platform-owned` | which Ingress is applied, if any, and whether a `Certificate` is awaited |
 | `host`, `ingressClass`, `clusterIssuer`, `healthPath` | from the platform team | stamped into the Ingress / probe at apply time |
 
@@ -69,7 +69,9 @@ It resolves the row's `meshWaitForHost` (the API's mesh name) and opens a TCP co
 API port. On failure it stops with instructions: join the platform's mesh on this machine (its
 mesh client, with the operator's own login or a platform-issued setup key), then run the slot
 again. Never work around it by reaching the API some other way. In CI the generated `deploy.yml`
-joins the mesh itself, so this operation runs only for local deployments.
+joins the mesh itself, so this operation runs only for local deployments: the slot plan defaults
+`platform-prereqs` to none on the `existing-cicd-pr` and `ci-push` paths, and their `verify` slot
+reads the deploy run's own verify steps (`smaqit.infrastructure-deploy-verify` `ci-evidence`).
 
 ### `deploy` (slot `app-deploy`)
 
@@ -79,7 +81,7 @@ joins the mesh itself, so this operation runs only for local deployments.
    smaqit spec environments --env=<environment> --json
    ```
    The row's machine slug also names the app's GitHub Environment for that target. For a
-   `private-mesh` row, `mesh-check` must already have passed.
+   local deploy to a `private-mesh` row, `mesh-check` must already have passed.
 
 2. **Load the kubeconfig into a private temp file** (local invocation) through the vault-loader
    script, which prints only the file's path:
@@ -319,7 +321,7 @@ confirms the Deployment runs this commit's image.
 
 ## Completion
 
-- [ ] `mesh-check`: PASS (public, or the mesh name answers on the API port)
+- [ ] `mesh-check` (local deployments only): PASS (public, or the mesh name answers on the API port)
 - [ ] Target environment's Environments row read with `smaqit spec environments --env=<environment> --json`
 - [ ] Kubeconfig loaded through `credential-file.sh` (local) or the machine-slug Environment's `KUBECONFIG` secret (CI/CD)
 - [ ] `namespace-guard.sh` passed

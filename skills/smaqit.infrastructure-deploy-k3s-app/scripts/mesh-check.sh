@@ -5,7 +5,8 @@
 # onboarding, or any kubectl call, confirm this machine can reach it: the environment's Mesh
 # Wait-For Host (the API's mesh name) must resolve, and the API port must accept a TCP connection.
 # A public environment needs no mesh, so the check passes without probing anything. In CI the
-# generated deploy.yml joins the mesh itself; this check is for local runs.
+# generated deploy.yml joins the mesh itself; this check is for local runs, and the slot plan skips it
+# on the existing-cicd-pr and ci-push paths.
 #
 # Usage: mesh-check.sh <environments.json> <environment> [--port <api-port>]
 #   <environments.json>  output of `smaqit spec environments --json` ("-" reads stdin)

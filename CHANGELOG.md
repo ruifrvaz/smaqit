@@ -28,6 +28,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.19.0] - 2026-10-20
+
+**Action required:**
+- **A `.smaqit/slots.yml` binding of `verify` to `smaqit.infrastructure-deploy-verify` must name its `operation`** (`verify` or `ci-evidence`). The skill now declares two operations for the slot, so a binding without one fails with `SLOTS-OPERATION-INVALID`. Projects that leave `verify` at its default need no change.
+
+### Added
+- **deploy-verify `ci-evidence` operation** (1.4.0, first script `scripts/ci-evidence.sh`). It decides an existing-k3s CI deploy from the deploy run's own record: `gh run view <id> --json headSha,status,conclusion,jobs` must show a finished, successful run whose head is the intended commit (the PR merge SHA, or the pushed SHA) or a later commit containing it (one `gh api` compare: `identical` or `ahead`), with a successful "Verify revision" step and the Environments row's verify step ("Verify in cluster" for `private-mesh` or `platform-owned`, "Verify over HTTPS" otherwise). An unfinished run, a failed run, a wrong SHA, and a failed, skipped or missing step each fail with their own line. It reads no kubeconfig, Vault, `kubectl` or logs.
+- Tests:
+  - the resolver on both CI paths for private-mesh, platform-owned and public rows, VM modes, single-slot runs and bindings;
+  - `ci-evidence.sh` against a stub `gh` (22 cases), proving it calls only `gh run view` and the compare endpoint;
+  - `TestDefaultFillersDeclareTheirSlots` now also checks per-path defaults;
+  - a smoke-test assertion on the existing-k3s `existing-cicd-pr` plan.
+
+### Changed
+- **CI-path existing-k3s deploys no longer need the operator's machine on the mesh or a local kubeconfig.** On `existing-cicd-pr` and `ci-push`, `platform-prereqs` defaults to none (the generated `deploy.yml` joins the mesh itself), and existing-k3s's `verify` defaults to deploy-verify `ci-evidence`. The `standard` path (local deploys) and every VM mode resolve as before; a binding still overrides both slots. A slot can now carry a per-path, per-mode default in `installer/slots.go`.
+- The Deployment agent passes `ci-evidence` the deploy run ID and the intended commit; feature-new (2.6.0), project-new (3.1.0, its mesh precondition now applies only to environments deployed from this machine), deploy-k3s-app (2.1.2), the deployment-slots wiki and the compendium describe the CI-path defaults.
+
 ## [3.18.0] - 2026-10-18
 
 **Action required:**

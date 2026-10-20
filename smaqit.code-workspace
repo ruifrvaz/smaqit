@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/142-ci-driven-deploys-run-no-local-target-checks",
+      "path": "../smaqit-wt-task-142-ci-driven-deploys-run-no-local-target-checks"
     }
   ],
   "settings": {

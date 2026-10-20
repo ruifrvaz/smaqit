@@ -505,3 +505,24 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Go | Package testing | https://pkg.go.dev/testing |
 | Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |
 | Python | shutil (copytree, rmtree) | https://docs.python.org/3/library/shutil.html |
+
+## Task 142 — CI-Driven Deploys Run No Local Target Checks
+
+**Context fingerprint:** sha256:d0040a28e7f266810f30663a2d9606dc4235b76cb85aa1379c9b22af5a638728
+**Refreshed:** 2026-10-20
+
+| Tool | Section | URL |
+|------|---------|-----|
+| GitHub CLI | gh run view (--json jobs, headSha) | https://cli.github.com/manual/gh_run_view |
+| GitHub CLI | gh api (placeholders {owner}/{repo}) | https://cli.github.com/manual/gh_api |
+| GitHub CLI | gh environment variables (GH_REPO, GH_TOKEN) | https://cli.github.com/manual/gh_help_environment |
+| GitHub CLI | gh workflow run | https://cli.github.com/manual/gh_workflow_run |
+| GitHub REST API | Compare two commits (status identical/ahead/behind/diverged) | https://docs.github.com/en/rest/commits/commits |
+| GitHub REST API | Workflow jobs (steps, conclusion) | https://docs.github.com/en/rest/actions/workflow-jobs |
+| GitHub REST API | Workflow runs (head_sha, status, conclusion) | https://docs.github.com/en/rest/actions/workflow-runs |
+| GitHub Actions | Workflow syntax (jobs.<id>.steps[*].if) | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub Actions | Events that trigger workflows (workflow_dispatch GITHUB_SHA) | https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows |
+| GitHub Actions | Contexts (github.sha, steps.conclusion) | https://docs.github.com/en/actions/reference/workflows-and-actions/contexts |
+| Kubernetes (k3s) | k3s Documentation | https://docs.k3s.io/ |
+| Kubernetes (k3s) | Jobs | https://kubernetes.io/docs/concepts/workloads/controllers/job/ |
+| jq | Manual | https://jqlang.org/manual/ |

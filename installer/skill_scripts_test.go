@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"os"
 	"os/exec"
@@ -70,6 +71,11 @@ printf '\n' >> "$STUB_STATE/gh.argv"
 case "$1 ${2:-}" in
   "auth status") exit 0 ;;
 esac
+if [ "$1 ${2:-}" = "run view" ]; then
+  # The run record comes from a fixture file; an unset fixture is an unknown run.
+  [ -n "${STUB_GH_RUN_JSON:-}" ] || { echo "could not find any workflow run with ID: $3" >&2; exit 1; }
+  cat "$STUB_GH_RUN_JSON"; exit 0
+fi
 if [ "$1" = "api" ]; then
   method=GET; path=""
   shift
@@ -77,9 +83,15 @@ if [ "$1" = "api" ]; then
     case "$1" in
       -X) method="$2"; shift 2 ;;
       -i|--silent) shift ;;
+      --jq) shift 2 ;;
       *) path="$1"; shift ;;
     esac
   done
+  case "$path" in
+    */compare/*)
+      [ -n "${STUB_GH_COMPARE_STATUS:-}" ] || { echo "gh: Not Found (HTTP 404)" >&2; exit 1; }
+      echo "$STUB_GH_COMPARE_STATUS"; exit 0 ;;
+  esac
   env="${path#*/environments/}"; rest=""
   case "$env" in */*) rest="${env#*/}"; env="${env%%/*}" ;; esac
   if [ "$method" = "PUT" ]; then
@@ -1085,4 +1097,139 @@ func mustAbs(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return abs
+}
+
+// ciEvidenceRun writes a `gh run view --json headSha,status,conclusion,jobs`
+// record for a two-job k3s deploy.yml run. deploySteps lists the deploy job's
+// named steps and their conclusions, in order; a nil map omits the deploy job.
+func ciEvidenceRun(t *testing.T, status, conclusion, headSha string, deploySteps [][2]string) string {
+	t.Helper()
+	type step struct {
+		Name       string `json:"name"`
+		Status     string `json:"status"`
+		Conclusion string `json:"conclusion"`
+		Number     int    `json:"number"`
+	}
+	type job struct {
+		Name       string `json:"name"`
+		Status     string `json:"status"`
+		Conclusion string `json:"conclusion"`
+		Steps      []step `json:"steps"`
+	}
+	implicit := func(names ...string) []step {
+		var steps []step
+		for i, name := range names {
+			steps = append(steps, step{name, "completed", "success", i + 1})
+		}
+		return steps
+	}
+	jobs := []job{{"build", "completed", "success",
+		implicit("Set up job", "Run actions/checkout@v4", "Log in to GHCR", "Build and push image", "Complete job")}}
+	if deploySteps != nil {
+		steps := implicit("Set up job", "Run actions/checkout@v4")
+		for _, s := range deploySteps {
+			steps = append(steps, step{s[0], "completed", s[1], len(steps) + 1})
+		}
+		steps = append(steps, step{"Complete job", "completed", "success", len(steps) + 1})
+		jobs = append(jobs, job{"deploy", status, conclusion, steps})
+	}
+	out, err := json.Marshal(map[string]any{"headSha": headSha, "status": status, "conclusion": conclusion, "jobs": jobs})
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "run.json")
+	if err := os.WriteFile(path, out, 0644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// ci-evidence decides an existing-k3s CI deploy from the deploy run's record
+// alone: a finished, successful run whose head is the intended commit or
+// contains it, with successful "Verify revision" and row-applicable verify
+// steps. Every other state fails with its own line, and it touches nothing
+// but `gh run view` and the commit comparison.
+func TestCIEvidenceDecidesFromTheDeployRun(t *testing.T) {
+	if _, err := exec.LookPath("jq"); err != nil {
+		t.Skipf("jq not available: %v", err)
+	}
+	rows := []k3sEnvRow{
+		k3sRow("test", "edge-01", "private-mesh", "platform-default-tls"),
+		k3sRow("prod", "pub-02", "public", "platform-owned"),
+		k3sRow("dev", "pub-01", "public", "own-tls"),
+	}
+	input := specEnvironmentsJSON(t, rows, k3sConstraints(rows))
+	const expected = "0123456789abcdef0123456789abcdef01234567"
+	const later = "89abcdef0123456789abcdef0123456789abcdef"
+	steps := func(revision, inCluster, https string) [][2]string {
+		list := [][2]string{{"Resolve target", "success"}, {"Apply manifests", "success"}, {"Wait for rollout", "success"}}
+		if revision != "" {
+			list = append(list, [2]string{"Verify revision", revision})
+		}
+		if inCluster != "" {
+			list = append(list, [2]string{"Verify in cluster", inCluster})
+		}
+		if https != "" {
+			list = append(list, [2]string{"Verify over HTTPS", https})
+		}
+		return append(list, [2]string{"Remove kubeconfig", "success"})
+	}
+	inCluster := ciEvidenceRun(t, "completed", "success", expected, steps("success", "success", "skipped"))
+	external := ciEvidenceRun(t, "completed", "success", expected, steps("success", "skipped", "success"))
+	laterRun := ciEvidenceRun(t, "completed", "success", later, steps("success", "success", "skipped"))
+
+	h := newScriptHarness(t)
+	script := skillScript("smaqit.infrastructure-deploy-verify", "ci-evidence.sh")
+	args := func(env, sha string) []string {
+		return []string{input, env, "--run-id", "9876543210", "--expected-sha", sha}
+	}
+	cases := []struct {
+		name    string
+		run     string
+		compare string
+		args    []string
+		code    int
+		want    string
+	}{
+		{"in-cluster row", inCluster, "", args("test", expected), 0, "'Verify revision' and 'Verify in cluster' succeeded"},
+		{"platform-owned row", inCluster, "", args("prod", expected), 0, "'Verify in cluster' succeeded"},
+		{"external row", external, "", args("dev", expected), 0, "'Verify over HTTPS' succeeded"},
+		{"short expected SHA", inCluster, "", args("test", expected[:8]), 0, "PASS"},
+		{"later head contains the commit", laterRun, "ahead", args("test", expected), 0, "deployed " + later},
+		{"later head identical", laterRun, "identical", args("test", expected), 0, "PASS"},
+		{"head behind the commit", laterRun, "behind", args("test", expected), 1, "wrong SHA"},
+		{"head diverged", laterRun, "diverged", args("test", expected), 1, "compare status 'diverged'"},
+		{"compare call fails", laterRun, "", args("test", expected), 1, "could not compare"},
+		{"run unfinished", ciEvidenceRun(t, "in_progress", "", expected, steps("success", "", "")), "", args("test", expected), 1, "has not finished"},
+		{"run failed", ciEvidenceRun(t, "completed", "failure", expected, steps("success", "failure", "skipped")), "", args("test", expected), 1, "concluded 'failure', not success"},
+		{"revision step failed", ciEvidenceRun(t, "completed", "success", expected, steps("failure", "success", "skipped")), "", args("test", expected), 1, "step 'Verify revision' concluded 'failure'"},
+		{"revision step missing", ciEvidenceRun(t, "completed", "success", expected, steps("", "success", "skipped")), "", args("test", expected), 1, "step 'Verify revision' is missing"},
+		{"applicable step failed", ciEvidenceRun(t, "completed", "success", expected, steps("success", "skipped", "failure")), "", args("dev", expected), 1, "step 'Verify over HTTPS' concluded 'failure'"},
+		{"applicable step skipped", external, "", args("test", expected), 1, "step 'Verify in cluster' was skipped"},
+		{"applicable step missing", ciEvidenceRun(t, "completed", "success", expected, steps("success", "", "success")), "", args("prod", expected), 1, "step 'Verify in cluster' is missing"},
+		{"no deploy job", ciEvidenceRun(t, "completed", "success", expected, nil), "", args("test", expected), 1, "has no 'deploy' job"},
+		{"unknown run", "", "", args("test", expected), 1, "could not read run 9876543210"},
+		{"unknown environment", inCluster, "", args("staging", expected), 1, "no Environments row for 'staging'"},
+		{"no run id", inCluster, "", []string{input, "test", "--expected-sha", expected}, 2, "Usage"},
+		{"bad sha", inCluster, "", []string{input, "test", "--run-id", "1", "--expected-sha", "main"}, 2, "Usage"},
+		{"bad run id", inCluster, "", []string{input, "test", "--run-id", "latest", "--expected-sha", expected}, 2, "Usage"},
+	}
+	for _, c := range cases {
+		env := []string{"STUB_GH_RUN_JSON=" + c.run, "STUB_GH_COMPARE_STATUS=" + c.compare}
+		out, err := h.run(env, script, c.args...)
+		if scriptExitCode(err) != c.code || !strings.Contains(out, c.want) {
+			t.Errorf("%s: exit %d, want %d mentioning %q\n%s", c.name, scriptExitCode(err), c.code, c.want, out)
+		}
+	}
+	for _, line := range strings.Split(strings.TrimSpace(h.argv("gh")), "\n") {
+		if !strings.HasPrefix(line, "run\x00view\x009876543210\x00--json\x00headSha,status,conclusion,jobs\x00") &&
+			!strings.HasPrefix(line, "api\x00repos/{owner}/{repo}/compare/"+expected+"..."+later+"\x00") {
+			t.Errorf("unexpected gh call: %q", line)
+		}
+	}
+	for _, tool := range []string{"vault", "kubectl", "terraform"} {
+		if got := h.argv(tool); got != "" {
+			t.Errorf("ci-evidence called %s: %q", tool, got)
+		}
+	}
 }

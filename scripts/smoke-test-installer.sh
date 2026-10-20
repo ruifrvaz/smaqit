@@ -124,6 +124,14 @@ printf '%s\n' '---' 'id: INF-SMOKE-K3S' 'status: draft' 'created: 2026-01-01' '-
 (cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --json) \
   | grep -Fq '"skill": "smaqit.infrastructure-request-k3s-onboarding"'
 (cd "$project" && "$binary" spec environments --env=test --json) | grep -Fq '"reachability": "private-mesh"'
+# On a CI path the deploy run joins the mesh and verifies itself: no local mesh
+# check, and verify reads the run's record (ci-evidence).
+ci_plan="$(cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --path=existing-cicd-pr --json)"
+grep -Fq '"operation": "ci-evidence"' <<<"$ci_plan"
+if grep -Fq '"operation": "mesh-check"' <<<"$ci_plan"; then
+  echo "existing-k3s existing-cicd-pr plan still runs mesh-check locally" >&2
+  exit 1
+fi
 rm -f "$k3s_spec"
 printf '%s\n' 'schemaVersion: 1' 'phase: deploy' 'slots:' '  tls: none' > "$project/.smaqit/slots.yml"
 # The same re-init refreshes an outdated smaqit section in AGENTS.md while keeping

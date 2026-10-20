@@ -44,6 +44,17 @@ type slotDef struct {
 	DayTwo   bool
 	Purpose  string
 	Defaults map[string]slotFiller // provisioning_mode → default filler
+	// PathDefaults replaces Defaults for one deployment path and mode
+	// (deployment path → provisioning_mode → default filler).
+	PathDefaults map[string]map[string]slotFiller
+}
+
+// defaultFiller returns the slot's default filler for a deployment path and mode.
+func (def slotDef) defaultFiller(path, mode string) slotFiller {
+	if filler, ok := def.PathDefaults[path][mode]; ok {
+		return filler
+	}
+	return def.Defaults[mode]
 }
 
 func noFiller() slotFiller { return slotFiller{Kind: fillerNone} }
@@ -96,7 +107,8 @@ var deploySlots = []slotDef{
 		Name:    "platform-prereqs",
 		Purpose: "Prepare platform-level prerequisites the target needs before credentials or onboarding",
 		// existing-k3s: confirm a private-mesh target's API is reachable from this machine;
-		// a public target passes without probing.
+		// a public target passes without probing. The CI paths default it to none:
+		// the generated deploy.yml joins the mesh itself.
 		Defaults: byMode(noFiller(), map[string]slotFiller{"existing-k3s": skillFiller(skillDeployK3s, "mesh-check")}),
 	},
 	{
@@ -161,6 +173,13 @@ var deploySlots = []slotDef{
 		Name:     "verify",
 		Purpose:  "Verify the deployed revision is healthy and serving",
 		Defaults: byMode(skillFiller(skillDeployVerify, "verify"), nil),
+		// existing-k3s on a CI path: the deploy run already verified the target
+		// from inside its own mesh and cluster access, so verify reads that run's
+		// recorded steps instead of reaching the target from this machine.
+		PathDefaults: map[string]map[string]slotFiller{
+			"existing-cicd-pr": {"existing-k3s": skillFiller(skillDeployVerify, "ci-evidence")},
+			"ci-push":          {"existing-k3s": skillFiller(skillDeployVerify, "ci-evidence")},
+		},
 	},
 	{
 		Name:     "tls",
@@ -202,7 +221,7 @@ var deploymentPathRules = map[string]pathRule{
 	},
 	"existing-cicd-pr": {
 		Refused:     slotSet("iac-generate", "ci-generate", "provision", "host-bootstrap"),
-		DefaultNone: slotSet("platform-onboarding", "tls"),
+		DefaultNone: slotSet("platform-prereqs", "platform-onboarding", "tls"),
 		CIExecuted:  slotSet("artifact-build", "app-deploy"),
 	},
 	// ci-push mirrors project-new production: workflows were generated and
@@ -211,7 +230,7 @@ var deploymentPathRules = map[string]pathRule{
 	// cloud-init configures it; under existing-shared/existing-unmanaged the host
 	// is already bootstrapped (dev sweep or its owner).
 	"ci-push": {
-		DefaultNone: slotSet("iac-generate", "ci-generate", "host-bootstrap", "tls"),
+		DefaultNone: slotSet("platform-prereqs", "iac-generate", "ci-generate", "host-bootstrap", "tls"),
 		CIExecuted:  slotSet("artifact-build", "provision", "app-deploy"),
 	},
 }
@@ -667,7 +686,7 @@ func resolveSlotPlan(root string, opts slotPlanOptions) (*slotPlan, []error) {
 				errs = append(errs, err)
 			}
 		default:
-			filler := def.Defaults[opts.Mode]
+			filler := def.defaultFiller(opts.Path, opts.Mode)
 			if rule.DefaultNone[def.Name] && opts.Slot == "" {
 				filler = noFiller()
 			}

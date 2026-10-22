@@ -53,6 +53,20 @@ Platform Repo contract. Starting points:
   - whether registry merges reconcile automatically.
 - **No secret sync in oidc mode:** `repo-config` and `vault-loader` sync nothing for an `oidc`
   target. Only non-secret Environment variables remain, if any.
+- **No Environment creation either:** GitHub creates the machine-slug Environment on the first
+  workflow run that references it (`environment: <machine>`). The Magnificah platform proved this
+  live on 2026-10-22, in its task 062 probe repos. `repo-config`'s `gh api PUT environments/<machine>`
+  is unnecessary for an `oidc` target. Protection rules, such as a main-only branch policy, are the
+  app repo's own optional choice.
+- **Platform facts, from the Magnificah side (live 2026-10-22/23):**
+  - the contract fields the platform publishes are in Magnificah/magnificah-infrastructure's
+    `docs/onboarding-an-app.md` (auth mode `oidc`);
+  - the actions are `.github/actions/netbird-connect` and `.github/actions/k3s-connect`;
+  - the shared mesh secret is the organisation secret `NETBIRD_DEPLOY_KEY_<MACHINE>`;
+  - a job must declare `permissions: id-token: write`;
+  - OIDC tokens last about 5 minutes, and `k3s-connect`'s exec plugin refreshes them;
+  - when a `run:` script holds any `${{ }}`, GitHub turns the whole script into one expression,
+    capped at 21,000 characters. Generated workflows should pass values through `env:`.
 - **Generated workflow:** `id-token: write`; mesh join first on a private-mesh target (with
   `wait-for-host`, plus `wait-for-port` once the platform ships it); then a token step (the
   platform's composite action when the contract names one, otherwise a generic `ACTIONS_ID_TOKEN`

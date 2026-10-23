@@ -43,7 +43,7 @@ VM/Compose deploy families.
 ### Finding 2 — Docker image tags must be lowercase; `github.repository` isn't
 
 The downstream project's first `workflow_dispatch` run failed at the build step:
-`invalid tag "Magnificah/magnificah-website:...": repository name must be lowercase`.
+`invalid tag "<Org>/<org>-website:...": repository name must be lowercase`.
 `${{ github.repository }}` preserves the real org/repo casing; Docker rejects a
 mixed-case reference outright. A one-line `tr '[:upper:]' '[:lower:]'` fix — but only if
 whatever generates the build step remembers to include it. This is Finding 1's own
@@ -152,7 +152,7 @@ invocation kept only as a documented fallback for environments with no CI at all
   against the downstream source is required afterward (base image choice, the `USER
   root`→`USER nginx` ordering for baking `health.json`, the `runAsUser: 101` fact), plus
   a manual correction pass on the Provenance frontmatter (`synthesized: true`,
-  `contributed-for-project: magnificah-website`, `contributed-date: 2026-09-14`) — the
+  `contributed-for-project: <a downstream project>`, `contributed-date: 2026-09-14`) — the
   compiler cannot infer those from the skill name alone.
 - **Findings 1/2's CI wiring lives in `assets/deploy.yml.k3s.template`, not in the
   reconciled skill.** Confirmed live: `smaqit.infrastructure-cicd-generate` is
@@ -250,7 +250,7 @@ invocation kept only as a documented fallback for environments with no CI at all
 
 ### Unresolvable Tools
 - GitHub Container Registry — resolve helper returned `stacksimplify/docker-hub-to-github-container-registry` (an unrelated third-party tutorial repo, not an official GHCR issue tracker); GHCR is a hosted GitHub product feature with no dedicated open-source repository of its own.
-- GitHub Actions — resolve helper returned `actions/starter-workflows` (community workflow templates, not a GitHub Actions bug tracker); same exclusion this project's own downstream precedent (magnificah task 005) already applied.
+- GitHub Actions — resolve helper returned `actions/starter-workflows` (community workflow templates, not a GitHub Actions bug tracker); same exclusion this project's own downstream precedent (a downstream project's task 005) already applied.
 
 ### Omitted Tools
 - None — three repositories searched, within the five-repository limit.

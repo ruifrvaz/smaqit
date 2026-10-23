@@ -19,14 +19,14 @@
 - Completed via `task.complete` Phase 2 after the user merged PR #87: confirmed `MERGED` via `gh pr view`, pulled `main`, marked `Completed`, removed the worktree, force-deleted the local branch, rebuilt the workspace (carefully staging only the workspace file, since the concurrent session had its own uncommitted task 118/`PLANNING.md` edits in the same working tree at that moment). Confirmed `post-merge-release.yml` fired and completed: **v3.4.0** tagged and published.
 
 ### Downstream Project Name Redaction
-- User requested cleanup of four real downstream-project names that had leaked into task files, a history entry, and a *shipped* skill, in four separate incremental requests: `Magnificah`/`Magnificah/infrastructure` (tasks 114, 115, history 070, `PLANNING.md` — 9 occurrences across 4 files), `iodis-crm-poc` (tasks 110, 113, history 070 — 7 occurrences across 3 files, including a quoted `AGENTS.md` title that directly spelled the name), `fashion-app-poc` (history 070 and the **shipped** `smaqit.infrastructure-deploy-rsync-python-nextjs` skill's frontmatter `description:` and intro prose — the first two cleanups only touched internal task/history files, this one touched a real, installed product artifact), and `areaoffice-poc` (history 070 and task 110 — including a second quoted `AGENTS.md` title and its derived-slug example, both dropped rather than replaced with another fabricated example).
+- User requested cleanup of four real downstream-project names that had leaked into task files, a history entry, and a *shipped* skill, in four separate incremental requests: a downstream platform and its infrastructure repository (tasks 114, 115, history 070, `PLANNING.md` — 9 occurrences across 4 files), a second project (tasks 110, 113, history 070 — 7 occurrences across 3 files, including a quoted `AGENTS.md` title that directly spelled the name), a third (history 070 and the **shipped** `smaqit.infrastructure-deploy-rsync-python-nextjs` skill's frontmatter `description:` and intro prose — the first two cleanups only touched internal task/history files, this one touched a real, installed product artifact), and a fourth (history 070 and task 110 — including a second quoted `AGENTS.md` title and its derived-slug example, both dropped rather than replaced with another fabricated example).
 - Each pass: grepped the full repo (content and filenames) before and after, replaced with generic "a/two downstream project(s)" phrasing or restructured sentences where a real name was grammatically load-bearing, and committed+pushed separately per name as requested.
 
 ## Problems Solved
 
 - Task 116 shipped a real, working, correctly-scoped `smaqit.infrastructure-onboard-k3s-app` skill — caught and corrected mid-review before a fundamentally wrong design (one org's implementation hardcoded as a universal contract) could ship in a release.
 - A cross-session design conflict (task 118's dependency on task 116's soon-to-be-deleted mechanism) was surfaced before it caused silent breakage, rather than discovered later as a confusing inconsistency.
-- Four real downstream-project-name leaks were removed from committed history, active task files, and — in `fashion-app-poc`'s case — a shipped, installable product skill.
+- Four real downstream-project-name leaks were removed from committed history, active task files, and — in the third project's case — a shipped, installable product skill.
 
 ## Decisions Made
 
@@ -45,9 +45,9 @@
 | `CHANGELOG.md` | v3.4.0 entry added, then rewritten to match the corrected design |
 | `.smaqit/tasks/116_contribute_k3s_app_onboarding_skill_definition.md`, `.smaqit/tasks/PLANNING.md` | Full task lifecycle (start → PR Open → Completed) |
 | `.smaqit/references/project-research.md` | Refreshed (was 19 days stale); added `github-copilot-sdk` and task 116's technology block |
-| `.smaqit/tasks/114_*.md`, `.smaqit/tasks/115_*.md` | Magnificah/infrastructure references redacted |
-| `.smaqit/tasks/110_*.md`, `.smaqit/tasks/113_*.md` | iodis-crm-poc and areaoffice-poc references redacted |
-| `skills/smaqit.infrastructure-deploy-rsync-python-nextjs/SKILL.md` | fashion-app-poc references redacted (shipped skill) |
+| `.smaqit/tasks/114_*.md`, `.smaqit/tasks/115_*.md` | downstream platform references redacted |
+| `.smaqit/tasks/110_*.md`, `.smaqit/tasks/113_*.md` | second and fourth project references redacted |
+| `skills/smaqit.infrastructure-deploy-rsync-python-nextjs/SKILL.md` | third project references redacted (shipped skill) |
 | `.smaqit/history/070_release_and_project_sanitization_2026-07-29.md` | All four names redacted from its own audit-tally lines |
 | `smaqit.code-workspace` | Rebuilt after task 116 worktree removal |
 
@@ -65,4 +65,4 @@
 - Releases published: 1 (v3.4.0)
 - Design corrections caught during review (before shipping to a wider audience): 1 (task 116's full mechanism rescoped to a thin dispatcher)
 - Cross-session conflicts found and handed off: 1 (task 118's dependency on task 116's deleted mechanism)
-- Real downstream-project names redacted: 4 (`Magnificah`, `iodis-crm-poc`, `fashion-app-poc`, `areaoffice-poc`) across 8 files, including 1 shipped product skill
+- Real downstream-project names redacted: 4 across 8 files, including 1 shipped product skill

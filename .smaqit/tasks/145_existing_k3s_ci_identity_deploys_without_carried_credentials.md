@@ -16,10 +16,10 @@ kubeconfig, and on a mesh-only target a per-app NetBird setup key. The app then 
 - `smaqit.infrastructure-cicd-generate` and `smaqit.infrastructure-deploy-k3s-app` generate and run
   the deploy workflow with those secrets.
 
-In live use on the Magnificah platform, onboarding one app took about ten manual steps across three
+In live use on a downstream platform, onboarding one app took about ten manual steps across three
 people, and every credential passed through one operator's local Vault. That platform is
 switching to identity-based deploys, in its task 061 (cross-repo parent) and task 062 (platform
-side), both in `Magnificah/magnificah-infrastructure`:
+side), both in its platform repository:
 - the k3s API trusts GitHub Actions OIDC tokens and binds the namespace-scoped `deployer` Role to
   the app's repository and Environment, so no kubeconfig is issued;
 - mesh reach uses one shared deploy key per machine, held as an organisation secret;
@@ -27,9 +27,8 @@ side), both in `Magnificah/magnificah-infrastructure`:
 - a merged registry change reconciles automatically.
 
 This task makes the app-side skills consume that model generically, through the Platform Repo
-contract. It must not hard-code Magnificah. A platform declares its auth mode, and the skills
-support it next to the existing kubeconfig mode, or replace that mode if the decision is no
-backwards compatibility.
+contract. It must not hard-code that platform. OIDC replaces the kubeconfig mode outright (no
+backwards compatibility): the issued-kubeconfig path is removed, not kept beside OIDC.
 
 ## Issue Triage Context
 
@@ -41,25 +40,41 @@ backwards compatibility.
 
 ## Design Decisions
 
-TBD — to be confirmed during assessment, once Magnificah infrastructure task 062 publishes its
+- **OIDC replaces kubeconfig mode** (Rui, 2026-10-23): no backwards compatibility and no auth-mode
+  switch. Removed, not deprecated:
+  - the `secret/apps/<app-slug>/<machine-slug>/kubeconfig` Vault path and its load, rotate and
+    `credential-file.sh` handling in vault-loader;
+  - the `KUBECONFIG` Environment secret and its sync in repo-config's `sync-k3s-env.sh`;
+  - the kubeconfig steps in the generated k3s `deploy.yml`, replaced by the OIDC token step;
+  - existing-k3s `target-credentials` defaults to none in `installer/slots.go`, unless the per-app
+    mesh key survives (below).
+
+  A platform that only issues kubeconfigs is out of scope, as a platform whose onboarding isn't
+  PR-based already is. The CHANGELOG's action-required note tells app repositories to delete the
+  `KUBECONFIG` secret and Vault path after their first OIDC deploy.
+- **Open, same question:** whether the per-app mesh setup key (`mesh-setup-key`, `MESH_SETUP_KEY`)
+  and the app's registry pull credential (`REGISTRY_ORG`, `github-package-read`) are also removed in
+  favour of the platform's shared mesh key and platform-owned pulls.
+
+Still to be confirmed during assessment, once the downstream platform's task 062 publishes its
 Platform Repo contract. Starting points:
 - **Contract fields:**
-  - the auth mode (`kubeconfig` | `oidc`);
   - the OIDC audience per environment;
   - where the cluster CA comes from;
   - the subject form the platform binds (repo + Environment);
   - the mesh key's secret name and scope (organisation versus Environment);
   - whether image pulls are platform-owned;
   - whether registry merges reconcile automatically.
-- **No secret sync in oidc mode:** `repo-config` and `vault-loader` sync nothing for an `oidc`
-  target. Only non-secret Environment variables remain, if any.
+- **No deploy-credential sync:** `repo-config` and `vault-loader` sync no deploy credential for an
+  existing-k3s target. Only non-secret Environment variables remain, if any. (App runtime secrets
+  are task 137's, which follows this task.)
 - **No Environment creation either:** GitHub creates the machine-slug Environment on the first
-  workflow run that references it (`environment: <machine>`). The Magnificah platform proved this
+  workflow run that references it (`environment: <machine>`). The downstream platform proved this
   live on 2026-10-22, in its task 062 probe repos. `repo-config`'s `gh api PUT environments/<machine>`
-  is unnecessary for an `oidc` target. Protection rules, such as a main-only branch policy, are the
-  app repo's own optional choice.
-- **Platform facts, from the Magnificah side (live 2026-10-22/23):**
-  - the contract fields the platform publishes are in Magnificah/magnificah-infrastructure's
+  is unnecessary for an existing-k3s target. Protection rules, such as a main-only branch policy,
+  are the app repo's own optional choice.
+- **Platform facts, from the downstream platform (live 2026-10-22/23):**
+  - the contract fields the platform publishes are in its platform repository's
     `docs/onboarding-an-app.md` (auth mode `oidc`);
   - the actions are `.github/actions/netbird-connect` and `.github/actions/k3s-connect`;
   - the shared mesh secret is the organisation secret `NETBIRD_DEPLOY_KEY_<MACHINE>`;
@@ -77,8 +92,8 @@ Platform Repo contract. Starting points:
 
 ## Implementation Steps
 
-1. Wait for Magnificah infrastructure task 062's contract (or co-design it). Read task 144's
-   outcome, which this builds on.
+1. Wait for the downstream platform's task 062 contract (or co-design it). Read task 144's
+   outcome, which this builds on. Settle the open mesh-key and pull-credential question.
 2. Update the Skill Definitions (`.smaqit/definitions/skills/`) for request-k3s-onboarding,
    repo-config, vault-loader, cicd-generate and deploy-k3s-app, then recompile through smaqit.L2.
 3. Update the Infrastructure spec template's existing-k3s Environments table and the wiki
@@ -93,11 +108,11 @@ Platform Repo contract. Starting points:
 
 ## Acceptance Criteria
 
-- [ ] The Platform Repo contract documents an auth mode, and `oidc` mode with its fields (audience, CA source, bound subject, mesh key secret, pull ownership, auto-reconcile)
-- [ ] For an `oidc` target, repo-config and vault-loader sync no kubeconfig and no per-app mesh key
-- [ ] The generated existing-k3s `deploy.yml` for an `oidc` target requests `id-token: write`, joins the mesh first on a private-mesh target, authenticates with a short-lived OIDC token, and holds no deploy secret beyond the platform's shared mesh key
+- [ ] The Platform Repo contract documents the OIDC fields (audience, CA source, bound subject, mesh key secret, pull ownership, auto-reconcile); it has no auth-mode switch
+- [ ] No shipped skill, script, template or resolver default loads, rotates, syncs or uses an issued kubeconfig; existing-k3s `target-credentials` reflects the settled mesh-key decision
+- [ ] The generated existing-k3s `deploy.yml` requests `id-token: write`, joins the mesh first on a private-mesh target, authenticates with a short-lived OIDC token, and holds no deploy secret beyond the platform's shared mesh key
 - [ ] request-k3s-onboarding writes the repository field when the contract requires it, and reports auto-reconcile instead of waiting on a manual dispatch
-- [ ] The Infrastructure spec template and wiki describe both modes (or the single remaining mode); a release carries an action-required note
+- [ ] The Infrastructure spec template, wiki and compendium describe only the OIDC model; a release carries an action-required note (delete the `KUBECONFIG` secret and Vault path)
 
 ## Findings
 
@@ -124,12 +139,17 @@ Platform Repo contract. Starting points:
 | `.smaqit/definitions/skills/smaqit.infrastructure-cicd-generate.md` | Modify |
 | `.smaqit/definitions/skills/smaqit.infrastructure-deploy-k3s-app.md` | Modify |
 | `skills/smaqit.infrastructure-*/` (compiled) | Modify |
+| `skills/smaqit.infrastructure-vault-loader/` (kubeconfig load, rotate, `credential-file.sh` allowlist) | Modify |
+| `skills/smaqit.infrastructure-repo-config/scripts/sync-k3s-env.sh` | Modify |
+| `skills/smaqit.infrastructure-cicd-generate/assets/deploy.yml.k3s.template`, `scripts/render-k3s-deploy.sh`, `installer/testdata/k3s-deploy/*` | Modify |
+| `installer/slots.go` (existing-k3s `target-credentials` default), installer tests | Modify |
 | `templates/specs/infrastructure.template.md` | Modify |
-| `docs/wiki/workflows/platform-repositories.md`, `deployment-slots.md` | Modify |
+| `docs/wiki/workflows/platform-repositories.md`, `deployment-slots.md`, `.smaqit/compendium.md` | Modify |
+| `CHANGELOG.md` | Modify |
 
 ## Notes
 
-- Parent: `Magnificah/magnificah-infrastructure` task 061. Platform side: that repo's task 062.
+- Parent: the downstream platform repository's task 061. Platform side: that repo's task 062.
   Origin: its issues #175, #177 and #178, assessed 2026-10-22.
-- Depends on task 144 (CI-only deploys).
+- Depends on task 144 (CI-only deploys). Task 137 follows this task.
 - The vault-loader skill definition may live only as a compiled skill. Check before step 2.

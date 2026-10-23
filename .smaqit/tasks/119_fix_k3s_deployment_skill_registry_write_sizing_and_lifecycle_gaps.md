@@ -164,7 +164,7 @@ No open bug/regression issues confirmed both platform and feature dimensions for
   a `## Notes` section for a legacy-format task file; task 119 didn't have one. Added a minimal
   Notes section to unblock it — the same class of legacy-format gap already documented for other
   tasks (107/109/111/112).
-- The task file's Description named a real downstream project by name ("Magnificah"), violating
+- The task file's Description named a real downstream project by name, violating
   this repo's own `CONTRIBUTING.md` rule against naming consumer projects in task files. Corrected
   to generic phrasing before implementation began.
 - No live platform repo or GitHub credential was available to test the registry-write fix against

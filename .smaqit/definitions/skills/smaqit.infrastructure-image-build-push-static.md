@@ -15,16 +15,16 @@ locally).
 ## Provenance
 
 - `synthesized: true`
-- `contributed-for-project: magnificah-website`
+- `contributed-for-project: <a downstream project>`
 - `contributed-date: 2026-09-14`
 - `contributed-stack`: static HTML/CSS/vanilla-JS site, no build step, deployed as a container
   onto an `existing-k3s` Namespace-per-app platform (Traefik ingress, cert-manager, GHCR image
   registry)
-- **Origin**: task 005 (K3s app onboarding & containerized dev deployment on magnificah-test-01)
+- **Origin**: a downstream project's task 005 (K3s app onboarding & containerized dev deployment on a downstream test machine)
   confirmed via direct audit that `smaqit.infrastructure-cicd-generate`'s `k3s` mode and
   `smaqit.infrastructure-deploy-k3s-app` had zero coverage for turning a static site into a
   running container image — no Dockerfile authoring, no manifest authoring, no `runAsUser`
-  guidance. Every fact in this skill was proven live against a real cluster (`magnificah-test-01`)
+  guidance. Every fact in this skill was proven live against a real cluster
   across six iterations, not guessed. Reconciled into canonical smaqit as task 121 (mirroring task
   106's reconciliation precedent), which narrowed the original downstream skill's scope: the
   build-and-push CI job and the image-pull-secret workflow step both moved to

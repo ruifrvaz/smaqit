@@ -103,8 +103,9 @@ bootstrap the host, issue TLS, or cover the Python stacks. A follow-up task clos
     its slot summary becomes wrong.
 
 *Phase D: tasks*
-11. Edit `.smaqit/tasks/137_existing_k3s_credential_slots_scripts_only_vault.md`: drop its
-    `standard`-path local in-cluster verify step (step 5) and the related notes.
+11. ~~Edit `.smaqit/tasks/137_existing_k3s_credential_slots_scripts_only_vault.md`: drop its
+    `standard`-path local in-cluster verify step (step 5) and the related notes.~~ Done
+    2026-10-23, when task 137 was rescoped to follow task 145 (OIDC replaces kubeconfig).
 12. Create a follow-up task "VM modes: CI-only deploys" listing the gaps found during planning:
     multi-environment VM `deploy.yml` (environment input, per-environment GitHub Environments instead
     of repo-level `VM_HOST`); nginx vhost, `docker-compose.yml` and `.env` written in CI; `vm-bootstrap`

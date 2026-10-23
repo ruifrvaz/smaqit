@@ -573,13 +573,14 @@ Task files are written speculatively and can go stale as the framework evolves o
 
 **Can smaqit's Bench suite test how Claude Code runs smaqit agents?**
 
-Not soundly yet. The `smaqit-adk bench` engine runs whatever `process.executable` a manifest names, but every existing manifest drives `codex exec`, and three gaps block a valid Claude Code run:
+Yes, for single-turn Cases, since smaqit-adk v3.1.0 (its task 037, the Bench harness selector). A manifest declares `adapter: claude-code`, and Bench then closes the two gaps that used to make a Claude Code run unsound:
 
-- **Staging and shadowing.** Bench stages the version under test into a read-only `.smaqit-bench-input/` sidecar that Claude Code doesn't read. Copying it into the project's `.claude/` doesn't help, because personal `~/.claude/skills` override project skills with the same name, so an installed smaqit release would mask the version under test.
-- **Credentials.** Avoiding that shadowing needs an isolated `CLAUDE_CONFIG_DIR`, which has no login. Credentials must be passed in on purpose and never frozen into evidence; smaqit-adk task 035 found Codex credentials leaking into a workspace that way.
-- **Conversation turns.** Headless Claude Code has no user to answer questions, so it covers single-turn Cases only. Testing an ask-and-resume loop needs scripted follow-up turns.
+- **Staging and shadowing.** Each attempt runs against its own isolated `HOME` and `CLAUDE_CONFIG_DIR` (`{harnessHome}`), with the version under test installed there as a skill, agent or command. Personal `~/.claude/skills` therefore can't mask it, and the attempt fails outright if a treatment is shadowed or not discovered.
+- **Credentials.** Bench passes exactly one credential into the isolated home and plants a canary to prove no credential reached the evidence.
 
-smaqit-adk task 037 (Bench harness selector) would make Claude Code a declared harness that handles all three. Until it lands, the standalone `make -C installer e2e-claude` test does that work outside Bench. It isolates the install itself, takes credentials only from the environment, and scripts follow-up turns with `--resume`. See also: how do I test smaqit end to end on Claude Code?
+It also captures the transcript, usage and Claude Code version per attempt.
+
+One gap remains: **conversation turns.** Headless Claude Code has no user to answer questions, and Bench has no scripted follow-up turns yet (a smaqit-adk follow-up), so an ask-and-resume loop (`NEEDS-INPUT`, then answers) can't be benched. The standalone `make -C installer e2e-claude` test covers that outside Bench by scripting follow-up turns with `--resume`. See also: how do I test smaqit end to end on Claude Code?
 
 ---
 

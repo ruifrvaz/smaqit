@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Nothing to add.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
+## [3.20.0] - 2026-10-23
+
 **Action required:**
 - **existing-k3s no longer deploys from the operator's machine.** `smaqit slots plan` refuses any slot that would act on an existing-k3s target locally (`provision`, `host-bootstrap`, `app-deploy`, `tls`, `replace`, `teardown`) with `SLOTS-LOCAL-DEPLOY-REFUSED`, including the default `standard` path, single-slot runs and project bindings. Plan an environment's first deploy with `--path=ci-bootstrap`, later ones with `--path=ci-push` or `existing-cicd-pr`; `smaqit.input-deployment` now picks the path for you. A project that bound its own `tls`, `replace` or `teardown` skill under existing-k3s must remove that binding: no path runs those slots in CI.
 - **deploy-k3s-app's `mesh-check` operation and deploy-verify's in-cluster mode are gone.** A `.smaqit/slots.yml` binding of `platform-prereqs` to deploy-k3s-app (`operation: mesh-check`) now fails with `SLOTS-SLOT-UNDECLARED`; remove it. existing-k3s always verifies with `ci-evidence`.
@@ -25,21 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **deploy-k3s-app 3.0.0:** describes the sequence the generated `deploy.yml` performs and requires, with no local deploy instructions. **deploy-verify 2.0.0:** `verify` is HTTP-only for VM modes; existing-k3s always uses `ci-evidence`.
 - Framework (`AGENTS.md` CI-only profiles, `PHASES.md` Where Deployment Executes), the deployment-slots wiki (paths table with `ci-bootstrap`, a CI-only/transitional table), the compendium, the README and the project `AGENTS.md` template state the rule.
 
-### Deprecated
-- Nothing to add.
-
 ### Removed
 - `smaqit.infrastructure-deploy-k3s-app`'s `mesh-check` operation, its `platform-prereqs` declaration and `scripts/mesh-check.sh`; its local deploy instructions (Vault kubeconfig, local `kubectl`).
 - `smaqit.infrastructure-deploy-verify`'s in-cluster mode (Kubernetes steps K1–K5).
-
-### Fixed
-- Nothing to add.
-
-### Security
-- Nothing to add.
-
-### Chore
-- Nothing to add.
 
 ## [3.19.0] - 2026-10-20
 

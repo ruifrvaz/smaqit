@@ -22,7 +22,7 @@ switching to identity-based deploys, in its task 061 (cross-repo parent) and tas
 side), both in its platform repository:
 - the k3s API trusts GitHub Actions OIDC tokens and binds the namespace-scoped `deployer` Role to
   the app's repository and Environment, so no kubeconfig is issued;
-- mesh reach uses one shared deploy key per machine, held as an organisation secret;
+- mesh reach uses one shared deploy key per environment (machine), held as an organisation secret;
 - image pulls are platform-owned;
 - a merged registry change reconciles automatically.
 
@@ -46,15 +46,20 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
     `credential-file.sh` handling in vault-loader;
   - the `KUBECONFIG` Environment secret and its sync in repo-config's `sync-k3s-env.sh`;
   - the kubeconfig steps in the generated k3s `deploy.yml`, replaced by the OIDC token step;
-  - existing-k3s `target-credentials` defaults to none in `installer/slots.go`, unless the per-app
-    mesh key survives (below).
+  - existing-k3s `target-credentials` defaults to none in `installer/slots.go`, unless the app's
+    registry pull credential survives (below).
 
   A platform that only issues kubeconfigs is out of scope, as a platform whose onboarding isn't
   PR-based already is. The CHANGELOG's action-required note tells app repositories to delete the
   `KUBECONFIG` secret and Vault path after their first OIDC deploy.
-- **Open, same question:** whether the per-app mesh setup key (`mesh-setup-key`, `MESH_SETUP_KEY`)
-  and the app's registry pull credential (`REGISTRY_ORG`, `github-package-read`) are also removed in
-  favour of the platform's shared mesh key and platform-owned pulls.
+- **A per-environment shared mesh key replaces the per-app key** (Rui, 2026-10-23): one key per
+  environment (machine slug), shared by every app deployed there; never one key for the whole
+  platform. The platform issues and holds it; the app's Environments row names its secret
+  (`Mesh Setup-Key Secret`), and the app neither stores nor syncs it. Removed: the
+  `secret/apps/<app-slug>/<machine-slug>/mesh-setup-key` Vault path, `MESH_SETUP_KEY` loading and
+  rotation in vault-loader, and `sync-k3s-env.sh --mesh-secret`.
+- **Open:** whether the app's registry pull credential (`REGISTRY_ORG`, `github-package-read`) is
+  also removed in favour of platform-owned pulls.
 
 Still to be confirmed during assessment, once the downstream platform's task 062 publishes its
 Platform Repo contract. Starting points:
@@ -62,7 +67,8 @@ Platform Repo contract. Starting points:
   - the OIDC audience per environment;
   - where the cluster CA comes from;
   - the subject form the platform binds (repo + Environment);
-  - the mesh key's secret name and scope (organisation versus Environment);
+  - the per-environment mesh key's secret name, and how the platform grants the app's repository
+    access to it (for example, an organisation secret limited to selected repositories);
   - whether image pulls are platform-owned;
   - whether registry merges reconcile automatically.
 - **No deploy-credential sync:** `repo-config` and `vault-loader` sync no deploy credential for an
@@ -93,7 +99,7 @@ Platform Repo contract. Starting points:
 ## Implementation Steps
 
 1. Wait for the downstream platform's task 062 contract (or co-design it). Read task 144's
-   outcome, which this builds on. Settle the open mesh-key and pull-credential question.
+   outcome, which this builds on. Settle the open pull-credential question.
 2. Update the Skill Definitions (`.smaqit/definitions/skills/`) for request-k3s-onboarding,
    repo-config, vault-loader, cicd-generate and deploy-k3s-app, then recompile through smaqit.L2.
 3. Update the Infrastructure spec template's existing-k3s Environments table and the wiki
@@ -109,8 +115,8 @@ Platform Repo contract. Starting points:
 ## Acceptance Criteria
 
 - [ ] The Platform Repo contract documents the OIDC fields (audience, CA source, bound subject, mesh key secret, pull ownership, auto-reconcile); it has no auth-mode switch
-- [ ] No shipped skill, script, template or resolver default loads, rotates, syncs or uses an issued kubeconfig; existing-k3s `target-credentials` reflects the settled mesh-key decision
-- [ ] The generated existing-k3s `deploy.yml` requests `id-token: write`, joins the mesh first on a private-mesh target, authenticates with a short-lived OIDC token, and holds no deploy secret beyond the platform's shared mesh key
+- [ ] No shipped skill, script, template or resolver default loads, rotates, syncs or uses an issued kubeconfig or a per-app mesh setup key; existing-k3s `target-credentials` reflects the settled pull-credential decision
+- [ ] The generated existing-k3s `deploy.yml` requests `id-token: write`, joins the mesh first on a private-mesh target with that environment's shared mesh key, authenticates with a short-lived OIDC token, and holds no other deploy secret
 - [ ] request-k3s-onboarding writes the repository field when the contract requires it, and reports auto-reconcile instead of waiting on a manual dispatch
 - [ ] The Infrastructure spec template, wiki and compendium describe only the OIDC model; a release carries an action-required note (delete the `KUBECONFIG` secret and Vault path)
 

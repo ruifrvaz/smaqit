@@ -46,8 +46,8 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
     `credential-file.sh` handling in vault-loader;
   - the `KUBECONFIG` Environment secret and its sync in repo-config's `sync-k3s-env.sh`;
   - the kubeconfig steps in the generated k3s `deploy.yml`, replaced by the OIDC token step;
-  - existing-k3s `target-credentials` defaults to none in `installer/slots.go`, unless the app's
-    registry pull credential survives (below).
+  - existing-k3s `target-credentials` defaults to none in `installer/slots.go`: with the kubeconfig
+    and the per-app mesh key gone (below), the target issues the app nothing to load.
 
   A platform that only issues kubeconfigs is out of scope, as a platform whose onboarding isn't
   PR-based already is. The CHANGELOG's action-required note tells app repositories to delete the
@@ -58,8 +58,15 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
   (`Mesh Setup-Key Secret`), and the app neither stores nor syncs it. Removed: the
   `secret/apps/<app-slug>/<machine-slug>/mesh-setup-key` Vault path, `MESH_SETUP_KEY` loading and
   rotation in vault-loader, and `sync-k3s-env.sh --mesh-secret`.
-- **Open:** whether the app's registry pull credential (`REGISTRY_ORG`, `github-package-read`) is
-  also removed in favour of platform-owned pulls.
+- **Platform-owned pulls replace the app's pull credential** (Rui, 2026-10-23): the platform pulls
+  images for the apps it hosts. Removed:
+  - `REGISTRY_ORG` and the `secret/organizations/<org>/github-package-read` load in vault-loader's
+    `access` scope;
+  - `sync-k3s-env.sh --registry-org` and its `REGISTRY_USERNAME`/`REGISTRY_TOKEN` Environment secrets;
+  - the generated `Create imagePullSecret` step (`smaqit:pull-secret` block) and its
+    `render-k3s-deploy.sh` condition, and the `imagePullSecrets` hint in `deployment.yaml.template`.
+
+  A private `Container Registry` Constraints row no longer drives any app-side step.
 
 Still to be confirmed during assessment, once the downstream platform's task 062 publishes its
 Platform Repo contract. Starting points:
@@ -99,7 +106,7 @@ Platform Repo contract. Starting points:
 ## Implementation Steps
 
 1. Wait for the downstream platform's task 062 contract (or co-design it). Read task 144's
-   outcome, which this builds on. Settle the open pull-credential question.
+   outcome, which this builds on.
 2. Update the Skill Definitions (`.smaqit/definitions/skills/`) for request-k3s-onboarding,
    repo-config, vault-loader, cicd-generate and deploy-k3s-app, then recompile through smaqit.L2.
 3. Update the Infrastructure spec template's existing-k3s Environments table and the wiki
@@ -115,7 +122,7 @@ Platform Repo contract. Starting points:
 ## Acceptance Criteria
 
 - [ ] The Platform Repo contract documents the OIDC fields (audience, CA source, bound subject, mesh key secret, pull ownership, auto-reconcile); it has no auth-mode switch
-- [ ] No shipped skill, script, template or resolver default loads, rotates, syncs or uses an issued kubeconfig or a per-app mesh setup key; existing-k3s `target-credentials` reflects the settled pull-credential decision
+- [ ] No shipped skill, script, template or resolver default loads, rotates, syncs or uses an issued kubeconfig, a per-app mesh setup key or an app-held registry pull credential; existing-k3s `target-credentials` defaults to none; the generated `deploy.yml` creates no imagePullSecret
 - [ ] The generated existing-k3s `deploy.yml` requests `id-token: write`, joins the mesh first on a private-mesh target with that environment's shared mesh key, authenticates with a short-lived OIDC token, and holds no other deploy secret
 - [ ] request-k3s-onboarding writes the repository field when the contract requires it, and reports auto-reconcile instead of waiting on a manual dispatch
 - [ ] The Infrastructure spec template, wiki and compendium describe only the OIDC model; a release carries an action-required note (delete the `KUBECONFIG` secret and Vault path)
@@ -148,6 +155,7 @@ Platform Repo contract. Starting points:
 | `skills/smaqit.infrastructure-vault-loader/` (kubeconfig load, rotate, `credential-file.sh` allowlist) | Modify |
 | `skills/smaqit.infrastructure-repo-config/scripts/sync-k3s-env.sh` | Modify |
 | `skills/smaqit.infrastructure-cicd-generate/assets/deploy.yml.k3s.template`, `scripts/render-k3s-deploy.sh`, `installer/testdata/k3s-deploy/*` | Modify |
+| `skills/smaqit.infrastructure-deploy-k3s-app/assets/deployment.yaml.template` (`imagePullSecrets` hint) | Modify |
 | `installer/slots.go` (existing-k3s `target-credentials` default), installer tests | Modify |
 | `templates/specs/infrastructure.template.md` | Modify |
 | `docs/wiki/workflows/platform-repositories.md`, `deployment-slots.md`, `.smaqit/compendium.md` | Modify |

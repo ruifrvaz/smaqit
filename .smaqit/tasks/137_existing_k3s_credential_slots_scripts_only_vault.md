@@ -12,8 +12,8 @@ credential fillers can't run under that policy. Every one that remains after tas
 calls the `vault` binary itself, with no way to point it elsewhere:
 
 - `smaqit.infrastructure-vault-loader` `access` runs `load-credentials.sh` (the app's GitHub token
-  and the platform-repo PAT), and so does `target` if task 145 keeps the app's registry pull
-  credential (the per-app mesh key is gone: environments share a platform-held key);
+  and the platform-repo PAT); `target` has nothing left to load after task 145 (no kubeconfig, no
+  per-app mesh key, no app-held pull credential);
 - `smaqit.infrastructure-repo-config` `sync` runs `sync-k3s-env.sh`, which pipes
   `vault kv get` into `gh secret set`; after task 145 it carries only runtime secrets (below);
 - `smaqit.infrastructure-request-k3s-onboarding` loads the platform-repo PAT through
@@ -76,8 +76,8 @@ This is gap 6 of task 136, found on the first live private-mesh deploy. It was s
    - parse and validate the `Vault Access` row and the `## Runtime Secrets` table;
    - expose both in the `--json` output;
    - update `templates/specs/infrastructure.template.md` and `agents/infrastructure.md`.
-2. vault-loader `access` (and `target`, if task 145 kept the registry pull credential): an
-   `operator-scripts` branch that emits the handoff and then verifies without Vault.
+2. vault-loader `access`: an `operator-scripts` branch that emits the handoff and then verifies
+   without Vault.
 3. repo-config `sync` and `sync-k3s-env.sh`:
    - an `operator-scripts` handoff with a `gh`-only verification;
    - syncing or handing off the runtime secrets.

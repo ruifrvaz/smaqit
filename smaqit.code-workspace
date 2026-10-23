@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/144-all-deploys-go-through-ci-cd-workflows-existing-k3s-enforced-vm-modes-transitional",
-      "path": "../smaqit-wt-task-144-all-deploys-go-through-ci-cd-workflows-existing-k3s-enforced-vm-modes-transitional"
     }
   ],
   "settings": {

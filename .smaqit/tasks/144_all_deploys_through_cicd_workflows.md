@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 112
 created: "2026-10-20"
 started: "2026-10-23"
 mode: Assisted
@@ -162,31 +163,42 @@ bootstrap the host, issue TLS, or cover the Python stacks. A follow-up task clos
 
 ## Acceptance Criteria
 
-- [ ] The resolver refuses any target-acting slot (`provision`, `host-bootstrap`, `app-deploy`, `tls`, `replace`, `teardown`) with a local executor under existing-k3s, as a full sequence, a single-slot run or a binding, with `SLOTS-LOCAL-DEPLOY-REFUSED`; VM modes resolve exactly as before
-- [ ] A `ci-bootstrap` path plans existing-k3s as local configuration, artifact authoring and `ci-generate`, then `app-deploy @ci` and `verify` `ci-evidence`; it refuses `provision` and `host-bootstrap`; existing-k3s `platform-prereqs` defaults to none on every path
-- [ ] `smaqit.input-deployment` defaults existing-k3s to `ci-push` when `deploy.yml` is on the default branch and `ci-bootstrap` otherwise; VM modes keep `standard`; explicit caller paths win
-- [ ] The Deployment agent documents `ci-bootstrap` (local slots, workflows landed through a PR without the deploy sentinel, human merge, dispatch for the environment's machine slug, run selected by commit, `ci-evidence` with the merge SHA) and names the ci-monitor seam with GitHub Actions as the default
-- [ ] project-new Phase 4 deploys existing-k3s's test environment through `ci-bootstrap` and gates on the CI run's evidence; the local mesh precondition is gone; VM Phase 4 is marked transitional
-- [ ] deploy-k3s-app has no local deploy instructions and no `mesh-check` operation or script; deploy-verify has no in-cluster mode; no shipped skill tells an agent to deploy to an existing-k3s target from the local machine
-- [ ] `framework/`, the deployment-slots wiki, the compendium and the README state the rule, the k3s enforcement and the VM transitional exception
-- [ ] Task 137 drops its local-verify step; a follow-up task for VM-mode CI-only deploys exists, listing the workflow gaps
-- [ ] `make -C installer test` and `make -C installer smoke-test` pass; CHANGELOG has an action-required note; MINOR release published via the task PR
+- [x] The resolver refuses any target-acting slot (`provision`, `host-bootstrap`, `app-deploy`, `tls`, `replace`, `teardown`) with a local executor under existing-k3s, as a full sequence, a single-slot run or a binding, with `SLOTS-LOCAL-DEPLOY-REFUSED`; VM modes resolve exactly as before
+- [x] A `ci-bootstrap` path plans existing-k3s as local configuration, artifact authoring and `ci-generate`, then `app-deploy @ci` and `verify` `ci-evidence`; it refuses `provision` and `host-bootstrap`; existing-k3s `platform-prereqs` defaults to none on every path
+- [x] `smaqit.input-deployment` defaults existing-k3s to `ci-push` when `deploy.yml` is on the default branch and `ci-bootstrap` otherwise; VM modes keep `standard`; explicit caller paths win
+- [x] The Deployment agent documents `ci-bootstrap` (local slots, workflows landed through a PR without the deploy sentinel, human merge, dispatch for the environment's machine slug, run selected by commit, `ci-evidence` with the merge SHA) and names the ci-monitor seam with GitHub Actions as the default
+- [x] project-new Phase 4 deploys existing-k3s's test environment through `ci-bootstrap` and gates on the CI run's evidence; the local mesh precondition is gone; VM Phase 4 is marked transitional
+- [x] deploy-k3s-app has no local deploy instructions and no `mesh-check` operation or script; deploy-verify has no in-cluster mode; no shipped skill tells an agent to deploy to an existing-k3s target from the local machine
+- [x] `framework/`, the deployment-slots wiki, the compendium and the README state the rule, the k3s enforcement and the VM transitional exception
+- [x] Task 137 drops its local-verify step; a follow-up task for VM-mode CI-only deploys exists, listing the workflow gaps
+- [x] `make -C installer test` and `make -C installer smoke-test` pass; CHANGELOG has an action-required note; MINOR release published via the task PR
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Resolver: `slotDef` gained `TargetActing` (provision, host-bootstrap, app-deploy, tls, replace, teardown) and a `ciOnlyModes` set holding existing-k3s; `resolveSlotPlan` refuses a local executor on a target-acting slot under a CI-only mode with `SLOTS-LOCAL-DEPLOY-REFUSED`, at the one place the executor is set, so defaults, single-slot runs and bindings are all covered.
+- New `ci-bootstrap` path: refuses `provision`/`host-bootstrap`, defaults `platform-prereqs` and `tls` to none, CI-executes only `app-deploy`; `verify` gets `ci-evidence` through the existing `PathDefaults`. `platform-prereqs` has no default for any mode now; `validateSlotPlanOptions` refuses `ci-bootstrap` for VM modes.
+- Skills: deploy-k3s-app 3.0.0 describes the sequence the generated `deploy.yml` performs (no local deploy, no `mesh-check`, script deleted); deploy-verify 2.0.0 (no in-cluster mode); cicd-generate 3.3.0 renders the Ingress and probe manifests (new Step 6) and names the ci-monitor seam; input-deployment 1.10.0 picks the path from mode and `git cat-file -e origin/<default>:.github/workflows/deploy.yml`; project-new 3.2.0 Phase 4 uses `ci-bootstrap` for k3s; image-build-push-static 1.2.2 text.
+- Deployment agent: the rule, `standard` marked transitional, a `ci-bootstrap` step list, the ci-monitor contract, and a stop on ambiguous run selection. Framework (`AGENTS.md` CI-only profiles, `PHASES.md` Where Deployment Executes), the deployment-slots wiki, compendium, README and project `AGENTS.md` template updated; CHANGELOG `[Unreleased]` carries three action-required notes.
+- Tests: defaults per mode (VM on `standard`, k3s on `ci-bootstrap`), all three CI paths for private-mesh/platform-owned/public rows, a new `TestSlotPlanCIOnlyModeRefusesLocalDeploys` (full, single-slot and bound tls/teardown/replace on every path, VM bindings unaffected, `ci-bootstrap` binding refusal, VM modes refused on `ci-bootstrap`); `TestMeshCheckRequiresTheMeshForPrivateTargets` removed; smoke test asserts the refusal and CI-executed `app-deploy` with `ci-evidence` on every CI path. `make test` and `make smoke-test` pass; three deliberate breaks each caught.
 
 **Decisions made:**
-- TBD
+- Manifest rendering moved to cicd-generate's k3s mode (Rui, 2026-10-23): with `app-deploy` CI-only, the agent never reads its filler, so nothing else would render `ingress*.yaml`/`probe-job.yaml`; cicd-generate already reads the Environments table and vendors deploy-k3s-app's scripts, and runs after `artifact-build` authored `deployment.yaml`. The rendered files are generated output, overwritten each run.
+- `ci-bootstrap` is refused for VM modes (`SLOTS-ARGUMENT-INVALID`): their workflows can't deploy a test environment yet, so the path couldn't work there.
+- A k3s binding of `tls`, `replace` or `teardown` is refused on every path, because no path runs them in CI; offboarding stays the platform's process.
+- `artifact-build` stays local on `ci-bootstrap`: image-build-push-static only authors files and runs a local `docker build` check; pushing is the CI `build` job.
+- Run selection after a dispatch treats more than one candidate as ambiguous and stops (from triage: cli/cli #10861).
+- Version bumps: majors for deploy-k3s-app and deploy-verify (operations removed), minors for cicd-generate, input-deployment and project-new, patch for image-build-push-static. Skill definitions under `.smaqit/definitions/skills/` were not edited, following task 142.
+- Task 137 was rescoped earlier the same day (step 11), when OIDC was chosen to replace kubeconfig in task 145.
 
 **Blockers encountered:**
-- TBD
+- None. An Edit in `agents/deployment.md` duplicated three `ci-push` bullets under the new `ci-bootstrap` block; caught on review and removed.
 
 **Follow-up identified:**
-- TBD
+- Task 146 (created): VM modes CI-only deploys, listing the workflow gaps.
+- Task 145 still has to remove the kubeconfig load/sync and `credential-file.sh`'s kubeconfig entry, which nothing local reads any more.
+- The `.smaqit/definitions/skills/` definitions for deploy-k3s-app, deploy-verify and cicd-generate now lag further (no `mesh-check` removal, no `ci-evidence`, no Step 6).
+- No live `ci-bootstrap` run yet; the next downstream existing-k3s first deploy is its live check.
 
 ## Files to Create / Modify
 

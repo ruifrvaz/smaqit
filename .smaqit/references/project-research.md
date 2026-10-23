@@ -526,3 +526,27 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | Kubernetes (k3s) | k3s Documentation | https://docs.k3s.io/ |
 | Kubernetes (k3s) | Jobs | https://kubernetes.io/docs/concepts/workloads/controllers/job/ |
 | jq | Manual | https://jqlang.org/manual/ |
+
+## Task 144 — All Deploys Go Through CI/CD Workflows (existing-k3s Enforced, VM Modes Transitional)
+
+**Context fingerprint:** sha256:74a9fa190ff79a8263fedbb58f32cfd5866c5a02e84d2671d3fcab7b18a4bae1
+**Refreshed:** 2026-10-23
+
+| Tool | Section | URL |
+|------|---------|-----|
+| GitHub Actions | Events that trigger workflows (workflow_dispatch, default-branch requirement) | https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows |
+| GitHub Actions | Manually running a workflow (workflow_dispatch inputs) | https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow |
+| GitHub Actions | Deployments and environments (environment: <name>) | https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments |
+| GitHub Actions | Workflow syntax (on.workflow_dispatch.inputs, jobs.<id>.environment) | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub Actions | Contexts (github.sha, inputs) | https://docs.github.com/en/actions/reference/workflows-and-actions/contexts |
+| GitHub CLI | gh workflow run (-f environment=…) | https://cli.github.com/manual/gh_workflow_run |
+| GitHub CLI | gh run list (--commit, --workflow, --event) | https://cli.github.com/manual/gh_run_list |
+| GitHub CLI | gh run watch (--exit-status) | https://cli.github.com/manual/gh_run_watch |
+| GitHub CLI | gh run view (--json headSha,jobs) | https://cli.github.com/manual/gh_run_view |
+| GitHub CLI | gh pr create | https://cli.github.com/manual/gh_pr_create |
+| k3s | Documentation | https://docs.k3s.io/ |
+| k3s | Cluster access (kubeconfig) | https://docs.k3s.io/cluster-access |
+| Kubernetes | Organizing cluster access using kubeconfig files | https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/ |
+| Kubernetes | kubectl reference | https://kubernetes.io/docs/reference/kubectl/ |
+| Go | testing package | https://pkg.go.dev/testing |
+| Go | Documentation | https://go.dev/doc/ |

@@ -1,6 +1,8 @@
 ---
-status: Not Started
+status: In Progress
 created: "2026-10-20"
+started: "2026-10-23"
+mode: Assisted
 ---
 
 # All Deploys Go Through CI/CD Workflows (existing-k3s Enforced, VM Modes Transitional)
@@ -129,8 +131,34 @@ bootstrap the host, issue TLS, or cover the Python stacks. A follow-up task clos
     target-acting k3s binding is refused); MINOR release via task-complete.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-23
+**Tools searched:** GitHub CLI (`cli/cli`), k3s (`k3s-io/k3s`), Kubernetes (`kubernetes/kubernetes`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+- None
+
+### Advisory Issues
+- [#10861 `gh workflow run` initiates two jobs](https://github.com/cli/cli/issues/10861) — `cli/cli` — opened 2025-04-24 — more-info-needed. `ci-bootstrap` selects the deploy run by commit after dispatching; that selection must not assume exactly one matching run (pick the dispatch-event run for the workflow, or fail on ambiguity).
+- [#3521 Use current branch as `--ref` for `gh workflow run`](https://github.com/cli/cli/issues/3521) — `cli/cli` — opened 2021-04-27 — enhancement, actions, gh-workflow. `ci-bootstrap` dispatches at the default branch after the merge; pass `--ref` explicitly rather than relying on a default.
+- [#8910 `gh pr ready` doesn't work with GitHub Actions' GITHUB_TOKEN secret](https://github.com/cli/cli/issues/8910) — `cli/cli` — opened 2024-04-02 — bug, needs-investigation. Not this task's dimension (the agent opens the PR with the operator's `gh` login, not in a workflow).
+- [#142376 Exec drops end of stdout when client reads slowly](https://github.com/kubernetes/kubernetes/issues/142376) — `kubernetes/kubernetes` — opened 2026-09-24 — kind/bug, sig/node, sig/api-machinery, sig/cli, triage/accepted. Unaffected: `exec-refused.sh` stays in the CI workflow and decides from a Forbidden refusal, not from stdout content.
+
+### Historical (Closed)
+- [#4001 workflow run: Return the ID](https://github.com/cli/cli/issues/4001) — `cli/cli` — closed. With [#12968 `gh workflow run` changes output uncontrollably](https://github.com/cli/cli/issues/12968) (closed), supports selecting the run by commit through `gh run list` rather than parsing `gh workflow run` output.
+- [#9781 `gh workflow run --ref [ref]` ignoring `ref`](https://github.com/cli/cli/issues/9781) — `cli/cli` — closed. Verify the selected run's `headSha` (as `ci-evidence` already does) rather than trusting the dispatch ref.
+- [#14477 workflow run -f silently drops boolean workflow_dispatch inputs](https://github.com/cli/cli/issues/14477) — `cli/cli` — closed (unable-to-reproduce). The `environment` input is a string; not affected.
+- [#142024 Namespace-scoped `RoleBinding` can grant write permissions on the namespace itself](https://github.com/kubernetes/kubernetes/issues/142024) — `kubernetes/kubernetes` — closed. Tangential (platform RBAC); no change here.
+
+### Unresolvable Tools
+- None
+
+### Omitted Tools
+- GitHub Actions — resolved to `actions/starter-workflows` (workflow templates, not an Actions bug tracker); excluded as in task 121's triage
+- Go — only the standard library and `go test` are used; no feature dimension to search
+
+### Search Warnings
+- Categorization limitation: `k3s-io/k3s` open search returned no items and its closed results were unrelated; the task removes local `kubectl` use, so k3s/Kubernetes exposure is minimal. Closed-issue dates were not captured in this run.
 
 ## Acceptance Criteria
 

@@ -106,7 +106,7 @@ assert_file "$project/.smaqit/slots.yml" "project slot bindings skeleton"
 (cd "$project" && "$binary" slots validate >/dev/null)
 # existing-k3s plans are refused until the Infrastructure spec's Environments row
 # for the environment is complete, then resolve with that row as the target.
-if (cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --json) 2>/dev/null; then
+if (cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --path=ci-bootstrap --json) 2>/dev/null; then
   echo "existing-k3s plan resolved without an Environments table" >&2
   exit 1
 fi
@@ -121,17 +121,25 @@ printf '%s\n' '---' 'id: INF-SMOKE-K3S' 'status: draft' 'created: 2026-01-01' '-
   '| Mesh Setup-Key Input | setup-key | action input |' \
   '| Mesh Wait-For Input | wait-for | action input |' \
   '| Probe Client | wget | in-cluster probe |' > "$k3s_spec"
-(cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --json) \
+(cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --path=ci-bootstrap --json) \
   | grep -Fq '"skill": "smaqit.infrastructure-request-k3s-onboarding"'
 (cd "$project" && "$binary" spec environments --env=test --json) | grep -Fq '"reachability": "private-mesh"'
-# On a CI path the deploy run joins the mesh and verifies itself: no local mesh
-# check, and verify reads the run's record (ci-evidence).
-ci_plan="$(cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --path=existing-cicd-pr --json)"
-grep -Fq '"operation": "ci-evidence"' <<<"$ci_plan"
-if grep -Fq '"operation": "mesh-check"' <<<"$ci_plan"; then
-  echo "existing-k3s existing-cicd-pr plan still runs mesh-check locally" >&2
+# existing-k3s deploys only from CI: the local standard path is refused, and on
+# every CI path the deploy run performs app-deploy and verify reads its record.
+if refusal="$(cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test 2>&1)"; then
+  echo "existing-k3s plan resolved on the local standard path" >&2
   exit 1
 fi
+grep -Fq 'SLOTS-LOCAL-DEPLOY-REFUSED' <<<"$refusal"
+for path in ci-bootstrap ci-push existing-cicd-pr; do
+  ci_plan="$(cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --path="$path")"
+  grep -Eq '^ *[0-9]+  app-deploy +profile +ci ' <<<"$ci_plan"
+  grep -Eq '^ *[0-9]+  verify +profile +local +smaqit\.infrastructure-deploy-verify \(ci-evidence\)' <<<"$ci_plan"
+  if grep -Fq 'mesh-check' <<<"$ci_plan"; then
+    echo "existing-k3s $path plan still runs mesh-check locally" >&2
+    exit 1
+  fi
+done
 rm -f "$k3s_spec"
 printf '%s\n' 'schemaVersion: 1' 'phase: deploy' 'slots:' '  tls: none' > "$project/.smaqit/slots.yml"
 # The same re-init refreshes an outdated smaqit section in AGENTS.md while keeping

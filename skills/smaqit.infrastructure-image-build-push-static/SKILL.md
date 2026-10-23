@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-image-build-push-static
 description: Use when containerizing a static HTML/CSS/vanilla-JS site (no build step) for an existing-k3s platform. Authors the Dockerfile/.dockerignore on nginx-unprivileged and the deployment.yaml/service.yaml pair with an explicit numeric runAsUser, plus imagePullSecrets for a private image, filling the gap between cicd-generate's k3s build-and-push and deploy-k3s-app.
 metadata:
-  version: "1.2.1"
+  version: "1.2.2"
   smaqit-slots: "artifact-build=build"
 ---
 
@@ -57,8 +57,8 @@ metadata:
 
 ## Scope
 
-- Does not render or author the Ingress — that remains `smaqit.infrastructure-deploy-k3s-app`'s
-  own template-rendering step.
+- Does not render or author the Ingress or probe Job — `smaqit.infrastructure-cicd-generate`'s `k3s` mode
+  renders them from `smaqit.infrastructure-deploy-k3s-app`'s shared templates, after this skill.
 - Does not author or modify any CI/CD workflow — the build-and-push job and the conditional
   `imagePullSecret` step both live in `smaqit.infrastructure-cicd-generate`'s
   `deploy.yml.k3s.template`.
@@ -115,7 +115,7 @@ but has no Dockerfile and no application manifests yet.
 | `docker build`'s health-file `RUN` step fails with a permission error | The base image's default non-root user can't write into the target directory after `COPY` (which always writes as root) — add `USER root` before the `RUN`, then switch back to the image's own non-root user afterward. |
 | Pod stuck in `CreateContainerConfigError`, message mentions "non-numeric user" | Set `runAsUser` explicitly in the securityContext to the base image's real numeric UID (`docker run --rm <image> id`) — never leave `runAsNonRoot: true` alone with a named-user base image. |
 | Pod stuck in `ImagePullBackOff` | Check whether the registry package is private (GHCR inherits the source repo's visibility by default) — either make it public or add `imagePullSecrets` to the manifest, backed by a valid, tested pull credential from `smaqit.infrastructure-vault-loader`'s shared registry-read path. |
-| `manifest-lint.sh` fails with `FileNotFoundError` on `ingress.yaml` (or `ingress-default-tls.yaml`, `probe-job.yaml`) | Expected until that manifest has actually been rendered once — render and commit it (via `smaqit.infrastructure-deploy-k3s-app`) before the workflow can pass, never fabricate a placeholder host. |
+| `manifest-lint.sh` fails with `FileNotFoundError` on `ingress.yaml` (or `ingress-default-tls.yaml`, `probe-job.yaml`) | Expected until that manifest has actually been rendered once — regenerate with `smaqit.infrastructure-cicd-generate` (its `k3s` mode renders it) and commit it before the workflow can pass, never fabricate a placeholder host. |
 
 ## Allowed Tools
 

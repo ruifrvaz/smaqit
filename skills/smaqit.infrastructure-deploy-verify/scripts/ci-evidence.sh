@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # verify check for smaqit.infrastructure-deploy-verify (operation: ci-evidence).
 #
-# An existing-k3s deploy on a CI path (existing-cicd-pr, ci-push) already verified the target from
-# inside the deploy run: "Verify revision" proved the Deployment runs the run's commit, and "Verify in
-# cluster" or "Verify over HTTPS" proved the app answers. This check decides from that run's record
-# alone, so the operator's machine needs no mesh access, kubeconfig, or Vault. It reads
-# `gh run view <run-id> --json headSha,status,conclusion,jobs` and, only when the run's head is not the
-# expected commit itself, `gh api repos/{owner}/{repo}/compare/<expected>...<headSha>`.
+# An existing-k3s deploy, which runs only in CI (ci-bootstrap, ci-push, existing-cicd-pr), already
+# verified the target from inside the deploy run: "Verify revision" proved the Deployment runs the
+# run's commit, and "Verify in cluster" or "Verify over HTTPS" proved the app answers. This check
+# decides from that run's record alone, so the operator's machine needs no mesh access, kubeconfig,
+# or Vault. It reads `gh run view <run-id> --json headSha,status,conclusion,jobs` and, only when the
+# run's head is not the expected commit itself, `gh api repos/{owner}/{repo}/compare/<expected>...<headSha>`.
 #
 # Usage: ci-evidence.sh <environments.json> <environment> --run-id <id> --expected-sha <sha>
 #   <environments.json>  output of `smaqit spec environments --json` ("-" reads stdin)
 #   <environment>        the Environments row the run deployed (e.g. prod)
 #   --run-id             the deploy.yml run's database ID
-#   --expected-sha       the commit the deploy was meant to ship: the merge SHA (existing-cicd-pr) or
-#                        the pushed SHA (ci-push), never the run's own headSha
+#   --expected-sha       the commit the deploy was meant to ship: the merge SHA (existing-cicd-pr,
+#                        ci-bootstrap) or the pushed SHA (ci-push), never the run's own headSha
 #   Exit 0 — the run finished successfully at the expected commit or a descendant, and its "Verify
 #            revision" and applicable verify step succeeded.
 #   Exit 1 — any check failed, or the evidence could not be read.

@@ -147,6 +147,9 @@ The deployment agent operates on credential references, never values. Actual dep
 
 See [ARTIFACTS](ARTIFACTS.md) for the Isolation Principle.
 
+**Where Deployment Executes:**
+A deploy to a target runs in the project's CI/CD pipeline. The agent's own environment performs only configuration (credentials, onboarding requests, environment secrets and variables), generation of workflows, IaC, and manifests, artifact authoring, and reading the pipeline's evidence. The agent triggers a pipeline run, selects it by commit, waits for it, and verifies from its record (see AGENTS.md CI-only profiles). Profiles whose pipelines cannot yet deploy every environment are declared transitional and still deploy locally until they can.
+
 **Environment:** User-specified target (dev/staging/prod)
 
 **Output:** Running system in target environment

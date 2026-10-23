@@ -57,6 +57,8 @@ See the full [Mario Hello quickstart](docs/wiki/workflows/quickstart.md) for a c
 
 Once your MVP is deployed, use `smaqit.feature-new` for iterative post-MVP feature cycles — it applies the same task-per-phase discipline without requirements extraction, from-scratch specs, or a dev-VM sweep. Deployment goes through the existing CI/CD pipeline via a pull request as the human approval gate.
 
+Deploys run in your CI/CD pipeline (GitHub Actions); your machine only loads credentials, configures the repository, generates workflows and manifests, and reads the pipeline's results. For a Kubernetes (`existing-k3s`) target this is enforced, from the very first deploy on: `smaqit slots plan` refuses any step that would deploy from your machine. VM targets still run their first dev sweep locally until their workflows can deploy every environment.
+
 ## Copilot Automation
 
 smaqit includes a GitHub Action workflow that automatically installs smaqit before Copilot coding agent sessions. When Copilot coding agent runs in a GitHub Actions context, it automatically executes `.github/workflows/copilot-setup-steps.yml` by convention. No additional configuration needed.

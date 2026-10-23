@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-deploy-verify
-description: Use after any deployment, or when re-verifying after a fix, to confirm the application is healthy before closing the task. Checks the health endpoint, the deployed commit SHA (local HEAD or --expected-sha) and the SPA root; for an existing-k3s target the deployer can't reach, a probe Job in the cluster; after a CI deploy of existing-k3s, the deploy run's own verify steps. PASS/FAIL per check.
+description: Use after any deployment, or when re-verifying after a fix, to confirm the application is healthy before closing the task. For a VM target, checks the health endpoint, the deployed commit SHA (local HEAD or --expected-sha) and the SPA root; for existing-k3s, which deploys only from CI, decides from the deploy run's own verify steps. PASS/FAIL per check.
 metadata:
-  version: "1.4.0"
+  version: "2.0.0"
   smaqit-slots: "verify=verify, verify=ci-evidence"
 ---
 
@@ -12,32 +12,19 @@ metadata:
 
 The deployment slot plan names the operation; run the one it names.
 
-- **`verify`** — checks the target from this machine, in HTTP or in-cluster mode (below). The
-  default for every VM mode, and for `existing-k3s` on the `standard` path (a local deploy).
+- **`verify`** — HTTP checks against the target from this machine (Steps 1–8). The default for every
+  VM mode.
 - **`ci-evidence`** — decides from the deploy run's own recorded steps (CI Evidence Steps below). The
-  default for `existing-k3s` on the `existing-cicd-pr` and `ci-push` paths: the generated `deploy.yml`
-  already verified the target from inside its mesh and cluster access, so this machine needs no mesh,
+  only operation for `existing-k3s`, on every path it plans (`ci-bootstrap`, `ci-push`,
+  `existing-cicd-pr`): existing-k3s deploys only from CI, and the generated `deploy.yml` already
+  verified the target from inside its mesh and cluster access, so this machine needs no mesh,
   kubeconfig, or Vault access.
-
-## Choose the mode (operation `verify`)
-
-- **HTTP mode** (Steps 1–8) — every VM target, and an `existing-k3s` environment whose
-  Environments row is `public` with an Ingress the app owns (`own-tls` or
-  `platform-default-tls`).
-- **In-cluster mode** (Kubernetes Steps K1–K5) — an `existing-k3s` environment whose row is
-  `private-mesh`, or whose Ingress Mode is `platform-owned` (for example behind the platform's SSO
-  gate). The deployer cannot reach such an app from outside the cluster, so HTTP checks from this
-  machine would test the wrong thing.
-
-For `existing-k3s`, the caller passes `--environment <environment>`; read its row with
-`smaqit spec environments --env=<environment> --json` and choose from `reachability` and
-`ingressMode`. Never fall back from in-cluster mode to HTTP checks the deployer cannot reach.
 
 ## CI Evidence Steps (operation `ci-evidence`)
 
 Inputs from the Deployment agent: the deploy run's ID (`--run-id`), the commit the deploy was meant to
-ship (`--expected-sha`: the PR merge SHA on `existing-cicd-pr`, the pushed SHA on `ci-push`, never the
-run's own `headSha`), and the environment the run deployed (`--environment`).
+ship (`--expected-sha`: the PR merge SHA on `existing-cicd-pr` and `ci-bootstrap`, the pushed SHA on
+`ci-push`, never the run's own `headSha`), and the environment the run deployed (`--environment`).
 
 C1. **Run the check** with the environment's row:
     ```bash
@@ -55,45 +42,7 @@ C1. **Run the check** with the environment's row:
 
 C2. **Report** the script's single PASS or FAIL line. Exit 0 is PASS, 1 is FAIL, 2 is a usage error.
 
-## Kubernetes Steps (existing-k3s, operation `verify`)
-
-Run with the target's scoped kubeconfig already exported (see
-`smaqit.infrastructure-deploy-k3s-app`), against Namespace `app-<app-slug>`.
-
-K1. **Revision check.** The rolled-out Deployment must run this commit's image; its tag is the full
-    commit SHA:
-    ```bash
-    kubectl get -n "app-${APP_SLUG}" "deployment/${APP_SLUG}" -o jsonpath='{.spec.template.spec.containers[0].image}'
-    ```
-    Assert the tag equals the expected SHA (`--expected-sha`, or `git rev-parse HEAD`).
-
-K2. **HTTP mode for a public, app-owned Ingress:** run Steps 3 and 6 against
-    `https://<host><healthPath>` and `https://<host>/` from the row, retrying every 5 seconds for up
-    to 60 seconds. Skip Steps 4, 5, and 7 — the revision is already proven by K1, and there is no
-    nginx or stamp file.
-
-K3. **In-cluster mode:** stamp the committed probe Job with this run's image and the row's health
-    path into a temporary copy, lint it, and run it:
-    ```bash
-    PROBE="$(mktemp -d)/probe-job.yaml"
-    sed -e "s|__IMAGE__|<image>|g" -e "s|__HEALTH_PATH__|<healthPath>|g" deployment/k3s/probe-job.yaml > "$PROBE"
-    bash deployment/k3s/scripts/manifest-lint.sh "$PROBE"
-    kubectl delete -n "app-${APP_SLUG}" "job/${APP_SLUG}-probe" --ignore-not-found --wait=true
-    kubectl apply -n "app-${APP_SLUG}" -f "$PROBE"
-    ```
-    The Job runs the app's own image and requests `http://<app-slug>:80<healthPath>` over cluster
-    DNS, retrying for up to 60 seconds itself.
-
-K4. **Read the verdict from the Job's status**, polling every 5 seconds for up to 120 seconds:
-    `kubectl get -n "app-${APP_SLUG}" "job/${APP_SLUG}-probe" -o jsonpath='{.status.succeeded}/{.status.failed}'`
-    — `1/` is PASS, `/1` is FAIL. This needs no `pods/log` grant. Only on FAIL or timeout, try
-    `kubectl logs job/<app-slug>-probe` for diagnosis, and report "logs not readable" if the
-    platform denies it.
-
-K5. **Clean up and report:** delete the Job (`--ignore-not-found`), then print PASS/FAIL for the
-    revision and the health check, and the one-line summary.
-
-## Steps (HTTP mode)
+## Steps (operation `verify`)
 
 1. **Resolve the target URL.** Check in this order:
    - Explicit `--url` argument provided by the caller
@@ -141,10 +90,10 @@ head commit, and the step that decided.
 
 - Does NOT run functional or integration tests — use `smaqit.validation` for test suites.
 - Does NOT restart or redeploy if checks fail — reports only.
-- Does NOT verify TLS certificate validity — use `curl -vI` manually or a future `smaqit.infrastructure-domain-tls` skill. For `existing-k3s` `own-tls`, `smaqit.infrastructure-deploy-k3s-app` waits for the `Certificate` instead.
-- Does NOT read pod logs to decide a result, and never uses `pods/exec` — in-cluster mode's verdict is the probe Job's status.
-- `ci-evidence` reads only GitHub's run record and one commit comparison — no kubeconfig, Vault,
-  `kubectl`, mesh access, or run logs.
+- Does NOT verify TLS certificate validity — use `curl -vI` manually or a future `smaqit.infrastructure-domain-tls` skill. For `existing-k3s` `own-tls`, the generated `deploy.yml` waits for the `Certificate` instead.
+- Does NOT reach an `existing-k3s` target from this machine: no `kubectl`, probe Job, or HTTP check
+  against it. Its deploy run verified the target in-cluster or over HTTPS; `ci-evidence` reads only
+  GitHub's run record and one commit comparison — no kubeconfig, Vault, mesh access, or run logs.
 
 ## Examples
 
@@ -152,9 +101,7 @@ head commit, and the step that decided.
 
 **Input (with explicit SHA):** After a CI/CD deploy where local HEAD may not match the deployed revision, the orchestrator passes `--expected-sha <deploy-run-headSha>`.
 
-**Input (existing-k3s, in-cluster):** After `smaqit.infrastructure-deploy-k3s-app` rolls out to a `private-mesh` test machine, it invokes verify with `--environment test --expected-sha <sha>`.
-
-**Input (existing-k3s, CI path):** After the Deployment agent watched `deploy.yml` run `9876543210`
+**Input (existing-k3s):** After the Deployment agent watched `deploy.yml` run `9876543210`
 deploy the merge of PR #42 to `prod`, it runs `ci-evidence` with `--run-id 9876543210
 --expected-sha <merge-sha>` and `--environment prod`.
 
@@ -163,14 +110,7 @@ deploy the merge of PR #42 to `prod`, it runs `ci-evidence` with `--run-id 98765
 ci-evidence: PASS — run 9876543210 deployed 4f1c… (contains 4f1c…); 'Verify revision' and 'Verify in cluster' succeeded
 ```
 
-**Output (in-cluster):**
-```
-PASS: Deployment runs ghcr.io/<org>/<repo>:<sha>
-PASS: probe Job succeeded — http://<app-slug>:80/health.json answered in cluster
-Deployment verified in cluster — SHA <sha>.
-```
-
-**Output (HTTP mode):**
+**Output (verify):**
 ```
 PASS: health 200
 PASS: SHA d040a5f matches
@@ -197,14 +137,12 @@ Deployment verified — SHA d040a5f, deployed at 2026-04-27T14:32:00Z.
 
 - [ ] Operation taken from the slot plan (`verify` or `ci-evidence`)
 - [ ] `ci-evidence`: `ci-evidence.sh` printed PASS for the deploy run and the intended commit
-- [ ] Mode chosen (HTTP, or in-cluster for an `existing-k3s` `private-mesh` / `platform-owned` row)
-- [ ] In-cluster mode: Deployment image tag matches the expected SHA, probe Job succeeded, Job deleted
-- [ ] Target URL resolved (HTTP mode)
-- [ ] Expected SHA determined (via `--expected-sha` or `git rev-parse HEAD` fallback)
-- [ ] Health check: HTTP 200 received
-- [ ] SHA match confirmed (or absence/unknown state noted with reason)
-- [ ] `deployedAt` present and recent, or stale/absent flagged
-- [ ] SPA root: HTTP 200 with `Content-Type: text/html`
+- [ ] `verify`: target URL resolved
+- [ ] `verify`: expected SHA determined (via `--expected-sha` or `git rev-parse HEAD` fallback)
+- [ ] `verify`: health check returned HTTP 200
+- [ ] `verify`: SHA match confirmed (or absence/unknown state noted with reason)
+- [ ] `verify`: `deployedAt` present and recent, or stale/absent flagged
+- [ ] `verify`: SPA root returned HTTP 200 with `Content-Type: text/html`
 - [ ] Summary report delivered
 
 ## Failure Handling
@@ -219,10 +157,8 @@ Deployment verified — SHA d040a5f, deployed at 2026-04-27T14:32:00Z.
 | Health check returns non-200 | Report the HTTP status code and response body snippet; suggest checking Docker container status (`docker ps`) |
 | SHA mismatch | Report expected vs actual SHA; suggest re-running the deploy workflow |
 | Connection refused | Report; suggest checking nginx (`sudo systemctl status nginx`) and Docker containers (`docker ps`) on the VM |
+| The plan names `verify` for an `existing-k3s` target | Stop. The plan is stale or hand-edited; existing-k3s verifies only with `ci-evidence`. Re-resolve it with `smaqit slots plan` on a CI path |
 | `existing-k3s` row can't be read (`SLOTS-SPEC-*`) | Stop and surface the lines; the fix belongs in the Infrastructure spec |
-| Probe Job forbidden (`jobs` not granted) | Stop. Ask the platform team for `create`/`delete` on `jobs` in the Namespace; never switch to HTTP checks the deployer cannot reach |
-| Probe Job fails or times out | Report FAIL with the Job status; add logs only if `pods/log` is granted. Check the health path and whether a NetworkPolicy blocks same-Namespace traffic |
-| Deployment image tag differs from the expected SHA | Report both; the rollout did not apply this commit's image |
 | `ci-evidence`: run has not finished | Wait for the run to complete, then run the check again; never pass an unfinished run |
 | `ci-evidence`: run concluded other than `success` | Stop and report the run; the deploy itself failed |
 | `ci-evidence`: wrong SHA (`behind` or `diverged`) | Stop. The run did not deploy the intended commit; find the run that did, or redeploy |

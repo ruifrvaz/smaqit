@@ -31,7 +31,13 @@ const (
 
 var provisioningModes = []string{"provision", "existing-owned", "existing-shared", "existing-unmanaged", "existing-k3s"}
 
-var deploymentPaths = []string{"standard", "existing-cicd-pr", "ci-push"}
+var deploymentPaths = []string{"standard", "existing-cicd-pr", "ci-push", "ci-bootstrap"}
+
+// ciOnlyModes deploy to a target only from the CI/CD pipeline: a target-acting
+// slot that would run on this machine is refused. VM modes keep the local
+// standard path as a transitional exception until their workflows can deploy
+// every environment.
+var ciOnlyModes = map[string]bool{"existing-k3s": true}
 
 type slotFiller struct {
 	Kind      string
@@ -40,10 +46,13 @@ type slotFiller struct {
 }
 
 type slotDef struct {
-	Name     string
-	DayTwo   bool
-	Purpose  string
-	Defaults map[string]slotFiller // provisioning_mode → default filler
+	Name    string
+	DayTwo  bool
+	Purpose string
+	// TargetActing slots change the target itself (provision, deploy, TLS,
+	// replace, teardown); under a CI-only mode they never run locally.
+	TargetActing bool
+	Defaults     map[string]slotFiller // provisioning_mode → default filler
 	// PathDefaults replaces Defaults for one deployment path and mode
 	// (deployment path → provisioning_mode → default filler).
 	PathDefaults map[string]map[string]slotFiller
@@ -106,10 +115,9 @@ var deploySlots = []slotDef{
 	{
 		Name:    "platform-prereqs",
 		Purpose: "Prepare platform-level prerequisites the target needs before credentials or onboarding",
-		// existing-k3s: confirm a private-mesh target's API is reachable from this machine;
-		// a public target passes without probing. The CI paths default it to none:
-		// the generated deploy.yml joins the mesh itself.
-		Defaults: byMode(noFiller(), map[string]slotFiller{"existing-k3s": skillFiller(skillDeployK3s, "mesh-check")}),
+		// No default for any mode: existing-k3s deploys only from CI, and the
+		// generated deploy.yml joins a private mesh itself.
+		Defaults: byMode(noFiller(), nil),
 	},
 	{
 		Name:     "access-credentials",
@@ -151,20 +159,23 @@ var deploySlots = []slotDef{
 		Defaults: byMode(skillFiller(skillCICDGenerate, "generate"), nil),
 	},
 	{
-		Name:    "provision",
-		Purpose: "Provision or reconcile the target infrastructure through the guarded IaC tool",
+		Name:         "provision",
+		Purpose:      "Provision or reconcile the target infrastructure through the guarded IaC tool",
+		TargetActing: true,
 		Defaults: byMode(noFiller(), map[string]slotFiller{
 			"provision": skillFiller(skillProvision, "apply"), "existing-owned": skillFiller(skillProvision, "apply"),
 		}),
 	},
 	{
-		Name:     "host-bootstrap",
-		Purpose:  "Bootstrap the host operating system and runtime the app deploys onto",
-		Defaults: byMode(noFiller(), vmModes(skillFiller(skillVMBootstrap, "bootstrap"))),
+		Name:         "host-bootstrap",
+		Purpose:      "Bootstrap the host operating system and runtime the app deploys onto",
+		TargetActing: true,
+		Defaults:     byMode(noFiller(), vmModes(skillFiller(skillVMBootstrap, "bootstrap"))),
 	},
 	{
-		Name:    "app-deploy",
-		Purpose: "Deploy the application onto the target",
+		Name:         "app-deploy",
+		Purpose:      "Deploy the application onto the target",
+		TargetActing: true,
 		Defaults: byMode(familyFiller(familyDeployRsync, "deploy"), map[string]slotFiller{
 			"existing-k3s": familyFiller(familyDeployK3s, "deploy"),
 		}),
@@ -179,24 +190,28 @@ var deploySlots = []slotDef{
 		PathDefaults: map[string]map[string]slotFiller{
 			"existing-cicd-pr": {"existing-k3s": skillFiller(skillDeployVerify, "ci-evidence")},
 			"ci-push":          {"existing-k3s": skillFiller(skillDeployVerify, "ci-evidence")},
+			"ci-bootstrap":     {"existing-k3s": skillFiller(skillDeployVerify, "ci-evidence")},
 		},
 	},
 	{
-		Name:     "tls",
-		Purpose:  "Issue and install TLS for a declared custom domain",
-		Defaults: byMode(noFiller(), vmModes(skillFiller(skillDomainTLS, "issue"))),
+		Name:         "tls",
+		Purpose:      "Issue and install TLS for a declared custom domain",
+		TargetActing: true,
+		Defaults:     byMode(noFiller(), vmModes(skillFiller(skillDomainTLS, "issue"))),
 	},
 	{
-		Name:     "replace",
-		DayTwo:   true,
-		Purpose:  "Replace a target in place (day-two operation)",
-		Defaults: byMode(noFiller(), nil),
+		Name:         "replace",
+		DayTwo:       true,
+		Purpose:      "Replace a target in place (day-two operation)",
+		TargetActing: true,
+		Defaults:     byMode(noFiller(), nil),
 	},
 	{
-		Name:     "teardown",
-		DayTwo:   true,
-		Purpose:  "Destroy the target through the guarded IaC tool (day-two operation)",
-		Defaults: byMode(noFiller(), map[string]slotFiller{"provision": builtinFiller("iac-destroy")}),
+		Name:         "teardown",
+		DayTwo:       true,
+		Purpose:      "Destroy the target through the guarded IaC tool (day-two operation)",
+		TargetActing: true,
+		Defaults:     byMode(noFiller(), map[string]slotFiller{"provision": builtinFiller("iac-destroy")}),
 	},
 }
 
@@ -232,6 +247,14 @@ var deploymentPathRules = map[string]pathRule{
 	"ci-push": {
 		DefaultNone: slotSet("platform-prereqs", "iac-generate", "ci-generate", "host-bootstrap", "tls"),
 		CIExecuted:  slotSet("artifact-build", "provision", "app-deploy"),
+	},
+	// ci-bootstrap is a CI-only mode's first deploy: configuration, artifact
+	// authoring and workflow generation run here and land through a PR, then
+	// the pipeline deploys. Nothing provisions or bootstraps a host.
+	"ci-bootstrap": {
+		Refused:     slotSet("provision", "host-bootstrap"),
+		DefaultNone: slotSet("platform-prereqs", "tls"),
+		CIExecuted:  slotSet("app-deploy"),
 	},
 }
 
@@ -622,6 +645,9 @@ func validateSlotPlanOptions(opts slotPlanOptions) []error {
 	if !containsString(deploymentPaths, opts.Path) {
 		errs = append(errs, fmt.Errorf("SLOTS-ARGUMENT-INVALID: --path must be one of %s", strings.Join(deploymentPaths, ", ")))
 	}
+	if opts.Path == "ci-bootstrap" && containsString(provisioningModes, opts.Mode) && !ciOnlyModes[opts.Mode] {
+		errs = append(errs, fmt.Errorf("SLOTS-ARGUMENT-INVALID: --path=ci-bootstrap applies only to modes that deploy only from CI (existing-k3s); %s still deploys its first environment on the standard path", opts.Mode))
+	}
 	if opts.Environment == "" {
 		errs = append(errs, errors.New("SLOTS-ARGUMENT-INVALID: --env is required"))
 	}
@@ -705,6 +731,9 @@ func resolveSlotPlan(root string, opts slotPlanOptions) (*slotPlan, []error) {
 			if rule.CIExecuted[def.Name] {
 				entry.Executor = "ci"
 			}
+		}
+		if entry.Executor == "local" && def.TargetActing && ciOnlyModes[opts.Mode] {
+			errs = append(errs, fmt.Errorf("SLOTS-LOCAL-DEPLOY-REFUSED: slot %q would act on the target from this machine under deployment path %q; %s deploys only from CI/CD: use --path=ci-bootstrap for its first deploy, then ci-push or existing-cicd-pr", def.Name, opts.Path, opts.Mode))
 		}
 		plan.Slots = append(plan.Slots, entry)
 	}

@@ -28,6 +28,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chore
 - Nothing to add.
 
+## [3.20.0] - 2026-10-23
+
+**Action required:**
+- **existing-k3s no longer deploys from the operator's machine.** `smaqit slots plan` refuses any slot that would act on an existing-k3s target locally (`provision`, `host-bootstrap`, `app-deploy`, `tls`, `replace`, `teardown`) with `SLOTS-LOCAL-DEPLOY-REFUSED`, including the default `standard` path, single-slot runs and project bindings. Plan an environment's first deploy with `--path=ci-bootstrap`, later ones with `--path=ci-push` or `existing-cicd-pr`; `smaqit.input-deployment` now picks the path for you. A project that bound its own `tls`, `replace` or `teardown` skill under existing-k3s must remove that binding: no path runs those slots in CI.
+- **deploy-k3s-app's `mesh-check` operation and deploy-verify's in-cluster mode are gone.** A `.smaqit/slots.yml` binding of `platform-prereqs` to deploy-k3s-app (`operation: mesh-check`) now fails with `SLOTS-SLOT-UNDECLARED`; remove it. existing-k3s always verifies with `ci-evidence`.
+- **Regenerate existing-k3s workflows once** with `smaqit.infrastructure-cicd-generate`: it now renders `deployment/k3s/ingress*.yaml` and `probe-job.yaml`, which previously only a local deploy wrote.
+
+### Added
+- **`ci-bootstrap` deployment path** for a CI-only mode's first deploy to an environment: credentials, onboarding, environment configuration, artifact authoring and workflow generation run locally; their output lands through a PR without the deploy marker; after the human merge the Deployment agent dispatches `deploy.yml` for the environment's machine slug, selects the run by commit, and verifies it with `ci-evidence` against the merge SHA. It refuses `provision` and `host-bootstrap`, and is refused for VM modes.
+- **CI-only modes in the slot resolver:** slots now carry a target-acting flag, and `existing-k3s` is declared CI-only, so `resolveSlotPlan` refuses a locally executed target-acting slot whatever put it there.
+- **cicd-generate 3.3.0:** `k3s` mode renders the Ingress and probe manifests the environments need from deploy-k3s-app's shared templates, and the skill names the ci-monitor seam (trigger, select by commit, wait, read verify evidence) that the Deployment agent drives through `gh`.
+- Tests: existing-k3s refused on the local path (full sequence, single-slot, bindings on every path); `ci-bootstrap` plans for private-mesh, platform-owned and public rows; VM modes refused on `ci-bootstrap`; the smoke test asserts the refusal and the CI-executed `app-deploy` on all three CI paths. Three deliberate breaks (no CI-only mode, a non-target-acting `app-deploy`, `provision` allowed on `ci-bootstrap`) are each caught.
+
+### Changed
+- **Deployment agent:** states the rule (deploy to a target only through the pipeline under a CI-only mode, no break-glass path), marks `standard` transitional for VM modes, adds the `ci-bootstrap` step list, and treats more than one candidate run after a dispatch as ambiguous instead of picking one.
+- **input-deployment 1.10.0:** defaults `deployment_path` by mode and repository: existing-k3s gets `ci-push` once `deploy.yml` is on the default branch and `ci-bootstrap` before; VM modes keep `standard`; a caller's path always wins.
+- **project-new 3.2.0:** Phase 4 deploys existing-k3s's test environment through `ci-bootstrap` and gates on the run's evidence; the local mesh precondition is gone; VM Phase 4 is marked transitional; k3s family synthesis is limited to the `image-build-push*` family.
+- **deploy-k3s-app 3.0.0:** describes the sequence the generated `deploy.yml` performs and requires, with no local deploy instructions. **deploy-verify 2.0.0:** `verify` is HTTP-only for VM modes; existing-k3s always uses `ci-evidence`.
+- Framework (`AGENTS.md` CI-only profiles, `PHASES.md` Where Deployment Executes), the deployment-slots wiki (paths table with `ci-bootstrap`, a CI-only/transitional table), the compendium, the README and the project `AGENTS.md` template state the rule.
+
+### Removed
+- `smaqit.infrastructure-deploy-k3s-app`'s `mesh-check` operation, its `platform-prereqs` declaration and `scripts/mesh-check.sh`; its local deploy instructions (Vault kubeconfig, local `kubectl`).
+- `smaqit.infrastructure-deploy-verify`'s in-cluster mode (Kubernetes steps K1–K5).
+
 ## [3.19.0] - 2026-10-20
 
 **Action required:**

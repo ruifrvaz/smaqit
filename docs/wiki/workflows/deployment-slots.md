@@ -38,7 +38,7 @@ One environment run walks these slots in order. Day-two slots never run as part 
 
 | Slot | `provision` / `existing-owned` | `existing-shared` / `existing-unmanaged` | `existing-k3s` |
 |------|-------------------------------|------------------------------------------|----------------|
-| `platform-prereqs` | none | none | deploy-k3s-app `mesh-check` (passes without probing for a `public` environment; none on the CI paths) |
+| `platform-prereqs` | none | none | none (the generated `deploy.yml` joins a private mesh itself) |
 | `access-credentials` | vault-loader `access` | vault-loader `access` | vault-loader `access` |
 | `platform-onboarding` | none | none | request-k3s-onboarding `request` |
 | `target-credentials` | none | vault-loader `target` | vault-loader `target` |
@@ -48,8 +48,8 @@ One environment run walks these slots in order. Day-two slots never run as part 
 | `ci-generate` | cicd-generate `generate` | cicd-generate `generate` | cicd-generate `generate` |
 | `provision` | provision-cyso `apply` | none | none |
 | `host-bootstrap` | vm-bootstrap `bootstrap` | vm-bootstrap `bootstrap` | none |
-| `app-deploy` | `deploy-rsync*` family `deploy` | `deploy-rsync*` family `deploy` | `deploy-k3s-app*` family `deploy` |
-| `verify` | deploy-verify `verify` | deploy-verify `verify` | deploy-verify `verify`; `ci-evidence` on the CI paths |
+| `app-deploy` | `deploy-rsync*` family `deploy` | `deploy-rsync*` family `deploy` | `deploy-k3s-app*` family `deploy`, performed only by the generated `deploy.yml` in CI |
+| `verify` | deploy-verify `verify` | deploy-verify `verify` | deploy-verify `ci-evidence` (every path existing-k3s plans) |
 | `tls` | domain-tls `issue` | domain-tls `issue` | none (`own-tls`: the Certificate is awaited inside `app-deploy`; otherwise the platform serves TLS) |
 | `replace` | none | none | none |
 | `teardown` | agent builtin destroy (`provision` only) | none | none |
@@ -64,14 +64,35 @@ The deployment path adjusts the profile:
 
 | Path | Used by | Effect |
 |------|---------|--------|
-| `standard` | Local runs (project-new dev sweep) | Every slot executes locally; `environment-config` and `tls` default to none |
+| `standard` | Local runs (project-new VM dev sweep) | Every slot executes locally; `environment-config` and `tls` default to none. Transitional, for VM modes only: refused for `existing-k3s` |
 | `existing-cicd-pr` | `smaqit.feature-new` | `iac-generate`, `ci-generate`, `provision`, `host-bootstrap` are **refused** (the PR path never regenerates workflows or provisions directly); `platform-prereqs`, `platform-onboarding` and `tls` default to none; `artifact-build` and `app-deploy` are executed by CI and monitored; `existing-k3s`'s `verify` defaults to deploy-verify `ci-evidence` |
 | `ci-push` | Project-new production | `platform-prereqs`, `iac-generate`, `ci-generate`, `host-bootstrap`, `tls` default to none (workflows were committed in the dev sweep; under `provision`/`existing-owned` cloud-init configures the production host, and under `existing-shared`/`existing-unmanaged` the host is already bootstrapped); `artifact-build`, `provision`, `app-deploy` are executed by CI and monitored; `existing-k3s`'s `verify` defaults to deploy-verify `ci-evidence` |
+| `ci-bootstrap` | Project-new Phase 4 for `existing-k3s` (any CI-only mode's first deploy to an environment) | `provision` and `host-bootstrap` are **refused**; `platform-prereqs` and `tls` default to none; credentials, onboarding, `environment-config`, `artifact-build` (authoring) and `ci-generate` run locally; `app-deploy` is executed by CI; `verify` defaults to deploy-verify `ci-evidence`. The agent lands the generated workflows and manifests through a PR without the deploy marker, waits for the human merge, then dispatches `deploy.yml` for the environment's machine slug. Refused for VM modes |
 
 Two rules hold on every path:
 
 - **Single-slot runs** (`--slot=<slot>`) ignore the path's full-sequence defaults — that is how `tls` and `teardown` run on demand — but never its refusals. A path's per-mode default (`ci-evidence` for `existing-k3s` `verify` on the CI paths) still applies to a single-slot run.
 - **No split CI runs:** the slots a pipeline performs run as one pipeline run, so every locally executed slot must come before the first CI-executed slot (or be `verify`, which runs after; on the CI paths `existing-k3s`'s `ci-evidence` only reads the finished run's record). A local binding that would land between CI-executed slots — e.g. a bound `host-bootstrap` between CI `provision` and CI `app-deploy` under `ci-push` — is refused with `SLOTS-BINDING-REFUSED`.
+
+## CI-Only and Transitional Modes
+
+A deploy to a target runs in the CI/CD pipeline (GitHub Actions by default); the operator's machine
+only configures (credentials, onboarding requests, environment secrets), generates (workflows, IaC,
+manifests), authors artifacts, and reads the pipeline's evidence. The slots that act on the target
+are `provision`, `host-bootstrap`, `app-deploy`, `tls`, `replace`, and `teardown`.
+
+| Mode | Deploys from | Enforcement |
+|------|--------------|-------------|
+| `existing-k3s` | CI only: `ci-bootstrap` for an environment's first deploy, then `ci-push` or `existing-cicd-pr` | `smaqit slots plan` refuses any target-acting slot that would run locally — a default, a binding, or a single-slot run — with `SLOTS-LOCAL-DEPLOY-REFUSED`. There is no break-glass path |
+| `provision`, `existing-owned`, `existing-shared`, `existing-unmanaged` | Transitional: the local `standard` path for the dev sweep, CI for production | None yet. Their workflows can't deploy a non-production environment, write the nginx vhost, `docker-compose.yml` or `.env`, bootstrap the host, issue TLS, or cover the Python stacks; until they can, the local path stays |
+
+The Deployment agent drives every CI deploy through one contract, the ci-monitor seam: trigger the
+run (push, PR merge, or dispatch), select it by commit, wait for it to finish, and read its verify
+evidence. `gh` against GitHub Actions implements it; another CI system would need its own workflow
+templates and its own implementation of those four operations.
+
+Because `existing-k3s` runs no target-acting slot locally, a project binding of one (for example its
+own `teardown` or `tls` skill) is refused on every path: no path runs those slots in CI.
 
 ## Configuring Slots
 
@@ -126,7 +147,7 @@ The value is a single string of `slot=operation` pairs because the agentskills.i
 ## Inspecting and Validating
 
 ```bash
-smaqit slots plan --phase=deploy --mode=existing-k3s --env=test
+smaqit slots plan --phase=deploy --mode=existing-k3s --env=test --path=ci-bootstrap
 smaqit slots plan --phase=deploy --mode=existing-owned --env=prod --path=existing-cicd-pr --json
 smaqit slots plan --phase=deploy --mode=provision --env=dev --slot=teardown
 smaqit slots validate
@@ -142,6 +163,7 @@ smaqit slots validate
 | `SLOTS-SLOT-UNDECLARED` | The skill does not declare the slot in `metadata.smaqit-slots` |
 | `SLOTS-OPERATION-INVALID` | The operation is not declared, or is ambiguous |
 | `SLOTS-BINDING-REFUSED` | The deployment path refuses a binding for that slot |
+| `SLOTS-LOCAL-DEPLOY-REFUSED` | A CI-only mode (`existing-k3s`) would act on the target from this machine; plan it on a CI path |
 | `SLOTS-SKILL-INVALID` | A skill's frontmatter or slot declaration is malformed |
 | `SLOTS-ARGUMENT-INVALID` | A missing or unknown command-line argument |
 | `SLOTS-SPEC-MISSING` | `existing-k3s`: no Infrastructure spec declares an `## Environments` table, or it has no row for `--env` |
@@ -158,26 +180,25 @@ in `.smaqit/slots.yml` binding `params`:
 - **Reachability.** A `public` machine exposes its Kubernetes API and the app's Ingress to the
   internet. A `private-mesh` machine is reachable only from peers of a private mesh network
   (WireGuard-based meshes are common): its API and app hostnames live in the mesh's private DNS
-  zone, and CI reaches them only after joining the mesh with a per-app setup key.
+  zone, and CI reaches them only after joining the mesh with a platform-issued setup key.
 - **Ingress mode.** `own-tls` is the original behaviour: the app's Ingress asks cert-manager for
   its own certificate. `platform-default-tls` means the platform already serves one certificate
   (often a DNS-01 wildcard) as its ingress controller's default, so the app's Ingress has no `tls`
   section. `platform-owned` means the platform runs the Ingress itself, for example behind its
   single sign-on gate, and the app ships none.
 
-The default fillers read the row, not binding parameters: `mesh-check` confirms mesh access for
-`private-mesh`; `ci-generate` renders one `deploy.yml` whose steps branch on the dispatched
-machine's row (mesh join, Ingress, Certificate wait); `app-deploy` applies the Ingress the mode
-calls for; and `verify` checks the app from inside the cluster with a short-lived probe Job
-whenever the deployer can't reach it from outside (`private-mesh` or `platform-owned`). The probe's
-verdict is the Job's own status, so it works even where the platform denies `pods/log`.
+The default fillers read the row, not binding parameters. `ci-generate` renders one `deploy.yml`
+whose steps branch on the dispatched machine's row (mesh join, Ingress, Certificate wait), plus the
+Ingress and probe manifests the environments need. That workflow performs `app-deploy`: it joins
+the mesh for `private-mesh`, applies the Ingress the mode calls for, and checks the app from inside
+the cluster with a short-lived probe Job whenever the runner can't reach it from outside
+(`private-mesh` or `platform-owned`). The probe's verdict is the Job's own status, so it works even
+where the platform denies `pods/log`.
 
-That describes a local deploy (the `standard` path). On the CI paths (`existing-cicd-pr`,
-`ci-push`) the generated `deploy.yml` joins the mesh, applies, and verifies on its own, so nothing
-needs the operator's machine on the mesh or a local kubeconfig: `platform-prereqs` defaults to none,
-and `verify` defaults to deploy-verify's `ci-evidence`. That operation reads the deploy run with
+Nothing deploys from the operator's machine, so it never needs mesh access or a local kubeconfig.
+`verify` is always deploy-verify's `ci-evidence`, which reads the deploy run with
 `gh run view --json headSha,status,conclusion,jobs` and passes only when the run succeeded, its head
-is the intended commit (the PR merge SHA, or the pushed SHA) or a later commit that contains it,
+is the intended commit (the PR merge SHA on `existing-cicd-pr` and `ci-bootstrap`, or the pushed SHA) or a later commit that contains it,
 and its `deploy` job's "Verify revision" step and the row's verify step ("Verify in cluster" or
 "Verify over HTTPS") both succeeded.
 

@@ -105,8 +105,9 @@ func requireSlotError(t *testing.T, errs []error, code string) {
 	t.Fatalf("expected an error with code %s, got %v", code, errs)
 }
 
-// With no slots.yml, the standard full sequence per mode reproduces the
-// current project-new dev-sweep wiring.
+// With no slots.yml, each mode's first-deploy full sequence reproduces the
+// current project-new wiring: VM modes sweep a dev target on the local standard
+// path; existing-k3s configures and authors here, then CI deploys (ci-bootstrap).
 func TestSlotPlanDefaultsMatchCurrentBehaviour(t *testing.T) {
 	root := slotsTestProject(t)
 	vm := map[string]string{
@@ -132,18 +133,18 @@ func TestSlotPlanDefaultsMatchCurrentBehaviour(t *testing.T) {
 		"provision":          "none",
 	}
 	k3s := map[string]string{
-		"platform-prereqs":    "profile smaqit.infrastructure-deploy-k3s-app:mesh-check @local",
+		"platform-prereqs":    "none",
 		"access-credentials":  "profile smaqit.infrastructure-vault-loader:access @local",
 		"platform-onboarding": "profile smaqit.infrastructure-request-k3s-onboarding:request @local",
 		"target-credentials":  "profile smaqit.infrastructure-vault-loader:target @local",
+		"environment-config":  "profile smaqit.infrastructure-repo-config:sync @local",
 		"artifact-build":      "profile smaqit.infrastructure-image-build-push*:build @local",
 		"iac-generate":        "none",
 		"ci-generate":         "profile smaqit.infrastructure-cicd-generate:generate @local",
-		"provision":           "none",
-		"host-bootstrap":      "none",
-		"environment-config":  "none",
-		"app-deploy":          "profile smaqit.infrastructure-deploy-k3s-app*:deploy @local",
-		"verify":              "profile smaqit.infrastructure-deploy-verify:verify @local",
+		"provision":           "refused",
+		"host-bootstrap":      "refused",
+		"app-deploy":          "profile smaqit.infrastructure-deploy-k3s-app*:deploy @ci",
+		"verify":              "profile smaqit.infrastructure-deploy-verify:ci-evidence @local",
 		"tls":                 "none",
 	}
 	merge := func(base, extra map[string]string) map[string]string {
@@ -164,7 +165,11 @@ func TestSlotPlanDefaultsMatchCurrentBehaviour(t *testing.T) {
 		"existing-k3s":       k3s,
 	}
 	for mode, expected := range want {
-		plan := mustResolve(t, root, slotPlanOptions{Mode: mode, Environment: "dev", Path: "standard"})
+		path := "standard"
+		if ciOnlyModes[mode] {
+			path = "ci-bootstrap"
+		}
+		plan := mustResolve(t, root, slotPlanOptions{Mode: mode, Environment: "dev", Path: path})
 		if plan.Config != "" {
 			t.Fatalf("%s: expected no config, got %q", mode, plan.Config)
 		}
@@ -238,7 +243,7 @@ func TestSlotPlanDeploymentPaths(t *testing.T) {
 
 	// existing-k3s on a CI path: the deploy run joins the mesh and verifies on its
 	// own, so nothing reaches the target from this machine, whatever the row.
-	for _, path := range []string{"existing-cicd-pr", "ci-push"} {
+	for _, path := range []string{"existing-cicd-pr", "ci-push", "ci-bootstrap"} {
 		for _, env := range []string{"test", "prod", "dev"} { // private-mesh, platform-owned, public own-tls
 			got := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "existing-k3s", Environment: env, Path: path}))
 			if got["platform-prereqs"] != "none" {
@@ -247,6 +252,12 @@ func TestSlotPlanDeploymentPaths(t *testing.T) {
 			if got["verify"] != "profile smaqit.infrastructure-deploy-verify:ci-evidence @local" {
 				t.Errorf("k3s %s %s verify = %q, want ci-evidence", path, env, got["verify"])
 			}
+			if got["app-deploy"] != "profile smaqit.infrastructure-deploy-k3s-app*:deploy @ci" {
+				t.Errorf("k3s %s %s app-deploy = %q, want CI-executed", path, env, got["app-deploy"])
+			}
+		}
+		if path == "ci-bootstrap" {
+			continue // VM modes have no ci-bootstrap path (TestSlotPlanCIOnlyModeRefusesLocalDeploys)
 		}
 		// VM modes keep their local HTTP verify on the CI paths.
 		vm := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "existing-owned", Environment: "prod", Path: path}))
@@ -254,11 +265,46 @@ func TestSlotPlanDeploymentPaths(t *testing.T) {
 			t.Errorf("existing-owned %s verify/platform-prereqs = %q/%q", path, vm["verify"], vm["platform-prereqs"])
 		}
 	}
-	// A local deploy still checks the mesh and verifies from this machine.
-	std := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "existing-k3s", Environment: "test", Path: "standard"}))
-	if std["platform-prereqs"] != "profile smaqit.infrastructure-deploy-k3s-app:mesh-check @local" ||
-		std["verify"] != "profile smaqit.infrastructure-deploy-verify:verify @local" {
-		t.Errorf("k3s standard platform-prereqs/verify = %q/%q", std["platform-prereqs"], std["verify"])
+}
+
+// existing-k3s deploys only from CI/CD: a target-acting slot that would run on
+// this machine is refused, whether a default, a single-slot run or a binding
+// puts it there. VM modes keep their local standard path, and have no
+// ci-bootstrap path.
+func TestSlotPlanCIOnlyModeRefusesLocalDeploys(t *testing.T) {
+	root := slotsTestProject(t)
+	_, errs := resolveSlotPlan(root, slotPlanOptions{Mode: "existing-k3s", Environment: "test", Path: "standard"})
+	requireSlotError(t, errs, "SLOTS-LOCAL-DEPLOY-REFUSED")
+	_, errs = resolveSlotPlan(root, slotPlanOptions{Mode: "existing-k3s", Environment: "test", Path: "standard", Slot: "app-deploy"})
+	requireSlotError(t, errs, "SLOTS-LOCAL-DEPLOY-REFUSED")
+
+	// No path runs tls or a day-two slot in CI, so a k3s binding of one is
+	// refused everywhere; the same bindings resolve under a VM mode.
+	local := filepath.Join(root, ".agents", "skills")
+	writeTestSkill(t, local, "platform.k3s-ops", "metadata:\n  smaqit-slots: \"tls=issue, teardown=destroy, replace=replace\"\n")
+	writeSlotsConfig(t, root, "  tls:\n    skill: platform.k3s-ops\n  teardown:\n    skill: platform.k3s-ops\n  replace:\n    skill: platform.k3s-ops\n")
+	for _, path := range []string{"standard", "existing-cicd-pr", "ci-push", "ci-bootstrap"} {
+		for _, slot := range []string{"", "tls", "teardown", "replace"} {
+			_, errs = resolveSlotPlan(root, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: path, Slot: slot})
+			requireSlotError(t, errs, "SLOTS-LOCAL-DEPLOY-REFUSED")
+		}
+	}
+	for _, slot := range []string{"tls", "teardown", "replace"} {
+		got := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "existing-shared", Environment: "prod", Path: "standard", Slot: slot}))
+		if got[slot] != "bound platform.k3s-ops:"+map[string]string{"tls": "issue", "teardown": "destroy", "replace": "replace"}[slot]+" @local" {
+			t.Errorf("existing-shared bound %s = %q", slot, got[slot])
+		}
+	}
+
+	// ci-bootstrap refuses a provision or host-bootstrap binding outright.
+	writeTestSkill(t, local, "platform.k3s-host", "metadata:\n  smaqit-slots: \"host-bootstrap=bootstrap\"\n")
+	writeSlotsConfig(t, root, "  host-bootstrap:\n    skill: platform.k3s-host\n")
+	_, errs = resolveSlotPlan(root, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "ci-bootstrap"})
+	requireSlotError(t, errs, "SLOTS-BINDING-REFUSED")
+
+	for _, mode := range []string{"provision", "existing-owned", "existing-shared", "existing-unmanaged"} {
+		_, errs = resolveSlotPlan(root, slotPlanOptions{Mode: mode, Environment: "prod", Path: "ci-bootstrap"})
+		requireSlotError(t, errs, "SLOTS-ARGUMENT-INVALID")
 	}
 }
 
@@ -281,16 +327,16 @@ func TestSlotPlanSingleSlotRuns(t *testing.T) {
 	if k3sTLS["tls"] != "none" {
 		t.Fatalf("k3s single-slot tls = %q, want none", k3sTLS["tls"])
 	}
-	// A path's per-mode default still applies to a single-slot run, and a
-	// single-slot platform-prereqs on a CI path is an explicit request.
-	for _, path := range []string{"existing-cicd-pr", "ci-push"} {
+	// A path's per-mode default still applies to a single-slot run, and
+	// platform-prereqs has no default for existing-k3s on any path.
+	for _, path := range []string{"existing-cicd-pr", "ci-push", "ci-bootstrap"} {
 		verify := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: path, Slot: "verify"}))
 		if verify["verify"] != "profile smaqit.infrastructure-deploy-verify:ci-evidence @local" {
 			t.Fatalf("k3s %s single-slot verify = %q, want ci-evidence", path, verify["verify"])
 		}
 		prereqs := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "existing-k3s", Environment: "test", Path: path, Slot: "platform-prereqs"}))
-		if prereqs["platform-prereqs"] != "profile smaqit.infrastructure-deploy-k3s-app:mesh-check @local" {
-			t.Fatalf("k3s %s single-slot platform-prereqs = %q, want mesh-check", path, prereqs["platform-prereqs"])
+		if prereqs["platform-prereqs"] != "none" {
+			t.Fatalf("k3s %s single-slot platform-prereqs = %q, want none", path, prereqs["platform-prereqs"])
 		}
 	}
 	// Day-two slots never appear in a full sequence.
@@ -366,7 +412,7 @@ func TestSlotPlanDeployVerifyBindingNeedsOperation(t *testing.T) {
 	_, errs := resolveSlotPlan(root, slotPlanOptions{Mode: "existing-owned", Environment: "prod", Path: "standard"})
 	requireSlotError(t, errs, "SLOTS-OPERATION-INVALID")
 	writeSlotsConfig(t, root, "  verify:\n    skill: smaqit.infrastructure-deploy-verify\n    operation: ci-evidence\n")
-	got := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "standard"}))
+	got := planSummary(mustResolve(t, root, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "ci-push"}))
 	if got["verify"] != "bound smaqit.infrastructure-deploy-verify:ci-evidence @local" {
 		t.Errorf("bound verify with operation = %q", got["verify"])
 	}

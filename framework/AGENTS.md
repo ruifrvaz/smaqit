@@ -259,6 +259,7 @@ Where a phase's implementation steps legitimately differ between projects — an
 - **Invariants bind every filler** — Phase invariants (guarded IaC plan/apply, no out-of-band changes to IaC-managed resources, credential references only) apply to every filler, default or project-owned; the executing agent stops and reports when a filler's instructions would break one, rather than following them
 - **Single-slot runs** — Day-two operations run as single-slot invocations of the same agent under the same invariants; an execution path's full-sequence defaults do not apply to an explicitly requested slot, but its refusals do
 - **No split CI runs** — Slots a CI pipeline performs run as one pipeline run; resolution refuses a locally executed binding positioned between them
+- **CI-only profiles** — A profile may require that every slot acting on the target (provisioning, host bootstrap, deploy, TLS, replace, teardown) runs in the CI pipeline. Resolution then refuses any such slot that would execute locally, whatever put it there (a default, a binding, or a single-slot run), and there is no local fallback. A profile whose pipeline cannot yet deploy every environment is declared transitional and keeps its local path until it can
 
 **Phase Parameters:**
 

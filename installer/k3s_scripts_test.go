@@ -1,13 +1,11 @@
 package main
 
 import (
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -128,67 +126,9 @@ func TestExecRefusedRequiresForbidden(t *testing.T) {
 	}
 }
 
-// mesh-check passes a public row without probing, and for a private-mesh row
-// requires the mesh name to resolve and the API port to answer.
-func TestMeshCheckRequiresTheMeshForPrivateTargets(t *testing.T) {
-	if _, err := exec.LookPath("timeout"); err != nil {
-		t.Skipf("timeout not available: %v", err)
-	}
-	listener, err := net.Listen("tcp", ":0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer listener.Close()
-	go func() {
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				return
-			}
-			conn.Close()
-		}
-	}()
-	openPort := strconv.Itoa(listener.Addr().(*net.TCPAddr).Port)
-	closed, err := net.Listen("tcp", ":0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	closedPort := strconv.Itoa(closed.Addr().(*net.TCPAddr).Port)
-	closed.Close()
-
-	reachable := k3sRow("test", "edge-01", "private-mesh", "platform-owned")
-	reachable[9] = "localhost"
-	unresolvable := k3sRow("stage", "edge-02", "private-mesh", "platform-owned")
-	unresolvable[9] = "edge-02.mesh.invalid"
-	rows := []k3sEnvRow{reachable, unresolvable, k3sRow("prod", "pub-01", "public", "own-tls")}
-	input := specEnvironmentsJSON(t, rows, k3sConstraints(rows))
-
-	h := newScriptHarness(t)
-	script := skillScript("smaqit.infrastructure-deploy-k3s-app", "mesh-check.sh")
-	cases := []struct {
-		args []string
-		code int
-		want string
-	}{
-		{[]string{input, "prod"}, 0, "'prod' is public; no mesh access needed"},
-		{[]string{input, "test", "--port", openPort}, 0, "answers on port " + openPort},
-		{[]string{input, "test", "--port", closedPort}, 1, "does not answer from this machine"},
-		{[]string{input, "stage", "--port", openPort}, 1, "does not resolve from this machine"},
-		{[]string{input, "staging"}, 1, "no Environments row for 'staging'"},
-		{[]string{input}, 2, "Usage"},
-		{[]string{input, "test", "--port", "api"}, 2, "Usage"},
-	}
-	for _, c := range cases {
-		out, err := h.run(nil, script, c.args...)
-		if scriptExitCode(err) != c.code || !strings.Contains(out, c.want) {
-			t.Errorf("%v: exit %d, want %d mentioning %q\n%s", c.args[1:], scriptExitCode(err), c.code, c.want, out)
-		}
-	}
-}
-
-// The probe Job and the platform-default-tls Ingress, rendered as
-// deploy-k3s-app Step 5 describes, pass manifest-lint; the default-TLS Ingress
-// requests no certificate.
+// The probe Job and the platform-default-tls Ingress, rendered from
+// deploy-k3s-app's templates as cicd-generate's k3s mode does, pass
+// manifest-lint; the default-TLS Ingress requests no certificate.
 func TestK3sManifestTemplatesLintClean(t *testing.T) {
 	if err := exec.Command("python3", "-c", "import yaml").Run(); err != nil {
 		t.Skipf("python3 with PyYAML not available: %v", err)

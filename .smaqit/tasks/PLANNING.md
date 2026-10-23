@@ -5,7 +5,6 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 143 | Bench: deploy-verify `ci-evidence` on Claude Code, Against the Previous Release | Not Started | Medium |
-| 144 | All Deploys Go Through CI/CD Workflows (existing-k3s Enforced, VM Modes Transitional) | PR Open | High |
 | 145 | existing-k3s: CI-Identity Deploys Without Carried Credentials (OIDC Token, Shared Mesh Key, Platform-Owned Pulls) | Not Started | High |
 | 146 | VM Modes: CI-Only Deploys (Close the Workflow Gaps, Then Enforce the Task 144 Rule) | Not Started | Medium |
 | 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | Not Started | High |
@@ -20,6 +19,7 @@
 
 | ID | Title |
 |----|-------|
+| 144 | All Deploys Go Through CI/CD Workflows (existing-k3s Enforced, VM Modes Transitional) |
 | 142 | CI-Driven Deploys Run No Local Target Checks |
 | 141 | Orchestrator Skills Default by Invocation; Rename new-greenfield-project to project-new; Prune Retired Skills |
 | 140 | plan-guard BLOCKED Guidance: Stop and Report, Never Take an Allow-Flag Address From the Guard's Output |

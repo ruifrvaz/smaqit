@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 112
+status: Completed
 created: "2026-10-20"
 started: "2026-10-23"
 mode: Assisted
+completed: "2026-10-23"
 ---
 
 # All Deploys Go Through CI/CD Workflows (existing-k3s Enforced, VM Modes Transitional)

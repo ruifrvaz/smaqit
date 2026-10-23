@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-cicd-generate
 description: 'Use when generating or updating GitHub Actions CI/CD workflows: the VM set (deploy.yml, provision.yml, post-merge-deploy.yml) for Node.js + React via Terraform and Docker Compose, or the k3s two-job deploy.yml + post-merge-deploy.yml, or when an operator invokes /cicd.generate. Inside smaqit.project-new the deployment agent generates them itself. Never generates copilot-setup-steps.yml.'
 metadata:
-  version: "3.2.2"
+  version: "3.3.0"
   smaqit-slots: "ci-generate=generate"
 ---
 
@@ -37,7 +37,15 @@ validated with `actionlint`/`yamllint`/`shellcheck` (Task 085).
   `Certificate` (own-tls only) → verify sequence `smaqit.infrastructure-deploy-k3s-app` documents.
   Verification runs inside the cluster (a probe Job) for a `private-mesh` or `platform-owned`
   machine and over HTTPS otherwise. `provision.yml` is not generated; `post-merge-deploy.yml` is
-  reused unchanged and is the only automatic trigger.
+  reused unchanged and is the only automatic trigger. This workflow is the only way an
+  existing-k3s app deploys: nothing deploys from the operator's machine, so this mode also renders
+  the Kubernetes manifests the workflow applies (Step 6).
+
+GitHub Actions is the CI/CD system these templates target. The Deployment agent drives a generated
+workflow through one contract, the ci-monitor seam: trigger the run (push, PR merge, or dispatch),
+select it by commit, wait for it to finish, and read its verify evidence. `gh` implements that
+contract today; another CI system would need its own templates and its own implementation of the
+same four operations.
 
 ## Steps
 
@@ -104,20 +112,45 @@ validated with `actionlint`/`yamllint`/`shellcheck` (Task 085).
    directory's copies are canonical. Never hand-edit a vendored copy expecting it to survive the
    next generation.
 
-6. **Write files to `.github/workflows/`** — 3 workflow files + 2 vendored scripts (`full`); 2
-   workflow files + 0 vendored scripts for `deploy-only` (`deploy.yml` + `post-merge-deploy.yml`,
-   no `provision.yml`, no Terraform to guard); 2 workflow files + 3 vendored scripts for `k3s`
-   (`deployment/k3s/scripts/namespace-guard.sh`, `manifest-lint.sh`, and `exec-refused.sh` —
-   `deploy.yml`'s `deploy` job is kubectl-driven, not rsync/SSH-driven, but still needs its
-   guard/lint/exec-check scripts on disk).
+6. **`k3s` only — render the manifests the environments need** from
+   `smaqit.infrastructure-deploy-k3s-app`'s shared templates (its Shared Templates section), into
+   `deployment/k3s/`. `deployment.yaml` and `service.yaml` must already exist there (authored by the
+   `artifact-build` slot, which runs first); the probe takes its user from them:
 
-7. **Report** the list of files written with a brief description of each, including which generation mode was used.
+   | Rendered when some environment is… | Template (`smaqit.infrastructure-deploy-k3s-app/assets/`) | Written as |
+   |---|---|---|
+   | `own-tls` | `ingress.yaml.template` | `deployment/k3s/ingress.yaml` |
+   | `platform-default-tls` | `ingress-default-tls.yaml.template` | `deployment/k3s/ingress-default-tls.yaml` |
+   | `private-mesh` or `platform-owned` | `probe-job.yaml.template` | `deployment/k3s/probe-job.yaml` |
+
+   ```bash
+   K3S=<smaqit-skills-dir>/smaqit.infrastructure-deploy-k3s-app/assets
+   sed -e "s/__APP_SLUG__/${APP_SLUG}/g" "$K3S/ingress.yaml.template" > deployment/k3s/ingress.yaml
+   sed -e "s/__APP_SLUG__/${APP_SLUG}/g" -e "s/__RUN_AS_USER__/<runAsUser from deployment.yaml>/" \
+     -e "s#__PROBE_FETCH__#<fetch command for the spec's Probe Client>#" \
+     "$K3S/probe-job.yaml.template" > deployment/k3s/probe-job.yaml
+   ```
+   Substitute only `__APP_SLUG__`, `__RUN_AS_USER__`, and `__PROBE_FETCH__`; leave the
+   per-environment tokens (`__HOST__`, `__INGRESS_CLASS__`, `__CLUSTER_ISSUER__`, `__IMAGE__`,
+   `__HEALTH_PATH__`) in place — the workflow stamps the dispatched machine's values before linting.
+   The fetch command for each `Probe Client` is in deploy-k3s-app's table. Render nothing for
+   `platform-owned` beyond the probe: the platform owns that Ingress. Like the vendored scripts,
+   the rendered manifests are generated output, overwritten on every run.
+
+7. **Write files to `.github/workflows/`** — 3 workflow files + 2 vendored scripts (`full`); 2
+   workflow files + 0 vendored scripts for `deploy-only` (`deploy.yml` + `post-merge-deploy.yml`,
+   no `provision.yml`, no Terraform to guard); 2 workflow files + 3 vendored scripts + the rendered
+   manifests for `k3s` (`deployment/k3s/scripts/namespace-guard.sh`, `manifest-lint.sh`, and
+   `exec-refused.sh` — `deploy.yml`'s `deploy` job is kubectl-driven, not rsync/SSH-driven, but
+   still needs its guard/lint/exec-check scripts on disk — and Step 6's Ingress and probe files).
+
+8. **Report** the list of files written with a brief description of each, including which generation mode was used.
 
 ## Output
 
 - **`full`:** `.github/workflows/deploy.yml` (provision + deploy sequential jobs), `provision.yml` (PR-only terraform plan with PR comment), `post-merge-deploy.yml` (body sentinel trigger for deploy.yml); `deployment/scripts/plan-guard.sh` and `deployment/scripts/ownership-guard.sh` vendored
 - **`deploy-only`:** `.github/workflows/deploy.yml` (single deploy job, no Terraform), `post-merge-deploy.yml` (body sentinel trigger for deploy.yml) — no `provision.yml`, nothing vendored
-- **`k3s`:** `.github/workflows/deploy.yml` (dispatch-only; `build` job pushing to GHCR, then a kubectl-driven `deploy` job, one at a time per machine: resolve target → mesh join (private-mesh) → kubeconfig → guard (including exec) → imagePullSecret (private registry) → lint → apply → rollout → exec refused → `Certificate` (own-tls) → revision → in-cluster or HTTPS verify → kubeconfig removed, reading `KUBECONFIG` from a GitHub Environment secret), `post-merge-deploy.yml` (body sentinel trigger for deploy.yml); `deployment/k3s/scripts/namespace-guard.sh`, `manifest-lint.sh`, and `exec-refused.sh` vendored — no `provision.yml`, no SSH or Terraform reference anywhere in the generated output
+- **`k3s`:** `.github/workflows/deploy.yml` (dispatch-only; `build` job pushing to GHCR, then a kubectl-driven `deploy` job, one at a time per machine: resolve target → mesh join (private-mesh) → kubeconfig → guard (including exec) → imagePullSecret (private registry) → lint → apply → rollout → exec refused → `Certificate` (own-tls) → revision → in-cluster or HTTPS verify → kubeconfig removed, reading `KUBECONFIG` from a GitHub Environment secret), `post-merge-deploy.yml` (body sentinel trigger for deploy.yml); `deployment/k3s/scripts/namespace-guard.sh`, `manifest-lint.sh`, and `exec-refused.sh` vendored; `deployment/k3s/ingress.yaml`, `ingress-default-tls.yaml`, and `probe-job.yaml` rendered as the environments need — no `provision.yml`, no SSH or Terraform reference anywhere in the generated output
 
 ## Scope
 
@@ -125,7 +158,8 @@ validated with `actionlint`/`yamllint`/`shellcheck` (Task 085).
 - Does NOT provision infrastructure — Terraform runs inside the generated workflow (`full` mode only; `deploy-only` and `k3s` modes have no Terraform at all).
 - Does NOT handle matrix builds or monorepos — the `full`/`deploy-only` templates assume exactly `backend/` + `frontend/` as source directories (same assumption `smaqit.infrastructure-deploy-rsync` makes). This assumption does not apply to `k3s` mode, which deploys a container image, not source artifacts.
 - **`k3s` mode only:** the generated `build` job builds and pushes whatever `Dockerfile` already exists at the repository root — it does NOT author the `Dockerfile` itself (see `smaqit.infrastructure-image-build-push-static` or an equivalent for the app's own stack) and does NOT manage registry credentials beyond `GITHUB_TOKEN`'s built-in push scope (a private image's pull-side `imagePullSecret` step is rendered from the spec's `Container Registry` row; its `REGISTRY_USERNAME`/`REGISTRY_TOKEN` are synced by `smaqit.infrastructure-repo-config`).
-- Does NOT template anything beyond `__APP_DIR__` (`full`/`deploy-only`). `k3s` mode's one renderer, `scripts/render-k3s-deploy.sh`, fills only the app slug, the dispatch options and default, `K3S_TARGETS`, `DEPLOYER_EXEC`, the optional mesh-join step, and the optional imagePullSecret step with its registry host; everything else varies at run time on the dispatched machine's row. It is not a general templating engine: if a project needs more variance than that, treat it as a new template variant.
+- Does NOT template anything beyond `__APP_DIR__` (`full`/`deploy-only`). `k3s` mode's one renderer, `scripts/render-k3s-deploy.sh`, fills only the app slug, the dispatch options and default, `K3S_TARGETS`, `DEPLOYER_EXEC`, the optional mesh-join step, and the optional imagePullSecret step with its registry host; everything else varies at run time on the dispatched machine's row. Step 6's manifests take only the app slug, the probe user, and the probe fetch command. It is not a general templating engine: if a project needs more variance than that, treat it as a new template variant.
+- **`k3s` mode only:** does NOT author `deployment.yaml` or `service.yaml` — the `artifact-build` slot does (`smaqit.infrastructure-image-build-push-*`).
 
 ## Examples
 
@@ -139,7 +173,7 @@ validated with `actionlint`/`yamllint`/`shellcheck` (Task 085).
 **Output:** Identical file set to the `existing-shared` example above — the generated workflow doesn't encode *why* there's no Terraform, only that there isn't any.
 
 **Input:** Namespace-scoped Kubernetes/k3s target, `provisioning_mode: existing-k3s`, test on a `private-mesh` machine and prod on a `public` one. Operator invokes `/cicd.generate`.
-**Output:** 2 files written to `.github/workflows/` (`deploy.yml`, rendered from the spec's Environments table, with a `build` job that pushes the app's image to GHCR followed by a kubectl-driven `deploy` job reading `KUBECONFIG` from a GitHub Environment secret, `post-merge-deploy.yml`), plus `deployment/k3s/scripts/namespace-guard.sh`, `manifest-lint.sh`, and `exec-refused.sh` vendored — no `provision.yml`, no SSH or Terraform reference anywhere in the generated output.
+**Output:** 2 files written to `.github/workflows/` (`deploy.yml`, rendered from the spec's Environments table, with a `build` job that pushes the app's image to GHCR followed by a kubectl-driven `deploy` job reading `KUBECONFIG` from a GitHub Environment secret, `post-merge-deploy.yml`), plus `deployment/k3s/scripts/namespace-guard.sh`, `manifest-lint.sh`, and `exec-refused.sh` vendored, and `deployment/k3s/probe-job.yaml` (the private-mesh test machine verifies in-cluster) and `ingress.yaml` (prod, if `own-tls`) rendered — no `provision.yml`, no SSH or Terraform reference anywhere in the generated output.
 
 ## Gotchas
 
@@ -162,15 +196,13 @@ generation.
   analogy; the k3s target has no VM at all, so none of that applies. `deploy.yml.k3s.template`'s
   `deploy` job sets `KUBECONFIG` from the environment secret and calls
   `smaqit.infrastructure-deploy-k3s-app`'s own guard/lint/apply/verify sequence directly.
-- **The `k3s` manifests a machine needs may not exist on a fresh generation** —
-  `deployment/k3s/ingress.yaml` (own-tls), `ingress-default-tls.yaml` (platform-default-tls), and
-  `probe-job.yaml` (in-cluster verification) are rendered once from shared templates by
-  `smaqit.infrastructure-deploy-k3s-app` (its Step 5) and committed with their per-environment
-  tokens (`__HOST__`, `__INGRESS_CLASS__`, `__CLUSTER_ISSUER__`, `__IMAGE__`, `__HEALTH_PATH__`)
-  left in; the workflow stamps the dispatched machine's values before linting. Until they are
-  committed, `manifest-lint.sh` fails with a bare `FileNotFoundError`. This is expected on a
-  project's first generation, not a bug in the generated template — do not fabricate a placeholder
-  manifest to make the workflow pass.
+- **The `k3s` manifests are rendered here, not by a deploy.** There is no local k3s deploy to render
+  them, so Step 6 writes `deployment/k3s/ingress.yaml` (own-tls), `ingress-default-tls.yaml`
+  (platform-default-tls), and `probe-job.yaml` (in-cluster verification) with their
+  per-environment tokens (`__HOST__`, `__INGRESS_CLASS__`, `__CLUSTER_ISSUER__`, `__IMAGE__`,
+  `__HEALTH_PATH__`) left in; the workflow stamps the dispatched machine's values before linting.
+  A manifest that was never rendered and committed makes `manifest-lint.sh` fail with a bare
+  `FileNotFoundError` — regenerate, never fabricate a placeholder manifest to make the workflow pass.
 - **`k3s` GitHub Environments are named after machine slugs, not `test`/`prod`.** Each target
   machine's Environment holds its own `KUBECONFIG` (and, for `private-mesh`, its mesh setup-key
   secret), matching the app's Vault path `secret/apps/<app-slug>/<machine-slug>/kubeconfig`. A
@@ -216,10 +248,11 @@ generation.
   rolling out over the first. Don't set `cancel-in-progress: true`: it would stop a rollout midway.
 - **A newly generated `deploy.yml` cannot be `workflow_dispatch`'d until it exists on the default
   branch** — GitHub's `workflow_dispatch` API 404s for a workflow file that only exists on a
-  non-default branch. If this is the first CI/CD generation for a `k3s`-mode project, land
-  `deploy.yml` (and the vendored scripts) via a small, separate PR to the default branch before
-  attempting to dispatch it, rather than assuming the branch that generated it can dispatch it
-  directly.
+  non-default branch. That is why an existing-k3s project's first deploy (the `ci-bootstrap`
+  deployment path) lands `deploy.yml`, the vendored scripts, and the manifests through a PR
+  *without* the deploy marker, and dispatches only after the merge: `post-merge-deploy.yml`
+  dispatches with no environment input, so a marked first PR would deploy the default (prod)
+  machine instead of the test one.
 
 ### Workflows outside these templates (machine repositories)
 
@@ -267,6 +300,7 @@ workflow, templated or not, must avoid them:
 - [ ] `provision.yml` copied verbatim (`full` only); NOT generated in `deploy-only` or `k3s` mode
 - [ ] `post-merge-deploy.yml` copied verbatim — all modes, identical content
 - [ ] `deployment/scripts/plan-guard.sh` and `deployment/scripts/ownership-guard.sh` vendored (`full` only); `deployment/k3s/scripts/namespace-guard.sh`, `manifest-lint.sh`, and `exec-refused.sh` vendored (`k3s` only); nothing vendored for `deploy-only`
+- [ ] `k3s` only: the Ingress file for each Ingress mode in use and `probe-job.yaml` (when any environment verifies in-cluster) rendered from deploy-k3s-app's templates, per-environment tokens left in
 - [ ] `k3s` mode only: generated `deploy.yml` is dispatch-only, has a `build` job preceding `deploy`, lists every environment's machine slug, keeps the mesh-join step exactly when some environment is `private-mesh`, and keeps the imagePullSecret step exactly when the `Container Registry` is private
 - [ ] Report delivered, stating which generation mode was used
 
@@ -288,4 +322,6 @@ workflow, templated or not, must avoid them:
 | `deploy-only` or `k3s` mode requested but a `provision.yml` already exists from a prior `full` generation | Delete the stale `provision.yml` and the vendored `deployment/scripts/*.sh` — leaving them in place would plan/guard Terraform that no longer matches this project's `provisioning_mode` |
 | `deployment/scripts/plan-guard.sh` or `ownership-guard.sh` already exist and differ from the skill directory's current copies | Overwrite — they are generated output, regenerated on every run (see Step 5) |
 | `deployment/k3s/scripts/namespace-guard.sh`, `manifest-lint.sh`, or `exec-refused.sh` already exist and differ from `smaqit.infrastructure-deploy-k3s-app`'s current copies | Overwrite — same generated-output rule as the Terraform guards |
+| `deployment/k3s/deployment.yaml` missing when Step 6 needs the probe's `runAsUser` (`k3s`) | Stop. The `artifact-build` slot authors it first; run that slot (or the app stack's image-build-push skill), then generate again. Never guess a UID |
+| A rendered Ingress or `probe-job.yaml` already exists and differs (`k3s`) | Overwrite — it is generated output. A project-specific change belongs in the spec or a new template variant |
 | `k3s` mode requested but the project's existing `deploy.yml` references SSH/Terraform (stale, from a prior `full`/`deploy-only` generation) | Overwrite with `assets/deploy.yml.k3s.template`, remove the stale `deployment/scripts/*.sh` and `provision.yml` if present, and vendor `deployment/k3s/scripts/*.sh` instead — a mode switch means the target itself changed; do not attempt to merge old VM-specific steps into the new job |

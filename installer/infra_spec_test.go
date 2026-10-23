@@ -213,7 +213,7 @@ func TestInfraEnvironmentsStructuralErrors(t *testing.T) {
 func TestSlotPlanExistingK3sGate(t *testing.T) {
 	root := slotsTestProject(t)
 	os.RemoveAll(filepath.Join(root, "specs"))
-	_, errs := resolveSlotPlan(root, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "standard"})
+	_, errs := resolveSlotPlan(root, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "ci-bootstrap"})
 	requireSlotError(t, errs, "SLOTS-SPEC-MISSING")
 	mustResolve(t, root, slotPlanOptions{Mode: "provision", Environment: "prod", Path: "standard"})
 
@@ -221,7 +221,7 @@ func TestSlotPlanExistingK3sGate(t *testing.T) {
 	rows[2][3], rows[2][4] = "", "" // prod: no reachability, no ingress mode
 	writeInfraSpec(t, root, "platform.md", k3sSpec(rows, k3sFixtureConstraints))
 	writeSlotsConfig(t, root, "  verify:\n    skill: platform.not-installed\n")
-	_, errs = resolveSlotPlan(root, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "standard"})
+	_, errs = resolveSlotPlan(root, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "ci-bootstrap"})
 	var fieldErrs int
 	for _, err := range errs {
 		if strings.HasPrefix(err.Error(), "SLOTS-SPEC-FIELD-MISSING") {
@@ -235,7 +235,7 @@ func TestSlotPlanExistingK3sGate(t *testing.T) {
 
 	// Another environment's row is complete, so its plan resolves.
 	os.Remove(filepath.Join(root, slotsConfigPath))
-	plan := mustResolve(t, root, slotPlanOptions{Mode: "existing-k3s", Environment: "test", Path: "standard"})
+	plan := mustResolve(t, root, slotPlanOptions{Mode: "existing-k3s", Environment: "test", Path: "ci-bootstrap"})
 	if plan.Target == nil || plan.Target.MachineSlug != "edge-01" || plan.Target.Reachability != "private-mesh" {
 		t.Fatalf("plan target = %+v", plan.Target)
 	}

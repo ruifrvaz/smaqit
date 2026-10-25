@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Nothing to add.
+
+### Changed
+- Nothing to add.
+
+### Deprecated
+- Nothing to add.
+
+### Removed
+- Nothing to add.
+
+### Fixed
+- Nothing to add.
+
+### Security
+- Nothing to add.
+
+### Chore
+- Nothing to add.
+
+## [3.21.0] - 2026-10-25
+
 **Action required:**
 - **existing-k3s deploys with the CI job's own OIDC identity; the app holds no deploy credential.** Add the platform's three `Cluster Connect` Constraints rows to the Infrastructure spec (`Cluster Connect Action`, a pinned `uses:` reference; `Cluster Connect Machine Input`; `Cluster Connect Namespace Input`), then regenerate `deploy.yml` with `smaqit.infrastructure-cicd-generate`. A spec without them is refused (`SLOTS-SPEC-FIELD-MISSING`). The platform must trust GitHub Actions OIDC and bind the app's Namespace to this repository and its machine-slug GitHub Environment.
 - **Point each row's `Mesh Setup-Key Secret` at the platform's shared, per-machine mesh secret** (for example an organisation secret), and name one on a `public` row too when the platform keeps its API mesh-only.
@@ -27,22 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **existing-k3s `target-credentials` and `environment-config` default to none.** vault-loader 4.0.0 loads only the onboarding PR's `platform-repo` token for existing-k3s (no `MACHINE_SLUG`); repo-config 3.0.0 syncs nothing for it; request-k3s-onboarding 2.0.0 prints this repository's name and numeric ID for the registry entry and reports a merged request without any kubeconfig hand-off; cicd-generate 4.1.0, deploy-k3s-app 4.1.0, image-build-push-static 1.4.0, project-new 3.3.0, input-deployment 1.11.0 and feature-new 2.7.0 describe the OIDC model.
 
-### Deprecated
-- Nothing to add.
-
 ### Removed
 - `smaqit.infrastructure-repo-config/scripts/sync-k3s-env.sh`.
 - The existing-k3s kubeconfig, per-app mesh setup key and `organizations/<org>/github-package-read` registry credential from vault-loader's load, rotate and `credential-file.sh` paths.
 - The generated `Write kubeconfig` and `Create imagePullSecret` steps, the `Container Registry` Constraints row and its renderer handling.
 
-### Fixed
-- Nothing to add.
-
 ### Security
 - `rotate-credential.sh` pipes the `platform-repo` and `github` tokens to Vault on stdin instead of passing them as command-line arguments, where the process list showed them.
-
-### Chore
-- Nothing to add.
 
 ## [3.20.0] - 2026-10-23
 

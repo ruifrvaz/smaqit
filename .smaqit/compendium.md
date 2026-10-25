@@ -392,16 +392,23 @@ This split has a direct design consequence: concern 1 lives inside an infra repo
 
 **What Vault credentials does `provisioning_mode: existing-k3s` use, and how do they differ from the VM-based conventions?**
 
-One: `secret/apps/<app-slug>/platform-repo`, a fine-grained PAT scoped only to `contents:write` + `pull_requests:write` on the platform-owned infrastructure repository. `smaqit.infrastructure-request-k3s-onboarding` opens the onboarding PR with it; it never has `workflow_dispatch` scope. `PROVISIONING_MODE=existing-k3s load-credentials.sh` loads it (no `MACHINE_SLUG`), and it rotates with the standard delete-and-repopulate shape.
+None for the deploy or the onboarding. The only values an `existing-k3s` app keeps in Vault are its **runtime secrets**, the values its pod needs at run time (a session-signing key, a first-admin password), and only when the Infrastructure spec's `## Runtime Secrets` table declares some:
+
+- **Where:** `secret/apps/<app-slug>/<machine-slug>/runtime`, one field per secret name, per environment.
+- **Who writes them:** `PROVISIONING_MODE=existing-k3s ENVIRONMENT=<env> load-credentials.sh` (the `access-credentials` slot). It reads the spec first and makes no Vault call at all when the environment has none. A `generated` value is created once and never printed; an `operator-provided` one comes from a hidden prompt.
+- **Where they go:** repo-config's `runtime` operation (the `environment-config` slot) pipes them into the machine-slug GitHub Environment, and the deploy workflow builds the Kubernetes Secret `<app-slug>-runtime` from there.
+- **Under `Vault Access: operator-scripts`** neither script calls Vault: `runtime` prints a `HANDOFF` block per missing name for the operator's own scripts and completes once `gh secret list --env <machine>` shows every name.
+
+The onboarding PR uses the operator's own `gh` login, which needs push access to the platform repository (the skill checks `permissions.push` first). Releases up to v3.21.0 stored a `secret/apps/<app-slug>/platform-repo` PAT for it; nothing reads that now.
 
 Everything else the VM modes carry is gone, because the deploy itself needs no stored credential:
 
 - **No kubeconfig.** The deploy job authenticates with its own GitHub Actions OIDC token through the platform's `Cluster Connect` action, and the platform binds the app's Namespace to this repository and the machine-slug GitHub Environment the job runs in.
 - **No per-app mesh key.** A machine whose API is mesh-only is joined with the platform's shared, per-machine key, a secret the platform holds (for example an organisation secret) and the Environments row only names.
 - **No registry credential.** The platform pulls the app's images itself.
-- **No `github` PAT and no Environment sync.** Nothing is written to GitHub (`environment-config` is none), and GitHub creates the machine-slug Environment on the first run that references it.
+- **No `github` PAT and no deploy secret in GitHub.** `environment-config` writes only the runtime secrets, and GitHub creates the machine-slug Environment on the first run that references it when there are none.
 
-The app keeps nothing under `secret/machines/*` either. Releases before the OIDC model stored `secret/apps/<app-slug>/<machine-slug>/{kubeconfig,mesh-setup-key}` and `secret/organizations/<org>/github-package-read`; nothing reads them now, so they can be retired with the operator's own Vault tooling. See also: how does an `existing-k3s` app deploy to a private-mesh or platform-owned target?
+The app keeps nothing under `secret/machines/*` either. Releases before the OIDC model stored `secret/apps/<app-slug>/<machine-slug>/{kubeconfig,mesh-setup-key}` and `secret/organizations/<org>/github-package-read`; nothing reads them, or the `platform-repo` PAT, now, so they can be retired with the operator's own Vault tooling. See also: how does an `existing-k3s` app deploy to a private-mesh or platform-owned target?
 
 ---
 
@@ -409,7 +416,7 @@ The app keeps nothing under `secret/machines/*` either. Releases before the OIDC
 
 As skills that declare the slots they fill (`metadata.smaqit-slots`), which each app repository binds in its own `.smaqit/slots.yml`. smaqit's slots are contracts with generic defaults: `smaqit slots contract --slot=<slot> --mode=<mode>` prints what any filler receives, hands off, and must make true, plus what the mode adds, and the deployment-slots wiki carries the same text (a test keeps them equal). A platform filler that meets it replaces smaqit's default with nothing else to change.
 
-For `existing-k3s` the substitution points are `platform-onboarding` (the platform's registry request), `artifact-build` (its image and manifest conventions), `ci-generate` (its own deploy workflow, keeping the step names `verify` reads), and `app-deploy`. The deploy itself always runs in the workflow `ci-generate` wrote; the agent reads the `app-deploy` filler to trigger the run, select it by commit, wait for it, and hand its run ID to `verify`. `target-credentials`, `environment-config`, and `tls` are none, and bindings of `tls`, `replace`, and `teardown` are refused because no path runs them in CI. A platform that restricts exposure declares it in the spec's `Allowed Ingress Modes` row. See also: how does a project bind its own skill to a deployment step?
+For `existing-k3s` the substitution points are `platform-onboarding` (the platform's registry request), `artifact-build` (its image and manifest conventions), `ci-generate` (its own deploy workflow, keeping the step names `verify` reads), and `app-deploy`. The deploy itself always runs in the workflow `ci-generate` wrote; the agent reads the `app-deploy` filler to trigger the run, select it by commit, wait for it, and hand its run ID to `verify`. `target-credentials` and `tls` are none, and bindings of `tls`, `replace`, and `teardown` are refused because no path runs them in CI. `access-credentials` and `environment-config` carry only the app's runtime secrets. A platform that restricts exposure declares it in the spec's `Allowed Ingress Modes` row. See also: how does a project bind its own skill to a deployment step?
 
 ---
 
@@ -427,7 +434,7 @@ Never write `can-i … pods/exec`: kubectl reads that as a pod named `exec`. A `
 
 **Spec-wide Constraints rows.** `Allowed Ingress Modes` declares the exposure the platform permits (absent: all three); a row using another mode is refused, and `manifest-lint.sh` refuses any non-ClusterIP Service. The three `Cluster Connect` rows name the platform's pinned action and its machine and namespace inputs; the action owns the API address, the cluster CA, the audience, and token refresh, so a CA change is a new tag. `Probe Client` may be `curl`, `wget`, or `python3`. There is no `Container Registry` row: the platform pulls the images, so the workflow creates no pull Secret.
 
-**Secrets.** The workflow holds no deploy secret; the only secret it reads is the platform's mesh key, through the mesh action's `with:`. Every secret reaches a step through `env:` or `with:`, never inside a `run:` script or on a command line. An `always()` step removes the kubeconfig the connect action exported. Concurrency allows one deploy per machine at a time. See also: what Vault credentials does `provisioning_mode: existing-k3s` use?
+**Secrets.** The workflow holds no deploy secret. It reads the platform's mesh key, through the mesh action's `with:`, and, when the spec declares runtime secrets, the machine-slug Environment's runtime secrets, through the "Create runtime Secret" step's `env:`: `jq` builds `<app-slug>-runtime` from the environment and `kubectl apply --server-side` applies it between lint and apply, and `manifest-lint.sh` checks the Deployment reads each one with its own `secretKeyRef`. Every secret reaches a step through `env:` or `with:`, never inside a `run:` script or on a command line. An `always()` step removes the kubeconfig the connect action exported. Concurrency allows one deploy per machine at a time. See also: what Vault credentials does `provisioning_mode: existing-k3s` use?
 
 ---
 
@@ -453,8 +460,8 @@ For steps a project adds itself, smaqit gives guidance, not enforcement. The `sm
 Through purpose-named scripts; skill text never tells an agent or operator to run `vault` directly, and a Go test (`installer/skill_text_test.go`) fails if a run-able `vault` command or a `Bash(vault:*)` grant appears in any shipped skill document. Scripts may call `vault` internally. The interface:
 
 - **Load or populate:** `load-credentials.sh` (unseals, authenticates, enables kv-v2 on first run, prompts only for missing paths), `register-machine.sh` (a machine's own credentials), `bootstrap-app-to-machine.sh` (an app's SSH key on a machine), `rotate-credential.sh` (replace an existing path).
-- **Use:** `credential-file.sh <path>` writes one allowlisted credential (an app SSH key or the platform-repo token) to a 0600 file in a private temp directory and prints only the path; `source terraform-env.sh` exports Terraform's provider and backend credentials into the shell (`--unset` clears them).
-- **Sync to GitHub:** repo-config's `sync-secrets.sh` (VM modes) and `sync-machine-env.sh` (a platform repository's machine Environment). An `existing-k3s` app syncs nothing.
+- **Use:** `credential-file.sh <path>` writes one allowlisted credential (an app SSH key) to a 0600 file in a private temp directory and prints only the path; `source terraform-env.sh` exports Terraform's provider and backend credentials into the shell (`--unset` clears them).
+- **Sync to GitHub:** repo-config's `sync-secrets.sh` (VM modes) and `sync-machine-env.sh` (a platform repository's machine Environment). An `existing-k3s` app syncs only its runtime secrets, with `sync-runtime-env.sh` (repo-config `runtime`), which under `Vault Access: operator-scripts` makes no Vault call and hands each value off to the operator's own scripts instead.
 
 Secrets reach `vault` and `gh` on stdin, never as command arguments. Operator tooling outside smaqit may call `load-credentials.sh` (no arguments, legacy scheme) and `bootstrap-app-to-machine.sh <app> <machine>` directly, so those interfaces and the Vault path and field conventions stay stable. If an operation has no script, add one rather than typing a raw `vault` command.
 

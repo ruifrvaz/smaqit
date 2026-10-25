@@ -16,13 +16,22 @@ import (
 // owns its Ingress. It is the single source the k3s fillers and the workflow
 // renderer read, through `smaqit spec environments --json`.
 
-const environmentsHeading = "## Environments"
+const (
+	environmentsHeading   = "## Environments"
+	runtimeSecretsHeading = "## Runtime Secrets"
+)
 
 var (
 	reachabilityClasses = []string{"public", "private-mesh"}
 	ingressModes        = []string{"own-tls", "platform-default-tls", "platform-owned"}
 	probeClients        = []string{"curl", "wget", "python3"}
 	deployerExecModes   = []string{"denied", "allowed"}
+	vaultAccessModes    = []string{"direct", "operator-scripts"}
+	secretSources       = []string{"generated", "operator-provided"}
+
+	// reservedPodEnv are the pod environment names the deployment template
+	// already sets; a runtime secret may not shadow them.
+	reservedPodEnv = []string{"DEPLOY_SHA", "DEPLOY_TIME"}
 
 	envSlugPattern       = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
 	hostPattern          = regexp.MustCompile(`^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$`)
@@ -39,6 +48,9 @@ var environmentColumns = []string{
 	"Ingress Class", "ClusterIssuer", "Health Path", "Mesh Setup-Key Secret", "Mesh Wait-For Host",
 }
 
+// runtimeSecretColumns are the required `## Runtime Secrets` headers.
+var runtimeSecretColumns = []string{"Name", "Source", "Environments"}
+
 type infraEnvironment struct {
 	Environment        string `json:"environment"`
 	MachineSlug        string `json:"machineSlug"`
@@ -50,6 +62,9 @@ type infraEnvironment struct {
 	HealthPath         string `json:"healthPath"`
 	MeshSetupKeySecret string `json:"meshSetupKeySecret"`
 	MeshWaitForHost    string `json:"meshWaitForHost"`
+	// RuntimeSecrets names the runtime secrets this environment's pod receives,
+	// resolved from the `## Runtime Secrets` table.
+	RuntimeSecrets []string `json:"runtimeSecrets"`
 }
 
 // verifiesInCluster reports whether CI cannot reach the app from the public
@@ -80,6 +95,16 @@ type clusterConnect struct {
 	NamespaceInput string `json:"namespaceInput"`
 }
 
+// runtimeSecret is one app runtime secret: its Name is the GitHub Environment
+// secret, the key in the app's Kubernetes Secret, and the pod's env var.
+type runtimeSecret struct {
+	Name         string   `json:"name"`
+	Source       string   `json:"source"`
+	Environments []string `json:"environments"`
+
+	environmentsRaw string
+}
+
 type infraEnvironments struct {
 	SchemaVersion int                `json:"schemaVersion"`
 	Spec          string             `json:"spec"`
@@ -93,6 +118,11 @@ type infraEnvironments struct {
 
 	allowedIngressRaw string
 	DeployerExec      string `json:"deployerExec"`
+	// VaultAccess is how the fillers reach Vault: `direct` runs the shipped
+	// scripts, `operator-scripts` makes no Vault call and hands the operator
+	// the exact command for their own scripts.
+	VaultAccess    string          `json:"vaultAccess"`
+	RuntimeSecrets []runtimeSecret `json:"runtimeSecrets"`
 }
 
 func (set *infraEnvironments) find(name string) *infraEnvironment {
@@ -274,6 +304,7 @@ func parseInfraEnvironments(text string) (*infraEnvironments, []error) {
 			HealthPath:         get("Health Path"),
 			MeshSetupKeySecret: get("Mesh Setup-Key Secret"),
 			MeshWaitForHost:    get("Mesh Wait-For Host"),
+			RuntimeSecrets:     []string{},
 		}
 		if env.Environment == "" {
 			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-MISSING: an %q row has no Environment", environmentsHeading))
@@ -310,7 +341,69 @@ func parseInfraEnvironments(text string) (*infraEnvironments, []error) {
 	if set.DeployerExec == "" {
 		set.DeployerExec = "denied"
 	}
+	set.VaultAccess = constraints["Vault Access"]
+	if set.VaultAccess == "" {
+		set.VaultAccess = "direct"
+	}
+	secrets, secretErrs := parseRuntimeSecrets(text)
+	set.RuntimeSecrets = secrets
+	errs = append(errs, secretErrs...)
+	for i := range set.Environments {
+		env := &set.Environments[i]
+		for _, secret := range secrets {
+			if containsString(secret.Environments, "all") || containsString(secret.Environments, env.Environment) {
+				env.RuntimeSecrets = append(env.RuntimeSecrets, secret.Name)
+			}
+		}
+	}
 	return set, errs
+}
+
+// parseRuntimeSecrets reads the optional `## Runtime Secrets` table. An
+// Environments cell of `all` stands for every environment; a row left as the
+// template's placeholder is skipped.
+func parseRuntimeSecrets(text string) ([]runtimeSecret, []error) {
+	secrets := []runtimeSecret{}
+	section, ok := markdownSection(text, runtimeSecretsHeading)
+	if !ok {
+		return secrets, nil
+	}
+	rows := markdownTable(section)
+	if len(rows) == 0 {
+		return secrets, []error{fmt.Errorf("SLOTS-SPEC-MISSING: %q has no table", runtimeSecretsHeading)}
+	}
+	index := map[string]int{}
+	for i, header := range rows[0] {
+		index[header] = i
+	}
+	var errs []error
+	for _, column := range runtimeSecretColumns {
+		if _, ok := index[column]; !ok {
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-MISSING: %q table has no %q column", runtimeSecretsHeading, column))
+		}
+	}
+	if len(errs) > 0 {
+		return secrets, errs
+	}
+	for _, row := range rows[1:] {
+		get := func(column string) string {
+			if i := index[column]; i < len(row) {
+				return cellValue(row[i])
+			}
+			return ""
+		}
+		secret := runtimeSecret{Name: get("Name"), Source: get("Source"), environmentsRaw: get("Environments")}
+		if secret.Name == "" && secret.Source == "" && secret.environmentsRaw == "" {
+			continue
+		}
+		for _, name := range strings.Split(secret.environmentsRaw, ",") {
+			if name = strings.Trim(strings.TrimSpace(name), "`"); name != "" {
+				secret.Environments = append(secret.Environments, name)
+			}
+		}
+		secrets = append(secrets, secret)
+	}
+	return secrets, nil
 }
 
 // validateEnvironment checks one row's fields against its class and mode.
@@ -471,7 +564,74 @@ func validateSharedConstraints(set *infraEnvironments, rows []infraEnvironment) 
 	if !containsString(deployerExecModes, set.DeployerExec) {
 		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Deployer Exec\" %q must be one of %s", set.DeployerExec, strings.Join(deployerExecModes, ", ")))
 	}
+	if !containsString(vaultAccessModes, set.VaultAccess) {
+		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Vault Access\" %q must be one of %s", set.VaultAccess, strings.Join(vaultAccessModes, ", ")))
+	}
+	return append(errs, validateRuntimeSecrets(set)...)
+}
+
+// validateRuntimeSecrets checks the whole table: secrets are spec-wide, so an
+// environment filter never hides a bad row.
+func validateRuntimeSecrets(set *infraEnvironments) []error {
+	var errs []error
+	seen := map[string]bool{}
+	meshSecrets := map[string]bool{}
+	for _, env := range set.Environments {
+		meshSecrets[env.MeshSetupKeySecret] = true
+	}
+	for _, secret := range set.RuntimeSecrets {
+		at := fmt.Sprintf("%q row %q", runtimeSecretsHeading, secret.Name)
+		switch {
+		case secret.Name == "":
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-MISSING: a %q row has no Name", runtimeSecretsHeading))
+			continue
+		case !secretNamePattern.MatchString(secret.Name) || strings.HasPrefix(secret.Name, "GITHUB_"):
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: %s Name must be an uppercase GitHub secret name (A-Z, 0-9, _), not starting with GITHUB_", at))
+		case containsString(reservedPodEnv, secret.Name):
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: %s Name is set by the deployment template itself (%s)", at, strings.Join(reservedPodEnv, ", ")))
+		case meshSecrets[secret.Name]:
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: %s Name is an environment's Mesh Setup-Key Secret; a runtime secret needs its own name", at))
+		case seen[secret.Name]:
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: %s is declared more than once", at))
+		}
+		seen[secret.Name] = true
+		switch {
+		case secret.Source == "":
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-MISSING: %s Source is required (one of %s)", at, strings.Join(secretSources, ", ")))
+		case !containsString(secretSources, secret.Source):
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: %s Source %q must be one of %s", at, secret.Source, strings.Join(secretSources, ", ")))
+		}
+		if len(secret.Environments) == 0 {
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-MISSING: %s Environments is required (`all` or a comma-separated list of environments)", at))
+		}
+		for _, name := range secret.Environments {
+			if name != "all" && set.find(name) == nil {
+				errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: %s Environments %q names %q, which has no %q row", at, secret.environmentsRaw, name, environmentsHeading))
+			}
+		}
+		if containsString(secret.Environments, "all") && len(secret.Environments) > 1 {
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: %s Environments %q combines `all` with named environments", at, secret.environmentsRaw))
+		}
+	}
 	return errs
+}
+
+// only narrows a validated set to one environment's row and runtime secrets,
+// the shape `smaqit spec environments --env=<env>` prints.
+func (set *infraEnvironments) only(environment string) {
+	set.Environments = []infraEnvironment{*set.find(environment)}
+	set.RuntimeSecrets = set.runtimeSecretsFor(environment)
+}
+
+// runtimeSecretsFor returns the runtime secrets an environment receives.
+func (set *infraEnvironments) runtimeSecretsFor(environment string) []runtimeSecret {
+	out := []runtimeSecret{}
+	for _, secret := range set.RuntimeSecrets {
+		if containsString(secret.Environments, "all") || containsString(secret.Environments, environment) {
+			out = append(out, secret)
+		}
+	}
+	return out
 }
 
 // validateInfraEnvironments checks every row, or only the named environment
@@ -536,7 +696,7 @@ func cmdSpec(args []string) {
 		exitSlotErrors(errs)
 	}
 	if environment != "" {
-		set.Environments = []infraEnvironment{*set.find(environment)}
+		set.only(environment)
 	}
 	if asJSON {
 		out, _ := json.MarshalIndent(set, "", "  ")
@@ -557,6 +717,10 @@ func cmdSpec(args []string) {
 		fmt.Printf("  probe client: %s\n", set.ProbeClient)
 	}
 	fmt.Printf("  deployer exec: %s\n", set.DeployerExec)
+	fmt.Printf("  vault access: %s\n", set.VaultAccess)
+	for _, secret := range set.RuntimeSecrets {
+		fmt.Printf("  runtime secret: %s (%s; %s)\n", secret.Name, secret.Source, strings.Join(secret.Environments, ", "))
+	}
 }
 
 func orDash(value string) string {

@@ -60,6 +60,16 @@ spec:
               value: "__DEPLOY_SHA__"
             - name: DEPLOY_TIME
               value: "__DEPLOY_TIME__"
+            # One entry per runtime secret in the Infrastructure spec's Runtime Secrets table; the
+            # deploy workflow creates the __APP_SLUG__-runtime Secret before this Deployment. The env
+            # var has the secret's own name. A secret not declared for every environment sets
+            # optional: true, since this one file serves every environment. Remove this comment
+            # block when the spec declares none.
+            # - name: SESSION_SECRET
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: __APP_SLUG__-runtime
+            #       key: SESSION_SECRET
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false

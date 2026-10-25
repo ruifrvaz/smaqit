@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # smaqit.infrastructure-vault-loader — write one credential to a private temporary file.
-# For tools that read a credential from a file (ssh -i, gh's token): the value goes
+# For tools that read a credential from a file (ssh -i): the value goes
 # from Vault straight into a 0600 file inside a fresh 0700 directory, and only the file's PATH is
 # printed — the value never reaches stdout, an argument, or shell history. The caller deletes the
 # directory when done: rm -rf "$(dirname "$FILE")".
@@ -11,7 +11,6 @@
 #
 # <path> is relative to secret/ and must be one of (the field is implied by the path):
 #   apps/<app-slug>/ssh                      private_key — an app's own deploy key
-#   apps/<app-slug>/platform-repo            token        — PAT for the platform repository
 #   <project-slug>/ssh                       private_key — legacy flat scheme deploy key
 # Anything else is refused: this is not a general-purpose Vault reader.
 
@@ -20,7 +19,7 @@ set -euo pipefail
 export VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
 
 usage() {
-  echo "Usage: $0 <apps/<app>/ssh | apps/<app>/platform-repo | <project>/ssh>" >&2
+  echo "Usage: $0 <apps/<app>/ssh | <project>/ssh>" >&2
   exit 2
 }
 
@@ -30,8 +29,6 @@ SLUG='[a-z0-9]([a-z0-9-]*[a-z0-9])?'
 
 if [[ "$CRED_PATH" =~ ^apps/${SLUG}/ssh$ ]]; then
   FIELD="private_key"
-elif [[ "$CRED_PATH" =~ ^apps/${SLUG}/platform-repo$ ]]; then
-  FIELD="token"
 elif [[ "$CRED_PATH" =~ ^${SLUG}/ssh$ ]] && [[ ! "$CRED_PATH" =~ ^(apps|machines)/ ]]; then
   FIELD="private_key"
 else

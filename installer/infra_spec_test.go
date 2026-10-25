@@ -46,13 +46,25 @@ func k3sSpec(rows []k3sEnvRow, constraints map[string]string) string {
 	b.WriteString("\n## Constraints\n\n| Constraint | Description | Impact |\n|---|---|---|\n")
 	b.WriteString("| Platform Repo | example-org/platform | onboarding PR target |\n")
 	for _, name := range []string{"Cluster Connect Action", "Cluster Connect Machine Input", "Cluster Connect Namespace Input",
-		"Mesh Join Action", "Mesh Setup-Key Input", "Mesh Wait-For Input", "Probe Client", "Allowed Ingress Modes", "Deployer Exec"} {
+		"Mesh Join Action", "Mesh Setup-Key Input", "Mesh Wait-For Input", "Probe Client", "Allowed Ingress Modes", "Deployer Exec", "Vault Access"} {
 		if value, ok := constraints[name]; ok {
 			b.WriteString("| " + name + " | " + value + " | used by the k3s fillers |\n")
 		}
 	}
 	b.WriteString("\n## Acceptance Criteria\n\n- [ ] INF-PLATFORM-001: deployed\n")
 	return b.String()
+}
+
+// withRuntimeSecrets adds a `## Runtime Secrets` table (Name, Source,
+// Environments) to a k3sSpec.
+func withRuntimeSecrets(spec string, rows ...[3]string) string {
+	var b strings.Builder
+	b.WriteString("## Runtime Secrets\n\n| Name | Source | Environments |\n|---|---|---|\n")
+	for _, row := range rows {
+		b.WriteString("| " + strings.Join(row[:], " | ") + " |\n")
+	}
+	b.WriteString("\n## Acceptance Criteria")
+	return strings.Replace(spec, "## Acceptance Criteria", b.String(), 1)
 }
 
 func writeInfraSpec(t *testing.T, root, name, content string) {
@@ -110,6 +122,9 @@ func TestInfraEnvironmentsParseTheTable(t *testing.T) {
 	if set.DeployerExec != "denied" {
 		t.Errorf("absent Deployer Exec row = %q, want denied", set.DeployerExec)
 	}
+	if set.VaultAccess != "direct" || len(set.RuntimeSecrets) != 0 || len(set.find("dev").RuntimeSecrets) != 0 {
+		t.Errorf("absent Vault Access row and Runtime Secrets table = %q %v %v, want direct and none", set.VaultAccess, set.RuntimeSecrets, set.find("dev").RuntimeSecrets)
+	}
 	if c := set.Connect; c == nil || c.Action != "example-org/platform/.github/actions/k3s-connect@v1.0.0" ||
 		c.MachineInput != "machine" || c.NamespaceInput != "namespace" {
 		t.Errorf("connect = %+v", set.Connect)
@@ -135,6 +150,34 @@ func TestInfraEnvironmentsParseTheTable(t *testing.T) {
 	}
 	if dev := set.find("dev"); !dev.joinsMesh() || dev.verifiesInCluster() || set.DeployerExec != "allowed" || set.ProbeClient != "python3" {
 		t.Errorf("dev row = %+v deployerExec=%q probe=%q", dev, set.DeployerExec, set.ProbeClient)
+	}
+}
+
+// Runtime secrets resolve per environment: `all` reaches every row, a list only
+// the named ones, and an unfilled template row is skipped.
+func TestInfraEnvironmentsParseRuntimeSecrets(t *testing.T) {
+	root := t.TempDir()
+	spec := withRuntimeSecrets(k3sSpec(k3sFixtureRows, copyConstraints(map[string]string{"Vault Access": "`operator-scripts`"})),
+		[3]string{"SESSION_SECRET", "generated", "all"},
+		[3]string{"`ADMIN_PASSWORD`", "operator-provided", "prod, `test`"},
+		[3]string{"[SECRET_NAME]", "[generated or operator-provided]", "[all, or a comma-separated list]"},
+	)
+	writeInfraSpec(t, root, "platform.md", spec)
+	set, errs := loadInfraEnvironments(root)
+	if errs = append(errs, validateInfraEnvironments(set, "")...); len(errs) > 0 {
+		t.Fatalf("runtime secrets: %v", errs)
+	}
+	if set.VaultAccess != "operator-scripts" || len(set.RuntimeSecrets) != 2 {
+		t.Fatalf("set = %q %+v", set.VaultAccess, set.RuntimeSecrets)
+	}
+	want := map[string]string{"dev": "SESSION_SECRET", "test": "SESSION_SECRET,ADMIN_PASSWORD", "prod": "SESSION_SECRET,ADMIN_PASSWORD"}
+	for env, names := range want {
+		if got := strings.Join(set.find(env).RuntimeSecrets, ","); got != names {
+			t.Errorf("%s runtime secrets = %q, want %q", env, got, names)
+		}
+	}
+	if got := set.runtimeSecretsFor("dev"); len(got) != 1 || got[0].Name != "SESSION_SECRET" || got[0].Source != "generated" {
+		t.Errorf("runtimeSecretsFor(dev) = %+v", got)
 	}
 }
 
@@ -180,6 +223,7 @@ func TestInfraEnvironmentsRejectIncompleteRows(t *testing.T) {
 		{"ingress mode the platform doesn't allow", k3sFixtureRows, copyConstraints(map[string]string{"Allowed Ingress Modes": "platform-owned"}), "dev", `environment "dev" Ingress Mode "own-tls" is not one the platform allows`},
 		{"unknown allowed ingress mode", k3sFixtureRows, copyConstraints(map[string]string{"Allowed Ingress Modes": "platform-owned, ingress-nginx"}), "", `"Allowed Ingress Modes" "platform-owned, ingress-nginx" lists "ingress-nginx"`},
 		{"unknown deployer exec", k3sFixtureRows, copyConstraints(map[string]string{"Deployer Exec": "maybe"}), "", `"Deployer Exec" "maybe" must be one of denied, allowed`},
+		{"unknown vault access", k3sFixtureRows, copyConstraints(map[string]string{"Vault Access": "agent"}), "", `"Vault Access" "agent" must be one of direct, operator-scripts`},
 		{"no row for the environment", k3sFixtureRows, nil, "staging", `SLOTS-SPEC-MISSING: specs/infrastructure/platform.md "## Environments" table has no row for environment "staging"`},
 		{"duplicate environment", append(append([]k3sEnvRow(nil), k3sFixtureRows...), k3sFixtureRows[0]), nil, "", `environment "dev" is declared more than once`},
 	}
@@ -191,6 +235,43 @@ func TestInfraEnvironmentsRejectIncompleteRows(t *testing.T) {
 			}
 			root := t.TempDir()
 			writeInfraSpec(t, root, "platform.md", k3sSpec(c.rows, constraints))
+			set, errs := loadInfraEnvironments(root)
+			if len(errs) == 0 {
+				errs = validateInfraEnvironments(set, c.env)
+			}
+			for _, err := range errs {
+				if strings.Contains(err.Error(), c.want) {
+					return
+				}
+			}
+			t.Fatalf("want an error containing %q, got %v", c.want, errs)
+		})
+	}
+
+	secretCases := []struct {
+		name string
+		rows [][3]string
+		env  string
+		want string
+	}{
+		{"lowercase name", [][3]string{{"session_secret", "generated", "all"}}, "", `"## Runtime Secrets" row "session_secret" Name must be an uppercase`},
+		{"GITHUB_ prefix", [][3]string{{"GITHUB_SECRET", "generated", "all"}}, "", `row "GITHUB_SECRET" Name must be an uppercase`},
+		{"reserved pod env", [][3]string{{"DEPLOY_SHA", "generated", "all"}}, "", `row "DEPLOY_SHA" Name is set by the deployment template`},
+		{"mesh secret name", [][3]string{{"MESH_SETUP_KEY", "operator-provided", "test"}}, "", `row "MESH_SETUP_KEY" Name is an environment's Mesh Setup-Key Secret`},
+		{"duplicate", [][3]string{{"API_KEY", "generated", "all"}, {"API_KEY", "generated", "dev"}}, "", `row "API_KEY" is declared more than once`},
+		{"missing source", [][3]string{{"API_KEY", "—", "all"}}, "", `row "API_KEY" Source is required`},
+		{"unknown source", [][3]string{{"API_KEY", "vault", "all"}}, "", `row "API_KEY" Source "vault" must be one of generated, operator-provided`},
+		{"missing environments", [][3]string{{"API_KEY", "generated", ""}}, "", `row "API_KEY" Environments is required`},
+		{"unknown environment", [][3]string{{"API_KEY", "generated", "dev, staging"}}, "", `row "API_KEY" Environments "dev, staging" names "staging"`},
+		{"all with a list", [][3]string{{"API_KEY", "generated", "all, dev"}}, "", "combines `all` with named environments"},
+		{"missing name", [][3]string{{"", "generated", "all"}}, "", `a "## Runtime Secrets" row has no Name`},
+		// Secrets are spec-wide: an environment filter still reports a bad row.
+		{"bad row outside the filtered environment", [][3]string{{"API_KEY", "generated", "staging"}}, "dev", `names "staging"`},
+	}
+	for _, c := range secretCases {
+		t.Run(c.name, func(t *testing.T) {
+			root := t.TempDir()
+			writeInfraSpec(t, root, "platform.md", withRuntimeSecrets(k3sSpec(k3sFixtureRows, k3sFixtureConstraints), c.rows...))
 			set, errs := loadInfraEnvironments(root)
 			if len(errs) == 0 {
 				errs = validateInfraEnvironments(set, c.env)
@@ -237,6 +318,12 @@ func TestInfraEnvironmentsStructuralErrors(t *testing.T) {
 	writeInfraSpec(t, root, "platform.md", missingColumn)
 	if _, errs := loadInfraEnvironments(root); len(errs) != 1 || !strings.Contains(errs[0].Error(), `no "Ingress Mode" column`) {
 		t.Fatalf("missing column: %v", errs)
+	}
+
+	missingSecretColumn := strings.Replace(withRuntimeSecrets(k3sSpec(k3sFixtureRows, k3sFixtureConstraints)), "| Source |", "| Kind |", 1)
+	writeInfraSpec(t, root, "platform.md", missingSecretColumn)
+	if _, errs := loadInfraEnvironments(root); len(errs) != 1 || !strings.Contains(errs[0].Error(), `"## Runtime Secrets" table has no "Source" column`) {
+		t.Fatalf("missing runtime secrets column: %v", errs)
 	}
 
 	writeInfraSpec(t, root, "platform.md", k3sSpec(k3sFixtureRows, k3sFixtureConstraints))

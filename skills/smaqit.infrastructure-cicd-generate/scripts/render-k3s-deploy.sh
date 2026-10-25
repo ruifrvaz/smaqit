@@ -8,6 +8,9 @@
 # Cluster Connect action and input names, which every spec must declare. The mesh-join step is
 # kept, with the spec's pinned action and input names, only when some environment names a mesh
 # secret. The spec's Deployer Exec row (default denied) becomes the deploy job's DEPLOYER_EXEC.
+# The "Create runtime Secret" step is kept only when some environment declares a runtime secret
+# (the spec's Runtime Secrets table): its env: maps every declared name to the dispatched
+# machine's Environment secret of that name, and K3S_TARGETS lists each machine's own names.
 #
 # Usage: render-k3s-deploy.sh <environments.json> <app-slug> [--default-env <environment>] [--template <path>]
 #   <environments.json>  output of `smaqit spec environments --json` ("-" reads stdin)
@@ -79,7 +82,22 @@ DEFAULT_MACHINE="$(jq -r --arg e "$DEFAULT_ENV" '.environments[] | select(.envir
 [ -n "$DEFAULT_MACHINE" ] || fail "--default-env '${DEFAULT_ENV}' is not an environment in the spec"
 
 OPTIONS="$(jq -r '.environments[].machineSlug' <<<"$SPEC")"
-TARGETS="$(jq '[.environments[] | {key: .machineSlug, value: {environment, reachability, ingressMode, host, ingressClass, clusterIssuer, healthPath, meshSetupKeySecret, meshWaitForHost}}] | from_entries' <<<"$SPEC")"
+TARGETS="$(jq '[.environments[] | {key: .machineSlug, value: ({environment, reachability, ingressMode, host, ingressClass, clusterIssuer, healthPath, meshSetupKeySecret, meshWaitForHost}
+  + (if ((.runtimeSecrets // []) | length) > 0 then {runtimeSecrets} else {} end))}] | from_entries' <<<"$SPEC")"
+
+# Runtime secrets: the "Create runtime Secret" step is kept only when some environment declares one,
+# and its env: carries every declared name, each read from the dispatched machine's Environment.
+RUNTIME_NAMES="$(jq -r '[.environments[].runtimeSecrets // [] | .[]] | unique | .[]' <<<"$SPEC")"
+KEEP_RUNTIME=0
+RUNTIME_ENV=""
+if [ -n "$RUNTIME_NAMES" ]; then
+  KEEP_RUNTIME=1
+  while IFS= read -r name; do
+    [[ "$name" =~ ^[A-Z_][A-Z0-9_]*$ ]] && [[ "$name" != GITHUB_* ]] \
+      || fail "runtime secret name '${name}' must be an uppercase GitHub secret name, not starting with GITHUB_"
+    RUNTIME_ENV="${RUNTIME_ENV}${RUNTIME_ENV:+$'\n'}${name}: \${{ secrets.${name} }}"
+  done <<<"$RUNTIME_NAMES"
+fi
 
 DEPLOYER_EXEC="$(jq -r '.deployerExec // "denied" | if . == "" then "denied" else . end' <<<"$SPEC")"
 case "$DEPLOYER_EXEC" in
@@ -107,7 +125,7 @@ fi
 OUTPUT="$(OPTIONS="$OPTIONS" TARGETS="$TARGETS" APP_SLUG="$APP_SLUG" DEFAULT_MACHINE="$DEFAULT_MACHINE" \
   KEEP_MESH="$KEEP_MESH" MESH_ACTION="$MESH_ACTION" MESH_KEY_INPUT="$MESH_KEY_INPUT" MESH_WAIT_INPUT="$MESH_WAIT_INPUT" \
   CONNECT_ACTION="$CONNECT_ACTION" CONNECT_MACHINE_INPUT="$CONNECT_MACHINE_INPUT" CONNECT_NAMESPACE_INPUT="$CONNECT_NAMESPACE_INPUT" \
-  DEPLOYER_EXEC="$DEPLOYER_EXEC" \
+  DEPLOYER_EXEC="$DEPLOYER_EXEC" KEEP_RUNTIME="$KEEP_RUNTIME" RUNTIME_ENV="$RUNTIME_ENV" \
   awk '
   # Literal (non-regex) token replacement, so no value is ever read as a pattern.
   function repl(s, token, value,    out, i) {
@@ -129,6 +147,10 @@ OUTPUT="$(OPTIONS="$OPTIONS" TARGETS="$TARGETS" APP_SLUG="$APP_SLUG" DEFAULT_MAC
   /# smaqit:mesh-join:begin/ { in_mesh = 1; next }
   /# smaqit:mesh-join:end/ { in_mesh = 0; dropped = ENVIRON["KEEP_MESH"] != "1"; next }
   in_mesh && ENVIRON["KEEP_MESH"] != "1" { next }
+  /# smaqit:runtime-secrets:begin/ { in_runtime = 1; next }
+  /# smaqit:runtime-secrets:end/ { in_runtime = 0; dropped = ENVIRON["KEEP_RUNTIME"] != "1"; next }
+  in_runtime && ENVIRON["KEEP_RUNTIME"] != "1" { next }
+  index($0, "__RUNTIME_SECRET_ENV__") { block(ENVIRON["RUNTIME_ENV"], $0); next }
   index($0, "__MACHINE_SLUG_OPTIONS__") {
     n = split(ENVIRON["OPTIONS"], slugs, "\n")
     indent = substr($0, 1, index($0, "__") - 1)
@@ -152,9 +174,12 @@ OUTPUT="$(OPTIONS="$OPTIONS" TARGETS="$TARGETS" APP_SLUG="$APP_SLUG" DEFAULT_MAC
 ' "$TEMPLATE")"
 
 # Every render-time token must be gone; the remaining __TOKEN__s are stamped at run time.
-LEFT="$(grep -oE '__(APP_SLUG|DEFAULT_MACHINE_SLUG|MACHINE_SLUG_OPTIONS|K3S_TARGETS|MESH_[A-Z_]+|CLUSTER_CONNECT_[A-Z_]+|DEPLOYER_EXEC)__' <<<"$OUTPUT" | sort -u | tr '\n' ' ' || true)"
+LEFT="$(grep -oE '__(APP_SLUG|DEFAULT_MACHINE_SLUG|MACHINE_SLUG_OPTIONS|K3S_TARGETS|MESH_[A-Z_]+|CLUSTER_CONNECT_[A-Z_]+|DEPLOYER_EXEC|RUNTIME_[A-Z_]+)__' <<<"$OUTPUT" | sort -u | tr '\n' ' ' || true)"
 [ -z "$LEFT" ] || fail "unrendered token(s) left in the workflow: ${LEFT}"
 if [ "$KEEP_MESH" != "1" ] && grep -q 'smaqit:mesh-join' "$TEMPLATE" && grep -q 'Join the mesh' <<<"$OUTPUT"; then
   fail "the mesh-join step survived a render where no environment joins a mesh"
+fi
+if [ "$KEEP_RUNTIME" != "1" ] && grep -Eq 'Create runtime Secret|RUNTIME_SECRET' <<<"$OUTPUT"; then
+  fail "the runtime-secret step survived a render where no environment declares a runtime secret"
 fi
 printf '%s\n' "$OUTPUT"

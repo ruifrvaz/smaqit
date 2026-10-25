@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-vault-loader
 description: 'Use before any local deployment or credential operation that needs secrets from the local HashiCorp Vault (127.0.0.1:8200): verifies it is running, unsealed, and authenticated, and loads project secrets through an interactive prompt. Also use for first-time Vault setup on a machine, adding a project''s credentials, a missing Vault path, or a caller that cannot reach Vault.'
 metadata:
-  version: "4.0.0"
+  version: "5.0.0"
   smaqit-slots: "access-credentials=access, target-credentials=target, target-credentials=register"
 ---
 
@@ -25,8 +25,8 @@ Pre-step for `smaqit.infrastructure-provision-cyso`, `smaqit.infrastructure-depl
 | `scripts/load-credentials.sh` | Start + unseal + authenticate + enable kv-v2 if needed + load all credential paths. Run every session. |
 | `scripts/register-machine.sh <machine-slug> [--host <ip>]` | Populate a machine's `base-ssh`, `cyso`, `tfstate`, and `metadata` the first time; `--host` backfills the address after apply. Idempotent. |
 | `scripts/bootstrap-app-to-machine.sh <app-slug> <machine-slug>` | Give an app its own distinct SSH keypair, authorized on the named machine. Run once per app-to-machine pairing. |
-| `scripts/rotate-credential.sh <path>` | Rotation only: delete and re-populate a single existing credential path (e.g. `cyso`, `apps/<app-slug>/ssh`, `apps/<app-slug>/platform-repo`, `machines/<machine-slug>/base-ssh`). |
-| `scripts/credential-file.sh <path>` | Write one credential a tool reads from a file — an app's SSH key or its platform-repo token — to a 0600 file in a private temp directory and print only the path. Allowlisted paths only. |
+| `scripts/rotate-credential.sh <path>` | Rotation only: delete and re-populate a single existing credential path (e.g. `cyso`, `apps/<app-slug>/ssh`, `machines/<machine-slug>/base-ssh`). |
+| `scripts/credential-file.sh <path>` | Write one credential a tool reads from a file — an app's SSH key — to a 0600 file in a private temp directory and print only the path. Allowlisted paths only. |
 | `source scripts/terraform-env.sh [--unset]` | Export Terraform's provider and backend credentials (`TF_VAR_*`, `AWS_*`) into the current shell without printing them; `--unset` clears them. |
 
 **Skills and operators never run `vault` directly** — every Vault read or write goes through one
@@ -51,9 +51,8 @@ secret/machines/<machine-slug>/metadata   — host, provider, owner_project (non
 secret/apps/<app-slug>/ssh       — private_key, public_key (this app's own distinct keypair)
 secret/apps/<app-slug>/github    — token (used as TF_VAR_github_token)
 secret/apps/<app-slug>/machine   — machine-slug this app is bootstrapped against (non-secret)
-secret/apps/<app-slug>/platform-repo — token (PR-create rights only — contents:write +
-                                     pull_requests:write — on the platform-owned infrastructure
-                                     repo; provisioning_mode: existing-k3s only)
+secret/apps/<app-slug>/<machine-slug>/runtime — one field per runtime secret name
+                                     (provisioning_mode: existing-k3s only)
 ```
 
 `cyso` and `tfstate` are machine-scoped: provisioning a VM is a property of the machine, not of
@@ -72,15 +71,18 @@ nothing under `secret/machines/<machine-slug>/*` either — a Namespace-scoped c
 the app is onboarded onto, not a host it registers (the platform repository that owns the machine
 may register it with `register-machine.sh`).
 
-`platform-repo` is the one `existing-k3s` field: a fine-grained PAT scoped only to
-`contents:write` + `pull_requests:write` on the platform-owned infrastructure repository — never
-broader, and never the same token as `github` (which is scoped to *this* project's own repository
-for `TF_VAR_github_token`/`variables:write`, and which an `existing-k3s` app doesn't need). It
-exists to let `smaqit.infrastructure-request-k3s-onboarding` push a branch and open a PR against
-the platform repository's registry file without ever needing direct commit or `workflow_dispatch`
-access there — convergence remains the platform team's own concern, triggered by their own repo
-reacting to the merge. It follows the standard delete-and-repopulate rotation shape (see "Rotating
-a credential" below), since it's a smaqit-managed PAT the operator can freely regenerate.
+The onboarding request needs no stored credential either:
+`smaqit.infrastructure-request-k3s-onboarding` opens its PR with the operator's own `gh` login.
+What an `existing-k3s` app does store is its **runtime secrets** — values its pod needs at run time,
+such as a session-signing key or a first-admin password — declared in the Infrastructure spec's
+`## Runtime Secrets` table and kept per environment at
+`secret/apps/<app-slug>/<machine-slug>/runtime`, one field per secret name. A `generated` secret is
+created once by `load-credentials.sh` and never printed; an `operator-provided` one is read from a
+hidden prompt. `smaqit.infrastructure-repo-config`'s `runtime` operation syncs them into the
+machine-slug GitHub Environment, and the deploy workflow builds the app's Kubernetes Secret from
+there. Under the spec's `Vault Access: operator-scripts` row, neither script calls Vault: the
+operator stores and syncs the values with their own scripts, following the handoff the
+`environment-config` slot prints.
 
 **Legacy scheme, still in use, not migrated by this skill:** projects predating this convention
 store everything flat under `secret/<project-slug>/{cyso,ssh,tfstate,github}`, with Terraform
@@ -130,11 +132,13 @@ bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credent
 
 `load-credentials.sh` decides which scheme applies per invocation:
 
-- If `PROVISIONING_MODE=existing-k3s` is passed explicitly, it runs in **existing-k3s mode**: it
-  checks/populates only `secret/apps/<app-slug>/platform-repo` (idempotent; the PAT is pasted,
-  never generated by this script) and needs no `MACHINE_SLUG`. `ssh`, `github`, `cyso`, `tfstate`,
-  and `machine` are never touched, and nothing is stored under `secret/machines/<machine-slug>/*`
-  (see the path convention above).
+- If `PROVISIONING_MODE=existing-k3s` is passed explicitly (with `ENVIRONMENT=<env>`, the spec's
+  Environments row), it runs in **existing-k3s mode**. It reads the spec first, with
+  `smaqit spec environments --env=<env> --json`, and makes no Vault call at all when the environment
+  has no runtime secrets or the spec declares `Vault Access: operator-scripts`. Otherwise it
+  checks/populates only `secret/apps/<app-slug>/<machine-slug>/runtime`, one field per secret
+  (idempotent: a field already present is kept). `ssh`, `github`, `cyso`, `tfstate`, and `machine`
+  are never touched, and nothing is stored under `secret/machines/<machine-slug>/*`.
 - If `secret/apps/<app-slug>/machine` already exists (this app has bootstrapped before), or a
   `MACHINE_SLUG` is passed explicitly, it runs in **new-scheme mode**: only `secret/apps/<app-slug>/
   github` is checked/populated. `ssh` is never touched here — it's exclusively the job of
@@ -161,8 +165,8 @@ PROVISIONING_MODE=existing-shared bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure
 # Legacy flat-scheme project, dedicated VM nobody's Terraform manages:
 PROVISIONING_MODE=existing-unmanaged bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
 
-# Namespace-scoped Kubernetes/k3s target — only the onboarding PR's platform-repo token:
-PROVISIONING_MODE=existing-k3s bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
+# Namespace-scoped Kubernetes/k3s target — only the environment's runtime secrets, if any:
+PROVISIONING_MODE=existing-k3s ENVIRONMENT=<env> bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/load-credentials.sh
 ```
 
 ### Slot operations
@@ -171,8 +175,10 @@ This skill fills two deployment slots (`metadata.smaqit-slots`). The deployment 
 different points of one environment run:
 
 - **`access-credentials=access`** — credentials needed before the target can be reached or
-  requested. `existing-k3s`: `PROVISIONING_MODE=existing-k3s` (`platform-repo` only). Every other
-  mode: `load-credentials.sh` exactly as described above for that mode and scheme.
+  requested. `existing-k3s`: `PROVISIONING_MODE=existing-k3s ENVIRONMENT=<env>`, which loads only
+  the environment's runtime secrets and completes without touching Vault when there are none or
+  under `Vault Access: operator-scripts`. Every other mode: `load-credentials.sh` exactly as
+  described above for that mode and scheme.
 - **`target-credentials=target`** — credentials the target issues or authorizes for this app, after
   onboarding or registration. Not part of the `existing-k3s` sequence: the target issues the app
   nothing (CI connects with its own OIDC identity). `existing-shared`/`existing-unmanaged` on the `apps/`+`machines/`
@@ -256,12 +262,11 @@ Idempotent: if `secret/apps/<app-slug>/ssh` is already populated *and* still aut
 
 Run `scripts/rotate-credential.sh <path>` where `<path>` is one of `cyso`, `ssh`, `tfstate`,
 `github` (legacy flat scheme, under `secret/<project-slug>/*`), or `apps/<app-slug>/ssh`,
-`apps/<app-slug>/github`, `apps/<app-slug>/platform-repo`,
-`machines/<machine-slug>/{base-ssh,cyso,tfstate}` (new scheme). Rotation replaces paths that already
+`apps/<app-slug>/github`, `machines/<machine-slug>/{base-ssh,cyso,tfstate}` (new scheme). Rotation replaces paths that already
 exist; first-time population of a machine is `register-machine.sh`. Rotating
 `machines/<machine-slug>/base-ssh` requires `metadata.host` (backfill it with
 `register-machine.sh <machine-slug> --host <ip>`). For
-`ssh`/`github`/`platform-repo`/`cyso`/`tfstate` (both schemes), the script deletes the path and re-populates it —
+`ssh`/`github`/`cyso`/`tfstate` (both schemes), the script deletes the path and re-populates it —
 via `load-credentials.sh` for the legacy scheme, or directly for the new scheme, since the new
 scheme's `load-credentials.sh` never writes `ssh` itself. `base-ssh` is different: rotating it
 never deletes-and-repopulates. It generates a new base keypair, uses the *old* one one last time to
@@ -280,8 +285,9 @@ an earlier run keeps the secret values from when that run was created.
 - Vault running, unsealed, authenticated
 - All required paths verified populated — `secret/apps/<app-slug>/*` +
   `secret/machines/<machine-slug>/*` for new-scheme projects, `secret/<project-slug>/*` for legacy
-  ones, or only `secret/apps/<app-slug>/platform-repo` for `existing-k3s` projects (no deploy
-  credential and no `machines/` namespace — see the path convention above)
+  ones, or only the environment's `secret/apps/<app-slug>/<machine-slug>/runtime` fields for
+  `existing-k3s` projects (no deploy credential and no `machines/` namespace — see the path
+  convention above); nothing at all for an `existing-k3s` environment with no runtime secrets
 - Calling skill can now read credentials without human input
 
 ## Scope
@@ -318,4 +324,7 @@ an earlier run keeps the secret values from when that run was created.
   registry credential to load or rotate: the CI job's own OIDC identity is the credential, the
   platform holds the mesh key, and the platform pulls the images. If a deploy fails to
   authenticate, the fix is the platform's binding or the spec's `Cluster Connect` pin — never a
-  credential pasted into Vault.
+  credential pasted into Vault. Runtime secrets are app configuration, not deploy credentials: they
+  reach the pod, never the deploy job's connection to the cluster.
+- **Releases before the operator-`gh` onboarding stored `secret/apps/<app-slug>/platform-repo`.**
+  Nothing reads it now; retire it with your own Vault tooling.

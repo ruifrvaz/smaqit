@@ -20,7 +20,7 @@ All items below must be satisfied before starting. When re-entering at a later p
 
 **Required before Phase 3 (Deployment)**
 - [ ] CI/CD workflows exist (`.github/workflows/deploy.yml` at minimum)
-- [ ] Local Vault initialised and running with this project's existing credential paths populated (populated during the original MVP cycle; the Deployment agent's `access-credentials`/`target-credentials` slots top up anything rotated or missing)
+- [ ] Local Vault initialised and running with this project's existing credential paths populated (populated during the original MVP cycle; the Deployment agent's `access-credentials`/`target-credentials` slots top up anything rotated or missing). An `existing-k3s` project needs Vault only when its Infrastructure spec declares runtime secrets and `Vault Access` is `direct`
 
 If no Infrastructure spec exists yet under `specs/infrastructure/` — this project has not been through an MVP cycle — stop and flag to the user that `smaqit.project-new` is the correct skill instead. Do not proceed silently.
 
@@ -138,7 +138,7 @@ This phase creates a **deploy PR** (feature-branch → `main`) to land the featu
    2. If there is no matching push trigger → require `deploy.yml` to support `workflow_dispatch` AND require exactly one merged-PR dispatcher targeting it with a determinable PR-body sentinel. Add that exact sentinel to the PR body and plan to monitor the dispatcher then the dispatched deploy run.
    3. If a matching push trigger coexists with an unconditional or non-marker PR dispatcher → stop. Merging would cause duplicate deployments.
    4. If triggers, target workflow, dispatcher, or sentinel are missing, multiple, dynamic, or otherwise ambiguous → stop before opening the PR and report the unsupported layout.
-9. Confirm Vault is running and unsealed for the credential slots. Do not invoke `smaqit.infrastructure-vault-loader` or `smaqit.infrastructure-repo-config` here: the Deployment agent runs them as the plan's `access-credentials`, `target-credentials`, and `environment-config` slots (or runs the project's bound fillers instead). The per-mode behaviour — `existing-shared`/`existing-unmanaged` loading `github` then running `bootstrap-app-to-machine.sh`, `existing-k3s` loading only the onboarding PR's `platform-repo` token (its deploy job connects with its own OIDC identity, so nothing is synced), restricted secret sync with a manual `VM_HOST` — is defined by those fillers' slot operations.
+9. Confirm Vault is running and unsealed when the resolved plan's credential fillers will use it: always for the VM modes; for `existing-k3s` only when the Infrastructure spec declares runtime secrets for this environment and `Vault Access` is `direct` (otherwise its fillers make no Vault call). Do not invoke `smaqit.infrastructure-vault-loader` or `smaqit.infrastructure-repo-config` here: the Deployment agent runs them as the plan's `access-credentials`, `target-credentials`, and `environment-config` slots (or runs the project's bound fillers instead). The per-mode behaviour — `existing-shared`/`existing-unmanaged` loading `github` then running `bootstrap-app-to-machine.sh`, `existing-k3s` loading and syncing only the environment's runtime secrets, if any (its deploy job connects with its own OIDC identity), restricted secret sync with a manual `VM_HOST` — is defined by those fillers' slot operations.
 
 **Invoke Deployment agent:**
 

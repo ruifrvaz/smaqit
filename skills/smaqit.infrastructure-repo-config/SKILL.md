@@ -1,9 +1,9 @@
 ---
 name: smaqit.infrastructure-repo-config
-description: 'Use when setting up, rotating, or verifying the GitHub Actions secrets and variables a project''s CI/CD needs, via the gh CLI: VM_SSH_KEY, Terraform backend and cloud credentials, GH_TERRAFORM_TOKEN, VM_HOST and DEMO_MODE, or a platform repository''s machine-slug Environment (sync-machine). An existing-k3s app needs none: it deploys with its own OIDC identity.'
+description: 'Use when setting up, rotating, or verifying the GitHub Actions secrets and variables a project''s CI/CD needs, via the gh CLI: VM_SSH_KEY, Terraform backend and cloud credentials, GH_TERRAFORM_TOKEN, VM_HOST and DEMO_MODE, a platform repository''s machine-slug Environment (sync-machine), or an existing-k3s app''s runtime secrets (runtime).'
 metadata:
-  version: "3.0.0"
-  smaqit-slots: "environment-config=sync, environment-config=sync-machine"
+  version: "4.0.0"
+  smaqit-slots: "environment-config=sync, environment-config=sync-machine, environment-config=runtime"
 ---
 
 # Configure GitHub Repository Secrets and Variables
@@ -24,11 +24,10 @@ metadata:
   and `github` are expected to be populated — `tfstate` and `cyso` are never populated for either
   mode (see `smaqit.infrastructure-vault-loader`) and `scripts/sync-secrets.sh` (Step 3) adapts
   accordingly rather than assuming all four paths exist.
-- **`provisioning_mode: existing-k3s` needs nothing from this skill.** Its deploy job
-  authenticates with its own GitHub Actions OIDC identity through the platform's connect action,
-  the platform holds the mesh key and pulls the images, and GitHub creates the machine-slug
-  Environment on the first run that references it. The `environment-config` slot defaults to none
-  for this mode; there is no secret or variable to sync.
+- **`provisioning_mode: existing-k3s` syncs only runtime secrets** (operation `runtime`, below).
+  Its deploy job authenticates with its own GitHub Actions OIDC identity through the platform's
+  connect action, and the platform holds the mesh key and pulls the images, so there is no deploy
+  secret or variable to sync. An app with no runtime secrets needs nothing from this skill.
 
 > **Role of this skill:** Vault is the source of truth. GitHub Secrets are a derived copy. This skill
 > reads from Vault and pushes to GitHub. On credential rotation, update Vault first, then re-run
@@ -73,8 +72,8 @@ For a repository that owns machines rather than an app. Each machine gets one Gi
 **Environment named after its machine slug**, populated from `secret/machines/<machine-slug>/*`
 (written by `smaqit.infrastructure-vault-loader`'s `register-machine.sh`). Bind it in
 `.smaqit/slots.yml` as `environment-config: {skill: smaqit.infrastructure-repo-config, operation:
-sync-machine}`; this skill declares two `environment-config` operations, so the binding must name
-one. Run once per machine:
+sync-machine}`; this skill declares three `environment-config` operations, so the binding must
+name one. Run once per machine:
 
 ```bash
 scripts/sync-machine-env.sh <owner>/<repo> <machine-slug> [--ssh-user <user>]
@@ -106,6 +105,37 @@ the machine has no address: `metadata.host` is unset and `FIXED_IP` is skipped w
 re-run — directly, or as a single-slot run (`smaqit slots plan … --slot=environment-config`) — to
 set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentials in Vault.
 
+### Operation `runtime` — an existing-k3s app's runtime secrets
+
+The `environment-config` default for `provisioning_mode: existing-k3s`. It puts the runtime
+secrets the Infrastructure spec's `## Runtime Secrets` table declares for one environment into that
+environment's machine-slug GitHub Environment, where the generated `deploy.yml` builds the app's
+Kubernetes Secret `<app-slug>-runtime` from them. Run once per environment:
+
+```bash
+scripts/sync-runtime-env.sh <owner>/<repo> <environment>
+```
+
+It reads the spec first (`smaqit spec environments --env=<environment> --json`):
+
+- **No runtime secrets:** it reports that and exits 0 without a Vault or `gh` call.
+- **`Vault Access: direct`** (the default): every value must already be at
+  `secret/apps/<app-slug>/<machine-slug>/runtime`, one field per name
+  (`smaqit.infrastructure-vault-loader`'s `access` loads them); otherwise it stops before writing,
+  naming the load command. It creates or verifies the Environment, runs
+  `scripts/check-pat-permissions.sh`, pipes each value from Vault to `gh secret set` on stdin, and
+  fails if any name is then missing from `gh secret list --env <machine-slug>`.
+- **`Vault Access: operator-scripts`:** it makes **no Vault call**. It creates or verifies the
+  Environment, then, for each name `gh secret list --env <machine-slug>` doesn't show yet, prints a
+  `HANDOFF` block: the Vault path and field, whether the value is generated or operator-provided,
+  the Environment, the secret name, and the command shape (`<your script that prints the field> |
+  gh secret set <NAME> --env <machine-slug> -R <owner>/<repo>`). It exits 4 while any name is
+  pending: the slot pauses, the operator runs their own scripts, and a re-run completes once every
+  name is listed. The slot is never bound to `none` for this.
+
+The app slug defaults to the repository name, normalised the way vault-loader derives it; export
+`PROJECT_SLUG` to override it.
+
 ## Output
 
 - **`provision` / `existing-owned`:** GitHub repository configured with 7 secrets (VM_SSH_KEY, VM_SSH_PUBLIC_KEY, TF_BACKEND_ACCESS_KEY, TF_BACKEND_SECRET_KEY, OS_APPLICATION_CREDENTIAL_ID, OS_APPLICATION_CREDENTIAL_SECRET, GH_TERRAFORM_TOKEN) plus the VM_HOST variable
@@ -115,6 +145,8 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
   `CYSO_APPLICATION_CREDENTIAL_SECRET`, `CYSO_S3_ACCESS_KEY`, `CYSO_S3_SECRET_KEY`) and 2 variables
   (`RECONCILE_SSH_USER`, and `FIXED_IP` once the machine's address is known). Nothing at the
   repository level.
+- **`runtime`:** the environment's runtime secrets, one Environment secret per name in the
+  machine-slug Environment; nothing when the spec declares none. Nothing at the repository level.
 - All values sourced from Vault; no credentials typed or stored locally outside Vault
 - Verification output confirming presence of each name; absent `tfstate`/`cyso`-derived secrets are reported as skipped, not missing
 
@@ -122,11 +154,11 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
 
 - Does NOT generate SSH keys — the caller must provide a passphrase-free deploy key file path
 - Does NOT create or configure the GitHub repository itself
-- Does NOT manage environment-level secrets, except through the `sync-machine` operation, whose
-  output is entirely one machine-slug Environment; the `sync` operation's VM-mode output stays
-  repository-level only
-- Does NOT configure anything for `provisioning_mode: existing-k3s` — the app carries no deploy
-  credential
+- Does NOT manage environment-level secrets, except through the `sync-machine` and `runtime`
+  operations, whose output is entirely one machine-slug Environment; the `sync` operation's
+  VM-mode output stays repository-level only
+- Does NOT configure any deploy credential for `provisioning_mode: existing-k3s` — the app carries
+  none; `runtime` handles app runtime secrets only
 - Does NOT hard-fail when `tfstate`/`cyso` Vault paths are absent — see Step 3 / `scripts/sync-secrets.sh` for `provisioning_mode: existing-shared`/`existing-unmanaged` handling
 
 ## Examples
@@ -135,7 +167,7 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
 **Output:** `gh secret list` confirms: VM_SSH_KEY, TF_BACKEND_ACCESS_KEY, TF_BACKEND_SECRET_KEY, TF_VAR_APP_CREDENTIAL_ID, TF_VAR_APP_CREDENTIAL_SECRET, GH_TERRAFORM_TOKEN. `gh variable list` confirms: VM_HOST, DEMO_MODE=true.
 
 **Input:** Namespace-scoped Kubernetes/k3s target, `provisioning_mode: existing-k3s`. Operator invokes the skill.
-**Output:** Nothing to sync: the deploy job connects with its own OIDC identity, and the slot plan's `environment-config` is none. Report that and stop.
+**Output:** `scripts/sync-runtime-env.sh <owner>/<repo> test` reads the spec. With no runtime secrets it reports "nothing to sync" and stops. With `SESSION_SECRET` declared it pipes `secret/apps/<app-slug>/<machine-slug>/runtime` field `SESSION_SECRET` into the machine-slug Environment and verifies it is listed; under `Vault Access: operator-scripts` it prints the `HANDOFF` block instead and exits 4 until the operator has set it.
 
 ## Gotchas
 
@@ -157,6 +189,7 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
 - [ ] OS_APPLICATION_CREDENTIAL_ID and OS_APPLICATION_CREDENTIAL_SECRET set (from Vault), or cleanly skipped if `secret/<slug>/cyso` is absent
 - [ ] GH_TERRAFORM_TOKEN set (from Vault; fine-grained PAT, `variables:write` scope)
 - [ ] `sync-machine` only: `scripts/sync-machine-env.sh` exited 0 — the machine-slug Environment exists with its 6 secrets and `RECONCILE_SSH_USER`, plus `FIXED_IP` after the post-apply re-run
+- [ ] `runtime` only: `scripts/sync-runtime-env.sh` exited 0 — every runtime secret the spec declares for the environment is listed on its machine-slug Environment (after any operator handoff)
 - [ ] `gh secret list` and `gh variable list` verified — all expected names present for the active `provisioning_mode` (pass `--env <machine-slug>` for `sync-machine`)
 
 ## Failure Handling
@@ -178,4 +211,6 @@ set `FIXED_IP`. Re-run it likewise after rotating any of the machine's credentia
 | `gh variable set --env <name>` returns 403 with repository-only grants | Enable organization-level Secrets and Variables read/write on the fine-grained PAT |
 | `scripts/check-pat-permissions.sh` exits 2 or 3 | Exit 2: an Environment is missing; exit 3: a grant is missing. Apply the fix it prints; do not proceed to writes |
 | `sync-machine`: a `secret/machines/<machine-slug>/*` path is missing | Stop. Register the machine with `smaqit.infrastructure-vault-loader`'s `register-machine.sh`, then retry |
+| `runtime`: a field is missing at `secret/apps/<app-slug>/<machine-slug>/runtime` | Stop. Load it with `PROVISIONING_MODE=existing-k3s ENVIRONMENT=<env>` and vault-loader's `load-credentials.sh`, then retry |
+| `runtime`: exits 4 (`Vault Access: operator-scripts`) | Expected: the slot is paused on the printed `HANDOFF` blocks. Hand them to the operator verbatim, never ask for a value in the conversation, and re-run once they confirm |
 | `sync-machine`: reports `FIXED_IP skipped` | Expected before the machine is provisioned. After apply, run `register-machine.sh <machine-slug> --host <fixed_ip>` and re-run `sync-machine` |

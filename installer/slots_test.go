@@ -137,7 +137,7 @@ func TestSlotPlanDefaultsMatchCurrentBehaviour(t *testing.T) {
 		"access-credentials":  "profile smaqit.infrastructure-vault-loader:access @local",
 		"platform-onboarding": "profile smaqit.infrastructure-request-k3s-onboarding:request @local",
 		"target-credentials":  "none",
-		"environment-config":  "none",
+		"environment-config":  "profile smaqit.infrastructure-repo-config:runtime @local",
 		"artifact-build":      "profile smaqit.infrastructure-image-build-push*:build @local",
 		"iac-generate":        "none",
 		"ci-generate":         "profile smaqit.infrastructure-cicd-generate:generate @local",
@@ -449,10 +449,13 @@ func TestSlotPlanPlatformRepositoryBindings(t *testing.T) {
 	if shared["environment-config"] != "profile smaqit.infrastructure-repo-config:sync @local" {
 		t.Errorf("default environment-config = %q", shared["environment-config"])
 	}
-	// existing-k3s carries no deploy credential: nothing to load or sync.
-	k3s := planSummary(mustResolve(t, defaults, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "ci-push"}))
-	if k3s["target-credentials"] != "none" || k3s["environment-config"] != "none" {
-		t.Errorf("existing-k3s target-credentials/environment-config = %q/%q, want none", k3s["target-credentials"], k3s["environment-config"])
+	// existing-k3s carries no deploy credential: the target issues nothing, and
+	// environment-config syncs only runtime secrets, on every CI path.
+	for _, path := range []string{"ci-push", "ci-bootstrap", "existing-cicd-pr"} {
+		k3s := planSummary(mustResolve(t, defaults, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: path}))
+		if k3s["target-credentials"] != "none" || k3s["environment-config"] != "profile smaqit.infrastructure-repo-config:runtime @local" {
+			t.Errorf("%s: existing-k3s target-credentials/environment-config = %q/%q, want none/runtime", path, k3s["target-credentials"], k3s["environment-config"])
+		}
 	}
 
 	unnamed := slotsTestProject(t)

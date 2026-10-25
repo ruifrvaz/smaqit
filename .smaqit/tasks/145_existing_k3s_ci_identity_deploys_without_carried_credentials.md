@@ -1,6 +1,8 @@
 ---
-status: Not Started
+status: In Progress
 created: "2026-10-22"
+started: "2026-10-25"
+mode: Assisted
 ---
 
 # existing-k3s: CI-identity deploys without carried credentials (OIDC token, shared mesh key, platform-owned pulls)
@@ -149,8 +151,33 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
     the `Container Registry` row); `make -C installer test` and `smoke-test`; MINOR release.
 
 ## Known Issues Triage
+**Triaged:** 2026-10-25
+**Tools searched:** k3s (`k3s-io/k3s`), kubectl (`kubernetes/kubectl`), NetBird (`netbirdio/netbird`)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+- None
+
+### Advisory Issues
+- [#5634 Add a setting to bypass "JWT Authentication" without `--disable-ssh-auth`](https://github.com/netbirdio/netbird/issues/5634) — `netbirdio/netbird` — opened 2026-03-19 — feature-request. Not this task's dimension (SSH auth); listed because the search matched. The other two open NetBird results (#3921, #496) are feature requests for custom devices, likewise unrelated.
+
+### Historical (Closed)
+- [#2828 Netbird doesn't work with GitHub Actions and setup-key](https://github.com/netbirdio/netbird/issues/2828) — `netbirdio/netbird` — closed 2024-11-05. The mesh join is the platform's pinned action (NetBird 0.79.0); relevant only if a platform pins an old client.
+- [#1109 client-go credential plugins ignores 'expirationTimestamp' field](https://github.com/kubernetes/kubectl/issues/1109) — `kubernetes/kubectl` — closed 2021-09-16. The connect action's exec plugin relies on `expirationTimestamp` to refresh the ~5 min token; a current kubectl honours it (live-proven at 685 s by the platform).
+- [#1492 Process leak when unable to find exec-credential binary](https://github.com/kubernetes/kubectl/issues/1492) — `kubernetes/kubectl` — closed 2023-12-22. The plugin command is `bash` with a script inside the action; the namespace guard's many `can-i` calls each run it.
+- [#5278 Getting Unauthorized error when connecting to k3s cluster using OIDC](https://github.com/k3s-io/k3s/issues/5278) — `k3s-io/k3s` — closed 2022-04-15. A wrong audience or Environment claim answers 401 (Unauthorized), unlike an unbound identity (403 Forbidden); the skill's failure rows must tell them apart.
+
+### Unresolvable Tools
+- GitHub Actions OIDC — helper resolved `unfunco/terraform-aws-oidc-github` (an unrelated Terraform module)
+- Kubernetes structured authentication — helper resolved an unrelated proxy repository
+- GitHub organisation secrets — helper resolved an unrelated repository
+- GHCR — helper resolved an unrelated crawler repository
+
+### Omitted Tools
+- Go — only the standard library and `go test` are used; no feature dimension to search
+
+### Search Warnings
+- Categorization limitation: four technologies are hosted GitHub or Kubernetes features without a usable issue tracker from the resolver; no search ran for them.
 
 ## Acceptance Criteria
 

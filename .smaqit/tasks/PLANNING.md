@@ -5,7 +5,7 @@
 | ID | Title | Status | Priority |
 |----|-------|--------|----------|
 | 143 | Bench: deploy-verify `ci-evidence` on Claude Code, Against the Previous Release | Not Started | Medium |
-| 145 | existing-k3s: CI-Identity Deploys Without Carried Credentials (OIDC Token, Shared Mesh Key, Platform-Owned Pulls) | Not Started | High |
+| 145 | existing-k3s: CI-Identity Deploys Without Carried Credentials (OIDC Token, Shared Mesh Key, Platform-Owned Pulls) | In Progress | High |
 | 146 | VM Modes: CI-Only Deploys (Close the Workflow Gaps, Then Enforce the Task 144 Rule) | Not Started | Medium |
 | 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | Not Started | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |

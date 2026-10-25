@@ -4,7 +4,7 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit
-**Refreshed:** 2026-10-18
+**Refreshed:** 2026-10-25
 
 | Tool | Section | URL |
 |------|---------|-----|
@@ -548,5 +548,28 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | k3s | Cluster access (kubeconfig) | https://docs.k3s.io/cluster-access |
 | Kubernetes | Organizing cluster access using kubeconfig files | https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/ |
 | Kubernetes | kubectl reference | https://kubernetes.io/docs/reference/kubectl/ |
+| Go | testing package | https://pkg.go.dev/testing |
+| Go | Documentation | https://go.dev/doc/ |
+
+## Task 145 — existing-k3s: CI-identity deploys without carried credentials (OIDC token, shared mesh key, platform-owned pulls)
+
+**Context fingerprint:** sha256:bdb9d76b8f5f7140394d28247cea9752d1ffb069f6fdd555501d0e255001b268
+**Refreshed:** 2026-10-25
+
+| Tool | Section | URL |
+|------|---------|-----|
+| GitHub Actions OIDC | OpenID Connect in GitHub Actions (claims, audience) | https://docs.github.com/en/actions/concepts/security/openid-connect |
+| GitHub Actions OIDC | OIDC reference (token claims, id-token permission) | https://docs.github.com/en/actions/reference/security/oidc |
+| GitHub Actions | Workflow syntax (jobs.<id>.permissions) | https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax |
+| GitHub Actions | Contexts (secrets context) | https://docs.github.com/en/actions/reference/workflows-and-actions/contexts |
+| GitHub organisation secrets | Using secrets in GitHub Actions (organization secrets, access policy) | https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets |
+| Kubernetes structured authentication | Authenticating (structured authentication configuration, JWT authenticator) | https://kubernetes.io/docs/reference/access-authn-authz/authentication/ |
+| kubectl | client-go credential plugins (exec ExecCredential) | https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins |
+| kubectl | kubectl auth can-i | https://kubernetes.io/docs/reference/kubectl/generated/kubectl_auth/kubectl_auth_can-i/ |
+| k3s | Documentation | https://docs.k3s.io/ |
+| k3s | Cluster access | https://docs.k3s.io/cluster-access |
+| NetBird | Documentation | https://docs.netbird.io/ |
+| NetBird | Setup keys | https://docs.netbird.io/manage/peers/register-machines-using-setup-keys |
+| GHCR | Working with the Container registry | https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry |
 | Go | testing package | https://pkg.go.dev/testing |
 | Go | Documentation | https://go.dev/doc/ |

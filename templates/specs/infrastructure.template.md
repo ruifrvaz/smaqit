@@ -133,6 +133,18 @@ created: [TIMESTAMP]
 |-------------|--------------|------|--------------|--------------|---------------|---------------|-------------|-----------------------|--------------------|
 | [ENVIRONMENT] | [MACHINE_SLUG] | [HOST] | [public/private-mesh] | [own-tls/platform-default-tls/platform-owned] | [INGRESS_CLASS] | [CLUSTER_ISSUER] | [HEALTH_PATH] | [MESH_SETUP_KEY_SECRET] | [MESH_WAIT_FOR_HOST] |
 
+## Runtime Secrets
+
+<!-- `provisioning_mode: existing-k3s` only — omit this section when the app needs no runtime secret -->
+<!-- One row per secret the app's pod needs (a session-signing key, a first-admin password); list only secrets the user named -->
+<!-- Name: uppercase (A-Z, 0-9, _), not starting with GITHUB_; it is the GitHub Environment secret, the key in the Kubernetes Secret `<app-slug>-runtime`, and the pod's env var -->
+<!-- Source: generated (a random value created once per environment) | operator-provided (the operator supplies it) -->
+<!-- Environments: all, or a comma-separated list of the Environments table's names -->
+
+| Name | Source | Environments |
+|------|--------|--------------|
+| [SECRET_NAME] | [generated/operator-provided] | [all, or a comma-separated list] |
+
 ## Constraints
 
 | Constraint | Description | Impact |
@@ -152,6 +164,7 @@ created: [TIMESTAMP]
 | Probe Client | [`curl`, `wget`, or `python3`, whichever the app's own image contains — required when any environment is `private-mesh` or `platform-owned`, omit otherwise] | [the in-cluster probe Job runs the app's image with this client against the Service's health path] |
 | Namespace Quota | [the onboarded Namespace's `ResourceQuota`/`LimitRange` numbers — `existing-k3s` only, omit otherwise; sourced from the platform team's own onboarding documentation, never invented] | [application resource requests/limits declared elsewhere in this spec must fit within this ceiling] |
 | Deployer Exec | [`denied` (default when omitted) or `allowed` — `existing-k3s` only; set `allowed` only when the platform deliberately grants the deployer `pods/exec`] | [the generated deploy workflow fails when the deployer can exec into pods; `allowed` turns that into a warning] |
+| Vault Access | [`direct` (default when omitted) or `operator-scripts` — `existing-k3s` only; set `operator-scripts` when the operator allows Vault access only through their own reviewed scripts] | [`direct`: the credential fillers run smaqit's scripts against Vault; `operator-scripts`: they make no Vault call, hand the operator the exact command, and verify the result through `gh`] |
 
 ## Acceptance Criteria
 

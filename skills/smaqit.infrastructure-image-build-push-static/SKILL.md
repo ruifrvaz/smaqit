@@ -2,7 +2,7 @@
 name: smaqit.infrastructure-image-build-push-static
 description: Use when containerizing a static HTML/CSS/vanilla-JS site (no build step) for an existing-k3s platform. Authors the Dockerfile/.dockerignore on nginx-unprivileged and the deployment.yaml/service.yaml pair with an explicit numeric runAsUser, filling the gap between cicd-generate's k3s build-and-push and deploy-k3s-app.
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
   smaqit-slots: "artifact-build=build"
 ---
 
@@ -47,6 +47,11 @@ metadata:
      (`docker run --rm <image> id`) rather than assuming `101` for a different base image.
    - Never add `imagePullSecrets`: the platform pulls the app's images, private ones included,
      with its own credential, and the Namespace holds no pull Secret.
+   - **One `secretKeyRef` per runtime secret** in the Infrastructure spec's `## Runtime Secrets`
+     table (`smaqit spec environments --json` lists them): an env var named after the secret, from
+     Secret `<app-slug>-runtime`, key the same name; `optional: true` when the secret isn't
+     declared for every environment, since this one file serves them all. Never `envFrom`, and
+     never a value in the manifest. Omit them all when the spec declares none.
 
 ## Output
 

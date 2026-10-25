@@ -166,6 +166,12 @@ These rules are specific to the Infrastructure layer and must be followed when p
   when the platform allows all three
 - Leave the `Deployer Exec` Constraints row out (meaning `denied`) unless the operator confirms the
   platform deliberately grants the deployer `pods/exec`; only then set it to `allowed`
+- Leave the `Vault Access` Constraints row out (meaning `direct`) unless the operator states that
+  Vault may be reached only through their own scripts; only then set it to `operator-scripts`
+- Add a `## Runtime Secrets` row only for a runtime secret the user named (for example a
+  session-signing key or a first-admin password), with its `Source` (`generated` or
+  `operator-provided`) and `Environments`; never invent one, and never write a secret value into the
+  spec. Omit the section when the app needs none
 
 ### MUST NOT
 

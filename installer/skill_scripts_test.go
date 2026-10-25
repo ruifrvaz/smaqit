@@ -133,6 +133,19 @@ esac
 exit 0
 `
 
+// stubSmaqit serves `smaqit spec environments --env=<env> --json` from
+// $STUB_STATE/spec/<env>.json, written by useSpec from a real parse.
+const stubSmaqit = `#!/usr/bin/env bash
+set -u
+printf '%s\0' "$@" >> "$STUB_STATE/smaqit.argv"
+printf '\n' >> "$STUB_STATE/smaqit.argv"
+env=""
+for arg in "$@"; do case "$arg" in --env=*) env="${arg#--env=}" ;; esac; done
+[ "$1 ${2:-}" = "spec environments" ] && [ -f "$STUB_STATE/spec/$env.json" ] || {
+  echo "SLOTS-SPEC-MISSING: no fixture for environment '$env'" >&2; exit 1; }
+cat "$STUB_STATE/spec/$env.json"
+`
+
 const stubTerraform = `#!/usr/bin/env bash
 set -u
 printf '%s\0' "$@" >> "$STUB_STATE/terraform.argv"
@@ -216,7 +229,7 @@ func newScriptHarness(t *testing.T) *scriptHarness {
 		}
 	}
 	bin := t.TempDir()
-	for name, body := range map[string]string{"vault": stubVault, "gh": stubGh, "terraform": stubTerraform, "kubectl": stubKubectl} {
+	for name, body := range map[string]string{"vault": stubVault, "gh": stubGh, "terraform": stubTerraform, "kubectl": stubKubectl, "smaqit": stubSmaqit} {
 		if err := os.WriteFile(filepath.Join(bin, name), []byte(body), 0755); err != nil {
 			t.Fatal(err)
 		}
@@ -331,6 +344,39 @@ func (h *scriptHarness) seedVault(path string, fields map[string]string) {
 	}
 	for k, v := range fields {
 		if err := os.WriteFile(filepath.Join(dir, k), []byte(v), 0644); err != nil {
+			h.t.Fatal(err)
+		}
+	}
+}
+
+// useSpec parses an Infrastructure spec with the real parser and stores what
+// `smaqit spec environments --env=<env> --json` prints for each environment.
+func (h *scriptHarness) useSpec(spec string) {
+	h.t.Helper()
+	if _, err := exec.LookPath("jq"); err != nil {
+		h.t.Skipf("jq not available: %v", err)
+	}
+	root := h.t.TempDir()
+	writeInfraSpec(h.t, root, "platform.md", spec)
+	set, errs := loadInfraEnvironments(root)
+	if len(errs) == 0 {
+		errs = validateInfraEnvironments(set, "")
+	}
+	if len(errs) > 0 {
+		h.t.Fatalf("fixture spec is invalid: %v", errs)
+	}
+	dir := filepath.Join(h.state, "spec")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		h.t.Fatal(err)
+	}
+	for _, env := range set.Environments {
+		one, _ := loadInfraEnvironments(root)
+		one.only(env.Environment)
+		out, err := json.MarshalIndent(one, "", "  ")
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, env.Environment+".json"), out, 0644); err != nil {
 			h.t.Fatal(err)
 		}
 	}
@@ -886,12 +932,12 @@ func TestCredentialFileHandsOutOnlyAllowlistedCredentials(t *testing.T) {
 	const sshKey = "-----BEGIN OPENSSH PRIVATE KEY-----\nAPP-KEY-77c1\n-----END OPENSSH PRIVATE KEY-----\n"
 	h.seedVault("secret/apps/shop/ssh", map[string]string{"private_key": sshKey, "public_key": "ssh-ed25519 AAAA"})
 	h.seedVault("secret/apps/shop/platform-repo", map[string]string{"token": "PLATFORM-PAT-3f9e"})
+	h.seedVault("secret/apps/shop/edge-01/runtime", map[string]string{"SESSION_SECRET": "RUNTIME-9d2a"})
 	h.seedVault("secret/legacy-app/ssh", map[string]string{"private_key": sshKey})
 
 	for path, want := range map[string]string{
-		"apps/shop/ssh":           sshKey,
-		"apps/shop/platform-repo": "PLATFORM-PAT-3f9e",
-		"legacy-app/ssh":          sshKey,
+		"apps/shop/ssh":  sshKey,
+		"legacy-app/ssh": sshKey,
 	} {
 		out, err := h.run(nil, script, path)
 		if err != nil {
@@ -912,11 +958,16 @@ func TestCredentialFileHandsOutOnlyAllowlistedCredentials(t *testing.T) {
 		os.RemoveAll(filepath.Dir(file))
 	}
 
-	// existing-k3s keeps no kubeconfig: CI connects with its own OIDC identity.
-	for _, path := range []string{"machines/edge-01/base-ssh", "apps/shop/github", "apps/shop/edge-01/kubeconfig", "organizations/acme/github-package-read", "apps/ssh", "apps/Shop/ssh"} {
-		if out, err := h.run(nil, script, path); err == nil {
+	// existing-k3s keeps no kubeconfig (CI connects with its own OIDC identity) and
+	// no platform-repo token (onboarding uses the operator's own gh login); runtime
+	// secrets reach GitHub only through repo-config, never a local file.
+	for _, path := range []string{"machines/edge-01/base-ssh", "apps/shop/github", "apps/shop/platform-repo", "apps/shop/edge-01/kubeconfig",
+		"apps/shop/edge-01/runtime", "organizations/acme/github-package-read", "apps/ssh", "apps/Shop/ssh"} {
+		out, err := h.run(nil, script, path)
+		if err == nil {
 			t.Errorf("%s: handed out a credential outside the allowlist:\n%s", path, out)
 		}
+		h.requireAbsent("output of "+path, out, "PLATFORM-PAT-3f9e", "RUNTIME-9d2a")
 	}
 }
 
@@ -997,47 +1048,221 @@ func TestTerraformEnvExportsWithoutPrintingAndUnsets(t *testing.T) {
 	}
 }
 
-func TestLoadCredentialsEnablesKvAndLoadsThePlatformRepoToken(t *testing.T) {
+// k3sRuntimeSpec declares a generated runtime secret for every environment and
+// an operator-provided one for prod only; vaultAccess "" leaves the row out.
+func k3sRuntimeSpec(vaultAccess string) string {
+	constraints := k3sFixtureConstraints
+	if vaultAccess != "" {
+		constraints = copyConstraints(map[string]string{"Vault Access": vaultAccess})
+	}
+	return withRuntimeSecrets(k3sSpec(k3sFixtureRows, constraints),
+		[3]string{"SESSION_SECRET", "generated", "all"},
+		[3]string{"ADMIN_PASSWORD", "operator-provided", "prod"},
+	)
+}
+
+// existing-k3s stores only runtime secrets: one Vault path per environment's
+// machine, generated values created once and never printed, operator-provided
+// ones read hidden.
+func TestLoadCredentialsExistingK3sLoadsOnlyRuntimeSecrets(t *testing.T) {
 	h := newScriptHarness(t)
-	script := skillScript("smaqit.infrastructure-vault-loader", "load-credentials.sh")
-	const platToken = "PLAT-PAT-2e2e"
-	cmd := "PROVISIONING_MODE=existing-k3s bash " + shellQuote(mustAbs(t, script))
-	out, err := h.runInteractiveCommand(cmd, [][2]string{{"platform_repo_token:", platToken}})
+	h.useSpec(k3sRuntimeSpec(""))
+	script := mustAbs(t, skillScript("smaqit.infrastructure-vault-loader", "load-credentials.sh"))
+	const admin = "ADMIN-PW-5c1e"
+	prod := "PROVISIONING_MODE=existing-k3s ENVIRONMENT=prod bash " + shellQuote(script)
+	out, err := h.runInteractiveCommand(prod, [][2]string{{"ADMIN_PASSWORD:", admin}})
 	if err != nil {
 		t.Fatalf("existing-k3s load failed: %v\n%s", err, out)
 	}
 	slug := filepath.Base(h.work)
-	if got := h.vaultValue("secret/apps/"+slug+"/platform-repo", "token"); got != platToken {
-		t.Errorf("platform-repo token = %q, want %q", got, platToken)
+	path := "secret/apps/" + slug + "/pub-02/runtime"
+	if got := h.vaultValue(path, "ADMIN_PASSWORD"); got != admin {
+		t.Errorf("ADMIN_PASSWORD = %q, want %q", got, admin)
 	}
-	// The app stores no deploy credential: no github PAT, kubeconfig, mesh key or
-	// registry credential, and no machine slug is needed.
-	for _, path := range []string{"secret/apps/" + slug + "/github", "secret/organizations"} {
-		if got := h.vaultValue(path, "token"); got != "" {
-			t.Errorf("%s was written: %q", path, got)
-		}
+	generated := h.vaultValue(path, "SESSION_SECRET")
+	if len(generated) != 44 || strings.ContainsAny(generated, "\n ") {
+		t.Errorf("generated SESSION_SECRET = %q, want 32 random bytes as base64 with no trailing newline", generated)
 	}
-	// From the scheme line on: the terminal recorder's banner echoes the script path.
-	_, scheme, _ := strings.Cut(out, "==> Scheme:")
-	for _, word := range []string{"kubeconfig", "MACHINE_SLUG", "mesh", "registry"} {
-		if strings.Contains(strings.ToLower(scheme), strings.ToLower(word)) {
-			t.Errorf("existing-k3s load still mentions %q:\n%s", word, out)
-		}
+	h.requireAbsent("vault argv", h.argv("vault"), admin, generated)
+	h.requireAbsent("terminal output", out, admin, generated)
+	// Nothing else is stored: no platform-repo token, github PAT, kubeconfig or mesh key.
+	entries, _ := os.ReadDir(filepath.Join(h.state, "vault", "secret", "apps", slug))
+	if len(entries) != 1 || entries[0].Name() != "pub-02" {
+		t.Errorf("secret/apps/%s holds %v, want only pub-02", slug, entries)
 	}
-	h.requireAbsent("vault argv", h.argv("vault"), platToken)
-	h.requireAbsent("terminal output", out, platToken)
+	if _, scheme, _ := strings.Cut(out, "==> Scheme:"); strings.Contains(scheme, "platform-repo") {
+		t.Errorf("existing-k3s load still mentions platform-repo:\n%s", out)
+	}
 	enable, _ := os.ReadFile(filepath.Join(h.state, "secrets-enable.log"))
 	if strings.Count(string(enable), "kv-v2") != 1 {
 		t.Errorf("kv-v2 enable calls: %q, want exactly one", enable)
 	}
 
-	// A second run skips what is already present and doesn't re-enable kv-v2.
-	if out, err := h.runInteractiveCommand(cmd, nil); err != nil || strings.Count(out, "SKIP") != 1 {
+	// A second run keeps both values and asks nothing.
+	if out, err := h.runInteractiveCommand(prod, nil); err != nil || strings.Count(out, "SKIP") != 2 {
 		t.Errorf("re-run: %v\n%s", err, out)
 	}
-	enable, _ = os.ReadFile(filepath.Join(h.state, "secrets-enable.log"))
-	if strings.Count(string(enable), "kv-v2") != 1 {
-		t.Errorf("kv-v2 re-enabled on a second run: %q", enable)
+	if h.vaultValue(path, "SESSION_SECRET") != generated {
+		t.Error("a re-run replaced the generated value")
+	}
+
+	// dev receives only the secret declared for every environment, with its own value.
+	dev := "PROVISIONING_MODE=existing-k3s ENVIRONMENT=dev bash " + shellQuote(script)
+	if out, err := h.runInteractiveCommand(dev, nil); err != nil {
+		t.Fatalf("dev load failed: %v\n%s", err, out)
+	}
+	devPath := "secret/apps/" + slug + "/pub-01/runtime"
+	if got := h.vaultValue(devPath, "SESSION_SECRET"); got == "" || got == generated {
+		t.Errorf("dev SESSION_SECRET = %q, want its own generated value", got)
+	}
+	if got := h.vaultValue(devPath, "ADMIN_PASSWORD"); got != "" {
+		t.Errorf("dev received prod's ADMIN_PASSWORD: %q", got)
+	}
+}
+
+// With nothing to load, or under `Vault Access: operator-scripts`, the
+// existing-k3s load decides from the spec and never runs vault.
+func TestLoadCredentialsExistingK3sMakesNoVaultCallWhenNothingToLoad(t *testing.T) {
+	script := skillScript("smaqit.infrastructure-vault-loader", "load-credentials.sh")
+	cases := map[string]struct{ spec, env, want string }{
+		"no runtime secrets":             {k3sSpec(k3sFixtureRows, k3sFixtureConstraints), "prod", "nothing to load"},
+		"secret for another environment": {withRuntimeSecrets(k3sSpec(k3sFixtureRows, k3sFixtureConstraints), [3]string{"ADMIN_PASSWORD", "operator-provided", "prod"}), "dev", "nothing to load"},
+		"operator-scripts":               {k3sRuntimeSpec("operator-scripts"), "prod", "Vault Access is operator-scripts; this script makes no Vault call"},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			h := newScriptHarness(t)
+			h.useSpec(c.spec)
+			out, err := h.run([]string{"PROVISIONING_MODE=existing-k3s", "ENVIRONMENT=" + c.env}, script)
+			if err != nil || !strings.Contains(out, c.want) {
+				t.Fatalf("want exit 0 and %q, got %v\n%s", c.want, err, out)
+			}
+			if got := h.argv("vault"); got != "" {
+				t.Errorf("vault was called: %q", got)
+			}
+		})
+	}
+
+	h := newScriptHarness(t)
+	out, err := h.run([]string{"PROVISIONING_MODE=existing-k3s"}, script)
+	if scriptExitCode(err) != 2 || !strings.Contains(out, "existing-k3s needs ENVIRONMENT=<env>") || h.argv("vault") != "" {
+		t.Errorf("no ENVIRONMENT: exit %d, vault argv %q\n%s", scriptExitCode(err), h.argv("vault"), out)
+	}
+}
+
+func TestSyncRuntimeEnvPipesRuntimeSecretsFromVault(t *testing.T) {
+	h := newScriptHarness(t)
+	h.useSpec(k3sRuntimeSpec(""))
+	script := skillScript("smaqit.infrastructure-repo-config", "sync-runtime-env.sh")
+	slug := []string{"PROJECT_SLUG=shop"}
+
+	// A missing value stops the sync before anything is written.
+	h.seedVault("secret/apps/shop/pub-02/runtime", map[string]string{"SESSION_SECRET": "SESSION-77ab"})
+	out, err := h.run(slug, script, "acme/shop", "prod")
+	if err == nil || !strings.Contains(out, "secret/apps/shop/pub-02/runtime has no field ADMIN_PASSWORD") || !strings.Contains(out, "ENVIRONMENT=prod") {
+		t.Fatalf("missing field: %v\n%s", err, out)
+	}
+	if strings.Contains(h.argv("gh"), "secret\x00set") {
+		t.Fatal("a secret was written although a value was missing")
+	}
+
+	h.seedVault("secret/apps/shop/pub-02/runtime", map[string]string{"SESSION_SECRET": "SESSION-77ab", "ADMIN_PASSWORD": "ADMIN-PW-31f0"})
+	out, err = h.run(slug, script, "acme/shop", "prod")
+	if err != nil || !strings.Contains(out, "2 runtime secret(s) in place") {
+		t.Fatalf("sync failed: %v\n%s", err, out)
+	}
+	for name, want := range map[string]string{"SESSION_SECRET": "SESSION-77ab", "ADMIN_PASSWORD": "ADMIN-PW-31f0"} {
+		if got, ok := h.ghValue("pub-02", "secret", name); !ok || got != want {
+			t.Errorf("pub-02 secret %s = %q (%v), want %q", name, got, ok, want)
+		}
+	}
+	h.requireAbsent("gh argv", h.argv("gh"), "SESSION-77ab", "ADMIN-PW-31f0")
+	h.requireAbsent("vault argv", h.argv("vault"), "SESSION-77ab", "ADMIN-PW-31f0")
+	h.requireAbsent("output", out, "SESSION-77ab", "ADMIN-PW-31f0")
+
+	// dev's Environment gets only the secret declared for every environment; the
+	// app slug defaults to the repository name.
+	h.seedVault("secret/apps/shop/pub-01/runtime", map[string]string{"SESSION_SECRET": "SESSION-dev-4e"})
+	if out, err := h.run(nil, script, "acme/Shop", "dev"); err != nil {
+		t.Fatalf("dev sync: %v\n%s", err, out)
+	}
+	if got, _ := h.ghValue("pub-01", "secret", "SESSION_SECRET"); got != "SESSION-dev-4e" {
+		t.Errorf("pub-01 SESSION_SECRET = %q", got)
+	}
+	if _, ok := h.ghValue("pub-01", "secret", "ADMIN_PASSWORD"); ok {
+		t.Error("dev's Environment received prod's ADMIN_PASSWORD")
+	}
+}
+
+func TestSyncRuntimeEnvWithoutRuntimeSecretsTouchesNothing(t *testing.T) {
+	h := newScriptHarness(t)
+	h.useSpec(k3sSpec(k3sFixtureRows, k3sFixtureConstraints))
+	out, err := h.run(nil, skillScript("smaqit.infrastructure-repo-config", "sync-runtime-env.sh"), "acme/shop", "prod")
+	if err != nil || !strings.Contains(out, "No runtime secrets for prod; nothing to sync.") {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if h.argv("vault") != "" || h.argv("gh") != "" {
+		t.Errorf("vault argv %q, gh argv %q: want neither called", h.argv("vault"), h.argv("gh"))
+	}
+}
+
+// Under `Vault Access: operator-scripts` the sync never runs vault: it hands
+// each missing name to the operator and completes once gh lists them all.
+func TestSyncRuntimeEnvHandsOffUnderOperatorScripts(t *testing.T) {
+	h := newScriptHarness(t)
+	h.useSpec(k3sRuntimeSpec("operator-scripts"))
+	script := skillScript("smaqit.infrastructure-repo-config", "sync-runtime-env.sh")
+	slug := []string{"PROJECT_SLUG=shop"}
+
+	out, err := h.run(slug, script, "acme/shop", "prod")
+	if scriptExitCode(err) != 4 {
+		t.Fatalf("want exit 4 (handoff pending), got %v\n%s", err, out)
+	}
+	const adminHandoff = `HANDOFF ADMIN_PASSWORD (operator-provided) — run with your own Vault scripts, in your own terminal:
+  Vault path:   secret/apps/shop/pub-02/runtime
+  Field:        ADMIN_PASSWORD
+  Value:        the value the operator provides
+  Environment:  pub-02 on acme/shop
+  Secret name:  ADMIN_PASSWORD
+  Command:      <your script that prints secret/apps/shop/pub-02/runtime field ADMIN_PASSWORD> \
+                  | gh secret set ADMIN_PASSWORD --env pub-02 -R acme/shop
+                (the value goes to gh on stdin — never as an argument, never echoed)
+`
+	if !strings.Contains(out, adminHandoff) {
+		t.Errorf("handoff text differs; want block:\n%s\ngot:\n%s", adminHandoff, out)
+	}
+	if !strings.Contains(out, "HANDOFF SESSION_SECRET (generated)") || !strings.Contains(out, "a random value you generate (at least 32 random bytes, base64, no trailing newline)") {
+		t.Errorf("generated handoff missing:\n%s", out)
+	}
+	if _, err := os.Stat(filepath.Join(h.state, "gh", "envs", "pub-02")); err != nil {
+		t.Errorf("the Environment was not created through gh: %v", err)
+	}
+	if strings.Contains(h.argv("gh"), "secret\x00set") {
+		t.Error("the sync set a secret itself under operator-scripts")
+	}
+
+	// The operator sets one: only the other is still handed off.
+	setSecret := func(name string) {
+		dir := filepath.Join(h.state, "gh", "envs", "pub-02", "secret")
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("set-by-operator"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	setSecret("SESSION_SECRET")
+	out, err = h.run(slug, script, "acme/shop", "prod")
+	if scriptExitCode(err) != 4 || strings.Count(out, "HANDOFF ") != 1 || !strings.Contains(out, "secret   SESSION_SECRET (listed)") {
+		t.Fatalf("one pending: exit %d\n%s", scriptExitCode(err), out)
+	}
+	setSecret("ADMIN_PASSWORD")
+	out, err = h.run(slug, script, "acme/shop", "prod")
+	if err != nil || !strings.Contains(out, "all 2 runtime secret(s) listed (Vault Access: operator-scripts)") {
+		t.Fatalf("all set: %v\n%s", err, out)
+	}
+	if got := h.argv("vault"); got != "" {
+		t.Errorf("vault was called under operator-scripts: %q", got)
 	}
 }
 

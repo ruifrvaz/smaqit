@@ -6,7 +6,7 @@
 name: smaqit.infrastructure-deploy-k3s-app
 description: Use when deploying an app into a Namespace-scoped Kubernetes cluster (k3s, or any cluster that trusts the CI job's OIDC identity), provisioning_mode existing-k3s. Deploys run only in the generated deploy.yml, which joins a mesh, connects through the platform's action, guards the credential, lints manifests against Pod Security restricted, applies the Ingress, waits for rollout, and verifies.
 metadata:
-  version: "4.1.0"
+  version: "4.2.0"
   smaqit-slots: "app-deploy=deploy"
 ```
 
@@ -20,6 +20,7 @@ metadata:
   than staged as a downstream-only definition first — the framework owner authored this
   capability directly, so no separate contribution/reconciliation handoff was needed.
 - Resynced with the shipped SKILL.md in task 145 (2026-10-25); the body below is applied to SKILL.md by hand.
+- Task 137 (2026-10-25): runtime-secret Secret creation and the manifest-lint `secretKeyRef` rule (4.2.0).
 
 ## Skill Body
 
@@ -54,8 +55,9 @@ row for the target environment, read through `smaqit spec environments --env=<en
 
 The same JSON carries the spec-wide values: `connect` (the platform's `Cluster Connect` action and
 its machine and namespace input names), `mesh` (the mesh-join action and its input names),
-`probeClient` (`curl`, `wget`, or `python3`), and `deployerExec` (`denied` unless the spec's
-`Deployer Exec` row says `allowed`).
+`probeClient` (`curl`, `wget`, or `python3`), `deployerExec` (`denied` unless the spec's
+`Deployer Exec` row says `allowed`), `vaultAccess`, and `runtimeSecrets` (the spec's
+`## Runtime Secrets` table; each row also lists its own `runtimeSecrets` names).
 
 Verification runs **inside the cluster** (a probe Job) when the runner cannot reach the app
 from outside — `private-mesh`, or `platform-owned` (for example behind the platform's SSO gate)
@@ -68,7 +70,8 @@ from outside — `private-mesh`, or `platform-owned` (for example behind the pla
   ResourceQuota/LimitRange) and its deployer Role bound to this repository and the machine-slug
   GitHub Environment. This skill's job starts after onboarding — nothing here is cluster-scoped.
 - The Infrastructure spec declares the platform's `Cluster Connect` rows. GitHub creates the
-  machine-slug Environment on the first run that references it; it holds no deploy secret. For a
+  machine-slug Environment on the first run that references it; it holds no deploy secret, only the
+  app's runtime secrets when the spec declares any (the `environment-config` slot syncs them). For a
   row that joins a mesh, the platform shares the mesh secret the row names with this repository
   (for example an organisation secret).
 - `smaqit spec environments --env=<environment> --json` succeeds: the Infrastructure spec's
@@ -163,6 +166,16 @@ its `build` job pushed the commit's image.
    manifest set. A rejected manifest names the offending field — fix the manifest, not the check.
    A base image whose own `USER` directive names a user rather than a numeric UID is the most
    common way `runAsNonRoot` alone still fails admission with `CreateContainerConfigError`.
+   When the spec declares runtime secrets, it also checks that the Deployment references every
+   runtime secret this machine receives with its own `secretKeyRef` (the env var has the
+   secret's name), that a reference to another environment's secret sets `optional: true`, and
+   that the Secret is never pulled in with `envFrom`.
+
+   **Runtime secrets only — create the `__APP_SLUG__-runtime` Secret** from this machine's
+   runtime secrets: each value reaches the step only through `env:` from the machine-slug
+   Environment, `jq` builds the Secret from the environment, and `kubectl apply --server-side`
+   applies it, so no value is on a command line or in a last-applied annotation. A value missing
+   from the Environment fails the step before `kubectl` runs.
 
 7. **Apply into the app's own Namespace only**, `pvc.yaml` first when present, then the
    Deployment, the Service, and this mode's Ingress (none for `platform-owned`). `DEPLOY_SHA` and
@@ -345,6 +358,8 @@ rollout → `Certificate` → verify sequence runs against `app-<app-slug>`; ver
 | A check step the project added ends at a command expected to exit non-zero (a `can-i` "no", a refused exec) before it reports a verdict | `bash -e` stopped the step on the answer it was waiting for. Bracket the command with `set +e` … `RC=$?` … `set -e` and decide from the captured output and exit code, or call `exec-refused.sh`. Never append `\|\| true`: it also hides a real error, such as an unreachable API, and turns it into a PASS. |
 | `manifest-lint.sh` rejects a manifest | Report the exact offending field. Fix the manifest, not the check, then dispatch again. |
 | `manifest-lint.sh` fails with `FileNotFoundError` on an Ingress or `probe-job.yaml` | The manifest was never rendered. Regenerate through `smaqit.infrastructure-cicd-generate`'s `k3s` mode and commit the result; never fabricate a placeholder host. |
+| "Create runtime Secret" reports a runtime secret not set in the machine's Environment | Run the `environment-config` slot (`smaqit.infrastructure-repo-config` `runtime`) for that environment, completing any operator handoff it prints, then dispatch again. Never paste a value into the workflow. |
+| "Create runtime Secret" is Forbidden | The platform's deployer Role does not grant `secrets` in the Namespace. Ask the platform team for `create`/`patch` on `secrets` there; never move the value into the Deployment as a literal. |
 | `kubectl apply` fails (admission rejection) | Report the admission error verbatim. Do not retry with `--force` or widened scope. |
 | `kubectl rollout status` times out | Report the timeout and the run's last known Deployment state. If the platform grants `pods/log`, include the failing container's logs; never `pods/exec`. |
 | `Certificate` never reaches `Ready` (`own-tls`) | Check the `ClusterIssuer` name and the issuer's challenge reachability against the Environments row; do not bypass the wait. |

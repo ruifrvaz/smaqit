@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"os"
@@ -63,8 +64,14 @@ func k3sConstraints(rows []k3sEnvRow) map[string]string {
 // specEnvironmentsJSON is what `smaqit spec environments --json` prints for the rows.
 func specEnvironmentsJSON(t *testing.T, rows []k3sEnvRow, constraints map[string]string) string {
 	t.Helper()
+	return specTextJSON(t, k3sSpec(rows, constraints))
+}
+
+// specTextJSON is what `smaqit spec environments --json` prints for a whole spec.
+func specTextJSON(t *testing.T, spec string) string {
+	t.Helper()
 	root := t.TempDir()
-	writeInfraSpec(t, root, "platform.md", k3sSpec(rows, constraints))
+	writeInfraSpec(t, root, "platform.md", spec)
 	set, errs := loadInfraEnvironments(root)
 	if len(errs) == 0 {
 		errs = validateInfraEnvironments(set, "")
@@ -120,6 +127,10 @@ var k3sGoldenCases = func() map[string][]k3sEnvRow {
 		}
 	}
 	cases["exec-allowed"] = []k3sEnvRow{k3sRow("prod", "pub-01", "public", "own-tls")}
+	cases["runtime-secrets"] = []k3sEnvRow{
+		k3sRow("test", "edge-01", "private-mesh", "platform-default-tls"),
+		k3sRow("prod", "pub-01", "public", "own-tls"),
+	}
 	cases["public-mesh-api"] = []k3sEnvRow{k3sMeshAPIRow("prod", "pub-01", "own-tls")}
 	return cases
 }()
@@ -127,6 +138,16 @@ var k3sGoldenCases = func() map[string][]k3sEnvRow {
 // k3sGoldenExtraConstraints adds Constraints rows beyond the ones the rows need.
 var k3sGoldenExtraConstraints = map[string]map[string]string{
 	"exec-allowed": {"Deployer Exec": "allowed"},
+}
+
+// k3sGoldenRuntimeSecrets adds a `## Runtime Secrets` table to a golden case.
+var k3sGoldenRuntimeSecrets = map[string][][3]string{
+	"runtime-secrets": {{"SESSION_SECRET", "generated", "all"}, {"ADMIN_PASSWORD", "operator-provided", "prod"}},
+}
+
+// k3sGoldenSpec is the whole Infrastructure spec a golden case renders from.
+func k3sGoldenSpec(name string) string {
+	return withRuntimeSecrets(k3sSpec(k3sGoldenCases[name], k3sGoldenConstraints(name)), k3sGoldenRuntimeSecrets[name]...)
 }
 
 func k3sGoldenConstraints(name string) map[string]string {
@@ -138,15 +159,15 @@ func k3sGoldenConstraints(name string) map[string]string {
 }
 
 // Every reachability × Ingress-mode pair, a mixed public/private pair, exec
-// allowed, and a public app behind a mesh-only API render exactly their golden
-// workflows.
+// allowed, a public app behind a mesh-only API, and runtime secrets render
+// exactly their golden workflows.
 func TestK3sDeployGoldenFiles(t *testing.T) {
-	if len(k3sGoldenCases) != len(reachabilityClasses)*len(ingressModes)+3 {
-		t.Fatalf("golden cases = %d, want every combination plus mixed, exec-allowed and public-mesh-api", len(k3sGoldenCases))
+	if len(k3sGoldenCases) != len(reachabilityClasses)*len(ingressModes)+4 {
+		t.Fatalf("golden cases = %d, want every combination plus mixed, exec-allowed, public-mesh-api and runtime-secrets", len(k3sGoldenCases))
 	}
-	for name, rows := range k3sGoldenCases {
+	for name := range k3sGoldenCases {
 		t.Run(name, func(t *testing.T) {
-			out, stderr, code := renderK3s(t, specEnvironmentsJSON(t, rows, k3sGoldenConstraints(name)), "shop")
+			out, stderr, code := renderK3s(t, specTextJSON(t, k3sGoldenSpec(name)), "shop")
 			if code != 0 {
 				t.Fatalf("render exit %d: %s", code, stderr)
 			}
@@ -342,6 +363,9 @@ func TestK3sDeployRenderedContract(t *testing.T) {
 	}
 	if strings.Contains(out, "Join the mesh") || strings.Contains(out, "smaqit:mesh-join") || strings.Contains(out, "__MESH_") {
 		t.Error("a render with no mesh secret kept the mesh-join step")
+	}
+	if strings.Contains(out, "runtime") || strings.Contains(out, "RUNTIME_") {
+		t.Error("a render with no runtime secret kept the runtime-secret step or its exports")
 	}
 	parseK3sWorkflow(t, out)
 
@@ -729,5 +753,100 @@ func TestPostMergeDispatchesWithoutCheckout(t *testing.T) {
 	delete(old.Env, "GH_REPO")
 	if _, out, err := execStep(t, notARepo, old, nil, nil, h.env...); err == nil || !strings.Contains(out, "not a git repository") {
 		t.Errorf("the stub no longer reproduces the live failure: %v\n%s", err, out)
+	}
+}
+
+// Runtime secrets: the step sits between lint and apply, maps every declared
+// name to the dispatched machine's Environment secret, and builds the Secret
+// from those values on stdin; a value never reaches a command line.
+func TestK3sDeployRuntimeSecretStep(t *testing.T) {
+	out, stderr, code := renderK3s(t, specTextJSON(t, k3sGoldenSpec("runtime-secrets")), "shop")
+	if code != 0 {
+		t.Fatalf("render exit %d: %s", code, stderr)
+	}
+	workflow := parseK3sWorkflow(t, out)
+	deploy := workflow.Jobs["deploy"]
+	step := workflow.step(t, "deploy", "Create runtime Secret")
+	wantEnv := map[string]string{"ADMIN_PASSWORD": "${{ secrets.ADMIN_PASSWORD }}", "SESSION_SECRET": "${{ secrets.SESSION_SECRET }}"}
+	if step.If != "env.RUNTIME_SECRETS != ''" || len(step.Env) != len(wantEnv) {
+		t.Errorf("runtime-secret step = %+v", step)
+	}
+	for k, v := range wantEnv {
+		if step.Env[k] != v {
+			t.Errorf("runtime-secret step env %s = %q, want %q", k, step.Env[k], v)
+		}
+	}
+	if !strings.Contains(step.Run, "kubectl apply --server-side --force-conflicts --field-manager=smaqit-deploy -n \"app-shop\" -f -") || strings.Contains(step.Run, "${{") {
+		t.Errorf("runtime-secret script = %q", step.Run)
+	}
+	index := map[string]int{}
+	for i, s := range deploy.Steps {
+		index[s.Name] = i
+	}
+	if !(index["Lint manifests"] < index["Create runtime Secret"] && index["Create runtime Secret"] < index["Apply manifests"]) {
+		t.Errorf("Create runtime Secret must run after lint and before apply: %v", index)
+	}
+	var targets map[string]struct {
+		RuntimeSecrets []string `json:"runtimeSecrets"`
+	}
+	if err := json.Unmarshal([]byte(deploy.Env["K3S_TARGETS"]), &targets); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(targets["edge-01"].RuntimeSecrets, ",") != "SESSION_SECRET" || strings.Join(targets["pub-01"].RuntimeSecrets, ",") != "SESSION_SECRET,ADMIN_PASSWORD" {
+		t.Errorf("K3S_TARGETS runtime secrets = %+v", targets)
+	}
+
+	// Run Resolve target and the step for prod against the stub kubectl. A
+	// multi-line value survives intact (no env-file parsing).
+	const session, admin = "SESSION-91ab", "line one\nline two"
+	h := newScriptHarness(t)
+	dir := t.TempDir()
+	env := map[string]string{"MACHINE": "pub-01", "K3S_TARGETS": deploy.Env["K3S_TARGETS"]}
+	for k, v := range runStep(t, dir, workflow.step(t, "deploy", "Resolve target"), env) {
+		env[k] = v
+	}
+	if env["RUNTIME_SECRETS"] != "SESSION_SECRET ADMIN_PASSWORD" || env["RUNTIME_SECRET_NAME"] != "shop-runtime" {
+		t.Fatalf("Resolve target exported %v", env)
+	}
+	if !runsUnder(t, step, env) {
+		t.Fatal("the runtime-secret step would not run for a machine with runtime secrets")
+	}
+	if _, out, err := execStep(t, dir, step, env, map[string]string{"SESSION_SECRET": session, "ADMIN_PASSWORD": admin}, h.env...); err != nil {
+		t.Fatalf("runtime-secret step failed: %v\n%s", err, out)
+	}
+	var secret struct {
+		Kind     string                `json:"kind"`
+		Metadata struct{ Name string } `json:"metadata"`
+		Data     map[string]string     `json:"data"`
+	}
+	applied, _ := os.ReadFile(filepath.Join(h.state, "kubectl.applied"))
+	if err := json.Unmarshal(applied, &secret); err != nil {
+		t.Fatalf("applied manifest is not JSON: %v\n%s", err, applied)
+	}
+	decoded := map[string]string{}
+	for k, v := range secret.Data {
+		b, _ := base64.StdEncoding.DecodeString(v)
+		decoded[k] = string(b)
+	}
+	if secret.Kind != "Secret" || secret.Metadata.Name != "shop-runtime" || decoded["SESSION_SECRET"] != session || decoded["ADMIN_PASSWORD"] != admin || len(decoded) != 2 {
+		t.Errorf("applied Secret = %+v decoded %q", secret, decoded)
+	}
+	calls, _ := os.ReadFile(filepath.Join(h.state, "kubectl.calls"))
+	h.requireAbsent("kubectl argv", string(calls), session, "line one")
+
+	// A value missing from the Environment fails the step before kubectl runs.
+	h2 := newScriptHarness(t)
+	_, out, err := execStep(t, dir, step, env, map[string]string{"SESSION_SECRET": session}, h2.env...)
+	if err == nil || !strings.Contains(out, "Runtime secret ADMIN_PASSWORD is not set in the pub-01 Environment") {
+		t.Errorf("missing value: %v\n%s", err, out)
+	}
+	if calls, _ := os.ReadFile(filepath.Join(h2.state, "kubectl.calls")); len(calls) != 0 {
+		t.Errorf("kubectl ran although a value was missing: %s", calls)
+	}
+
+	// test's machine receives only its own name.
+	env = map[string]string{"MACHINE": "edge-01", "K3S_TARGETS": deploy.Env["K3S_TARGETS"]}
+	if got := runStep(t, dir, workflow.step(t, "deploy", "Resolve target"), env)["RUNTIME_SECRETS"]; got != "SESSION_SECRET" {
+		t.Errorf("edge-01 RUNTIME_SECRETS = %q", got)
 	}
 }

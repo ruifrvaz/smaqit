@@ -7,6 +7,7 @@
 | 143 | Bench: deploy-verify `ci-evidence` on Claude Code, Against the Previous Release | Not Started | Medium |
 | 146 | VM Modes: CI-Only Deploys (Close the Workflow Gaps, Then Enforce the Task 144 Rule) | Not Started | Medium |
 | 147 | ci-bootstrap Re-run on an Onboarded existing-k3s App: State Checks for Onboarding and Artifact Build | Not Started | Medium |
+| 148 | existing-k3s: Optional Image Policy Action Around the Image Push | Not Started | Medium |
 | 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | In Progress | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 113 | Business Use-Case Diagrams: No Guardrail Against Generalization-Inheritance Misuse or PlantUML-Alias Collision With the Project's Own UC-ID Convention | new | Medium |

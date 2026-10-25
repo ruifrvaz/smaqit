@@ -45,10 +45,20 @@ type slotFiller struct {
 	Operation string
 }
 
+// slotDef is one slot's contract: what any filler, default or project-bound,
+// receives, hands to the next slot, and must make true before the slot completes.
+// Notes add what a mode requires on top (keyed by provisioning_mode); a filler
+// that satisfies the contract and the note replaces the default with nothing
+// else to change. `smaqit slots contract` prints it, and the deployment-slots
+// wiki's catalogue is the same text.
 type slotDef struct {
-	Name    string
-	DayTwo  bool
-	Purpose string
+	Name       string
+	DayTwo     bool
+	Purpose    string
+	Inputs     string
+	Handoff    string
+	Completion string
+	Notes      map[string]string
 	// TargetActing slots change the target itself (provision, deploy, TLS,
 	// replace, teardown); under a CI-only mode they never run locally.
 	TargetActing bool
@@ -113,54 +123,94 @@ const (
 // slots never run as part of a full sequence; they are invoked one at a time.
 var deploySlots = []slotDef{
 	{
-		Name:    "platform-prereqs",
-		Purpose: "Prepare platform-level prerequisites the target needs before credentials or onboarding",
+		Name:       "platform-prereqs",
+		Purpose:    "Prepare platform-level prerequisites the target needs before credentials or onboarding",
+		Inputs:     "Infrastructure spec, environment",
+		Handoff:    "Reachable target network",
+		Completion: "Prerequisite check passes",
+		Notes:      map[string]string{"existing-k3s": "None. A filler must not act on the target: the deploy job joins any mesh itself."},
 		// No default for any mode: existing-k3s deploys only from CI, and the
 		// generated deploy.yml joins a private mesh itself.
 		Defaults: byMode(noFiller(), nil),
 	},
 	{
-		Name:     "access-credentials",
-		Purpose:  "Load the credentials needed to reach the provider, platform, and repository",
-		Defaults: byMode(skillFiller(skillVaultLoader, "access"), nil),
+		Name:       "access-credentials",
+		Purpose:    "Load the credentials needed to reach the provider, platform, and repository",
+		Inputs:     "Vault paths for the mode",
+		Handoff:    "Credentials in Vault (never in artifacts)",
+		Completion: "Required paths populated",
+		Notes:      map[string]string{"existing-k3s": "Loads only what this machine needs to request onboarding (the default: the `platform-repo` token). Never a deploy credential: the deploy authenticates with the CI job's OIDC identity."},
+		Defaults:   byMode(skillFiller(skillVaultLoader, "access"), nil),
 	},
 	{
-		Name:     "platform-onboarding",
-		Purpose:  "Request tenancy on a platform-owned target and gate on its approval",
-		Defaults: byMode(noFiller(), map[string]slotFiller{"existing-k3s": skillFiller(skillOnboarding, "request")}),
+		Name:       "platform-onboarding",
+		Purpose:    "Request tenancy on a platform-owned target and gate on its approval",
+		Inputs:     "Platform repo, registry file, environment",
+		Handoff:    "Approved onboarding (merged request)",
+		Completion: "Request merged; stop while pending",
+		Notes:      map[string]string{"existing-k3s": "Inputs: the spec's `Platform Repo` and `Registry File Path`, the environment's `Machine Slug`, and this repository's `owner/repo` and numeric ID. Hands off a merged registry request; stops while pending. Never dispatches the platform's workflows: the first deploy's namespace guard confirms the binding (403 until the platform reconciles)."},
+		Defaults:   byMode(noFiller(), map[string]slotFiller{"existing-k3s": skillFiller(skillOnboarding, "request")}),
 	},
 	{
-		Name:    "target-credentials",
-		Purpose: "Load credentials the target issues or authorizes for this app",
+		Name:       "target-credentials",
+		Purpose:    "Load credentials the target issues or authorizes for this app",
+		Inputs:     "Onboarding result or machine registration",
+		Handoff:    "Target credential in Vault (for example a per-app SSH key)",
+		Completion: "Credential populated and usable",
+		Notes:      map[string]string{"existing-k3s": "None: the target issues the app nothing. A filler must not store a deploy credential."},
+		// existing-k3s: the deploy job authenticates with its own OIDC identity and
+		// the platform holds the mesh key, so the target issues the app nothing.
 		Defaults: byMode(skillFiller(skillVaultLoader, "target"), map[string]slotFiller{
-			"provision": noFiller(), "existing-owned": noFiller(),
+			"provision": noFiller(), "existing-owned": noFiller(), "existing-k3s": noFiller(),
 		}),
 	},
 	{
-		Name:     "environment-config",
-		Purpose:  "Configure repository and environment secrets and variables for CI/CD",
-		Defaults: byMode(skillFiller(skillRepoConfig, "sync"), nil),
+		Name:       "environment-config",
+		Purpose:    "Configure repository and environment secrets and variables for CI/CD",
+		Inputs:     "Credentials, target facts",
+		Handoff:    "Repository and environment configuration",
+		Completion: "Expected names present",
+		Notes:      map[string]string{"existing-k3s": "None: nothing is synced, and GitHub creates the machine-slug Environment on the first run that references it. A filler may set non-secret variables or protection rules only."},
+		// existing-k3s: nothing is synced; GitHub creates the machine-slug
+		// Environment on the first run that references it.
+		Defaults: byMode(skillFiller(skillRepoConfig, "sync"), map[string]slotFiller{"existing-k3s": noFiller()}),
 	},
 	{
-		Name:     "artifact-build",
-		Purpose:  "Author and build deployable artifacts (container image, manifests)",
-		Defaults: byMode(noFiller(), map[string]slotFiller{"existing-k3s": familyFiller(familyImageBuild, "build")}),
+		Name:       "artifact-build",
+		Purpose:    "Author and build deployable artifacts (container image, manifests)",
+		Inputs:     "Stack spec, source tree",
+		Handoff:    "Image and manifests",
+		Completion: "Image built (and pushed when required)",
+		Notes:      map[string]string{"existing-k3s": "Authors the `Dockerfile` and `deployment/k3s/deployment.yaml` and `service.yaml`: a ClusterIP Service, Pod Security `restricted`, an explicit numeric `runAsUser`, `DEPLOY_SHA`/`DEPLOY_TIME` as pod environment, no `imagePullSecrets`, no Ingress. Runs on this machine and never pushes: the workflow's `build` job does."},
+		Defaults:   byMode(noFiller(), map[string]slotFiller{"existing-k3s": familyFiller(familyImageBuild, "build")}),
 	},
 	{
-		Name:    "iac-generate",
-		Purpose: "Generate Infrastructure as Code from the consolidated specifications",
+		Name:       "iac-generate",
+		Purpose:    "Generate Infrastructure as Code from the consolidated specifications",
+		Inputs:     "Infrastructure and Stack specs",
+		Handoff:    "IaC configuration with credential references",
+		Completion: "IaC written and structurally valid",
+		Notes:      map[string]string{"existing-k3s": "None: the app owns no infrastructure on the platform."},
 		Defaults: byMode(noFiller(), map[string]slotFiller{
 			"provision": builtinFiller("generate-iac"), "existing-owned": builtinFiller("generate-iac"),
 		}),
 	},
 	{
-		Name:     "ci-generate",
-		Purpose:  "Generate or update the CI/CD workflows that deploy the target",
-		Defaults: byMode(skillFiller(skillCICDGenerate, "generate"), nil),
+		Name:       "ci-generate",
+		Purpose:    "Generate or update the CI/CD workflows that deploy the target",
+		Inputs:     "Mode, Infrastructure spec",
+		Handoff:    "Workflow files",
+		Completion: "Workflows written and linted",
+		Notes:      map[string]string{"existing-k3s": "Writes a dispatch-only `deploy.yml` with an `environment` input of machine slugs. Its `deploy` job runs in the machine-slug GitHub Environment with `permissions` `contents: read` and `id-token: write`; joins the mesh when the row names a mesh secret; connects through the spec's `Cluster Connect` action; and runs the guard, lint, apply, rollout, and exec check plus the steps \"Verify revision\" and \"Verify in cluster\" or \"Verify over HTTPS\" (`verify` reads them by name). Also writes the Ingress and probe manifests the spec's allowed modes need."},
+		Defaults:   byMode(skillFiller(skillCICDGenerate, "generate"), nil),
 	},
 	{
 		Name:         "provision",
 		Purpose:      "Provision or reconcile the target infrastructure through the guarded IaC tool",
+		Inputs:       "IaC configuration, credentials",
+		Handoff:      "Provisioned target (host, fixed IP)",
+		Completion:   "Guarded plan/apply succeeds",
+		Notes:        map[string]string{"existing-k3s": "None; refused on `ci-bootstrap`. A binding that would run on this machine is refused (`SLOTS-LOCAL-DEPLOY-REFUSED`)."},
 		TargetActing: true,
 		Defaults: byMode(noFiller(), map[string]slotFiller{
 			"provision": skillFiller(skillProvision, "apply"), "existing-owned": skillFiller(skillProvision, "apply"),
@@ -169,21 +219,33 @@ var deploySlots = []slotDef{
 	{
 		Name:         "host-bootstrap",
 		Purpose:      "Bootstrap the host operating system and runtime the app deploys onto",
+		Inputs:       "Target host, credentials",
+		Handoff:      "Host ready for deploys",
+		Completion:   "Bootstrap checks pass",
+		Notes:        map[string]string{"existing-k3s": "None; refused on `ci-bootstrap` and `existing-cicd-pr`. The platform owns the host."},
 		TargetActing: true,
 		Defaults:     byMode(noFiller(), vmModes(skillFiller(skillVMBootstrap, "bootstrap"))),
 	},
 	{
 		Name:         "app-deploy",
 		Purpose:      "Deploy the application onto the target",
+		Inputs:       "Artifacts, target, credentials",
+		Handoff:      "Running revision",
+		Completion:   "Deploy completes",
+		Notes:        map[string]string{"existing-k3s": "The deploy runs in the workflow; the agent reads this filler only to trigger and monitor it. Inputs: the deployment path, the environment's machine slug, and the intended commit (merge or pushed SHA). Triggers the run (dispatch at the default branch, or the merged PR's dispatcher), selects it by workflow, event, commit, and creation time, stops when more than one run matches, and waits for it to finish. Hands the run's ID to `verify`; a failed run stops the walk. Never deploys from this machine."},
 		TargetActing: true,
 		Defaults: byMode(familyFiller(familyDeployRsync, "deploy"), map[string]slotFiller{
 			"existing-k3s": familyFiller(familyDeployK3s, "deploy"),
 		}),
 	},
 	{
-		Name:     "verify",
-		Purpose:  "Verify the deployed revision is healthy and serving",
-		Defaults: byMode(skillFiller(skillDeployVerify, "verify"), nil),
+		Name:       "verify",
+		Purpose:    "Verify the deployed revision is healthy and serving",
+		Inputs:     "Target URL, expected revision",
+		Handoff:    "Verification report",
+		Completion: "All checks pass",
+		Notes:      map[string]string{"existing-k3s": "Decides from the deploy run's record only (default: deploy-verify `ci-evidence`), given the run's ID and the intended commit. Never reaches the target from this machine."},
+		Defaults:   byMode(skillFiller(skillDeployVerify, "verify"), nil),
 		// existing-k3s on a CI path: the deploy run already verified the target
 		// from inside its own mesh and cluster access, so verify reads that run's
 		// recorded steps instead of reaching the target from this machine.
@@ -196,6 +258,10 @@ var deploySlots = []slotDef{
 	{
 		Name:         "tls",
 		Purpose:      "Issue and install TLS for a declared custom domain",
+		Inputs:       "Domain, DNS, target",
+		Handoff:      "Certificate in place",
+		Completion:   "HTTPS smoke test passes",
+		Notes:        map[string]string{"existing-k3s": "None. A binding is refused (`SLOTS-LOCAL-DEPLOY-REFUSED`): no path runs it in CI, and the platform serves TLS or awaits the app's `Certificate` inside the deploy."},
 		TargetActing: true,
 		Defaults:     byMode(noFiller(), vmModes(skillFiller(skillDomainTLS, "issue"))),
 	},
@@ -203,6 +269,10 @@ var deploySlots = []slotDef{
 		Name:         "replace",
 		DayTwo:       true,
 		Purpose:      "Replace a target in place (day-two operation)",
+		Inputs:       "Target identity",
+		Handoff:      "Replacement target",
+		Completion:   "Replacement verified",
+		Notes:        map[string]string{"existing-k3s": "None. A binding is refused (`SLOTS-LOCAL-DEPLOY-REFUSED`): no path runs it in CI."},
 		TargetActing: true,
 		Defaults:     byMode(noFiller(), nil),
 	},
@@ -210,6 +280,10 @@ var deploySlots = []slotDef{
 		Name:         "teardown",
 		DayTwo:       true,
 		Purpose:      "Destroy the target through the guarded IaC tool (day-two operation)",
+		Inputs:       "IaC state",
+		Handoff:      "Removed target",
+		Completion:   "Guarded destroy succeeds",
+		Notes:        map[string]string{"existing-k3s": "None. A binding is refused (`SLOTS-LOCAL-DEPLOY-REFUSED`): offboarding is the platform's process."},
 		TargetActing: true,
 		Defaults:     byMode(noFiller(), map[string]slotFiller{"provision": builtinFiller("iac-destroy")}),
 	},
@@ -897,13 +971,17 @@ func containsString(values []string, value string) bool {
 
 func cmdSlots(args []string) {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: smaqit slots <plan|validate> [flags]")
+		fmt.Fprintln(os.Stderr, "Usage: smaqit slots <plan|contract|validate> [flags]")
 		os.Exit(1)
 	}
-	root, err := findProjectRoot(".")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "SLOTS-ARGUMENT-INVALID: %v; run 'smaqit init' first\n", err)
-		os.Exit(1)
+	// The contracts are the catalogue's; reading them needs no project.
+	var root string
+	if args[0] != "contract" {
+		var err error
+		if root, err = findProjectRoot("."); err != nil {
+			fmt.Fprintf(os.Stderr, "SLOTS-ARGUMENT-INVALID: %v; run 'smaqit init' first\n", err)
+			os.Exit(1)
+		}
 	}
 	switch args[0] {
 	case "plan":
@@ -943,6 +1021,31 @@ func cmdSlots(args []string) {
 			return
 		}
 		printSlotPlan(plan)
+	case "contract":
+		slot, mode, asJSON := "", "", false
+		var argErrs []error
+		for _, arg := range args[1:] {
+			switch {
+			case arg == "--json":
+				asJSON = true
+			case strings.HasPrefix(arg, "--slot="):
+				slot = strings.TrimPrefix(arg, "--slot=")
+			case strings.HasPrefix(arg, "--mode="):
+				mode = strings.TrimPrefix(arg, "--mode=")
+			default:
+				argErrs = append(argErrs, fmt.Errorf("SLOTS-ARGUMENT-INVALID: unknown flag %q", arg))
+			}
+		}
+		contracts, errs := slotContracts(slot, mode)
+		if errs = append(argErrs, errs...); len(errs) > 0 {
+			exitSlotErrors(errs)
+		}
+		if asJSON {
+			out, _ := json.MarshalIndent(contracts, "", "  ")
+			fmt.Println(string(out))
+			return
+		}
+		printSlotContracts(contracts, mode)
 	case "validate":
 		if len(args) != 1 {
 			exitSlotErrors([]error{errors.New("SLOTS-ARGUMENT-INVALID: Usage: smaqit slots validate")})
@@ -958,6 +1061,124 @@ func cmdSlots(args []string) {
 	default:
 		exitSlotErrors([]error{fmt.Errorf("SLOTS-ARGUMENT-INVALID: unknown slots command %q", args[0])})
 	}
+}
+
+// slotContract is one slot's contract as `smaqit slots contract` prints it.
+type slotContract struct {
+	Order      int               `json:"order"`
+	Slot       string            `json:"slot"`
+	DayTwo     bool              `json:"dayTwo"`
+	Purpose    string            `json:"purpose"`
+	Inputs     string            `json:"inputs"`
+	Handoff    string            `json:"handoff"`
+	Completion string            `json:"completion"`
+	Notes      map[string]string `json:"notes,omitempty"`
+	Default    string            `json:"default,omitempty"` // the mode's default filler, when --mode is given
+}
+
+// slotContracts returns every slot's contract, or one slot's, with the notes
+// for one mode only when a mode is given.
+func slotContracts(slot, mode string) ([]slotContract, []error) {
+	var errs []error
+	if mode != "" && !containsString(provisioningModes, mode) {
+		errs = append(errs, fmt.Errorf("SLOTS-ARGUMENT-INVALID: --mode must be one of %s", strings.Join(provisioningModes, ", ")))
+	}
+	if slot != "" {
+		if _, ok := findSlotDef(slot); !ok {
+			errs = append(errs, fmt.Errorf("SLOTS-ARGUMENT-INVALID: --slot %q is not a deploy-phase slot", slot))
+		}
+	}
+	if len(errs) > 0 {
+		return nil, errs
+	}
+	var out []slotContract
+	order := 0
+	for _, def := range deploySlots {
+		if !def.DayTwo {
+			order++
+		}
+		if slot != "" && def.Name != slot {
+			continue
+		}
+		c := slotContract{Slot: def.Name, DayTwo: def.DayTwo, Purpose: def.Purpose, Inputs: def.Inputs, Handoff: def.Handoff, Completion: def.Completion, Notes: def.Notes}
+		if !def.DayTwo {
+			c.Order = order
+		}
+		if mode != "" {
+			c.Notes = nil
+			if note, ok := def.Notes[mode]; ok {
+				c.Notes = map[string]string{mode: note}
+			}
+			c.Default = fillerLabel(def.Defaults[mode])
+		}
+		out = append(out, c)
+	}
+	return out, nil
+}
+
+func fillerLabel(f slotFiller) string {
+	switch f.Kind {
+	case fillerSkill:
+		return f.Name + " (" + f.Operation + ")"
+	case fillerFamily:
+		return f.Name + "* (" + f.Operation + ")"
+	case fillerBuiltin:
+		return "agent builtin: " + f.Name
+	}
+	return "none"
+}
+
+func printSlotContracts(contracts []slotContract, mode string) {
+	for i, c := range contracts {
+		if i > 0 {
+			fmt.Println()
+		}
+		order := "day two"
+		if !c.DayTwo {
+			order = fmt.Sprintf("%d", c.Order)
+		}
+		fmt.Printf("%s (%s) — %s\n", c.Slot, order, c.Purpose)
+		fmt.Printf("  inputs:     %s\n  handoff:    %s\n  completion: %s\n", c.Inputs, c.Handoff, c.Completion)
+		if mode != "" {
+			fmt.Printf("  default:    %s\n", c.Default)
+		}
+		for _, m := range provisioningModes {
+			if note, ok := c.Notes[m]; ok {
+				fmt.Printf("  %s: %s\n", m, note)
+			}
+		}
+	}
+}
+
+// slotContractsMarkdown renders the catalogue and the per-mode notes exactly as
+// the deployment-slots wiki carries them.
+func slotContractsMarkdown() string {
+	var b strings.Builder
+	b.WriteString("| # | Slot | Purpose | Inputs | Handoff | Completion signal |\n")
+	b.WriteString("|---|------|---------|--------|---------|-------------------|\n")
+	contracts, _ := slotContracts("", "")
+	for _, c := range contracts {
+		order := "—"
+		if !c.DayTwo {
+			order = fmt.Sprintf("%d", c.Order)
+		}
+		fmt.Fprintf(&b, "| %s | `%s` | %s | %s | %s | %s |\n", order, c.Slot, c.Purpose, c.Inputs, c.Handoff, c.Completion)
+	}
+	for _, m := range provisioningModes {
+		header := false
+		for _, c := range contracts {
+			note, ok := c.Notes[m]
+			if !ok {
+				continue
+			}
+			if !header {
+				fmt.Fprintf(&b, "\n**`%s`** — what a filler must do in each slot:\n\n", m)
+				header = true
+			}
+			fmt.Fprintf(&b, "- **`%s`:** %s\n", c.Slot, note)
+		}
+	}
+	return b.String()
 }
 
 func exitSlotErrors(errs []error) {

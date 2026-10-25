@@ -117,6 +117,9 @@ printf '%s\n' '---' 'id: INF-SMOKE-K3S' 'status: draft' 'created: 2026-01-01' '-
   '|---|---|---|---|---|---|---|---|---|---|' \
   '| test | edge-01 | — | private-mesh | platform-owned | — | — | /health.json | MESH_SETUP_KEY | edge-01.mesh.internal |' '' \
   '## Constraints' '' '| Constraint | Description | Impact |' '|---|---|---|' \
+  '| Cluster Connect Action | example-org/platform/.github/actions/k3s-connect@v1.0.0 | connects with the CI job OIDC identity |' \
+  '| Cluster Connect Machine Input | machine | action input |' \
+  '| Cluster Connect Namespace Input | namespace | action input |' \
   '| Mesh Join Action | example-org/mesh-join@v1.0.0 | joins the mesh |' \
   '| Mesh Setup-Key Input | setup-key | action input |' \
   '| Mesh Wait-For Input | wait-for | action input |' \
@@ -135,12 +138,17 @@ for path in ci-bootstrap ci-push existing-cicd-pr; do
   ci_plan="$(cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --path="$path")"
   grep -Eq '^ *[0-9]+  app-deploy +profile +ci ' <<<"$ci_plan"
   grep -Eq '^ *[0-9]+  verify +profile +local +smaqit\.infrastructure-deploy-verify \(ci-evidence\)' <<<"$ci_plan"
+  grep -Eq '^ *[0-9]+  target-credentials +none ' <<<"$ci_plan"
+  grep -Eq '^ *[0-9]+  environment-config +none ' <<<"$ci_plan"
   if grep -Fq 'mesh-check' <<<"$ci_plan"; then
     echo "existing-k3s $path plan still runs mesh-check locally" >&2
     exit 1
   fi
 done
 rm -f "$k3s_spec"
+# The slot contracts print without a project, as a platform's filler author reads them.
+(cd "$smoke_root" && "$binary" slots contract --slot=app-deploy --mode=existing-k3s) \
+  | grep -Fq 'trigger and monitor'
 printf '%s\n' 'schemaVersion: 1' 'phase: deploy' 'slots:' '  tls: none' > "$project/.smaqit/slots.yml"
 # The same re-init refreshes an outdated smaqit section in AGENTS.md while keeping
 # the user's own content around it.

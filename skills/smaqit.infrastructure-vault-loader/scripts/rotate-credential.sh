@@ -11,36 +11,20 @@
 #     apps/<app-slug>/ssh | apps/<app-slug>/github | apps/<app-slug>/platform-repo
 #       (platform-repo: existing-k3s only — a PAT scoped only to contents:write +
 #       pull_requests:write on the platform-owned infrastructure repo, distinct from github)
-#     apps/<app-slug>/<machine-slug>/kubeconfig  (existing-k3s only — the machine-slug in the
-#       path is the distinguishing dimension; no separate environment argument)
-#     apps/<app-slug>/<machine-slug>/mesh-setup-key  (existing-k3s private-mesh only — replaced
-#       with a freshly platform-issued key, entered hidden)
 #     machines/<machine-slug>/cyso | machines/<machine-slug>/tfstate | machines/<machine-slug>/base-ssh
-#     organizations/<org-slug>/github-package-read  (the org-scoped, read-only registry pull
-#       credential: username + token)
 #
-# For everything except machines/<slug>/base-ssh and apps/<slug>/<machine-slug>/kubeconfig, the
-# path is deleted and re-populated (via load-credentials.sh for the legacy scheme; directly here
+# For everything except machines/<slug>/base-ssh, the path is deleted and re-populated (via load-credentials.sh for the legacy scheme; directly here
 # for the new scheme, since load-credentials.sh never writes ssh under the new scheme). base-ssh
 # is different: it generates a new base keypair, uses the OLD one one last time to install the new
 # public key on the machine, then retires the old one — it's the one credential type that has to
 # install itself onto the remote machine, not just be replaced in Vault. This never touches any
-# already-bootstrapped app's secret/apps/<app-slug>/ssh. kubeconfig is different again: only the
-# platform can issue one, and how it rotates is the platform's own decision (some reissue it in
-# place and revoke the old token, some only by re-onboarding), so this script never generates a
-# replacement locally — it replaces the value at that one machine-slug's path with the freshly
-# platform-reissued value, pasted the same out-of-band way load-credentials.sh originally loaded
-# it. After rotating, redeploy with a fresh workflow dispatch: a re-run of an old workflow run
-# keeps the secret values from when that run was created. There is no sibling field to preserve — each
-# machine-slug's kubeconfig is its own independent path.
+# already-bootstrapped app's secret/apps/<app-slug>/ssh.
 #
 # Example:
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh cyso
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/ssh
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/platform-repo
-#   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/<machine-slug>/kubeconfig
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh machines/<machine-slug>/base-ssh
-#   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh organizations/<org-slug>/github-package-read
 
 set -euo pipefail
 
@@ -67,12 +51,11 @@ CREDENTIAL_PATH="${1:-}"
 if [ -z "$CREDENTIAL_PATH" ]; then
   echo "Usage: $0 <path>"
   echo "  Legacy: cyso | ssh | tfstate | github"
-  echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | apps/<app-slug>/<machine-slug>/{kubeconfig,mesh-setup-key} |"
-  echo "          machines/<machine-slug>/{cyso,tfstate,base-ssh} | organizations/<org-slug>/github-package-read"
+  echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | machines/<machine-slug>/{cyso,tfstate,base-ssh}"
   exit 1
 fi
 
-# ── Classify the target: legacy | apps | apps-kubeconfig | machines ────────────
+# ── Classify the target: legacy | apps | machines ──────────────────────────────
 
 case "$CREDENTIAL_PATH" in
   cyso|ssh|tfstate|github)
@@ -83,20 +66,6 @@ case "$CREDENTIAL_PATH" in
     APP_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
     CRED_TYPE="$(echo "$CREDENTIAL_PATH" | cut -d/ -f3)"
     ;;
-  apps/*/*/kubeconfig)
-    SCHEME="apps-kubeconfig"
-    APP_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
-    MACHINE_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f3)"
-    ;;
-  apps/*/*/mesh-setup-key)
-    SCHEME="apps-mesh-key"
-    APP_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
-    MACHINE_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f3)"
-    ;;
-  organizations/*/github-package-read)
-    SCHEME="organizations"
-    ORG_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
-    ;;
   machines/*/cyso|machines/*/tfstate|machines/*/base-ssh)
     SCHEME="machines"
     MACHINE_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
@@ -105,107 +74,10 @@ case "$CREDENTIAL_PATH" in
   *)
     echo "ERROR: Unrecognized path '$CREDENTIAL_PATH'."
     echo "  Legacy: cyso | ssh | tfstate | github"
-    echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | apps/<app-slug>/<machine-slug>/{kubeconfig,mesh-setup-key} |"
-    echo "          machines/<machine-slug>/{cyso,tfstate,base-ssh} | organizations/<org-slug>/github-package-read"
+    echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | machines/<machine-slug>/{cyso,tfstate,base-ssh}"
     exit 1
     ;;
 esac
-
-# ── organizations/<org-slug>/github-package-read ───────────────────────────────
-# Org-scoped and shared by every app that pulls a private image from this org: replace both
-# fields, then re-sync each app's GitHub Environments (smaqit.infrastructure-repo-config).
-
-if [ "$SCHEME" = "organizations" ]; then
-  FULL_PATH="secret/organizations/${ORG_SLUG}/github-package-read"
-  echo "==> About to replace: $FULL_PATH"
-  echo "    Every app syncing REGISTRY_USERNAME/REGISTRY_TOKEN from it needs a re-sync afterwards."
-  read -r -p "    Continue? [y/N] " CONFIRM
-  case "$CONFIRM" in
-    y|Y) ;;
-    *) echo "Aborted."; exit 0 ;;
-  esac
-  read -r -p "  username: " REGISTRY_USER </dev/tty
-  read_secret REGISTRY_TOKEN "token (classic PAT, read:packages only)"
-  if [ -z "$REGISTRY_USER" ] || [ -z "$REGISTRY_TOKEN" ]; then
-    echo "ERROR: registry username or token is empty — refusing to write a placeholder secret." >&2
-    exit 1
-  fi
-  printf '%s' "$REGISTRY_TOKEN" | vault kv put "$FULL_PATH" username="$REGISTRY_USER" token=- > /dev/null
-  unset REGISTRY_USER REGISTRY_TOKEN
-  echo "    DONE"
-  echo ""
-  echo "==> Rotation complete for $FULL_PATH"
-  echo "    Re-run smaqit.infrastructure-repo-config (sync-k3s-env.sh --registry-org ${ORG_SLUG})"
-  echo "    for each app that uses it."
-  exit 0
-fi
-
-# ── New scheme: apps/<app-slug>/<machine-slug>/kubeconfig ──────────────────────
-# Never regenerated locally — only the platform can issue a kubeconfig, and how it rotates one is
-# the platform's own decision. Delete the value at this one machine-slug's path and re-prompt for a freshly
-# platform-reissued value, pasted the same out-of-band way load-credentials.sh originally
-# loaded it. There is no sibling field to preserve — each machine-slug's kubeconfig is its own
-# independent path, so no other machine's kubeconfig is ever touched.
-
-if [ "$SCHEME" = "apps-kubeconfig" ]; then
-  FULL_PATH="secret/apps/${APP_SLUG}/${MACHINE_SLUG}/kubeconfig"
-  echo "==> About to rotate: $FULL_PATH"
-  echo "    This requires a FRESHLY PLATFORM-REISSUED kubeconfig — rotation never generates"
-  echo "    one locally. Obtain the new value from the platform's own onboarding/rotation"
-  echo "    hand-off before continuing."
-  read -r -p "    Continue? [y/N] " CONFIRM
-  case "$CONFIRM" in
-    y|Y) ;;
-    *) echo "Aborted."; exit 0 ;;
-  esac
-
-  echo "  Paste the freshly platform-reissued kubeconfig for machine '${MACHINE_SLUG}'."
-  echo "  Out-of-band paste only — this script never contacts a cluster. Paste the full YAML,"
-  echo "  then press Ctrl-D on its own line to finish:"
-  NEW_VALUE="$(cat)"
-  if [ -z "$NEW_VALUE" ]; then
-    echo "ERROR: kubeconfig for '${MACHINE_SLUG}' is empty — refusing to write a placeholder secret." >&2
-    exit 1
-  fi
-
-  vault kv put "$FULL_PATH" value="$NEW_VALUE" > /dev/null
-  unset NEW_VALUE
-
-  echo "    DONE"
-  echo ""
-  echo "==> Rotation complete for ${FULL_PATH}."
-  echo "    Re-run smaqit.infrastructure-repo-config to sync the new value to the relevant"
-  echo "    GitHub Environment secret."
-  exit 0
-fi
-
-# ── New scheme: apps/<app-slug>/<machine-slug>/mesh-setup-key ──────────────────
-# Issued by the platform for the app's CI mesh peer; replaced with a freshly issued key, entered
-# hidden and handed to Vault on stdin. Only this machine-slug's path is touched.
-
-if [ "$SCHEME" = "apps-mesh-key" ]; then
-  FULL_PATH="secret/apps/${APP_SLUG}/${MACHINE_SLUG}/mesh-setup-key"
-  echo "==> About to rotate: $FULL_PATH"
-  echo "    This requires a FRESHLY PLATFORM-ISSUED setup key; obtain it before continuing."
-  read -r -p "    Continue? [y/N] " CONFIRM
-  case "$CONFIRM" in
-    y|Y) ;;
-    *) echo "Aborted."; exit 0 ;;
-  esac
-  read_secret MESH_KEY "mesh_setup_key"
-  if [ -z "$MESH_KEY" ]; then
-    echo "ERROR: mesh setup key for '${MACHINE_SLUG}' is empty — refusing to write a placeholder secret." >&2
-    exit 1
-  fi
-  printf '%s' "$MESH_KEY" | vault kv put "$FULL_PATH" value=- > /dev/null
-  unset MESH_KEY
-  echo "    DONE"
-  echo ""
-  echo "==> Rotation complete for ${FULL_PATH}."
-  echo "    Re-run smaqit.infrastructure-repo-config (sync-k3s-env.sh --mesh-secret <name>) and"
-  echo "    redeploy with a fresh workflow dispatch."
-  exit 0
-fi
 
 # ── Legacy scheme: unchanged behavior ───────────────────────────────────────────
 
@@ -274,7 +146,7 @@ if [ "$SCHEME" = "apps" ]; then
       echo "ERROR: platform_repo_token is empty — refusing to write a placeholder secret." >&2
       exit 1
     fi
-    vault kv put "$FULL_PATH" token="$PLATFORM_REPO_TOKEN" > /dev/null
+    printf '%s' "$PLATFORM_REPO_TOKEN" | vault kv put "$FULL_PATH" token=- > /dev/null
     unset PLATFORM_REPO_TOKEN
     echo "    DONE"
   else
@@ -283,7 +155,7 @@ if [ "$SCHEME" = "apps" ]; then
       echo "ERROR: github_token is empty — refusing to write a placeholder secret." >&2
       exit 1
     fi
-    vault kv put "$FULL_PATH" token="$GH_TOKEN" > /dev/null
+    printf '%s' "$GH_TOKEN" | vault kv put "$FULL_PATH" token=- > /dev/null
     unset GH_TOKEN
     echo "    DONE"
   fi

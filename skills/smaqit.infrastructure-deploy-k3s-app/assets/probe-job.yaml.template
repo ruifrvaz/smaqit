@@ -17,7 +17,6 @@
 # Left in the committed file and stamped at apply time:
 #   __IMAGE__        — this run's image reference
 #   __HEALTH_PATH__  — the environment's Health Path
-# If the Deployment sets imagePullSecrets, set the same ones here.
 
 apiVersion: batch/v1
 kind: Job
@@ -36,8 +35,6 @@ spec:
         app.kubernetes.io/name: __APP_SLUG__-probe
     spec:
       restartPolicy: Never
-      # imagePullSecrets:
-      #   - name: app-registry
       securityContext:
         runAsNonRoot: true
         runAsUser: __RUN_AS_USER__

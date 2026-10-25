@@ -16,11 +16,21 @@ var k3sFixtureRows = []k3sEnvRow{
 	{"prod", "pub-02", "—", "public", "platform-owned", "—", "—", "/healthz", "", ""},
 }
 
+// k3sConnectConstraints are the Cluster Connect rows every existing-k3s spec declares.
+var k3sConnectConstraints = map[string]string{
+	"Cluster Connect Action":          "`example-org/platform/.github/actions/k3s-connect@v1.0.0`",
+	"Cluster Connect Machine Input":   "machine",
+	"Cluster Connect Namespace Input": "namespace",
+}
+
 var k3sFixtureConstraints = map[string]string{
-	"Mesh Join Action":     "`example-org/mesh-join@v1.4.2`",
-	"Mesh Setup-Key Input": "setup-key",
-	"Mesh Wait-For Input":  "wait-for",
-	"Probe Client":         "wget",
+	"Mesh Join Action":                "`example-org/mesh-join@v1.4.2`",
+	"Mesh Setup-Key Input":            "setup-key",
+	"Mesh Wait-For Input":             "wait-for",
+	"Probe Client":                    "wget",
+	"Cluster Connect Action":          k3sConnectConstraints["Cluster Connect Action"],
+	"Cluster Connect Machine Input":   k3sConnectConstraints["Cluster Connect Machine Input"],
+	"Cluster Connect Namespace Input": k3sConnectConstraints["Cluster Connect Namespace Input"],
 }
 
 // k3sSpec renders an Infrastructure spec with an Environments table and the
@@ -35,7 +45,8 @@ func k3sSpec(rows []k3sEnvRow, constraints map[string]string) string {
 	}
 	b.WriteString("\n## Constraints\n\n| Constraint | Description | Impact |\n|---|---|---|\n")
 	b.WriteString("| Platform Repo | example-org/platform | onboarding PR target |\n")
-	for _, name := range []string{"Mesh Join Action", "Mesh Setup-Key Input", "Mesh Wait-For Input", "Probe Client", "Container Registry", "Deployer Exec"} {
+	for _, name := range []string{"Cluster Connect Action", "Cluster Connect Machine Input", "Cluster Connect Namespace Input",
+		"Mesh Join Action", "Mesh Setup-Key Input", "Mesh Wait-For Input", "Probe Client", "Allowed Ingress Modes", "Deployer Exec"} {
 		if value, ok := constraints[name]; ok {
 			b.WriteString("| " + name + " | " + value + " | used by the k3s fillers |\n")
 		}
@@ -96,22 +107,34 @@ func TestInfraEnvironmentsParseTheTable(t *testing.T) {
 	if set.find("dev").verifiesInCluster() {
 		t.Error("a public own-tls environment must verify externally")
 	}
-	if set.Registry != nil || set.DeployerExec != "denied" {
-		t.Errorf("absent rows: registry=%+v deployerExec=%q, want nil and denied", set.Registry, set.DeployerExec)
+	if set.DeployerExec != "denied" {
+		t.Errorf("absent Deployer Exec row = %q, want denied", set.DeployerExec)
+	}
+	if c := set.Connect; c == nil || c.Action != "example-org/platform/.github/actions/k3s-connect@v1.0.0" ||
+		c.MachineInput != "machine" || c.NamespaceInput != "namespace" {
+		t.Errorf("connect = %+v", set.Connect)
+	}
+	if strings.Join(set.AllowedIngressModes, ",") != "own-tls,platform-default-tls,platform-owned" {
+		t.Errorf("absent Allowed Ingress Modes row = %v, want every mode", set.AllowedIngressModes)
+	}
+	if !set.find("test").joinsMesh() || set.find("dev").joinsMesh() {
+		t.Error("only a row naming a mesh secret joins the mesh")
 	}
 
-	writeInfraSpec(t, root, "platform.md", k3sSpec(k3sFixtureRows, copyConstraints(map[string]string{
-		"Container Registry": "`registry.example.com:5000, private`",
-		"Deployer Exec":      "allowed",
-		"Probe Client":       "python3",
+	// A public row may join the mesh too: the platform keeps the API mesh-only
+	// even where the app is public. Reachability still picks the verify mode.
+	rows := append([]k3sEnvRow(nil), k3sFixtureRows...)
+	rows[0][8], rows[0][9] = "MESH_DEPLOY_KEY_PUB_01", "pub-01.mesh.internal"
+	writeInfraSpec(t, root, "platform.md", k3sSpec(rows, copyConstraints(map[string]string{
+		"Deployer Exec": "allowed",
+		"Probe Client":  "python3",
 	})))
 	set, errs = loadInfraEnvironments(root)
 	if errs = append(errs, validateInfraEnvironments(set, "")...); len(errs) > 0 {
-		t.Fatalf("optional rows: %v", errs)
+		t.Fatalf("public row joining the mesh: %v", errs)
 	}
-	if set.Registry == nil || set.Registry.Host != "registry.example.com:5000" || set.Registry.Visibility != "private" ||
-		set.DeployerExec != "allowed" || set.ProbeClient != "python3" {
-		t.Errorf("optional rows: registry=%+v deployerExec=%q probe=%q", set.Registry, set.DeployerExec, set.ProbeClient)
+	if dev := set.find("dev"); !dev.joinsMesh() || dev.verifiesInCluster() || set.DeployerExec != "allowed" || set.ProbeClient != "python3" {
+		t.Errorf("dev row = %+v deployerExec=%q probe=%q", dev, set.DeployerExec, set.ProbeClient)
 	}
 }
 
@@ -142,16 +165,20 @@ func TestInfraEnvironmentsRejectIncompleteRows(t *testing.T) {
 		{"ingress class on platform-owned", mutate("prod", 5, "traefik"), nil, "prod", `environment "prod" Ingress Class must be empty`},
 		{"private-mesh without setup-key secret", mutate("test", 8, ""), nil, "test", `environment "test" Mesh Setup-Key Secret is required`},
 		{"lowercase setup-key secret", mutate("test", 8, "mesh_key"), nil, "test", `environment "test" Mesh Setup-Key Secret "mesh_key"`},
-		{"mesh fields on public", mutate("dev", 9, "x.mesh.internal"), nil, "dev", `environment "dev" Mesh Wait-For Host must be empty`},
+		{"wait-for host without a mesh secret", mutate("dev", 9, "x.mesh.internal"), nil, "dev", `environment "dev" Mesh Setup-Key Secret is required when Mesh Wait-For Host is set`},
+		{"mesh secret without a wait-for host", mutate("dev", 8, "MESH_KEY"), nil, "dev", `environment "dev" Mesh Wait-For Host is required when the row names a Mesh Setup-Key Secret`},
 		{"bad machine slug", mutate("dev", 1, "Pub_01"), nil, "dev", `environment "dev" Machine Slug "Pub_01"`},
 		{"relative health path", mutate("dev", 7, "health"), nil, "dev", `environment "dev" Health Path "health"`},
 		{"no mesh action", k3sFixtureRows, copyConstraints(nil, "Mesh Join Action"), "test", `Constraints row "Mesh Join Action" is required`},
 		{"unpinned mesh action", k3sFixtureRows, copyConstraints(map[string]string{"Mesh Join Action": "example-org/mesh-join"}), "test", `"Mesh Join Action" "example-org/mesh-join" must be a pinned`},
 		{"no probe client for in-cluster verify", k3sFixtureRows, copyConstraints(nil, "Probe Client"), "prod", `Constraints row "Probe Client"`},
 		{"unknown probe client", k3sFixtureRows, copyConstraints(map[string]string{"Probe Client": "httpie"}), "", `"Probe Client" "httpie" must be one of`},
-		{"registry without visibility", k3sFixtureRows, copyConstraints(map[string]string{"Container Registry": "ghcr.io"}), "", `"Container Registry" "ghcr.io" must be`},
-		{"registry with unknown visibility", k3sFixtureRows, copyConstraints(map[string]string{"Container Registry": "ghcr.io, internal"}), "", `"Container Registry" "ghcr.io, internal" must be`},
-		{"registry host with a path", k3sFixtureRows, copyConstraints(map[string]string{"Container Registry": "ghcr.io/org, private"}), "", `"Container Registry" "ghcr.io/org, private" must be`},
+		{"no cluster connect action", k3sFixtureRows, copyConstraints(nil, "Cluster Connect Action"), "dev", `Constraints row "Cluster Connect Action" is required`},
+		{"no cluster connect inputs", k3sFixtureRows, copyConstraints(nil, "Cluster Connect Namespace Input"), "dev", `Constraints row "Cluster Connect Namespace Input" is required`},
+		{"unpinned cluster connect action", k3sFixtureRows, copyConstraints(map[string]string{"Cluster Connect Action": "example-org/platform"}), "", `"Cluster Connect Action" "example-org/platform" must be a pinned`},
+		{"bad cluster connect input", k3sFixtureRows, copyConstraints(map[string]string{"Cluster Connect Machine Input": "the machine"}), "", `"Cluster Connect Machine Input" "the machine" must be an action input name`},
+		{"ingress mode the platform doesn't allow", k3sFixtureRows, copyConstraints(map[string]string{"Allowed Ingress Modes": "platform-owned"}), "dev", `environment "dev" Ingress Mode "own-tls" is not one the platform allows`},
+		{"unknown allowed ingress mode", k3sFixtureRows, copyConstraints(map[string]string{"Allowed Ingress Modes": "platform-owned, ingress-nginx"}), "", `"Allowed Ingress Modes" "platform-owned, ingress-nginx" lists "ingress-nginx"`},
 		{"unknown deployer exec", k3sFixtureRows, copyConstraints(map[string]string{"Deployer Exec": "maybe"}), "", `"Deployer Exec" "maybe" must be one of denied, allowed`},
 		{"no row for the environment", k3sFixtureRows, nil, "staging", `SLOTS-SPEC-MISSING: specs/infrastructure/platform.md "## Environments" table has no row for environment "staging"`},
 		{"duplicate environment", append(append([]k3sEnvRow(nil), k3sFixtureRows...), k3sFixtureRows[0]), nil, "", `environment "dev" is declared more than once`},
@@ -177,9 +204,20 @@ func TestInfraEnvironmentsRejectIncompleteRows(t *testing.T) {
 		})
 	}
 
-	// A public-only spec needs neither mesh constraints nor a probe client.
+	// A platform that allows only platform-owned exposure accepts a row that
+	// uses it.
+	owned := []k3sEnvRow{k3sFixtureRows[2]}
+	root0 := t.TempDir()
+	writeInfraSpec(t, root0, "platform.md", k3sSpec(owned, copyConstraints(map[string]string{"Allowed Ingress Modes": "`platform-owned`"})))
+	set0, errs0 := loadInfraEnvironments(root0)
+	if errs0 = append(errs0, validateInfraEnvironments(set0, "")...); len(errs0) > 0 || strings.Join(set0.AllowedIngressModes, ",") != "platform-owned" {
+		t.Fatalf("platform-owned only: %v %v", errs0, set0.AllowedIngressModes)
+	}
+
+	// A public-only spec needs neither mesh constraints nor a probe client, only
+	// the Cluster Connect rows.
 	root := t.TempDir()
-	writeInfraSpec(t, root, "platform.md", k3sSpec(k3sFixtureRows[:1], map[string]string{}))
+	writeInfraSpec(t, root, "platform.md", k3sSpec(k3sFixtureRows[:1], k3sConnectConstraints))
 	set, errs := loadInfraEnvironments(root)
 	if errs = append(errs, validateInfraEnvironments(set, "")...); len(errs) > 0 {
 		t.Fatalf("public-only spec: %v", errs)

@@ -23,11 +23,9 @@ var (
 	ingressModes        = []string{"own-tls", "platform-default-tls", "platform-owned"}
 	probeClients        = []string{"curl", "wget", "python3"}
 	deployerExecModes   = []string{"denied", "allowed"}
-	registryVisibility  = []string{"public", "private"}
 
 	envSlugPattern       = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
 	hostPattern          = regexp.MustCompile(`^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$`)
-	registryHostPattern  = regexp.MustCompile(`^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?$`)
 	secretNamePattern    = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 	actionRefPattern     = regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[A-Za-z0-9_./-]+$`)
 	actionInputPattern   = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_-]*$`)
@@ -60,17 +58,26 @@ func (e infraEnvironment) verifiesInCluster() bool {
 	return e.Reachability == "private-mesh" || e.IngressMode == "platform-owned"
 }
 
+// joinsMesh reports whether CI joins a mesh before reaching this machine's API.
+// Reachability describes the app; a platform may keep the API mesh-only even
+// where the app is public, so a public row may name a mesh secret too.
+func (e infraEnvironment) joinsMesh() bool {
+	return e.MeshSetupKeySecret != ""
+}
+
 type meshAccess struct {
 	Action        string `json:"action"`
 	SetupKeyInput string `json:"setupKeyInput"`
 	WaitForInput  string `json:"waitForInput"`
 }
 
-// containerRegistry is the `Container Registry` Constraints row
-// (`<host>, public|private`). Absent means a public image.
-type containerRegistry struct {
-	Host       string `json:"host"`
-	Visibility string `json:"visibility"`
+// clusterConnect is the platform's action that turns the job's GitHub Actions
+// OIDC identity into a kubeconfig for one machine and Namespace: it owns the API
+// address, the cluster CA, the token audience, and the token's refresh.
+type clusterConnect struct {
+	Action         string `json:"action"`
+	MachineInput   string `json:"machineInput"`
+	NamespaceInput string `json:"namespaceInput"`
 }
 
 type infraEnvironments struct {
@@ -78,11 +85,14 @@ type infraEnvironments struct {
 	Spec          string             `json:"spec"`
 	Environments  []infraEnvironment `json:"environments"`
 	Mesh          *meshAccess        `json:"mesh"`
-	ProbeClient   string             `json:"probeClient"`
-	Registry      *containerRegistry `json:"registry"`
-	DeployerExec  string             `json:"deployerExec"`
+	Connect       *clusterConnect    `json:"connect"`
+	// AllowedIngressModes is the platform's declared exposure (the `Allowed
+	// Ingress Modes` row); every mode when the spec declares none.
+	AllowedIngressModes []string `json:"allowedIngressModes"`
+	ProbeClient         string   `json:"probeClient"`
 
-	registryRaw string
+	allowedIngressRaw string
+	DeployerExec      string `json:"deployerExec"`
 }
 
 func (set *infraEnvironments) find(name string) *infraEnvironment {
@@ -280,15 +290,25 @@ func parseInfraEnvironments(text string) (*infraEnvironments, []error) {
 	if action := constraints["Mesh Join Action"]; action != "" || constraints["Mesh Setup-Key Input"] != "" || constraints["Mesh Wait-For Input"] != "" {
 		set.Mesh = &meshAccess{Action: action, SetupKeyInput: constraints["Mesh Setup-Key Input"], WaitForInput: constraints["Mesh Wait-For Input"]}
 	}
+	set.Connect = &clusterConnect{
+		Action:         constraints["Cluster Connect Action"],
+		MachineInput:   constraints["Cluster Connect Machine Input"],
+		NamespaceInput: constraints["Cluster Connect Namespace Input"],
+	}
+	set.AllowedIngressModes = append([]string(nil), ingressModes...)
+	if raw := constraints["Allowed Ingress Modes"]; raw != "" {
+		set.allowedIngressRaw = raw
+		set.AllowedIngressModes = nil
+		for _, mode := range strings.Split(raw, ",") {
+			if mode = strings.Trim(strings.TrimSpace(mode), "`"); mode != "" {
+				set.AllowedIngressModes = append(set.AllowedIngressModes, mode)
+			}
+		}
+	}
 	set.ProbeClient = constraints["Probe Client"]
 	set.DeployerExec = constraints["Deployer Exec"]
 	if set.DeployerExec == "" {
 		set.DeployerExec = "denied"
-	}
-	if raw := constraints["Container Registry"]; raw != "" {
-		set.registryRaw = raw
-		host, visibility, _ := strings.Cut(raw, ",")
-		set.Registry = &containerRegistry{Host: strings.TrimSpace(host), Visibility: strings.TrimSpace(visibility)}
 	}
 	return set, errs
 }
@@ -349,20 +369,21 @@ func validateEnvironment(env infraEnvironment) []error {
 	case !healthPathPattern.MatchString(env.HealthPath):
 		invalid("Health Path", fmt.Sprintf("%q must be an absolute path such as /health.json", env.HealthPath))
 	}
+	// A private-mesh row must join the mesh; a public row may, when the platform
+	// keeps its API mesh-only. Either way the secret and the API's mesh name come
+	// together.
 	private := env.Reachability == "private-mesh"
 	switch {
 	case env.MeshSetupKeySecret == "" && private:
 		missing("Mesh Setup-Key Secret", " when Reachability is private-mesh")
-	case env.MeshSetupKeySecret != "" && !private:
-		invalid("Mesh Setup-Key Secret", "must be empty unless Reachability is private-mesh")
+	case env.MeshSetupKeySecret == "" && env.MeshWaitForHost != "":
+		missing("Mesh Setup-Key Secret", " when Mesh Wait-For Host is set")
 	case env.MeshSetupKeySecret != "" && (!secretNamePattern.MatchString(env.MeshSetupKeySecret) || strings.HasPrefix(env.MeshSetupKeySecret, "GITHUB_")):
 		invalid("Mesh Setup-Key Secret", fmt.Sprintf("%q must be an uppercase GitHub secret name (A-Z, 0-9, _), not starting with GITHUB_", env.MeshSetupKeySecret))
 	}
 	switch {
-	case env.MeshWaitForHost == "" && private:
-		missing("Mesh Wait-For Host", " when Reachability is private-mesh")
-	case env.MeshWaitForHost != "" && !private:
-		invalid("Mesh Wait-For Host", "must be empty unless Reachability is private-mesh")
+	case env.MeshWaitForHost == "" && env.joinsMesh():
+		missing("Mesh Wait-For Host", " when the row names a Mesh Setup-Key Secret")
 	case env.MeshWaitForHost != "" && !hostPattern.MatchString(env.MeshWaitForHost):
 		invalid("Mesh Wait-For Host", fmt.Sprintf("%q must be a lowercase hostname", env.MeshWaitForHost))
 	}
@@ -374,7 +395,7 @@ func validateSharedConstraints(set *infraEnvironments, rows []infraEnvironment) 
 	var errs []error
 	needMesh, needProbe := false, false
 	for _, env := range rows {
-		needMesh = needMesh || env.Reachability == "private-mesh"
+		needMesh = needMesh || env.joinsMesh()
 		needProbe = needProbe || env.verifiesInCluster()
 	}
 	mesh := set.Mesh
@@ -388,7 +409,7 @@ func validateSharedConstraints(set *infraEnvironments, rows []infraEnvironment) 
 			{"Mesh Wait-For Input", mesh.WaitForInput},
 		} {
 			if field.value == "" {
-				errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-MISSING: Constraints row %q is required when any environment is private-mesh", field.name))
+				errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-MISSING: Constraints row %q is required when any environment joins a mesh", field.name))
 			}
 		}
 	}
@@ -403,17 +424,52 @@ func validateSharedConstraints(set *infraEnvironments, rows []infraEnvironment) 
 			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row %q %q must be an action input name", field.name, field.value))
 		}
 	}
+	connect := set.Connect
+	if connect == nil {
+		connect = &clusterConnect{}
+	}
+	for _, field := range []struct{ name, value string }{
+		{"Cluster Connect Action", connect.Action},
+		{"Cluster Connect Machine Input", connect.MachineInput},
+		{"Cluster Connect Namespace Input", connect.NamespaceInput},
+	} {
+		if field.value == "" {
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-MISSING: Constraints row %q is required: the platform's action that connects CI to the cluster with the job's OIDC identity", field.name))
+		}
+	}
+	if connect.Action != "" && !actionRefPattern.MatchString(connect.Action) {
+		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Cluster Connect Action\" %q must be a pinned uses: reference (owner/repo[/path]@ref)", connect.Action))
+	}
+	for _, field := range []struct{ name, value string }{
+		{"Cluster Connect Machine Input", connect.MachineInput},
+		{"Cluster Connect Namespace Input", connect.NamespaceInput},
+	} {
+		if field.value != "" && !actionInputPattern.MatchString(field.value) {
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row %q %q must be an action input name", field.name, field.value))
+		}
+	}
 	switch {
 	case set.ProbeClient == "" && needProbe:
 		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-MISSING: Constraints row \"Probe Client\" (%s) is required when any environment verifies in-cluster (private-mesh or platform-owned)", strings.Join(probeClients, " or ")))
 	case set.ProbeClient != "" && !containsString(probeClients, set.ProbeClient):
 		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Probe Client\" %q must be one of %s", set.ProbeClient, strings.Join(probeClients, ", ")))
 	}
+	// The platform declares the exposure it allows; a row may not ask for more.
+	for _, mode := range set.AllowedIngressModes {
+		if !containsString(ingressModes, mode) {
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Allowed Ingress Modes\" %q lists %q; each must be one of %s", set.allowedIngressRaw, mode, strings.Join(ingressModes, ", ")))
+		}
+	}
+	if set.allowedIngressRaw != "" && len(set.AllowedIngressModes) == 0 {
+		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Allowed Ingress Modes\" %q lists no mode", set.allowedIngressRaw))
+	}
+	for _, env := range rows {
+		if env.IngressMode != "" && containsString(ingressModes, env.IngressMode) && !containsString(set.AllowedIngressModes, env.IngressMode) {
+			errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: environment %q Ingress Mode %q is not one the platform allows (Allowed Ingress Modes: %s)", env.Environment, env.IngressMode, strings.Join(set.AllowedIngressModes, ", ")))
+		}
+	}
 	if !containsString(deployerExecModes, set.DeployerExec) {
 		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Deployer Exec\" %q must be one of %s", set.DeployerExec, strings.Join(deployerExecModes, ", ")))
-	}
-	if r := set.Registry; r != nil && (!registryHostPattern.MatchString(r.Host) || !containsString(registryVisibility, r.Visibility)) {
-		errs = append(errs, fmt.Errorf("SLOTS-SPEC-FIELD-INVALID: Constraints row \"Container Registry\" %q must be \"<host>, public\" or \"<host>, private\" (for example \"ghcr.io, private\")", set.registryRaw))
 	}
 	return errs
 }
@@ -492,14 +548,13 @@ func cmdSpec(args []string) {
 		fmt.Printf("  %-12s machine=%s reachability=%s ingress=%s host=%s health=%s\n",
 			env.Environment, env.MachineSlug, env.Reachability, env.IngressMode, orDash(env.Host), env.HealthPath)
 	}
+	fmt.Printf("\n  cluster connect: %s (inputs %s, %s)\n", set.Connect.Action, set.Connect.MachineInput, set.Connect.NamespaceInput)
 	if set.Mesh != nil && set.Mesh.Action != "" {
-		fmt.Printf("\n  mesh join: %s (inputs %s, %s)\n", set.Mesh.Action, set.Mesh.SetupKeyInput, set.Mesh.WaitForInput)
+		fmt.Printf("  mesh join: %s (inputs %s, %s)\n", set.Mesh.Action, set.Mesh.SetupKeyInput, set.Mesh.WaitForInput)
 	}
+	fmt.Printf("  allowed ingress modes: %s\n", strings.Join(set.AllowedIngressModes, ", "))
 	if set.ProbeClient != "" {
 		fmt.Printf("  probe client: %s\n", set.ProbeClient)
-	}
-	if set.Registry != nil {
-		fmt.Printf("  container registry: %s (%s)\n", set.Registry.Host, set.Registry.Visibility)
 	}
 	fmt.Printf("  deployer exec: %s\n", set.DeployerExec)
 }

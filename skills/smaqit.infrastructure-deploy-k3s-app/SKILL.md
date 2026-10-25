@@ -1,8 +1,8 @@
 ---
 name: smaqit.infrastructure-deploy-k3s-app
-description: Use when deploying an app into a Namespace-scoped Kubernetes cluster (k3s, or any cluster issuing a per-app kubeconfig), provisioning_mode existing-k3s. Deploys run only in the generated deploy.yml, which joins a private mesh, guards the credential, lints manifests against Pod Security restricted, applies the Ingress the spec's mode calls for, waits for rollout, and verifies.
+description: Use when deploying an app into a Namespace-scoped Kubernetes cluster (k3s, or any cluster that trusts the CI job's OIDC identity), provisioning_mode existing-k3s. Deploys run only in the generated deploy.yml, which joins a mesh, connects through the platform's action, guards the credential, lints manifests against Pod Security restricted, applies the Ingress, waits for rollout, and verifies.
 metadata:
-  version: "3.0.0"
+  version: "4.1.0"
   smaqit-slots: "app-deploy=deploy"
 ---
 
@@ -11,9 +11,14 @@ metadata:
 An existing-k3s deploy runs only in the CI/CD pipeline: the generated `deploy.yml`
 (`smaqit.infrastructure-cicd-generate`'s `k3s` mode) performs every step below, and nothing acts on
 the target from the operator's machine. `smaqit slots plan` refuses a local `app-deploy` for
-existing-k3s (`SLOTS-LOCAL-DEPLOY-REFUSED`), so the Deployment agent only triggers and monitors the
-run. This skill is the contract that workflow implements: what it requires, the order it runs in,
-and what to do when a run fails.
+existing-k3s (`SLOTS-LOCAL-DEPLOY-REFUSED`); this skill's `deploy` operation is what the Deployment
+agent does instead: it triggers and monitors that run. The run authenticates with its own GitHub Actions OIDC identity through the platform's connect
+action: the platform binds the app's Namespace to this repository and the machine-slug GitHub
+Environment the job runs in, holds the mesh key, and pulls the images, so the app stores no deploy
+credential at all. This skill is smaqit's default `app-deploy` filler: its operation (trigger and
+monitor), the deploy run it watches (what the workflow requires and the order it runs in), and what
+to do when a run fails. A platform can bind its own `app-deploy` filler in `.smaqit/slots.yml`; the
+contract it must meet is `smaqit slots contract --slot=app-deploy --mode=existing-k3s`.
 
 Everything that differs between targets comes from the Infrastructure spec's `## Environments`
 row for the target environment, read through `smaqit spec environments --env=<environment>
@@ -21,13 +26,15 @@ row for the target environment, read through `smaqit spec environments --env=<en
 
 | Field | Values | Effect |
 |-------|--------|--------|
-| `reachability` | `public` / `private-mesh` | `private-mesh`: the API (and the app) are reachable only from mesh peers; the workflow joins the mesh before any `kubectl` call |
+| `reachability` | `public` / `private-mesh` | the app's reachability: `private-mesh` apps are reachable only from mesh peers, so verification runs in-cluster |
+| `meshSetupKeySecret`, `meshWaitForHost` | the platform's mesh secret and the API's mesh name | set when the API is reachable only from mesh peers (always for `private-mesh`; for `public` when the platform keeps its API mesh-only): the workflow joins the mesh before any `kubectl` call |
 | `ingressMode` | `own-tls` / `platform-default-tls` / `platform-owned` | which Ingress is applied, if any, and whether a `Certificate` is awaited |
 | `host`, `ingressClass`, `clusterIssuer`, `healthPath` | from the platform team | stamped into the Ingress / probe at apply time |
 
-The same JSON carries three spec-wide values: `probeClient` (`curl`, `wget`, or `python3`),
-`registry` (`{host, visibility}`, or `null` for a public image), and `deployerExec` (`denied`
-unless the spec's `Deployer Exec` row says `allowed`).
+The same JSON carries the spec-wide values: `connect` (the platform's `Cluster Connect` action and
+its machine and namespace input names), `mesh` (the mesh-join action and its input names),
+`probeClient` (`curl`, `wget`, or `python3`), and `deployerExec` (`denied` unless the spec's
+`Deployer Exec` row says `allowed`).
 
 Verification runs **inside the cluster** (a probe Job) when the runner cannot reach the app
 from outside — `private-mesh`, or `platform-owned` (for example behind the platform's SSO gate)
@@ -37,13 +44,12 @@ from outside — `private-mesh`, or `platform-owned` (for example behind the pla
 
 - The target Namespace (`app-__APP_SLUG__`, on each target environment's machine) has already
   been onboarded by the platform side (Namespace, RBAC, Pod Security label, NetworkPolicy,
-  ResourceQuota/LimitRange, and the scoped kubeconfig already issued). This skill's job starts
-  after onboarding — nothing here is cluster-scoped.
-- The GitHub Environment named after the target machine slug holds the `KUBECONFIG` secret (and,
-  for a `private-mesh` row, the mesh setup-key secret the row names), synced by the
-  `environment-config` slot (`smaqit.infrastructure-repo-config`). A merged onboarding request
-  alone doesn't provide the kubeconfig — the platform's own hand-off delivers it, the
-  `target-credentials` load stores it, and the sync copies it into the Environment.
+  ResourceQuota/LimitRange) and its deployer Role bound to this repository and the machine-slug
+  GitHub Environment. This skill's job starts after onboarding — nothing here is cluster-scoped.
+- The Infrastructure spec declares the platform's `Cluster Connect` rows. GitHub creates the
+  machine-slug Environment on the first run that references it; it holds no deploy secret. For a
+  row that joins a mesh, the platform shares the mesh secret the row names with this repository
+  (for example an organisation secret).
 - `smaqit spec environments --env=<environment> --json` succeeds: the Infrastructure spec's
   `## Environments` row for the target is complete. `smaqit slots plan --mode=existing-k3s`
   refuses to plan otherwise.
@@ -57,43 +63,73 @@ from outside — `private-mesh`, or `platform-owned` (for example behind the pla
 
 ## Operations
 
-### `deploy` (slot `app-deploy`, performed by CI)
+### `deploy` (slot `app-deploy`): trigger and monitor the deploy run
+
+The Deployment agent follows this at the `app-deploy` slot, after the path's own commit step (the
+merged PR on `ci-bootstrap` and `existing-cicd-pr`, the pushed default branch on `ci-push`). Inputs:
+the deployment path, the environment's machine slug, and the intended commit (the merge SHA, or the
+pushed SHA). The deploy itself runs in the workflow (The Deploy Run, below); nothing here touches
+the target.
+
+1. **Trigger the run.**
+   - `ci-bootstrap` and `ci-push`: note the time, then dispatch for this environment only:
+     ```bash
+     gh workflow run deploy.yml --ref <default-branch> -f environment=<machine-slug>
+     ```
+   - `existing-cicd-pr`: the merged PR's marker makes `post-merge-deploy.yml` dispatch it. Select
+     that dispatcher's run for the merge commit
+     (`gh run list --workflow post-merge-deploy.yml --commit <merge-sha> --json databaseId,status`),
+     watch it with `gh run watch <id> --exit-status`, and note when it finished.
+2. **Select the deploy run.** List the dispatched runs on the default branch:
+   ```bash
+   gh run list --workflow deploy.yml --branch <default-branch> --event workflow_dispatch \
+     --json databaseId,headSha,status,createdAt
+   ```
+   Keep the runs created after the trigger. Exactly one is the deploy run. None yet: wait 10
+   seconds and list again, for up to two minutes. More than one: stop and report their IDs — never
+   pick one.
+3. **Watch it** with `gh run watch <run-id> --exit-status`. Never a bare `gh run watch`, which
+   follows whatever run is newest.
+4. **Hand off** the run's ID and conclusion. A failed run stops the walk: surface the run ID and
+   its failed step. A successful one goes to the `verify` slot (`smaqit.infrastructure-deploy-verify`
+   `ci-evidence`, with this run ID and the intended commit), which proves the run's head is that
+   commit or a later one containing it.
+
+## The Deploy Run
 
 The `deploy` job of the generated `deploy.yml` runs this sequence, one machine at a time, after
-its `build` job pushed the commit's image. The agent dispatches it for the environment's machine
-slug (`gh workflow run deploy.yml --ref <default-branch> -f environment=<machine-slug>`), selects
-the run by commit, watches it, and then runs the `verify` slot, which reads this run's record
-(`smaqit.infrastructure-deploy-verify` `ci-evidence`).
+its `build` job pushed the commit's image.
 
 1. **Resolve the target.** The dispatched machine slug selects its row from the workflow's
    `K3S_TARGETS` map, rendered from the Environments table; the job runs in the GitHub
    Environment of that name.
 
-2. **Join the mesh (`private-mesh` only)** with the pinned action and setup-key secret the spec's
-   Constraints rows name, then wait for the API's mesh name to resolve.
+2. **Join the mesh (when the row names a mesh secret)** with the pinned action the spec's
+   Constraints rows name and the platform's shared key, then wait for the API's mesh name.
 
-3. **Write the kubeconfig** from the Environment's `KUBECONFIG` secret, owner-only, to
-   `$RUNNER_TEMP`; an `always()` step removes it at the end.
+3. **Connect to the cluster** through the spec's pinned `Cluster Connect Action`, passing the
+   machine slug and `app-__APP_SLUG__`. The job holds `id-token: write` (and `contents: read`);
+   the action requests the job's OIDC token, writes a kubeconfig whose context pins
+   `app-__APP_SLUG__`, refreshes the short-lived token through an exec credential plugin, and
+   exports `KUBECONFIG`. An `always()` step removes that file at the end.
 
 4. **Run the namespace guard before touching anything else:**
    ```bash
    deployment/k3s/scripts/namespace-guard.sh "$KUBECONFIG" "app-${APP_SLUG}" --deployer-exec <deployerExec>
    ```
-   It confirms the API answers and accepts the credential, that the kubeconfig's current context
+   It confirms the API answers and accepts the identity, that the kubeconfig's current context
    targets exactly `app-__APP_SLUG__`, that no cluster-scoped verb is permitted, and that the
    deployer cannot exec into pods (`kubectl auth can-i create|get pods --subresource=exec` must
    both answer `no`). It fails closed: only an explicit "no" counts as denied, so an unreachable
-   API is a FAIL, not a PASS. Under `--deployer-exec allowed` an exec grant is a warning instead
-   of a failure; an unclear answer still fails.
+   API is a FAIL, not a PASS — after a bounded retry, because a freshly joined mesh can resolve
+   the API's name before its port answers. An Unauthorized or Forbidden answer is never retried.
+   Under `--deployer-exec allowed` an exec grant is a warning instead of a failure; an unclear
+   answer still fails.
 
-5. **Create an `imagePullSecret`, only if the spec's `registry` is private.** The credential
-   comes from the app's own Environment secrets through the step's `env:` and reaches `kubectl`
-   through a file descriptor, never as a command-line argument.
-
-6. **Stamp this run's values** (host, Ingress class, ClusterIssuer) into a temporary copy of the
+5. **Stamp this run's values** (host, Ingress class, ClusterIssuer) into a temporary copy of the
    committed Ingress for this mode — never into the committed file.
 
-7. **Lint every manifest before any apply** — `pvc.yaml` when present, the Ingress for this mode
+6. **Lint every manifest before any apply** — `pvc.yaml` when present, the Ingress for this mode
    (none for `platform-owned`), and the stamped probe Job when this run verifies in-cluster:
    ```bash
    deployment/k3s/scripts/manifest-lint.sh deployment/k3s/deployment.yaml deployment/k3s/service.yaml "$INGRESS"
@@ -107,12 +143,13 @@ the run by commit, watches it, and then runs the `verify` slot, which reads this
    A base image whose own `USER` directive names a user rather than a numeric UID is the most
    common way `runAsNonRoot` alone still fails admission with `CreateContainerConfigError`.
 
-8. **Apply into the app's own Namespace only**, `pvc.yaml` first when present, then the
+7. **Apply into the app's own Namespace only**, `pvc.yaml` first when present, then the
    Deployment, the Service, and this mode's Ingress (none for `platform-owned`). `DEPLOY_SHA` and
    `DEPLOY_TIME` are set as pod environment (see `assets/deployment.yaml.template`) from the run's
-   commit SHA and an ISO 8601 UTC timestamp — never a file on a host path.
+   commit SHA and an ISO 8601 UTC timestamp — never a file on a host path. No `imagePullSecrets`:
+   the platform pulls the image with its own credential.
 
-9. **Wait for rollout, then prove exec is refused:**
+8. **Wait for rollout, then prove exec is refused:**
    ```bash
    kubectl rollout status -n "app-${APP_SLUG}" "deployment/${APP_SLUG}" --timeout=180s
    deployment/k3s/scripts/exec-refused.sh "app-${APP_SLUG}" "${APP_SLUG}" --deployer-exec <deployerExec>
@@ -121,10 +158,10 @@ the run by commit, watches it, and then runs the `verify` slot, which reads this
    API refuses it as Forbidden. An exec that goes through fails under `denied` and warns under
    `allowed`; NotFound, a timeout, or any other answer fails closed.
 
-10. **`own-tls` only — wait for the `Certificate` to reach `Ready`.** `platform-default-tls` and
+9. **`own-tls` only — wait for the `Certificate` to reach `Ready`.** `platform-default-tls` and
     `platform-owned` request no certificate.
 
-11. **Verify the revision and health.** "Verify revision" checks that the Deployment's image tag
+10. **Verify the revision and health.** "Verify revision" checks that the Deployment's image tag
     is the run's commit SHA. Then the row's verify step runs the probe Job in-cluster
     (`private-mesh` or `platform-owned`) or checks the health path over HTTPS, retrying every 5
     seconds for up to 60 seconds. The `verify` slot later reads both steps' conclusions from the
@@ -182,8 +219,10 @@ health path answers in-cluster or over HTTPS.
   the spec's `Deployer Exec` row records a deliberate grant.
 - Does NOT touch anything cluster-scoped — `namespace-guard.sh` refuses to proceed if the
   kubeconfig's own permissions would even allow it.
-- Does NOT request onboarding on the app's behalf — if the kubeconfig secret is absent, the
-  deploy stops and points at the platform's own onboarding playbook.
+- Does NOT request onboarding on the app's behalf — an identity the platform hasn't bound yet
+  answers Forbidden, and the deploy stops and points at the onboarding request.
+- Does NOT hold any deploy credential — no kubeconfig, mesh key, or registry credential is stored
+  or synced; the platform's connect action and shared secrets supply everything.
 - Does NOT ship an Ingress for `platform-owned`: the platform owns it, and an app-owned one would
   conflict with it.
 
@@ -194,7 +233,7 @@ machine whose row is `private-mesh` + `platform-owned` (mesh-only, behind the pl
 
 **Output:** The workflows and manifests land through a PR without the deploy marker; after the
 merge the agent dispatches `deploy.yml` with `-f environment=<test-machine-slug>`. The run joins
-the mesh, writes `KUBECONFIG` from that machine's Environment, passes `namespace-guard.sh` and
+the mesh, connects through the platform's action with the job's OIDC identity, passes `namespace-guard.sh` and
 `manifest-lint.sh`, applies the Deployment and Service (no Ingress), completes the rollout, skips
 the `Certificate` wait, and its probe Job succeeds on the health path; "Verify revision" confirms
 this commit's image. `ci-evidence` then passes against the merge SHA.
@@ -208,8 +247,13 @@ rollout → `Certificate` → verify sequence runs against `app-<app-slug>`; ver
 ## Gotchas
 
 - **Never widen scope to work around a guard refusal.** `namespace-guard.sh` failing signals the
-  onboarding contract or the supplied kubeconfig is wrong, or the API is unreachable — not an
-  obstacle to route around.
+  onboarding binding or the connect action's kubeconfig is wrong, or the API is unreachable — not
+  an obstacle to route around.
+- **Unauthorized and Forbidden mean different things.** Unauthorized (401): the platform did not
+  accept the job's identity at all — the token's audience, the repository, or the GitHub
+  Environment it ran in is not one it trusts (a dispatch to a non-machine-slug Environment answers
+  this way). Forbidden (403): the identity was accepted but is not bound to the Namespace yet — the
+  onboarding request has not merged or reconciled.
 - **`kubectl auth can-i <verb> pods/exec` asks the wrong question.** kubectl parses its argument
   as `TYPE`, `TYPE/NAME`, or a non-resource URL, so `pods/exec` means "a pod named exec", and any
   deployer allowed to create pods gets `yes`. Name a subresource with `--subresource`:
@@ -222,7 +266,8 @@ rollout → `Certificate` → verify sequence runs against `app-<app-slug>`; ver
   `namespace-guard.sh` and `exec-refused.sh` do.
 - **An unreachable API used to pass the guard.** `kubectl auth can-i` exits non-zero both for
   "no" and for a connection error; the guard accepts only an explicit "no", and checks that the
-  API answers first. A private-mesh machine reached before the mesh join completes fails here.
+  API answers first. A mesh-only API reached before the mesh join completes fails here, after the
+  guard's bounded retry.
 - **Verification is never log-based.** The probe Job's status, or the HTTPS checks, decide
   success. The platform decides whether the scoped credential may read `pods/log`; use it only to
   diagnose a failure, and never ask for `pods/exec`. A Role change on the platform side may not
@@ -243,13 +288,9 @@ rollout → `Certificate` → verify sequence runs against `app-<app-slug>`; ver
   `printf '%s' > file` pattern here — there is no host filesystem this credential can write to.
 - **`kubectl` version skew.** The runner's `kubectl` minor version must be within the supported
   skew of the target cluster.
-- **Kubeconfig rotation is the platform's.** Only the platform issues a kubeconfig, and how it
-  rotates one is its decision — some reissue in place and revoke the old token, leaving
-  workloads untouched; some only by re-onboarding. Never regenerate one locally: replace it in
-  Vault with `smaqit.infrastructure-vault-loader`'s `rotate-credential.sh
-  apps/<app-slug>/<machine-slug>/kubeconfig`, re-sync the GitHub Environment
-  (`smaqit.infrastructure-repo-config`), and redeploy with a **fresh** workflow dispatch — a
-  re-run of an earlier run keeps the secret values from when that run was created.
+- **A cluster CA change is a new connect-action tag.** The platform bundles the CA in its action,
+  so after a machine replacement bump the spec's `Cluster Connect Action` pin and render
+  `deploy.yml` again; nothing is rotated on the app side.
 - **Why there is no local deploy.** A local run exercises different commands than the workflow
   that deploys production; in past live use that difference hid a real defect (an image-tag
   casing bug a local shell never hit) until the workflow ran.
@@ -258,19 +299,25 @@ rollout → `Certificate` → verify sequence runs against `app-<app-slug>`; ver
 
 - [ ] Target environment's Environments row complete (`smaqit spec environments --env=<environment> --json`)
 - [ ] `deployment.yaml`, `service.yaml`, and the Ingress and probe manifests the environments need committed; the generated `deploy.yml` on the default branch
-- [ ] The machine-slug Environment holds `KUBECONFIG` (and the mesh setup key for a `private-mesh` row)
-- [ ] The dispatched `deploy.yml` run, selected by commit, completed successfully: mesh join (private-mesh), namespace guard, lint, apply, rollout, exec refused, `Certificate` (own-tls), "Verify revision", and the row's verify step
-- [ ] The `verify` slot's `ci-evidence` passed against that run
+- [ ] The spec declares the `Cluster Connect` rows; the `deploy` job holds `id-token: write` and `contents: read`
+- [ ] The deploy run triggered for this environment only, selected by trigger time and commit (exactly one), and watched by its ID
+- [ ] That run completed successfully: mesh join (when the row names a mesh secret), connect, namespace guard, lint, apply, rollout, exec refused, `Certificate` (own-tls), "Verify revision", and the row's verify step
+- [ ] Its run ID handed to the `verify` slot, whose `ci-evidence` passed against it
 
 ## Failure Handling
 
 | Situation | Action |
 |-----------|--------|
 | `smaqit spec environments` reports `SLOTS-SPEC-*` lines | Stop and surface them verbatim. The fix belongs in the Infrastructure spec, with values from the platform team — never a guessed one. |
+| More than one deploy run started after the trigger | Stop and report the run IDs. Never pick one: two dispatches would deploy twice, and `verify` must read the run that deployed the intended commit. |
+| No deploy run appears within two minutes of the trigger | Check the dispatch's own output, and that `deploy.yml` is on the default branch (a workflow only there can be dispatched). On `existing-cicd-pr`, check the dispatcher run and the PR's deploy marker. |
+| The `post-merge-deploy.yml` dispatcher run fails (`existing-cicd-pr`) | Stop and report it; nothing deployed. |
 | `smaqit slots plan` reports `SLOTS-LOCAL-DEPLOY-REFUSED` | Stop. Plan the deploy on a CI path (`--path=ci-bootstrap` for the first deploy, then `ci-push` or `existing-cicd-pr`); never deploy from this machine. |
-| The mesh join step fails, or the API's mesh name never resolves | Check the setup-key secret name and the mesh action's inputs against the spec's Constraints rows, and that the platform issued a valid key for this machine; re-sync the Environment and dispatch again. |
-| `KUBECONFIG` secret absent from the machine-slug Environment | Stop. A merged onboarding request is not enough: the platform's own hand-off must deliver the kubeconfig, the `target-credentials` load stores it (`PROVISIONING_MODE=existing-k3s MACHINE_SLUG=<machine-slug> load-credentials.sh`), and `environment-config` syncs it. Point at the platform's onboarding playbook. Never attempt a cluster-scoped fix. |
-| `namespace-guard.sh` refuses (API unreachable, check undetermined, cluster-scoped verb permitted, exec into pods permitted, or Namespace mismatch) | Stop. For an unreachable API on a `private-mesh` target, check the mesh join step. For an exec grant, ask the platform team to remove `pods/exec` from the deployer's Role; set `Deployer Exec: allowed` only when the operator confirms the grant is deliberate. Do not proceed with a broader credential than the onboarding contract issues. |
+| The mesh join step fails, or the API's mesh name never resolves | Check the row's mesh secret name and the mesh action's inputs against the spec's Constraints rows. An empty key means this repository cannot read the platform's secret: ask the platform team to share it, then dispatch again. |
+| The connect step fails asking for `id-token: write` | The `deploy` job lost its `permissions:` block; render `deploy.yml` again with `smaqit.infrastructure-cicd-generate`. |
+| `namespace-guard.sh` reports Unauthorized | The platform did not accept the job's identity: check that the run used the machine-slug Environment and the spec's `Cluster Connect Action` pin is current. Never fall back to a stored kubeconfig. |
+| `namespace-guard.sh` reports Forbidden (identity not bound) | The onboarding request has not merged or reconciled yet; check it with `smaqit.infrastructure-request-k3s-onboarding` and dispatch again once the platform reconciles. |
+| `namespace-guard.sh` refuses (API unreachable after its retries, check undetermined, cluster-scoped verb permitted, exec into pods permitted, or Namespace mismatch) | Stop. For an unreachable API on a mesh-only target, check the mesh join step. For an exec grant, ask the platform team to remove `pods/exec` from the deployer's Role; set `Deployer Exec: allowed` only when the operator confirms the grant is deliberate. Do not proceed with a broader credential than the onboarding contract issues. |
 | `exec-refused.sh` fails | Stop. A real exec went through (fix the Role as above), or the attempt gave no clear answer (NotFound, timeout): check the Deployment name and the API connection, then dispatch again. |
 | A `kubectl auth can-i` check the project added answers `yes` for something the platform denies (typically exec into pods) | The check almost certainly used the `TYPE/NAME` form (`can-i create pods/exec`), which kubectl reads as "a pod named exec". Rewrite it with `--subresource=<name>`. Trust `namespace-guard.sh`'s answer, which already uses that form. Never widen scope or skip a check on the strength of the misleading `yes`. |
 | A `--subresource` check the project added answers `no` for everything, including grants the platform documents | `can-i` does not validate subresource names, so a misspelled one (`--subresource=exe`) silently answers `no`. Check the spelling against the Kubernetes API reference before trusting the result. |

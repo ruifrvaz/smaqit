@@ -1,9 +1,9 @@
 ---
-status: PR Open
+status: Completed
 created: "2026-10-22"
 started: "2026-10-25"
 mode: Assisted
-pr: 113
+completed: "2026-10-25"
 ---
 
 # existing-k3s: CI-identity deploys without carried credentials (OIDC token, shared mesh key, platform-owned pulls)

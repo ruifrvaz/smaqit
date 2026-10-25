@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 114
 created: "2026-10-18"
 mode: Assisted
 started: "2026-10-25"
@@ -182,16 +183,16 @@ into `run:`, a missing `secretKeyRef`, a leftover token) are caught.
 
 ## Acceptance Criteria
 
-- [ ] The `Vault Access` row and `## Runtime Secrets` table are parsed and validated, and bad values
+- [x] The `Vault Access` row and `## Runtime Secrets` table are parsed and validated, and bad values
       fail with `SLOTS-SPEC-*` errors
-- [ ] The platform-repo PAT is gone from request-k3s-onboarding, vault-loader, `credential-file.sh` and
+- [x] The platform-repo PAT is gone from request-k3s-onboarding, vault-loader, `credential-file.sh` and
       `rotate-credential.sh`; onboarding preflights push rights with the operator's `gh` login
-- [ ] Under `operator-scripts`, a stub `vault` records zero calls; the slots complete through an exact,
+- [x] Under `operator-scripts`, a stub `vault` records zero calls; the slots complete through an exact,
       tested handoff verified with `gh secret list`, without binding them to `none`
-- [ ] With no runtime secrets declared, no existing-k3s slot calls Vault on any path
-- [ ] Runtime secrets reach the rendered `deploy.yml` via step `env:` and stdin (never `run:` or argv),
+- [x] With no runtime secrets declared, no existing-k3s slot calls Vault on any path
+- [x] Runtime secrets reach the rendered `deploy.yml` via step `env:` and stdin (never `run:` or argv),
       and manifest-lint enforces the `secretKeyRef` references
-- [ ] Golden files regenerated deliberately; no raw `vault` commands or platform-specific names in
+- [x] Golden files regenerated deliberately; no raw `vault` commands or platform-specific names in
       skill text; wiki, compendium, README and CHANGELOG updated; released
 
 ## Findings
@@ -199,16 +200,27 @@ into `run:`, a missing `secretKeyRef`, a leftover token) are caught.
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Parser: `Vault Access` row (default `direct`) and `## Runtime Secrets` table in `installer/infra_spec.go`, with per-row resolved names and a shared `only()` narrowing used by `smaqit spec environments --env`.
+- PAT retired: request-k3s-onboarding 3.0.0 uses the operator's `gh` login after a `permissions.push` preflight; `platform-repo` removed from `load-credentials.sh`, `credential-file.sh` and `rotate-credential.sh`.
+- Runtime secrets: vault-loader `access` reads the spec before Step 0 and exits without a Vault call when nothing applies; new repo-config `runtime` operation (`sync-runtime-env.sh`, the existing-k3s `environment-config` default) syncs or hands off; optional "Create runtime Secret" deploy step; manifest-lint `secretKeyRef` rule.
+- Tests: stub `smaqit` in the script harness serving real-parser JSON; zero-vault-call, handoff-text, sync, render, step-execution and lint tests; a definitions-match-skills test; six deliberate breaks all caught.
 
 **Decisions made:**
-- TBD
+- PAT retired for every existing-k3s project (user), not only under `operator-scripts`.
+- Runtime secrets Vault → machine-slug Environment, path `secret/apps/<app>/<machine>/runtime`, one field per name (user).
+- `access-credentials` kept as vault-loader `access` on every path but a true no-op without runtime secrets, preserving the user's "no Vault on feature deploys" choice while letting a feature add a secret.
+- One Name is the Environment secret, the Secret key and the pod env var; a secret not declared for every environment uses `optional: true` since one `deployment.yaml` serves all.
+- Secret built with `jq` from step `env:` and applied server-side (no argv, no last-applied annotation; multi-line values work, avoiding kubectl#1610).
+- `runtimeSecrets` added to `K3S_TARGETS` only when non-empty, so every existing golden stays byte-identical.
 
 **Blockers encountered:**
-- TBD
+- None. One description exceeded the 400-character limit and was shortened; a duplicate test helper was removed.
 
 **Follow-up identified:**
-- TBD
+- `rotate-credential.sh` does not rotate runtime secrets yet.
+- The platform's deployer Role must allow `secrets` in the Namespace; documented as a failure row only.
+- The project-new definition is still stale against its skill (no skill-body markers, so the new sync test doesn't cover it).
+- Task 147 and task 148 touch request-k3s-onboarding and the k3s template; rebase onto this release.
 
 ## Files to Create / Modify
 

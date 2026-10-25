@@ -8,7 +8,6 @@
 | 146 | VM Modes: CI-Only Deploys (Close the Workflow Gaps, Then Enforce the Task 144 Rule) | Not Started | Medium |
 | 147 | ci-bootstrap Re-run on an Onboarded existing-k3s App: State Checks for Onboarding and Artifact Build | Not Started | Medium |
 | 148 | existing-k3s: Optional Image Policy Action Around the Image Push | Not Started | Medium |
-| 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy | PR Open (#114) | High |
 | 126 | Design Tools: Install Path Still Holds the Runtime Lock Past MCP Connect Timeouts | Not Started | Medium |
 | 113 | Business Use-Case Diagrams: No Guardrail Against Generalization-Inheritance Misuse or PlantUML-Alias Collision With the Project's Own UC-ID Convention | new | Medium |
 | 094 | `smaqit.feature-new` — No Mandatory Browser/E2E Gate for Frontend-Touching Features | new | Medium |
@@ -20,6 +19,7 @@
 
 | ID | Title |
 |----|-------|
+| 137 | existing-k3s: Credential Slots Under a Scripts-Only Vault Policy |
 | 145 | existing-k3s: CI-Identity Deploys Without Carried Credentials (OIDC Token, Shared Mesh Key, Platform-Owned Pulls) |
 | 144 | All Deploys Go Through CI/CD Workflows (existing-k3s Enforced, VM Modes Transitional) |
 | 142 | CI-Driven Deploys Run No Local Target Checks |

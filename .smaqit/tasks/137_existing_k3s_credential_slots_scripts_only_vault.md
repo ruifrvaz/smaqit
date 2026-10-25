@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 114
+status: Completed
 created: "2026-10-18"
 mode: Assisted
 started: "2026-10-25"
+completed: "2026-10-25"
 ---
 
 # existing-k3s: Credential Slots Under a Scripts-Only Vault Policy

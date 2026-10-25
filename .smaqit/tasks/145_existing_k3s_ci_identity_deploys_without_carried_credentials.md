@@ -1,8 +1,9 @@
 ---
-status: In Progress
+status: PR Open
 created: "2026-10-22"
 started: "2026-10-25"
 mode: Assisted
+pr: 113
 ---
 
 # existing-k3s: CI-identity deploys without carried credentials (OIDC token, shared mesh key, platform-owned pulls)
@@ -221,34 +222,46 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
 
 ## Acceptance Criteria
 
-- [ ] The five skill definitions match their skills before the change (vault-loader's created), every skill change in this task is made in its definition and applied to `SKILL.md`, and each definition body equals its `SKILL.md` body at the end
-- [ ] The spec carries `Cluster Connect Action`/`Machine Input`/`Namespace Input` rows, required for existing-k3s; a `public` row may name a mesh secret; the `Container Registry` row is gone
-- [ ] The generated `deploy.yml` grants `id-token: write` and `contents: read` to `deploy`, joins the mesh first whenever the row names a mesh secret, connects through the named action with the machine slug and `app-<slug>`, removes `$KUBECONFIG` always, and holds no `KUBECONFIG`, registry or per-app mesh secret
-- [ ] No shipped skill, script, template or resolver default loads, rotates, syncs or uses an issued kubeconfig, a per-app mesh setup key or an app-held registry pull credential; existing-k3s `target-credentials` and `environment-config` default to none; `sync-k3s-env.sh` is gone
-- [ ] request-k3s-onboarding prints and checks this repository's identity for the entry, and reports a merged request without any kubeconfig hand-off
-- [ ] `namespace-guard.sh` retries the API check for a bounded window and still fails closed
-- [ ] Docs describe only the OIDC model; `make -C installer test` and `smoke-test` pass; CHANGELOG has an action-required note; MINOR release via the task PR
-- [ ] `smaqit slots contract` prints every slot's inputs, handoff, completion and existing-k3s notes from `installer/slots.go`, and the wiki catalogue matches it (tested)
-- [ ] Under a CI-only mode the Deployment agent runs the plan's `app-deploy` filler to trigger and monitor the deploy run; deploy-k3s-app's default implements the `gh` procedure and stops on an ambiguous run selection
-- [ ] An `Allowed Ingress Modes` row refuses Environments rows using a mode it doesn't list; absent, every mode is allowed
-- [ ] `manifest-lint.sh` refuses a non-ClusterIP Service
-- [ ] A platform can replace `platform-onboarding`, `artifact-build`, `ci-generate` and `app-deploy` by binding its own fillers, with no other change, as the contracts state
+- [x] The five skill definitions match their skills before the change (vault-loader's created), every skill change in this task is made in its definition and applied to `SKILL.md`, and each definition body equals its `SKILL.md` body at the end
+- [x] The spec carries `Cluster Connect Action`/`Machine Input`/`Namespace Input` rows, required for existing-k3s; a `public` row may name a mesh secret; the `Container Registry` row is gone
+- [x] The generated `deploy.yml` grants `id-token: write` and `contents: read` to `deploy`, joins the mesh first whenever the row names a mesh secret, connects through the named action with the machine slug and `app-<slug>`, removes `$KUBECONFIG` always, and holds no `KUBECONFIG`, registry or per-app mesh secret
+- [x] No shipped skill, script, template or resolver default loads, rotates, syncs or uses an issued kubeconfig, a per-app mesh setup key or an app-held registry pull credential; existing-k3s `target-credentials` and `environment-config` default to none; `sync-k3s-env.sh` is gone
+- [x] request-k3s-onboarding prints and checks this repository's identity for the entry, and reports a merged request without any kubeconfig hand-off
+- [x] `namespace-guard.sh` retries the API check for a bounded window and still fails closed
+- [x] Docs describe only the OIDC model; `make -C installer test` and `smoke-test` pass; CHANGELOG has an action-required note; MINOR release via the task PR
+- [x] `smaqit slots contract` prints every slot's inputs, handoff, completion and existing-k3s notes from `installer/slots.go`, and the wiki catalogue matches it (tested)
+- [x] Under a CI-only mode the Deployment agent runs the plan's `app-deploy` filler to trigger and monitor the deploy run; deploy-k3s-app's default implements the `gh` procedure and stops on an ambiguous run selection
+- [x] An `Allowed Ingress Modes` row refuses Environments rows using a mode it doesn't list; absent, every mode is allowed
+- [x] `manifest-lint.sh` refuses a non-ClusterIP Service
+- [x] A platform can replace `platform-onboarding`, `artifact-build`, `ci-generate` and `app-deploy` by binding its own fillers, with no other change, as the contracts state
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Resynced the five skill definitions to the compiled skills first (exact body comparison), then made every skill change in the definition and applied it to `SKILL.md` by hand; a scratch sync check proved each body equal at the end.
+- The generated k3s `deploy.yml` connects through the spec's pinned `Cluster Connect` action with the job's OIDC identity (`id-token: write`, `contents: read`), joins the mesh only when the row names a mesh secret, and shreds whatever `$KUBECONFIG` the action exported.
+- Removed every app-held deploy credential: kubeconfig and mesh-key Vault paths, the registry pull credential, `sync-k3s-env.sh`, the pull-secret and kubeconfig steps, and the `Container Registry` row; existing-k3s `target-credentials` and `environment-config` default to none.
+- Reframe: slot contracts (inputs, handoff, completion, per-mode notes) live in `installer/slots.go`, printed by `smaqit slots contract`, with a generated wiki block kept equal by a test; app-deploy under a CI-only mode is trigger, select, watch and hand off the run ID.
+- Added the `Allowed Ingress Modes` Constraints row and a ClusterIP-only Service lint; the namespace guard retries an unreachable API for a bounded window and fails at once on 401 or 403 with distinct messages.
+- Verified with `make -C installer test`, `smoke-test`, and eight deliberate breaks across two rounds, all caught.
 
 **Decisions made:**
-- TBD
+- OIDC replaces the kubeconfig model outright, with no auth-mode switch (no backwards compatibility).
+- One shared mesh key per environment (machine slug), held by the platform; never one key platform-wide, never an app-held key.
+- The connect step is the platform's own pinned action; smaqit adds no API, CA or audience fields and never handles a token.
+- Definitions are applied by hand, not compiled by `smaqit.L2`, because L2's skill rules conflict with this repo's description, metadata and section conventions.
+- Contracts live in the resolver with a CLI rather than in prose only; the namespace guard is the reconcile check, with no platform reconcile-workflow row.
+- `tls`, `replace` and `teardown` stay refused for existing-k3s bindings.
 
 **Blockers encountered:**
-- TBD
+- The platform's `wait-for-port` is not finished, so the guard's bounded API retry covers the gap.
+- Amending the local bookkeeping commit `ee4629d` to drop a downstream name was blocked by the auto-mode classifier; the user rewords it.
 
 **Follow-up identified:**
-- TBD
+- A smaqit-adk task so `smaqit.L2` honours a product's description, metadata and section conventions, letting later tasks recompile definitions instead of hand-applying them.
+- A live run against the downstream platform's probe repositories to prove the OIDC deploy end to end.
+- The project-new definition is stale against its compiled skill and needs a resync.
+- Task 137 now reintroduces a k3s Environment sync for runtime secrets only, since `environment-config` is none.
 
 ## Files to Create / Modify
 

@@ -117,6 +117,29 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
 - **`Container Registry` row removed** from the parser, template and docs: with platform-owned pulls
   it drives nothing.
 
+- **Reframed: abstract base, concrete platform fillers** (Rui, 2026-10-25, after the downstream
+  platform's session proposed it): smaqit's existing-k3s slots are contracts with generic defaults; a
+  platform publishes its own fillers (the downstream platform's hub task 004) that app repositories
+  bind in `.smaqit/slots.yml`, replacing a default with nothing else to change.
+- **Contracts live in the resolver** (Rui, 2026-10-25): each slot in `installer/slots.go` carries its
+  inputs, handoff, completion signal and per-mode notes; `smaqit slots contract [--slot=<slot>]
+  [--mode=<mode>]` prints them; the Deployment agent and filler authors read that, and the
+  deployment-slots wiki's catalogue table is the same text (a test keeps them equal).
+- **app-deploy owns trigger and monitor under a CI-only mode** (Rui, 2026-10-25): the deploy itself
+  runs in the workflow `ci-generate` produced, but the agent reads the `app-deploy` filler to trigger
+  the run (dispatch inputs, or the merged PR's dispatcher), select it by commit, wait, and hand its
+  run ID to `verify`. smaqit's default (deploy-k3s-app `deploy`) is today's `gh` procedure; a
+  platform filler may replace it. VM modes keep the agent's built-in monitoring.
+- **Exposure is declared by the platform** (Rui, 2026-10-25): an `Allowed Ingress Modes` Constraints
+  row (comma list, default all) refuses Environments rows using a disallowed mode, and
+  `manifest-lint.sh` refuses any Service whose type isn't ClusterIP, so a forbidden manifest fails
+  before apply rather than at the platform's admission.
+- **The namespace guard stays the reconcile check** (Rui, 2026-10-25): no platform reconcile-workflow
+  row; a merged onboarding request is reported, and the first deploy's guard answers 403 until the
+  platform reconciles.
+- **`tls`, `replace` and `teardown` stay refused for existing-k3s bindings** (task 144): no path runs
+  them in CI, and the platform declares them none.
+
 ## Implementation Steps
 
 *Phase A: resync definitions (no behaviour change)*
@@ -156,6 +179,17 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
     secret, the Vault kubeconfig/mesh-key paths and the `organizations/` registry credential; remove
     the `Container Registry` row); `make -C installer test` and `smoke-test`; MINOR release.
 
+*Phase E: reframe — contracts, app-deploy monitor, exposure (added 2026-10-25)*
+14. `installer/slots.go`: per-slot contract fields and per-mode notes; `smaqit slots contract`
+    (text and `--json`) with help text; a test that the wiki catalogue table equals the contracts.
+15. `installer/infra_spec.go`: the `Allowed Ingress Modes` row (`allowedIngressModes` in `--json`),
+    validation of each row's mode against it; spec template and `agents/infrastructure.md`.
+16. `manifest-lint.sh`: refuse a Service whose `spec.type` is set to anything but ClusterIP.
+17. deploy-k3s-app `deploy`: the trigger-and-monitor operation (dispatch with `--ref`, select by
+    event, commit and creation time, stop on ambiguity, watch, output the run ID); the Deployment
+    agent delegates that part to the plan's `app-deploy` filler under a CI-only mode.
+18. Definitions resync, wiki, compendium, CHANGELOG; tests and deliberate breaks for each rule.
+
 ## Known Issues Triage
 **Triaged:** 2026-10-25
 **Tools searched:** k3s (`k3s-io/k3s`), kubectl (`kubernetes/kubectl`), NetBird (`netbirdio/netbird`)
@@ -194,6 +228,11 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
 - [ ] request-k3s-onboarding prints and checks this repository's identity for the entry, and reports a merged request without any kubeconfig hand-off
 - [ ] `namespace-guard.sh` retries the API check for a bounded window and still fails closed
 - [ ] Docs describe only the OIDC model; `make -C installer test` and `smoke-test` pass; CHANGELOG has an action-required note; MINOR release via the task PR
+- [ ] `smaqit slots contract` prints every slot's inputs, handoff, completion and existing-k3s notes from `installer/slots.go`, and the wiki catalogue matches it (tested)
+- [ ] Under a CI-only mode the Deployment agent runs the plan's `app-deploy` filler to trigger and monitor the deploy run; deploy-k3s-app's default implements the `gh` procedure and stops on an ambiguous run selection
+- [ ] An `Allowed Ingress Modes` row refuses Environments rows using a mode it doesn't list; absent, every mode is allowed
+- [ ] `manifest-lint.sh` refuses a non-ClusterIP Service
+- [ ] A platform can replace `platform-onboarding`, `artifact-build`, `ci-generate` and `app-deploy` by binding its own fillers, with no other change, as the contracts state
 
 ## Findings
 

@@ -83,9 +83,14 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
 - **Definitions are resynced first** (Rui, 2026-10-25): the five skills' definitions under
   `.smaqit/definitions/skills/` are brought back in line with today's compiled skills (vault-loader
   gets one; repo-config, cicd-generate, deploy-k3s-app and request-k3s-onboarding are stale), proven
-  by recompiling through `smaqit.L2` with no behaviour change; the OIDC change is then made in the
-  definitions and recompiled. Scripts, assets, Go and tests are edited directly (L2 compiles
-  `SKILL.md` only).
+  by an exact body comparison; the OIDC change is then made in the definitions and applied to the
+  skills. Scripts, assets, Go and tests are edited directly.
+- **Definitions are applied by hand, not compiled by `smaqit.L2`** (Rui, 2026-10-25): L2's skill
+  rules conflict with this repo's conventions (they forbid the "Use when…" trigger-form description,
+  carry no `smaqit-slots`, emit a fixed section set, and split bodies over 400 lines). Each
+  definition holds the skill's frontmatter, its provenance, and its body; the `SKILL.md` body is
+  kept identical to it. No L2 run, no `smaqit-adk` registry entry. A smaqit-adk task should let L2
+  honour a product's description, metadata and section conventions so later tasks can recompile.
 - **Start now** (Rui, 2026-10-25): the platform's task 062 is completed (released v0.32.0/v0.32.1).
   Its `wait-for-port` (its task 057) is not, so `namespace-guard.sh` retries its API-reachability
   check for a bounded window before failing closed.
@@ -117,16 +122,17 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
 *Phase A: resync definitions (no behaviour change)*
 1. Rewrite `.smaqit/definitions/skills/` for request-k3s-onboarding, repo-config, cicd-generate and
    deploy-k3s-app to match today's compiled `SKILL.md`; create one for vault-loader.
-2. Recompile each through `smaqit.L2` and diff against the current `SKILL.md`: only wording noise may
-   differ. Fix the definition, not the output, until it does.
+2. Each definition holds `## Frontmatter`, `## Provenance` and the skill body verbatim; an exact
+   comparison of the definition body with `SKILL.md` proves the resync.
 
-*Phase B: OIDC in the definitions, recompiled*
+*Phase B: OIDC in the definitions, applied to the skills*
 3. cicd-generate: the connect rows, deploy-job permissions, mesh join keyed on the row's secret,
    no kubeconfig or pull-secret steps, the cleanup of `$KUBECONFIG`.
 4. deploy-k3s-app: the deploy sequence starts with mesh join (when named) and the connect action;
    no `KUBECONFIG` secret, no `imagePullSecret`; failure rows for a missing `id-token` permission,
    an unreconciled binding (Forbidden), and an unshared organisation mesh secret (empty value).
-5. vault-loader, repo-config, request-k3s-onboarding as decided above. Recompile all five.
+5. vault-loader, repo-config, request-k3s-onboarding as decided above. Apply all five definitions to
+   their `SKILL.md` and re-run the body comparison.
 
 *Phase C: Go, scripts, templates*
 6. `installer/infra_spec.go`: the three `Cluster Connect` Constraints rows (required for every
@@ -181,7 +187,7 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
 
 ## Acceptance Criteria
 
-- [ ] The five skill definitions match the compiled skills before the change (L2 recompile reproduces them), and every skill change in this task is made in its definition and recompiled
+- [ ] The five skill definitions match their skills before the change (vault-loader's created), every skill change in this task is made in its definition and applied to `SKILL.md`, and each definition body equals its `SKILL.md` body at the end
 - [ ] The spec carries `Cluster Connect Action`/`Machine Input`/`Namespace Input` rows, required for existing-k3s; a `public` row may name a mesh secret; the `Container Registry` row is gone
 - [ ] The generated `deploy.yml` grants `id-token: write` and `contents: read` to `deploy`, joins the mesh first whenever the row names a mesh secret, connects through the named action with the machine slug and `app-<slug>`, removes `$KUBECONFIG` always, and holds no `KUBECONFIG`, registry or per-app mesh secret
 - [ ] No shipped skill, script, template or resolver default loads, rotates, syncs or uses an issued kubeconfig, a per-app mesh setup key or an app-held registry pull credential; existing-k3s `target-credentials` and `environment-config` default to none; `sync-k3s-env.sh` is gone
@@ -211,7 +217,7 @@ backwards compatibility): the issued-kubeconfig path is removed, not kept beside
 |------|--------|
 | `.smaqit/definitions/skills/smaqit.infrastructure-{request-k3s-onboarding,repo-config,cicd-generate,deploy-k3s-app}.md` | Modify |
 | `.smaqit/definitions/skills/smaqit.infrastructure-vault-loader.md` | Create |
-| `skills/smaqit.infrastructure-{vault-loader,repo-config,request-k3s-onboarding,cicd-generate,deploy-k3s-app}/SKILL.md` | Recompile |
+| `skills/smaqit.infrastructure-{vault-loader,repo-config,request-k3s-onboarding,cicd-generate,deploy-k3s-app}/SKILL.md` | Modify (applied from definitions) |
 | `skills/smaqit.infrastructure-vault-loader/scripts/{load-credentials,rotate-credential,credential-file}.sh` | Modify |
 | `skills/smaqit.infrastructure-repo-config/scripts/sync-k3s-env.sh` | Delete |
 | `skills/smaqit.infrastructure-cicd-generate/assets/deploy.yml.k3s.template`, `scripts/render-k3s-deploy.sh` | Modify |

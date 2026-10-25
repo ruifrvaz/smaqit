@@ -2,7 +2,7 @@
 name: smaqit.feature-new
 description: 'Use when adding or changing a feature in a smaqit project that is already deployed (its Infrastructure spec has `status: deployed`), e.g. ''add a feature to this project'' or ''iterate on the deployed app''. Runs spec revalidation, development, deployment to the existing target, validation, and close-out, one task per phase, with no requirements extraction, from-scratch specs, or dev-VM sweep.'
 metadata:
-  version: "2.6.0"
+  version: "2.7.0"
 ---
 
 # Post-MVP Feature Workflow
@@ -138,7 +138,7 @@ This phase creates a **deploy PR** (feature-branch → `main`) to land the featu
    2. If there is no matching push trigger → require `deploy.yml` to support `workflow_dispatch` AND require exactly one merged-PR dispatcher targeting it with a determinable PR-body sentinel. Add that exact sentinel to the PR body and plan to monitor the dispatcher then the dispatched deploy run.
    3. If a matching push trigger coexists with an unconditional or non-marker PR dispatcher → stop. Merging would cause duplicate deployments.
    4. If triggers, target workflow, dispatcher, or sentinel are missing, multiple, dynamic, or otherwise ambiguous → stop before opening the PR and report the unsupported layout.
-9. Confirm Vault is running and unsealed for the credential slots. Do not invoke `smaqit.infrastructure-vault-loader` or `smaqit.infrastructure-repo-config` here: the Deployment agent runs them as the plan's `access-credentials`, `target-credentials`, and `environment-config` slots (or runs the project's bound fillers instead). The per-mode behaviour — `existing-shared`/`existing-unmanaged` loading `github` then running `bootstrap-app-to-machine.sh`, `existing-k3s` loading the environment's kubeconfig and writing a GitHub Environment-scoped `KUBECONFIG`, restricted secret sync with a manual `VM_HOST` — is defined by those fillers' slot operations.
+9. Confirm Vault is running and unsealed for the credential slots. Do not invoke `smaqit.infrastructure-vault-loader` or `smaqit.infrastructure-repo-config` here: the Deployment agent runs them as the plan's `access-credentials`, `target-credentials`, and `environment-config` slots (or runs the project's bound fillers instead). The per-mode behaviour — `existing-shared`/`existing-unmanaged` loading `github` then running `bootstrap-app-to-machine.sh`, `existing-k3s` loading only the onboarding PR's `platform-repo` token (its deploy job connects with its own OIDC identity, so nothing is synced), restricted secret sync with a manual `VM_HOST` — is defined by those fillers' slot operations.
 
 **Invoke Deployment agent:**
 

@@ -13,7 +13,9 @@ import (
 )
 
 // The namespace guard fails closed: an unreachable API, a rejected credential,
-// or a check with no clear answer is a FAIL, never a PASS.
+// or a check with no clear answer is a FAIL, never a PASS. A connection failure
+// is retried for a bounded window (a mesh can resolve the API's name before its
+// port answers); a credential the API rejects is not.
 func TestNamespaceGuardFailsClosed(t *testing.T) {
 	h := newScriptHarness(t)
 	kubeconfig := filepath.Join(h.work, "kubeconfig")
@@ -27,8 +29,10 @@ func TestNamespaceGuardFailsClosed(t *testing.T) {
 		want string
 	}{
 		{nil, 0, "namespace-guard: PASS"},
-		{[]string{"STUB_KUBECTL_MODE=unreachable"}, 1, "unreachable or rejected this credential"},
-		{[]string{"STUB_KUBECTL_MODE=rejected"}, 1, "Unauthorized"},
+		{[]string{"STUB_KUBECTL_MODE=unreachable"}, 1, "unreachable after 3 attempt(s)"},
+		{[]string{"STUB_KUBECTL_MODE=unreachable-twice"}, 0, "API not answering yet (attempt 2/3)"},
+		{[]string{"STUB_KUBECTL_MODE=rejected"}, 1, "did not accept this job's identity"},
+		{[]string{"STUB_KUBECTL_MODE=forbidden"}, 1, "not bound to the Namespace yet"},
 		{[]string{"STUB_KUBECTL_MODE=allow-nodes"}, 1, "permits 'get' on cluster-scoped resource 'nodes'"},
 		{[]string{"STUB_KUBECTL_MODE=flaky"}, 1, "could not determine whether"},
 		{[]string{"STUB_KUBECTL_NAMESPACE=app-other"}, 1, "does not match"},
@@ -36,13 +40,23 @@ func TestNamespaceGuardFailsClosed(t *testing.T) {
 		{[]string{"STUB_KUBECTL_MODE=exec-get-yes"}, 1, "permits 'get' on pods/exec"},
 		{[]string{"STUB_KUBECTL_MODE=exec-unclear"}, 1, "could not determine whether 'create' on pods/exec"},
 	}
+	retry := []string{"NAMESPACE_GUARD_REACH_ATTEMPTS=3", "NAMESPACE_GUARD_REACH_WAIT=0"}
 	for _, c := range cases {
-		out, err := h.run(c.env, script, kubeconfig, "app-shop")
+		os.Remove(filepath.Join(h.state, "kubectl.reach"))
+		before, _ := os.ReadFile(filepath.Join(h.state, "kubectl.calls"))
+		out, err := h.run(append(append([]string{}, retry...), c.env...), script, kubeconfig, "app-shop")
 		if scriptExitCode(err) != c.code || !strings.Contains(out, c.want) {
 			t.Errorf("%v: exit %d, want %d mentioning %q\n%s", c.env, scriptExitCode(err), c.code, c.want, out)
 		}
 		if c.code != 0 && strings.Contains(out, "PASS") {
 			t.Errorf("%v: a refusal printed PASS\n%s", c.env, out)
+		}
+		after, _ := os.ReadFile(filepath.Join(h.state, "kubectl.calls"))
+		lists := strings.Count(string(after[len(before):]), "auth can-i --list")
+		want := map[string]int{"STUB_KUBECTL_MODE=unreachable": 3, "STUB_KUBECTL_MODE=unreachable-twice": 3,
+			"STUB_KUBECTL_MODE=rejected": 1, "STUB_KUBECTL_MODE=forbidden": 1}[strings.Join(c.env, " ")]
+		if want != 0 && lists != want {
+			t.Errorf("%v: %d reachability attempts, want %d", c.env, lists, want)
 		}
 	}
 
@@ -176,54 +190,6 @@ func scriptExitCode(err error) int {
 	return 0
 }
 
-// A private-mesh machine's setup key loads hidden from the terminal, syncs into
-// that machine's Environment under the spec's secret name, and never appears in
-// argv or output.
-func TestMeshSetupKeyLoadsAndSyncs(t *testing.T) {
-	h := newScriptHarness(t)
-	slug := filepath.Base(h.work)
-	const meshKey = "MESH-KEY-6b6b"
-	h.seedVault("secret/apps/"+slug+"/github", map[string]string{"token": "GH"})
-	h.seedVault("secret/apps/"+slug+"/platform-repo", map[string]string{"token": "PLAT"})
-	h.seedVault("secret/apps/"+slug+"/edge-01/kubeconfig", map[string]string{"value": "apiVersion: v1\n"})
-	load := "PROVISIONING_MODE=existing-k3s MACHINE_SLUG=edge-01 MESH_SETUP_KEY=1 bash " +
-		shellQuote(mustAbs(t, skillScript("smaqit.infrastructure-vault-loader", "load-credentials.sh")))
-	out, err := h.runInteractiveCommand(load, [][2]string{{"mesh_setup_key:", meshKey}})
-	if err != nil {
-		t.Fatalf("mesh key load failed: %v\n%s", err, out)
-	}
-	if got := h.vaultValue("secret/apps/"+slug+"/edge-01/mesh-setup-key", "value"); got != meshKey {
-		t.Fatalf("mesh-setup-key = %q", got)
-	}
-	if out, err := h.runInteractiveCommand(load, nil); err != nil || strings.Count(out, "SKIP") != 4 {
-		t.Errorf("re-run should skip github, platform-repo, kubeconfig, and the mesh key: %v\n%s", err, out)
-	}
-
-	sync := skillScript("smaqit.infrastructure-repo-config", "sync-k3s-env.sh")
-	out, err = h.run(nil, sync, "acme/"+slug, slug, "edge-01", "--mesh-secret", "MESH_SETUP_KEY")
-	if err != nil {
-		t.Fatalf("sync failed: %v\n%s", err, out)
-	}
-	if got, ok := h.ghValue("edge-01", "secret", "MESH_SETUP_KEY"); !ok || got != meshKey {
-		t.Errorf("MESH_SETUP_KEY = %q (present %v)", got, ok)
-	}
-	h.requireAbsent("gh argv", h.argv("gh"), meshKey)
-	h.requireAbsent("vault argv", h.argv("vault"), meshKey)
-	h.requireAbsent("output", out, meshKey)
-
-	for _, name := range []string{"mesh_key", "GITHUB_MESH"} {
-		if out, err := h.run(nil, sync, "acme/"+slug, slug, "edge-01", "--mesh-secret", name); err == nil {
-			t.Errorf("accepted secret name %q\n%s", name, out)
-		}
-	}
-	h2 := newScriptHarness(t)
-	h2.seedVault("secret/apps/shop/edge-01/kubeconfig", map[string]string{"value": "apiVersion: v1\n"})
-	out, err = h2.run(nil, sync, "acme/shop", "shop", "edge-01", "--mesh-secret", "MESH_SETUP_KEY")
-	if err == nil || !strings.Contains(out, "MESH_SETUP_KEY=1") || strings.Contains(h2.argv("gh"), "PUT") {
-		t.Errorf("synced without a loaded mesh key: %v\n%s", err, out)
-	}
-}
-
 // probeFetch is the Probe Client → fetch-command table deploy-k3s-app's
 // SKILL.md documents for the probe Job's __PROBE_FETCH__ token.
 var probeFetch = map[string]string{
@@ -308,6 +274,32 @@ func TestProbeJobPython3Client(t *testing.T) {
 		err := cmd.Run()
 		if (err == nil) != (name == "healthy") {
 			t.Errorf("%s: python3 fetch exit error %v", name, err)
+		}
+	}
+}
+
+// manifest-lint refuses a Service that isn't ClusterIP: exposure goes through
+// the Ingress, which a platform-owned exposure model refuses to bypass.
+func TestManifestLintRequiresClusterIPServices(t *testing.T) {
+	if err := exec.Command("python3", "-c", "import yaml").Run(); err != nil {
+		t.Skipf("python3 with PyYAML not available: %v", err)
+	}
+	lint := filepath.Join("..", "skills", "smaqit.infrastructure-deploy-k3s-app", "scripts", "manifest-lint.sh")
+	for serviceType, ok := range map[string]bool{"": true, "ClusterIP": true, "NodePort": false, "LoadBalancer": false} {
+		spec := "  selector:\n    app: shop\n  ports:\n    - port: 80\n"
+		if serviceType != "" {
+			spec = "  type: " + serviceType + "\n" + spec
+		}
+		path := filepath.Join(t.TempDir(), "service.yaml")
+		if err := os.WriteFile(path, []byte("apiVersion: v1\nkind: Service\nmetadata:\n  name: shop\nspec:\n"+spec), 0644); err != nil {
+			t.Fatal(err)
+		}
+		out, err := exec.Command("bash", lint, path).CombinedOutput()
+		if (err == nil) != ok {
+			t.Errorf("type %q: passed=%v, want %v\n%s", serviceType, err == nil, ok, out)
+		}
+		if !ok && !strings.Contains(string(out), "Service type '"+serviceType+"' is not permitted") {
+			t.Errorf("type %q: unexpected output\n%s", serviceType, out)
 		}
 	}
 }

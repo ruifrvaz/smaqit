@@ -46,9 +46,9 @@ Reuses these existing k3s-family conventions rather than reinventing them:
   creates that resource automatically from the Ingress's `cert-manager.io/cluster-issuer`
   annotation.
 - The image build-and-push job (login, lowercase-tag, push by commit SHA, `__IMAGE__`
-  substitution) and the conditional `imagePullSecret` creation step both already live in
-  `smaqit.infrastructure-cicd-generate`'s `assets/deploy.yml.k3s.template` — this skill does not
-  author or duplicate either.
+  substitution) already lives in `smaqit.infrastructure-cicd-generate`'s
+  `assets/deploy.yml.k3s.template` — this skill does not author or duplicate it. There is no pull
+  Secret step: the platform pulls the app's images.
 - `DEPLOY_SHA`/`DEPLOY_TIME` are stamped into `deployment.yaml` as pod environment by CI (`sed`,
   at apply time) — never a file, since this credential has no host filesystem.
 
@@ -75,8 +75,9 @@ Reuses these existing k3s-family conventions rather than reinventing them:
 2. **Author `deployment/k3s/deployment.yaml`** (Deployment) and a companion
    `deployment/k3s/service.yaml`, matching `smaqit.infrastructure-deploy-k3s-app`'s own
    `assets/deployment.yaml.template` shape (`containerPort: 8080`, the full `restricted`
-   securityContext block, explicit resource requests/limits), with one addition this skill's own
-   hard-won fact requires:
+   securityContext block, explicit resource requests/limits), with two additions:
+   - **Keep the Service ClusterIP** (leave `spec.type` unset): exposure goes through the Ingress,
+     and `manifest-lint.sh` refuses any other type.
    - **Set `runAsUser` explicitly** (the base image's known numeric UID — `101` for
      `nginxinc/nginx-unprivileged`) in the pod-level `securityContext`. Without it, the kubelet
      throws `CreateContainerConfigError`: *"container has runAsNonRoot and image has non-numeric
@@ -85,10 +86,8 @@ Reuses these existing k3s-family conventions rather than reinventing them:
      resolve that name. `docker run` locally never surfaces this; it is a Kubernetes-only
      admission-time check. Confirm the base image's real UID first
      (`docker run --rm <image> id`) rather than assuming `101` for a different base image.
-   - If the image is pushed to a **private** registry (the default for GHCR packages pushed from
-     a private repository — visibility is inherited from the repo, not opt-in), also add
-     `imagePullSecrets: - name: app-registry` to the pod spec — matching the Secret that
-     `deploy.yml.k3s.template`'s own (already-generic) commented-out step creates when uncommented.
+   - Never add `imagePullSecrets`: the platform pulls the app's images, private ones included,
+     with its own credential, and the Namespace holds no pull Secret.
 
 ## Output
 
@@ -101,17 +100,14 @@ Reuses these existing k3s-family conventions rather than reinventing them:
 
 - Does not render or author the Ingress — that remains `smaqit.infrastructure-deploy-k3s-app`'s
   own template-rendering step.
-- Does not author or modify any CI/CD workflow — the build-and-push job and the conditional
-  `imagePullSecret` step both live in `smaqit.infrastructure-cicd-generate`'s
-  `deploy.yml.k3s.template`.
-- Does not create or manage the shared registry-read credential's lifecycle — provisioning/
-  rotating it is an operator action via `smaqit.infrastructure-vault-loader`/
-  `smaqit.infrastructure-repo-config`.
+- Does not author or modify any CI/CD workflow — the build-and-push job lives in
+  `smaqit.infrastructure-cicd-generate`'s `deploy.yml.k3s.template`.
+- Does not handle any image-pull credential — the platform pulls the app's images itself.
 - Does not cover non-static stacks (a backend with its own build step) — scoped deliberately
   narrow to a static site with no build step, per explicit user direction when this skill was
   originally synthesized.
 - Does not decide whether the image should be public or private — that is a per-project call;
-  this skill covers both paths (public: skip the `imagePullSecrets` field; private: include it).
+  either way the platform pulls it, so the manifests never carry `imagePullSecrets`.
 
 ## Completion
 
@@ -122,7 +118,7 @@ Reuses these existing k3s-family conventions rather than reinventing them:
 - [ ] `manifest-lint.sh` passes against `deployment.yaml` and `service.yaml`
 - [ ] The Deployment's pod spec sets an explicit numeric `runAsUser` matching the base image's
       real UID
-- [ ] If private: `imagePullSecrets: - name: app-registry` is present in the pod spec
+- [ ] No `imagePullSecrets` in the pod spec (the platform pulls the image)
 
 ## Failure Handling
 
@@ -130,7 +126,7 @@ Reuses these existing k3s-family conventions rather than reinventing them:
 |-----------|--------|
 | `docker build`'s health-file `RUN` step fails with a permission error | The base image's default non-root user can't write into the target directory after `COPY` (which always writes as root) — add `USER root` before the `RUN`, then switch back to the image's own non-root user afterward. |
 | Pod stuck in `CreateContainerConfigError`, message mentions "non-numeric user" | Set `runAsUser` explicitly in the securityContext to the base image's real numeric UID (`docker run --rm <image> id`) — never leave `runAsNonRoot: true` alone with a named-user base image. |
-| Pod stuck in `ImagePullBackOff` | Check whether the registry package is private (GHCR inherits the source repo's visibility by default) — either make it public or add `imagePullSecrets` to the manifest, backed by a valid, tested pull credential from `smaqit.infrastructure-vault-loader`'s shared registry-read path. |
+| Pod stuck in `ImagePullBackOff` | The platform pulls the app's images with its own credential. Report the exact image reference and ask the platform team whether its pull credential covers this package; never add `imagePullSecrets` or an app-held registry credential. |
 | `manifest-lint.sh` fails with `FileNotFoundError` on `ingress.yaml` | Expected until the Ingress has actually been rendered once (Required-inherited-context) — render and commit it before the workflow can pass, never fabricate a placeholder host. |
 
 ## Gotchas
@@ -139,12 +135,11 @@ Reuses these existing k3s-family conventions rather than reinventing them:
   Kubernetes-admission-specific. Don't trust a clean local `docker run` as proof the manifest will
   schedule cleanly.
 - GHCR package visibility silently inherits the source repository's visibility — a private repo
-  produces a private package by default, with no explicit opt-in step, which then blocks the
-  cluster's pull unless `imagePullSecrets` is added.
-- The build-and-push CI job and the `imagePullSecret` workflow step are **not** this skill's job —
-  they already live generically in `smaqit.infrastructure-cicd-generate`'s
-  `deploy.yml.k3s.template`. Do not re-author either here even if a downstream project's earlier
-  synthesized version of this skill included them.
+  produces a private package by default. That is fine: the platform pulls with its own credential,
+  so never add `imagePullSecrets` to make a private image pullable.
+- The build-and-push CI job is **not** this skill's job — it already lives generically in
+  `smaqit.infrastructure-cicd-generate`'s `deploy.yml.k3s.template`. Do not re-author it here
+  even if a downstream project's earlier synthesized version of this skill included it.
 
 ## Allowed Tools
 
@@ -158,4 +153,4 @@ but has no Dockerfile and no application manifests yet.
 
 **Output:** `Dockerfile`/`.dockerignore` authored (`nginxinc/nginx-unprivileged:1-alpine`, baked
 `/health.json`); `deployment/k3s/deployment.yaml`/`service.yaml` authored with explicit
-`runAsUser: 101` and, if the image is private, `imagePullSecrets: - name: app-registry`.
+`runAsUser: 101` and no `imagePullSecrets`.

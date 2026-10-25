@@ -7,23 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Action required:**
+- **existing-k3s deploys with the CI job's own OIDC identity; the app holds no deploy credential.** Add the platform's three `Cluster Connect` Constraints rows to the Infrastructure spec (`Cluster Connect Action`, a pinned `uses:` reference; `Cluster Connect Machine Input`; `Cluster Connect Namespace Input`), then regenerate `deploy.yml` with `smaqit.infrastructure-cicd-generate`. A spec without them is refused (`SLOTS-SPEC-FIELD-MISSING`). The platform must trust GitHub Actions OIDC and bind the app's Namespace to this repository and its machine-slug GitHub Environment.
+- **Point each row's `Mesh Setup-Key Secret` at the platform's shared, per-machine mesh secret** (for example an organisation secret), and name one on a `public` row too when the platform keeps its API mesh-only.
+- **Remove the `Container Registry` Constraints row**: the platform pulls the images, so no pull Secret is created and the manifests carry no `imagePullSecrets`.
+- **A Service that isn't ClusterIP now fails `manifest-lint.sh`** (and so the generated deploy). Remove `spec.type: NodePort`/`LoadBalancer` from `deployment/k3s/service.yaml`; exposure goes through the Ingress.
+- **After the first OIDC deploy, delete what the old model left behind**: the `KUBECONFIG`, per-app mesh setup-key and `REGISTRY_USERNAME`/`REGISTRY_TOKEN` secrets on each machine-slug Environment, and the Vault paths `secret/apps/<app>/<machine>/{kubeconfig,mesh-setup-key}` and `secret/organizations/<org>/github-package-read`. Nothing reads them any more.
+
 ### Added
-- Nothing to add.
+- **`Cluster Connect` Constraints rows** in the Infrastructure spec, parsed and validated by `smaqit spec environments` (`connect` in `--json`). The generated k3s `deploy.yml` gives its `deploy` job `id-token: write` and `contents: read` and connects through the named action, which owns the API address, the cluster CA, the audience and the token's refresh.
+- **Slot contracts in the resolver: `smaqit slots contract [--slot=<slot>] [--mode=<mode>] [--json]`.** Every slot carries its inputs, handoff, completion signal and per-mode notes in `installer/slots.go`; the deployment-slots wiki's catalogue is generated from the same text (a test keeps them equal). A filler that meets a slot's contract replaces the default with nothing else to change, so a platform can ship its own fillers (`platform-onboarding`, `artifact-build`, `ci-generate`, `app-deploy`) for the apps it hosts to bind.
+- **`app-deploy` owns trigger and monitor under a CI-only mode.** The Deployment agent reads the existing-k3s `app-deploy` filler although the slot is CI-executed: deploy-k3s-app 4.1.0's `deploy` operation dispatches the run (or watches the merged PR's dispatcher), selects it by trigger time and commit, stops on more than one candidate, watches it, and hands its ID to `verify`. A platform filler can replace it.
+- **`Allowed Ingress Modes` Constraints row:** the exposure a platform permits (absent: all three); an Environments row using another mode is refused. **`manifest-lint.sh` refuses non-ClusterIP Services.**
+- **Mesh access decoupled from app reachability:** a `public` row may name a mesh secret (a platform whose API is mesh-only though the app is public); the mesh join runs whenever the row names one.
+- **`namespace-guard.sh` retries a connection failure** for a bounded window (`NAMESPACE_GUARD_REACH_ATTEMPTS`, `NAMESPACE_GUARD_REACH_WAIT`), since a freshly joined mesh can resolve the API's name before its port answers; an Unauthorized or Forbidden answer is never retried, and each gets its own message.
+- **Skill definitions resynced** for request-k3s-onboarding, repo-config, cicd-generate and deploy-k3s-app, and created for vault-loader; each holds the skill's frontmatter, provenance and body, applied to `SKILL.md` by hand.
+- Tests: connect-row parsing and refusals, a public row joining the mesh, the rendered permissions and connect step, the guard's retry and its Unauthorized/Forbidden messages, `public-mesh-api` and `exec-allowed` golden files, and the platform-repo-only k3s credential load.
 
 ### Changed
-- Nothing to add.
+- **existing-k3s `target-credentials` and `environment-config` default to none.** vault-loader 4.0.0 loads only the onboarding PR's `platform-repo` token for existing-k3s (no `MACHINE_SLUG`); repo-config 3.0.0 syncs nothing for it; request-k3s-onboarding 2.0.0 prints this repository's name and numeric ID for the registry entry and reports a merged request without any kubeconfig hand-off; cicd-generate 4.1.0, deploy-k3s-app 4.1.0, image-build-push-static 1.4.0, project-new 3.3.0, input-deployment 1.11.0 and feature-new 2.7.0 describe the OIDC model.
 
 ### Deprecated
 - Nothing to add.
 
 ### Removed
-- Nothing to add.
+- `smaqit.infrastructure-repo-config/scripts/sync-k3s-env.sh`.
+- The existing-k3s kubeconfig, per-app mesh setup key and `organizations/<org>/github-package-read` registry credential from vault-loader's load, rotate and `credential-file.sh` paths.
+- The generated `Write kubeconfig` and `Create imagePullSecret` steps, the `Container Registry` Constraints row and its renderer handling.
 
 ### Fixed
 - Nothing to add.
 
 ### Security
-- Nothing to add.
+- `rotate-credential.sh` pipes the `platform-repo` and `github` tokens to Vault on stdin instead of passing them as command-line arguments, where the process list showed them.
 
 ### Chore
 - Nothing to add.

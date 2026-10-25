@@ -136,8 +136,8 @@ func TestSlotPlanDefaultsMatchCurrentBehaviour(t *testing.T) {
 		"platform-prereqs":    "none",
 		"access-credentials":  "profile smaqit.infrastructure-vault-loader:access @local",
 		"platform-onboarding": "profile smaqit.infrastructure-request-k3s-onboarding:request @local",
-		"target-credentials":  "profile smaqit.infrastructure-vault-loader:target @local",
-		"environment-config":  "profile smaqit.infrastructure-repo-config:sync @local",
+		"target-credentials":  "none",
+		"environment-config":  "none",
 		"artifact-build":      "profile smaqit.infrastructure-image-build-push*:build @local",
 		"iac-generate":        "none",
 		"ci-generate":         "profile smaqit.infrastructure-cicd-generate:generate @local",
@@ -442,12 +442,17 @@ func TestSlotPlanPlatformRepositoryBindings(t *testing.T) {
 	}
 
 	defaults := slotsTestProject(t)
-	k3s := planSummary(mustResolve(t, defaults, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "ci-push"}))
-	if k3s["target-credentials"] != "profile smaqit.infrastructure-vault-loader:target @local" {
-		t.Errorf("default target-credentials = %q", k3s["target-credentials"])
+	shared := planSummary(mustResolve(t, defaults, slotPlanOptions{Mode: "existing-shared", Environment: "prod", Path: "ci-push"}))
+	if shared["target-credentials"] != "profile smaqit.infrastructure-vault-loader:target @local" {
+		t.Errorf("default target-credentials = %q", shared["target-credentials"])
 	}
-	if k3s["environment-config"] != "profile smaqit.infrastructure-repo-config:sync @local" {
-		t.Errorf("default environment-config = %q", k3s["environment-config"])
+	if shared["environment-config"] != "profile smaqit.infrastructure-repo-config:sync @local" {
+		t.Errorf("default environment-config = %q", shared["environment-config"])
+	}
+	// existing-k3s carries no deploy credential: nothing to load or sync.
+	k3s := planSummary(mustResolve(t, defaults, slotPlanOptions{Mode: "existing-k3s", Environment: "prod", Path: "ci-push"}))
+	if k3s["target-credentials"] != "none" || k3s["environment-config"] != "none" {
+		t.Errorf("existing-k3s target-credentials/environment-config = %q/%q, want none", k3s["target-credentials"], k3s["environment-config"])
 	}
 
 	unnamed := slotsTestProject(t)
@@ -710,5 +715,60 @@ func TestRemoveSmaqitDirPreservingSlots(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(empty, ".smaqit")); !os.IsNotExist(err) {
 		t.Fatal(".smaqit must be removed entirely when no slots.yml exists")
+	}
+}
+
+// The deployment-slots wiki carries the catalogue's contracts verbatim, so a
+// filler author reads the same text `smaqit slots contract` prints.
+func TestSlotContractsMatchWiki(t *testing.T) {
+	const wiki = "../docs/wiki/workflows/deployment-slots.md"
+	data, err := os.ReadFile(wiki)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	begin := strings.Index(text, "<!-- smaqit:slot-contracts:begin")
+	end := strings.Index(text, "<!-- smaqit:slot-contracts:end -->")
+	if begin < 0 || end < begin {
+		t.Fatalf("%s has no smaqit:slot-contracts block", wiki)
+	}
+	begin += strings.Index(text[begin:], "-->\n") + len("-->\n")
+	want := slotContractsMarkdown()
+	if *updateGolden {
+		if err := os.WriteFile(wiki, []byte(text[:begin]+want+text[end:]), 0644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	if text[begin:end] != want {
+		t.Errorf("%s slot contracts differ from installer/slots.go; regenerate with -update", wiki)
+	}
+	for _, def := range deploySlots {
+		if def.Inputs == "" || def.Handoff == "" || def.Completion == "" || def.Notes["existing-k3s"] == "" {
+			t.Errorf("slot %s has an incomplete contract", def.Name)
+		}
+	}
+}
+
+// `smaqit slots contract` filters by slot and mode, and refuses unknown ones.
+func TestSlotContractsFilter(t *testing.T) {
+	all, errs := slotContracts("", "")
+	if len(errs) > 0 || len(all) != len(deploySlots) {
+		t.Fatalf("all contracts: %d (%v)", len(all), errs)
+	}
+	one, errs := slotContracts("app-deploy", "existing-k3s")
+	if len(errs) > 0 || len(one) != 1 || one[0].Order != 11 || one[0].Default != "smaqit.infrastructure-deploy-k3s-app* (deploy)" ||
+		!strings.Contains(one[0].Notes["existing-k3s"], "trigger and monitor") {
+		t.Fatalf("app-deploy contract = %+v (%v)", one, errs)
+	}
+	vm, _ := slotContracts("app-deploy", "provision")
+	if len(vm[0].Notes) != 0 {
+		t.Errorf("a mode without a note still printed one: %v", vm[0].Notes)
+	}
+	if _, errs := slotContracts("nope", ""); len(errs) != 1 {
+		t.Errorf("unknown slot: %v", errs)
+	}
+	if _, errs := slotContracts("", "vm"); len(errs) != 1 {
+		t.Errorf("unknown mode: %v", errs)
 	}
 }

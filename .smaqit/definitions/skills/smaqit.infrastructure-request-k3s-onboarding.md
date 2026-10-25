@@ -1,20 +1,14 @@
 # smaqit.infrastructure-request-k3s-onboarding
 
-## Description
+## Frontmatter
 
-Use when an app project targeting `provisioning_mode: existing-k3s` needs to request onboarding
-of one of its environments onto a platform-owned, self-hosted k3s cluster whose own onboarding
-process accepts requests via a PR-mergeable registry file. Given a declared platform repository, a
-registry-file path, and operator-supplied entry content, opens a PR against that external
-repository adding the app's registry entry for one named machine, then gates on that PR being
-approved and merged before reporting success. Used in Phase 4 (test) and Phase 5 (prod) of
-`smaqit.project-new`, before invoking `smaqit.infrastructure-deploy-k3s-app`. This is
-the app-side *request* half of onboarding: a smaqit-declared, opinionated convention for how an
-app repo requests k3s onboarding, owned entirely by this skill — never inherited from or dependent
-on how any particular platform repo actually fulfills the request. Whatever happens after the PR
-merges (Namespace/RBAC/kubeconfig issuance, or anything else) is entirely the platform team's own
-process, outside this skill's knowledge or control. This skill never touches that fulfillment
-mechanism directly, and never requests broader access than opening a PR.
+```yaml
+name: smaqit.infrastructure-request-k3s-onboarding
+description: Use when an existing-k3s app needs one environment onboarded onto a platform-owned k3s cluster whose onboarding accepts PR-mergeable registry-file requests (project-new Phases 4 and 5, before deploy-k3s-app). Opens a PR against the platform repository and gates on its merge; never needs direct commit or workflow_dispatch access, and never assumes how the platform converges.
+metadata:
+  version: "2.0.0"
+  smaqit-slots: "platform-onboarding=request"
+```
 
 ## Provenance
 
@@ -24,147 +18,182 @@ mechanism directly, and never requests broader access than opening a PR.
 - Authored directly into canonical `smaqit` as a child of task 117 (`smaqit.infrastructure-deploy-k3s-app`), closing a gap identified during that task's post-implementation review: neither an infra repo's own onboarding process (task 116, `smaqit.infrastructure-onboard-k3s-app`) nor the app-side deploy skill (task 117) gave an app project a declared way to *request* onboarding without also requiring the broad direct-commit-and-`workflow_dispatch` access an infra repo's own maintainers would have.
 - **Deliberately more opinionated than task 116.** Task 116 is a thin dispatcher precisely because it lives inside an infra-owning repo it doesn't control the internals of — every such repo can differ, so smaqit cannot prescribe its mechanics. This skill instead lives inside the smaqit-managed **app** repo, which smaqit fully owns the conventions for, so it can and does declare one fixed, opinionated request contract (PR-to-a-registry-file, gate-on-merge) rather than deferring to unknown mechanics on its own side. Using `existing-k3s` with this skill implicitly requires the target infra repo's onboarding process to accept requests this way; an infra repo that doesn't work this way is simply not compatible with this skill as-is — a scoping boundary, not something this skill adapts around.
 - No family precedent exists for this exact shape (a cross-repository PR request). Its gate mechanics instead mirror `smaqit.feature-new`'s already-proven deploy-PR pattern: create the PR, pause, re-check merge state on the next invocation — never a busy-poll loop.
+- Resynced with the shipped SKILL.md in task 145 (2026-10-25); the body below is applied to SKILL.md by hand.
 
-## Steps
+## Skill Body
 
-### Pre-conditions
+Applied to `skills/smaqit.infrastructure-request-k3s-onboarding/SKILL.md` by hand, verbatim (task 145: `smaqit.L2`'s skill
+rules conflict with this repo's description, metadata and section conventions).
+
+<!-- skill-body:begin -->
+# Request k3s App Onboarding
+
+## Pre-conditions
 
 - **The target platform repository's own onboarding process accepts requests via a PR-mergeable
   registry file.** This is smaqit's own declared convention for the app side, not a guarantee
-  about any given infra repo. If the target repo's onboarding process works some other way (a
-  ticket, a chat request, a direct API call, anything not triggered by merging a file change),
-  this skill does not apply — that combination is out of scope, not a bug to work around.
-- The Infrastructure spec declares, for the target environment: the platform repository
-  (`owner/repo`, via the `## Constraints` table's `Platform Repo` row), the registry-file path
-  within that repository, and the target machine-slug.
-- `secret/apps/<app-slug>/platform-repo` is populated in Vault — a fine-grained PAT scoped only to
-  `contents:write` and `pull_requests:write` on the platform repository, distinct from
-  `secret/apps/<app-slug>/github` (which is scoped to this project's own repository). Populated via
-  `smaqit.infrastructure-vault-loader`'s `existing-k3s` branch.
+  about any given infra repo. If the target repo's onboarding process works some other way, this
+  skill does not apply — that combination is out of scope, not a bug to work around.
+- The Infrastructure spec declares the platform repository (`owner/repo`, the `Platform Repo`
+  Constraints row) and the registry-file path within it (`Registry File Path` row), and the target
+  environment's `## Environments` row names its `Machine Slug` — all sourced from the platform
+  team's own onboarding documentation, never invented locally.
+- `secret/apps/<app-slug>/platform-repo` is populated (`smaqit.infrastructure-vault-loader`'s
+  `existing-k3s` branch) — a fine-grained PAT scoped only to `contents:write` and
+  `pull_requests:write` on the platform repository, the one credential an `existing-k3s` app holds.
 - The operator supplies the exact registry-entry content (text or diff) to add — this skill never
-  infers or validates a registry-file schema, since the platform repository's actual format is not
-  standardized or known to smaqit.
-- The credential is a direct collaborator-level grant on the platform repository (`contents:write`)
-  — never a fork-based flow. `gh pr create -H user:branch`'s fork-based cross-repo path has a known
-  upstream limitation (`cli/cli#10093`, open) that this skill deliberately avoids entirely by
-  pushing its branch straight to the platform repository and opening a same-repo PR via
-  `gh pr create -R <platform-repo>`.
+  infers or validates a registry-file schema. A platform that binds the app's CI identity to its
+  repository usually asks for that repository in the entry (Step 1 prints it).
+- The credential is a direct collaborator-level grant on the platform repository, not a fork-based
+  flow — never use `gh pr create -H user:branch` (see Gotchas).
 
-### Steps
+## Steps
 
-1. **Resolve inputs** for the target environment (test or prod) from the Infrastructure spec:
-   `platform_repo` (owner/repo), `registry_file_path`, `machine_slug`. The operator supplies
-   `entry_content` directly (the exact text/diff to add at that path).
-2. **Compute a deterministic branch name**: `onboard-<app-slug>-<machine_slug>`. Check for an
-   already-open PR on that branch before creating anything new:
+1. **Resolve inputs** for the target environment from the Infrastructure spec: `platform_repo`
+   (owner/repo), `registry_file_path`, `machine_slug`. Print this repository's identity, with the
+   operator's own `gh` login and before the platform credential replaces it (that token reaches
+   only the platform repository); `gh repo view --json id` would print a GraphQL node ID, not the
+   numeric ID a platform binds:
    ```bash
-   gh pr list -R <platform_repo> --head "onboard-<app-slug>-<machine_slug>" --state open --json number,url
+   gh api "repos/$(gh repo view --json nameWithOwner --jq .nameWithOwner)" --jq '"\(.full_name) \(.id)"'
    ```
-   If one exists, skip straight to Step 5 (gate) — never open a duplicate.
-3. **Create or update the branch on the platform repository** (using the
-   `secret/apps/<app-slug>/platform-repo` credential): clone or fetch the platform repo, create
-   the branch from its default branch if it doesn't already exist, write `entry_content` at
-   `registry_file_path`, commit, and push.
-4. **Open the PR**:
+   The operator supplies `entry_content` directly; when the platform's registry asks for the
+   requesting repository, the entry carries these values. Then load the `platform-repo` credential
+   for every `gh`/`git` call below through the vault-loader script — it never touches the command
+   line or the transcript:
    ```bash
-   gh pr create -R <platform_repo> \
-     --head "onboard-<app-slug>-<machine_slug>" \
-     --title "Onboard <app-slug> (<machine_slug>)" \
-     --body "Requests onboarding for app slug <app-slug> onto machine <machine_slug>. Opened by smaqit.infrastructure-request-k3s-onboarding."
+   TOKEN_FILE="$(bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/credential-file.sh \
+     "apps/${APP_SLUG}/platform-repo")"
+   trap 'rm -rf "$(dirname "$TOKEN_FILE")"' EXIT
+   export GH_TOKEN="$(cat "$TOKEN_FILE")"
    ```
-   Report the PR URL. Never trigger `workflow_dispatch` on the platform repository — convergence is
-   entirely the platform team's own concern once the PR merges.
-5. **Gate on merge** — a single state check per invocation, never a busy-poll loop:
+2. **Check for an already-open PR before creating anything:**
    ```bash
-   gh pr view -R <platform_repo> <pr-number> --json state,mergedAt
+   BRANCH="onboard-${APP_SLUG}-${MACHINE_SLUG}"
+   gh pr list -R "$PLATFORM_REPO" --head "$BRANCH" --state open --json number,url
    ```
-   - `state: "MERGED"` → report success and stop. Onboarding has been requested and accepted; the
-     platform team's own process now handles convergence and the eventual kubeconfig hand-off
-     (still out-of-band, unchanged from `smaqit.infrastructure-deploy-k3s-app`'s existing
-     precondition).
-   - `state: "OPEN"` → report "pending — awaiting platform-team review" with the PR URL, and stop
-     cleanly. Re-entrant: invoking this skill again later re-checks the same PR rather than
-     re-creating it (Step 2's idempotency check).
-   - `state: "CLOSED"` (not merged) → report the closure to the operator; do not silently reopen or
-     retry. This requires human judgment about what changed.
+   If one exists, skip to Step 5 — never open a duplicate.
+3. **Fetch the current registry file, then append — never a blind overwrite.** Using the
+   `platform-repo` credential: create `$BRANCH` from the platform repository's default branch if it
+   doesn't already exist, then read the *current* content of `registry_file_path` on that branch
+   (e.g. `gh api repos/"$PLATFORM_REPO"/contents/"$REGISTRY_FILE_PATH" --jq '.content' | base64 -d`,
+   or an equivalent fetched-clone read). If `entry_content` names a repository, confirm it is exactly
+   the one Step 1 printed (name and numeric ID): a wrong ID binds another repository's deploy
+   identity to this app's Namespace. Append `entry_content` to that existing content — every
+   other already-onboarded entry and any header/comment lines must survive unchanged — then write
+   the merged result back to `registry_file_path`, commit, and push. If the fetch reports the path
+   doesn't exist at all, treat it as the existing "registry file path doesn't exist" Failure
+   Handling case below; do not invent initial file content.
+4. **Open the PR:**
+   ```bash
+   gh pr create -R "$PLATFORM_REPO" \
+     --head "$BRANCH" \
+     --title "chore: onboard ${APP_SLUG} (${MACHINE_SLUG})" \
+     --body "Requests onboarding for app slug ${APP_SLUG} onto machine ${MACHINE_SLUG}. Opened by smaqit.infrastructure-request-k3s-onboarding."
+   ```
+   Report the PR URL. Never trigger `workflow_dispatch` on the platform repository.
+5. **Gate on merge — a single state check, never a loop:**
+   ```bash
+   gh pr view -R "$PLATFORM_REPO" "$PR_NUMBER" --json state,mergedAt
+   ```
+   - `MERGED` → report the request merged. The app becomes deployable once the platform has
+     reconciled the merge — automatically on many platforms (their onboarding documentation says
+     so), otherwise after the platform's own step, which this skill never performs. There is no
+     credential to collect: the deploy connects with its own OIDC identity, and its namespace
+     guard is the convergence check — a Forbidden answer means the binding has not reconciled yet.
+   - `OPEN` → report "pending — awaiting platform-team review" with the PR URL and stop cleanly.
+     Re-invoke later to re-check (Step 2 finds and reuses the same PR).
+   - `CLOSED` (not merged) → report the closure; do not silently reopen or retry.
 
 ## Output
 
-Either: a newly opened PR on the platform repository (pending review), or confirmation that a
-previously opened PR for this app/machine has since merged. Never a kubeconfig, a converged
-Namespace, or any change to the platform repository outside the one PR.
+Either a newly opened PR on the platform repository (pending review), or confirmation that a
+previously opened PR for this app/machine has since merged, with the reminder that the platform
+must reconcile it before the first deploy succeeds. Never a credential, a converged Namespace, or
+any change to the platform repository outside the one PR.
 
 ## Scope
 
-- Does NOT perform or know anything about the platform-side onboarding mechanism itself
-  (Namespace/RBAC/PSA/NetworkPolicy/Quota/kubeconfig issuance, or whatever else a given platform
-  repo does) — that is entirely that repository's own process, triggered however its own
-  maintainers have set it up to react to this skill's PR merging. `smaqit.infrastructure-onboard-k3s-app`
-  is one possible shape such a process could take on the infra side, but this skill assumes
-  nothing about it beyond "a merged PR triggers something."
+- Does NOT perform or know anything about the platform-side onboarding mechanism itself — that is
+  entirely that repository's own process, triggered however its own maintainers have set it up to
+  react to this skill's PR merging. This skill assumes nothing about that process beyond "a merged
+  PR triggers something."
 - Does NOT trigger `workflow_dispatch` on the platform repository, read or write anything else in
   it, or hold any credential broader than PR-create rights on that one repository.
-- Does NOT fetch, store, or validate the resulting kubeconfig — that remains
-  `smaqit.infrastructure-vault-loader`'s existing out-of-band manual-paste step.
-- Does NOT assume or validate a registry-file schema — content is exactly what the operator
-  supplies.
-- Does NOT run as part of the generated `deploy.yml` — it is a one-time setup step per
-  machine-slug (Phase 4 for test, Phase 5 for prod), not a per-push CI job.
+- Does NOT handle any deploy credential — the platform binds the app's CI identity (its repository
+  and machine-slug GitHub Environment) to the Namespace, so there is nothing to collect.
+- Does NOT assume or validate a registry-file schema.
+- Does NOT run inside the generated `deploy.yml` — it is a one-time setup step per machine-slug
+  (Phase 4 for test, Phase 5 for prod), never a per-push CI job.
+
+## Examples
+
+**Input:** A project's Phase 4 dev sweep resolves `provisioning_mode: existing-k3s` and needs to
+onboard its test environment onto machine-slug `test-cluster`.
+
+**Output:** No existing open PR found for `onboard-<app-slug>-test-cluster`. A branch is pushed to
+the platform repository with the registry entry; `gh pr create -R <platform_repo>` opens PR #42;
+the skill reports the PR URL and "pending — awaiting platform-team review," then stops. Re-invoked
+after the platform team merges PR #42, the skill reports the request merged; once the platform has
+reconciled it, Phase 4's dispatched `deploy.yml` connects with the job's OIDC identity and deploys.
+
+## Gotchas
+
+- **Deliberately opinionated, unlike the platform-side onboarding process it targets.** The
+  platform repo's own onboarding mechanism lives inside an infra repo smaqit doesn't control the
+  internals of — every such repo can differ, and smaqit ships no skill for it (an earlier generic
+  dispatcher stub, `smaqit.infrastructure-onboard-k3s-app`, was removed as an orphaned, unused
+  duplicate of this Pre-conditions/Gotchas guidance — see task 119). This skill lives inside the
+  smaqit-managed app repo instead, which smaqit fully owns the conventions for, so it declares one
+  fixed request contract (PR-to-a-registry-file, gate-on-merge) rather than deferring to unknown
+  mechanics on its own side. Do not water this down to match the infra side's genericness — the two
+  concerns sit on opposite sides of a repo boundary for a reason.
+- **Never use the fork-based `gh pr create -H user:branch` flow.** `cli/cli#10093` (open) tracks a
+  real limitation in that flow for cross-repo PRs. This skill avoids it entirely by using a
+  directly-scoped collaborator credential to push a branch straight to the platform repository and
+  opening a same-repo PR instead.
+- **Gate is a single check, not a loop.** No busy-poll pattern exists anywhere else in this
+  codebase for a PR-merge wait; `smaqit.feature-new`'s own deploy-PR gate creates, pauses, and
+  re-checks only on the next invocation. Mirror that shape exactly.
+- **Never trigger `workflow_dispatch` on the platform repository**, even if the credential happened
+  to have that scope — this skill's job ends at "PR merged." Merged does not mean reconciled: report
+  it plainly, and let the first deploy's namespace guard confirm the binding (Forbidden until then).
+- **PR conventions:** branch `onboard-<app-slug>-<machine-slug>` and title
+  `chore: onboard <app-slug> (<machine-slug>)` — a deterministic name the platform side can
+  recognise, and the reason Step 2 can find and reuse an earlier request.
+- **The registry-file format is genuinely unknown to smaqit.** `entry_content` is always exactly
+  what the operator supplies — never inferred, templated, or validated.
+- **One-time setup step, not per-push CI.** Do not add this to the generated `deploy.yml`.
 
 ## Completion
 
 - [ ] Deterministic branch name computed; an existing open PR for this app/machine-slug is reused,
       never duplicated
+- [ ] Registry file's current content fetched before writing; every pre-existing entry and
+      header/comment line survives unchanged in the merged result — never a full-file replace
 - [ ] Branch pushed directly to the platform repository (never a fork; never `-H user:branch`)
 - [ ] PR opened via `gh pr create -R <platform_repo>`, URL reported
 - [ ] `workflow_dispatch` never triggered on the platform repository
-- [ ] Merge state checked once per invocation (`gh pr view --json state,mergedAt`), never polled in
-      a loop
-- [ ] On merge: success reported, no attempt made to fetch the resulting kubeconfig
-- [ ] On pending or closed: reported plainly to the operator, no silent retry
+- [ ] Merge state checked once per invocation, never polled in a loop
+- [ ] Repository identity printed before the platform credential was loaded; any repository named in `entry_content` matches it
+- [ ] On merge: request reported merged, deployable once the platform reconciles it; no credential collected
+- [ ] On pending or closed: reported plainly, no silent retry
 
 ## Failure Handling
 
 | Situation | Action |
 |-----------|--------|
+| Infrastructure spec doesn't declare `Platform Repo`, `Registry File Path`, or the environment's `Machine Slug` | Stop. Name exactly which field(s) are missing and point at the platform repository's own onboarding documentation as the only valid source. Never fabricate a value or guess a path. |
 | `secret/apps/<app-slug>/platform-repo` absent | Stop. Point at `smaqit.infrastructure-vault-loader`'s `existing-k3s` branch to populate it. Never fabricate a placeholder. |
 | `entry_content` not supplied by the operator | Stop and request it. Never guess a registry-file schema. |
 | PR already open for this app/machine-slug | Skip creation; proceed directly to the merge-state gate. Never open a duplicate. |
-| PR state is `CLOSED` (not merged) | Report to the operator. Do not reopen or retry automatically — requires human judgment. |
-| PR state is `OPEN` | Report "pending" with the PR URL and stop cleanly. Re-invoke later to re-check — never busy-poll. |
-| Credential lacks sufficient scope (`gh` reports a permission error on push or PR create) | Report the exact error. Do not attempt a fork-based fallback (`-H user:branch`) — that path has a known upstream limitation (`cli/cli#10093`) and was deliberately designed around. |
-| Platform repository or registry file path doesn't exist | Stop and report; do not create the file's parent directories speculatively. |
-
-## Gotchas
-
-- **Never use the fork-based `gh pr create -H user:branch` flow.** `cli/cli#10093` (open, as of
-  this skill's authoring) tracks a real limitation in that flow for cross-repo PRs. This skill
-  avoids it entirely by using a directly-scoped collaborator credential to push a branch straight
-  to the platform repository and opening a same-repo PR instead.
-- **Gate is a single check, not a loop.** No busy-poll pattern exists anywhere else in this
-  codebase for a PR-merge wait; `smaqit.feature-new`'s own deploy-PR gate creates, pauses, and
-  re-checks only on the next invocation. Mirror that shape exactly — do not add a `sleep`/retry
-  loop here.
-- **Never trigger `workflow_dispatch` on the platform repository.** Even if the credential happened
-  to have that scope, this skill's job ends at "PR merged" — triggering convergence directly would
-  bypass the platform team's own review-then-converge process this skill exists to respect.
-- **The registry-file format is genuinely unknown to smaqit.** Do not infer, template, or validate
-  its shape — `entry_content` is always exactly what the operator supplies.
-- **This is a one-time setup step, not a per-push CI job.** Do not add it to the generated
-  `deploy.yml` — a PR-review gate on every push would stall production deploys on reviewer
-  availability.
+| PR state is `CLOSED` (not merged) | Report to the operator. Do not reopen or retry automatically. |
+| PR state is `OPEN` | Report "pending" with the PR URL and stop cleanly. Re-invoke later — never busy-poll. |
+| Credential lacks sufficient scope | Report the exact error. Do not fall back to `-H user:branch` (`cli/cli#10093`). |
+| `entry_content` names a different repository or ID than Step 1 printed | Stop before writing; ask the operator to correct the entry. |
+| Platform repository or registry file path doesn't exist | Stop and report; do not speculatively create parent directories. |
 
 ## Allowed Tools
 
 Bash(git:*), Bash(gh:*), Bash(bash:*)
-
-## Examples
-
-**Input:** A project's Phase 4 dev sweep resolves `provisioning_mode: existing-k3s` and needs to
-onboard its test environment onto machine-slug `test-cluster` before invoking the k3s deploy skill.
-
-**Output:** No existing open PR found for `onboard-<app-slug>-test-cluster`. A branch is pushed to
-the platform repository with the app's registry entry; `gh pr create -R <platform_repo>` opens PR
-#42; the skill reports the PR URL and "pending — awaiting platform-team review," then stops.
-Re-invoked the next day after the platform team merges PR #42, the skill reports success and Phase
-4 proceeds to `smaqit.infrastructure-deploy-k3s-app`.
+<!-- skill-body:end -->

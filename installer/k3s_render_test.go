@@ -33,11 +33,22 @@ func k3sRow(env, machine, reachability, mode string) k3sEnvRow {
 	return row
 }
 
+// k3sMeshAPIRow is a public row whose API the platform keeps mesh-only, so CI
+// joins the mesh although the app itself is reachable from the internet.
+func k3sMeshAPIRow(env, machine, mode string) k3sEnvRow {
+	row := k3sRow(env, machine, "public", mode)
+	row[8], row[9] = "MESH_DEPLOY_KEY", machine+".mesh.internal"
+	return row
+}
+
 // k3sConstraints returns exactly the Constraints rows the rows depend on.
 func k3sConstraints(rows []k3sEnvRow) map[string]string {
 	constraints := map[string]string{}
+	for k, v := range k3sConnectConstraints {
+		constraints[k] = v
+	}
 	for _, row := range rows {
-		if row[3] == "private-mesh" {
+		if row[8] != "" && row[8] != "—" {
 			constraints["Mesh Join Action"] = "example-org/mesh-join@v1.4.2"
 			constraints["Mesh Setup-Key Input"] = "setup-key"
 			constraints["Mesh Wait-For Input"] = "wait-for"
@@ -108,13 +119,14 @@ var k3sGoldenCases = func() map[string][]k3sEnvRow {
 			cases[reachability+"-"+mode] = []k3sEnvRow{k3sRow("prod", "edge-01", reachability, mode)}
 		}
 	}
-	cases["private-registry"] = []k3sEnvRow{k3sRow("prod", "pub-01", "public", "own-tls")}
+	cases["exec-allowed"] = []k3sEnvRow{k3sRow("prod", "pub-01", "public", "own-tls")}
+	cases["public-mesh-api"] = []k3sEnvRow{k3sMeshAPIRow("prod", "pub-01", "own-tls")}
 	return cases
 }()
 
 // k3sGoldenExtraConstraints adds Constraints rows beyond the ones the rows need.
 var k3sGoldenExtraConstraints = map[string]map[string]string{
-	"private-registry": {"Container Registry": "ghcr.io, private", "Deployer Exec": "allowed"},
+	"exec-allowed": {"Deployer Exec": "allowed"},
 }
 
 func k3sGoldenConstraints(name string) map[string]string {
@@ -125,11 +137,12 @@ func k3sGoldenConstraints(name string) map[string]string {
 	return constraints
 }
 
-// Every reachability × Ingress-mode pair, a mixed public/private pair, and a
-// private registry with exec allowed render exactly their golden workflows.
+// Every reachability × Ingress-mode pair, a mixed public/private pair, exec
+// allowed, and a public app behind a mesh-only API render exactly their golden
+// workflows.
 func TestK3sDeployGoldenFiles(t *testing.T) {
-	if len(k3sGoldenCases) != len(reachabilityClasses)*len(ingressModes)+2 {
-		t.Fatalf("golden cases = %d, want every combination plus mixed and private-registry", len(k3sGoldenCases))
+	if len(k3sGoldenCases) != len(reachabilityClasses)*len(ingressModes)+3 {
+		t.Fatalf("golden cases = %d, want every combination plus mixed, exec-allowed and public-mesh-api", len(k3sGoldenCases))
 	}
 	for name, rows := range k3sGoldenCases {
 		t.Run(name, func(t *testing.T) {
@@ -170,7 +183,8 @@ type k3sStep struct {
 type k3sWorkflow struct {
 	On   map[string]yaml.Node `yaml:"on"`
 	Jobs map[string]struct {
-		Environment string `yaml:"environment"`
+		Environment string            `yaml:"environment"`
+		Permissions map[string]string `yaml:"permissions"`
 		Concurrency struct {
 			Group            string `yaml:"group"`
 			CancelInProgress bool   `yaml:"cancel-in-progress"`
@@ -201,8 +215,9 @@ func parseK3sWorkflow(t *testing.T, out string) k3sWorkflow {
 }
 
 // The rendered workflow is dispatch-only, branches per machine at run time,
-// joins the mesh only for private-mesh machines, and verifies in the cluster
-// whenever the runner cannot reach the app.
+// connects with the job's OIDC identity through the platform's action, joins the
+// mesh only for a machine whose row names a mesh secret, holds no deploy secret,
+// and verifies in the cluster whenever the runner cannot reach the app.
 func TestK3sDeployRenderedContract(t *testing.T) {
 	rows := k3sGoldenCases["mixed"]
 	out, stderr, code := renderK3s(t, specEnvironmentsJSON(t, rows, k3sConstraints(rows)), "shop")
@@ -234,6 +249,14 @@ func TestK3sDeployRenderedContract(t *testing.T) {
 	if deploy.Concurrency.Group != "deploy-${{ inputs.environment || 'pub-01' }}" || deploy.Concurrency.CancelInProgress {
 		t.Errorf("deploy concurrency = %+v, want one group per machine that never cancels a running deploy", deploy.Concurrency)
 	}
+	if deploy.Permissions["id-token"] != "write" || deploy.Permissions["contents"] != "read" || len(deploy.Permissions) != 2 {
+		t.Errorf("deploy permissions = %v, want exactly id-token: write and contents: read", deploy.Permissions)
+	}
+	for _, leaked := range []string{"secrets.KUBECONFIG", "REGISTRY_", "imagePullSecret", "smaqit:pull-secret", "__CLUSTER_CONNECT_"} {
+		if strings.Contains(out, leaked) {
+			t.Errorf("rendered workflow still contains %q", leaked)
+		}
+	}
 	if deploy.Env["DEPLOYER_EXEC"] != "denied" {
 		t.Errorf("DEPLOYER_EXEC = %q, want denied when the spec has no Deployer Exec row", deploy.Env["DEPLOYER_EXEC"])
 	}
@@ -250,7 +273,7 @@ func TestK3sDeployRenderedContract(t *testing.T) {
 		index[step.Name] = i
 		switch step.Name {
 		case "Join the mesh":
-			if step.If != "env.REACHABILITY == 'private-mesh'" || step.Uses != "example-org/mesh-join@v1.4.2" ||
+			if step.If != "env.MESH_SETUP_KEY_SECRET != ''" || step.Uses != "example-org/mesh-join@v1.4.2" ||
 				step.With["setup-key"] != "${{ secrets[env.MESH_SETUP_KEY_SECRET] }}" || step.With["wait-for"] != "${{ env.MESH_WAIT_FOR_HOST }}" {
 				t.Errorf("mesh-join step = %+v", step)
 			}
@@ -266,9 +289,10 @@ func TestK3sDeployRenderedContract(t *testing.T) {
 			if step.If != "env.VERIFY == 'external'" || !strings.Contains(step.Run, "seq 1 12") || !strings.Contains(step.Run, "${HEALTH_PATH}") {
 				t.Errorf("external verify = %+v", step)
 			}
-		case "Write kubeconfig":
-			if step.Env["KUBECONFIG_DATA"] != "${{ secrets.KUBECONFIG }}" || !strings.Contains(step.Run, "umask 077") || !strings.Contains(step.Run, "$RUNNER_TEMP/kubeconfig") {
-				t.Errorf("kubeconfig step = %+v", step)
+		case "Connect to the cluster":
+			if step.Uses != "example-org/platform/.github/actions/k3s-connect@v1.0.0" || step.If != "" || step.Run != "" ||
+				step.With["machine"] != "${{ env.MACHINE }}" || step.With["namespace"] != "app-shop" || len(step.With) != 2 {
+				t.Errorf("connect step = %+v", step)
 			}
 		case "Namespace guard":
 			if !strings.Contains(step.Run, `--deployer-exec "$DEPLOYER_EXEC"`) {
@@ -279,7 +303,7 @@ func TestK3sDeployRenderedContract(t *testing.T) {
 				t.Errorf("exec-refused step = %q", step.Run)
 			}
 		case "Remove kubeconfig":
-			if step.If != "always()" || !strings.Contains(step.Run, "$RUNNER_TEMP/kubeconfig") {
+			if step.If != "always()" || !strings.Contains(step.Run, `"$KUBECONFIG"`) || strings.Contains(step.Run, "RUNNER_TEMP") {
 				t.Errorf("kubeconfig cleanup = %+v", step)
 			}
 		case "Select and stamp manifests":
@@ -290,7 +314,7 @@ func TestK3sDeployRenderedContract(t *testing.T) {
 			}
 		}
 	}
-	order := []string{"Resolve target", "Join the mesh", "Install kubectl", "Write kubeconfig", "Namespace guard", "Select and stamp manifests",
+	order := []string{"Resolve target", "Join the mesh", "Install kubectl", "Connect to the cluster", "Namespace guard", "Select and stamp manifests",
 		"Lint manifests", "Apply manifests", "Wait for rollout", "Exec refused", "Wait for Certificate Ready", "Verify revision",
 		"Verify in cluster", "Verify over HTTPS", "Remove kubeconfig"}
 	for i, name := range order {
@@ -309,37 +333,41 @@ func TestK3sDeployRenderedContract(t *testing.T) {
 		t.Errorf("build does not pass DEPLOY_SHA: %q", build)
 	}
 
-	// An all-public render carries no mesh step and no marker comments.
+	// A render where no row names a mesh secret carries no mesh step and no
+	// marker comments.
 	public := []k3sEnvRow{k3sRow("prod", "pub-01", "public", "own-tls")}
 	out, stderr, code = renderK3s(t, specEnvironmentsJSON(t, public, k3sConstraints(public)), "shop")
 	if code != 0 {
 		t.Fatalf("public render exit %d: %s", code, stderr)
 	}
 	if strings.Contains(out, "Join the mesh") || strings.Contains(out, "smaqit:mesh-join") || strings.Contains(out, "__MESH_") {
-		t.Error("all-public render kept the mesh-join step")
-	}
-	if strings.Contains(out, "imagePullSecret") || strings.Contains(out, "smaqit:pull-secret") || strings.Contains(out, "REGISTRY_") {
-		t.Error("a public-registry render kept the imagePullSecret step")
+		t.Error("a render with no mesh secret kept the mesh-join step")
 	}
 	parseK3sWorkflow(t, out)
 
-	// A private registry renders the pull-Secret step with its host; Deployer
-	// Exec: allowed reaches the job environment.
-	out, stderr, code = renderK3s(t, specEnvironmentsJSON(t, public, k3sGoldenConstraints("private-registry")), "shop")
+	// A public app behind a mesh-only API keeps the mesh step and still
+	// verifies over HTTPS.
+	meshAPI := k3sGoldenCases["public-mesh-api"]
+	out, stderr, code = renderK3s(t, specEnvironmentsJSON(t, meshAPI, k3sConstraints(meshAPI)), "shop")
 	if code != 0 {
-		t.Fatalf("private-registry render exit %d: %s", code, stderr)
+		t.Fatalf("public-mesh-api render exit %d: %s", code, stderr)
 	}
-	private := parseK3sWorkflow(t, out)
-	pull := private.step(t, "deploy", "Create imagePullSecret")
-	if pull.Env["REGISTRY_HOST"] != "ghcr.io" || pull.Env["REGISTRY_TOKEN"] != "${{ secrets.REGISTRY_TOKEN }}" ||
-		!strings.Contains(pull.Run, "--type=kubernetes.io/dockerconfigjson") || !strings.Contains(pull.Run, "--from-file=.dockerconfigjson=<(") {
-		t.Errorf("pull-Secret step = %+v", pull)
+	meshWorkflow := parseK3sWorkflow(t, out)
+	if step := meshWorkflow.step(t, "deploy", "Join the mesh"); step.If != "env.MESH_SETUP_KEY_SECRET != ''" {
+		t.Errorf("public-mesh-api mesh step = %+v", step)
 	}
-	if private.Jobs["deploy"].Env["DEPLOYER_EXEC"] != "allowed" {
-		t.Errorf("DEPLOYER_EXEC = %q, want allowed", private.Jobs["deploy"].Env["DEPLOYER_EXEC"])
+	if err := json.Unmarshal([]byte(meshWorkflow.Jobs["deploy"].Env["K3S_TARGETS"]), &targets); err != nil ||
+		targets["pub-01"]["meshSetupKeySecret"] != "MESH_DEPLOY_KEY" || targets["pub-01"]["reachability"] != "public" {
+		t.Errorf("public-mesh-api K3S_TARGETS = %v (%v)", targets, err)
 	}
-	if strings.Contains(out, "smaqit:pull-secret") || strings.Contains(out, "__REGISTRY_HOST__") {
-		t.Error("private-registry render left markers or tokens")
+
+	// Deployer Exec: allowed reaches the job environment.
+	out, stderr, code = renderK3s(t, specEnvironmentsJSON(t, public, k3sGoldenConstraints("exec-allowed")), "shop")
+	if code != 0 {
+		t.Fatalf("exec-allowed render exit %d: %s", code, stderr)
+	}
+	if got := parseK3sWorkflow(t, out).Jobs["deploy"].Env["DEPLOYER_EXEC"]; got != "allowed" {
+		t.Errorf("DEPLOYER_EXEC = %q, want allowed", got)
 	}
 }
 
@@ -372,8 +400,7 @@ func TestK3sDeployRendererRefuses(t *testing.T) {
 		}
 		return path
 	}
-	noHost := patched("no-host", func(s map[string]any) { s["registry"] = map[string]any{"host": "", "visibility": "private"} })
-	internal := patched("internal", func(s map[string]any) { s["registry"] = map[string]any{"host": "ghcr.io", "visibility": "internal"} })
+	noConnect := patched("no-connect", func(s map[string]any) { s["connect"] = nil })
 	badExec := patched("bad-exec", func(s map[string]any) { s["deployerExec"] = "maybe" })
 	garbage := filepath.Join(t.TempDir(), "garbage.json")
 	if err := os.WriteFile(garbage, []byte(`{"environments":[]}`), 0644); err != nil {
@@ -390,10 +417,9 @@ func TestK3sDeployRendererRefuses(t *testing.T) {
 		{"no prod and no default", specEnvironmentsJSON(t, twoNoProd, k3sConstraints(twoNoProd)), []string{"shop"}, 1, "pass --default-env"},
 		{"unknown default", valid, []string{"shop", "--default-env", "staging"}, 1, "'staging' is not an environment"},
 		{"shared machine slug", specEnvironmentsJSON(t, shared, k3sConstraints(shared)), []string{"shop"}, 1, "edge-01 back more than one environment"},
-		{"private-mesh without mesh access", noMesh, []string{"shop"}, 1, "Mesh Join Action"},
+		{"mesh secret without mesh access", noMesh, []string{"shop"}, 1, "Mesh Join Action"},
+		{"no cluster connect action", noConnect, []string{"shop"}, 1, "Cluster Connect Action"},
 		{"not spec output", garbage, []string{"shop"}, 1, "smaqit spec environments --json"},
-		{"private registry without a host", noHost, []string{"shop"}, 1, "needs a registry host"},
-		{"unknown registry visibility", internal, []string{"shop"}, 1, "visibility 'internal'"},
 		{"unknown exec policy", badExec, []string{"shop"}, 1, "deployerExec 'maybe'"},
 		{"bad app slug", valid, []string{"Shop"}, 1, "app slug"},
 		{"missing app slug", valid, nil, 2, "Usage"},
@@ -410,12 +436,16 @@ func TestK3sDeployRendererRefuses(t *testing.T) {
 }
 
 var stepCondition = regexp.MustCompile(`^env\.([A-Z_]+) == '([a-z-]+)'$`)
+var stepSetCondition = regexp.MustCompile(`^env\.([A-Z_]+) != ''$`)
 
 // runsUnder evaluates a rendered step's `if:` against the job environment.
 func runsUnder(t *testing.T, step k3sStep, env map[string]string) bool {
 	t.Helper()
 	if step.If == "" || step.If == "always()" {
 		return true
+	}
+	if match := stepSetCondition.FindStringSubmatch(step.If); match != nil {
+		return env[match[1]] != ""
 	}
 	match := stepCondition.FindStringSubmatch(step.If)
 	if match == nil {
@@ -593,11 +623,12 @@ func k3sStepDir(t *testing.T) string {
 }
 
 // The rendered deploy steps, run as the runner runs them (bash -e) against a
-// stub kubectl: the kubeconfig is owner-only and always removed, the guard and
-// the real exec attempt fail the deploy when the deployer can exec into pods,
-// and Deployer Exec: allowed turns that into a warning.
-func TestK3sDeployExecAndKubeconfigSteps(t *testing.T) {
-	rows := k3sGoldenCases["private-registry"]
+// stub kubectl, after the connect action has written its kubeconfig: the guard
+// and the real exec attempt fail the deploy when the deployer can exec into pods,
+// Deployer Exec: allowed turns that into a warning, and the cleanup step removes
+// whatever kubeconfig the action exported.
+func TestK3sDeployGuardExecAndCleanupSteps(t *testing.T) {
+	rows := k3sGoldenCases["exec-allowed"]
 	render := func(constraints map[string]string) k3sWorkflow {
 		out, stderr, code := renderK3s(t, specEnvironmentsJSON(t, rows, constraints), "shop")
 		if code != 0 {
@@ -606,9 +637,8 @@ func TestK3sDeployExecAndKubeconfigSteps(t *testing.T) {
 		return parseK3sWorkflow(t, out)
 	}
 	denied := render(k3sConstraints(rows))
-	allowed := render(k3sGoldenConstraints("private-registry"))
+	allowed := render(k3sGoldenConstraints("exec-allowed"))
 
-	const kubeconfigSecret = "apiVersion: v1\nkind: Config\n# token: KCFG-SECRET-41d2\n"
 	cases := []struct {
 		name     string
 		workflow k3sWorkflow
@@ -628,33 +658,23 @@ func TestK3sDeployExecAndKubeconfigSteps(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			h := newScriptHarness(t)
 			dir := k3sStepDir(t)
-			runnerTemp := t.TempDir()
+			// What the connect action leaves behind: a kubeconfig file it exported as
+			// KUBECONFIG, holding no secret (its exec plugin mints the token).
+			kubeconfig := filepath.Join(t.TempDir(), "k3s-connect", "pub-01.kubeconfig")
+			if err := os.MkdirAll(filepath.Dir(kubeconfig), 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(kubeconfig, []byte("apiVersion: v1\nkind: Config\n"), 0600); err != nil {
+				t.Fatal(err)
+			}
 			deploy := c.workflow.Jobs["deploy"]
-			env := map[string]string{"DEPLOYER_EXEC": deploy.Env["DEPLOYER_EXEC"], "RUNNER_TEMP": runnerTemp}
+			env := map[string]string{"DEPLOYER_EXEC": deploy.Env["DEPLOYER_EXEC"], "KUBECONFIG": kubeconfig}
 			extra := append(append([]string{}, h.env...), c.stub...)
-			secrets := map[string]string{"KUBECONFIG": kubeconfigSecret}
-
-			exported, out, err := execStep(t, dir, c.workflow.step(t, "deploy", "Write kubeconfig"), env, secrets, extra...)
-			if err != nil {
-				t.Fatalf("Write kubeconfig: %v\n%s", err, out)
-			}
-			kubeconfig := filepath.Join(runnerTemp, "kubeconfig")
-			if exported["KUBECONFIG"] != kubeconfig {
-				t.Fatalf("KUBECONFIG exported as %q", exported["KUBECONFIG"])
-			}
-			info, err := os.Stat(kubeconfig)
-			if err != nil || info.Mode().Perm() != 0600 {
-				t.Fatalf("kubeconfig mode = %v (%v), want 0600", info.Mode().Perm(), err)
-			}
-			if data, _ := os.ReadFile(kubeconfig); string(data) != kubeconfigSecret {
-				t.Errorf("kubeconfig content = %q", data)
-			}
-			env["KUBECONFIG"] = kubeconfig
 
 			var all strings.Builder
 			failed := ""
 			for _, name := range []string{"Namespace guard", "Exec refused"} {
-				_, out, err := execStep(t, dir, c.workflow.step(t, "deploy", name), env, secrets, extra...)
+				_, out, err := execStep(t, dir, c.workflow.step(t, "deploy", name), env, nil, extra...)
 				all.WriteString(out)
 				if err != nil {
 					failed = name
@@ -665,57 +685,18 @@ func TestK3sDeployExecAndKubeconfigSteps(t *testing.T) {
 				t.Errorf("failed at %q, want %q, output mentioning %q:\n%s", failed, c.failsAt, c.wantOut, all.String())
 			}
 
-			// The cleanup step runs whatever happened above.
-			if _, out, err := execStep(t, dir, c.workflow.step(t, "deploy", "Remove kubeconfig"), env, secrets, extra...); err != nil {
+			// The cleanup step runs whatever happened above, and tolerates a job
+			// where the connect action never ran.
+			if _, out, err := execStep(t, dir, c.workflow.step(t, "deploy", "Remove kubeconfig"), env, nil, extra...); err != nil {
 				t.Fatalf("Remove kubeconfig: %v\n%s", err, out)
 			}
 			if _, err := os.Stat(kubeconfig); !os.IsNotExist(err) {
 				t.Errorf("kubeconfig survived the cleanup step: %v", err)
 			}
-			if calls, _ := os.ReadFile(filepath.Join(h.state, "kubectl.calls")); strings.Contains(string(calls), "KCFG-SECRET") {
-				t.Errorf("the kubeconfig reached kubectl's argv:\n%s", calls)
+			if _, out, err := execStep(t, dir, c.workflow.step(t, "deploy", "Remove kubeconfig"), map[string]string{}, nil, extra...); err != nil {
+				t.Errorf("Remove kubeconfig without KUBECONFIG: %v\n%s", err, out)
 			}
 		})
-	}
-}
-
-// The pull Secret is built from env: and handed to kubectl through a file
-// descriptor, so the registry token never appears on a command line.
-func TestK3sDeployPullSecretKeepsTheTokenOffArgv(t *testing.T) {
-	rows := k3sGoldenCases["private-registry"]
-	out, stderr, code := renderK3s(t, specEnvironmentsJSON(t, rows, k3sGoldenConstraints("private-registry")), "shop")
-	if code != 0 {
-		t.Fatalf("render: %s", stderr)
-	}
-	h := newScriptHarness(t)
-	step := parseK3sWorkflow(t, out).step(t, "deploy", "Create imagePullSecret")
-	const token = "REGISTRY-TOKEN-7a1e"
-	_, output, err := execStep(t, k3sStepDir(t), step, nil, map[string]string{"REGISTRY_USERNAME": "deploy-bot", "REGISTRY_TOKEN": token}, h.env...)
-	if err != nil {
-		t.Fatalf("Create imagePullSecret: %v\n%s", err, output)
-	}
-	calls, _ := os.ReadFile(filepath.Join(h.state, "kubectl.calls"))
-	if strings.Contains(string(calls), token) || strings.Contains(output, token) {
-		t.Errorf("the registry token reached argv or output:\n%s\n%s", calls, output)
-	}
-	if !strings.Contains(string(calls), "create secret generic app-registry --namespace app-shop --type=kubernetes.io/dockerconfigjson --from-file=.dockerconfigjson=/dev/fd/") {
-		t.Errorf("unexpected kubectl call:\n%s", calls)
-	}
-	var config struct {
-		Auths map[string]struct {
-			Username, Password, Auth string
-		} `json:"auths"`
-	}
-	data, _ := os.ReadFile(filepath.Join(h.state, "dockerconfigjson"))
-	if err := json.Unmarshal(data, &config); err != nil {
-		t.Fatalf(".dockerconfigjson is not JSON: %v\n%s", err, data)
-	}
-	entry := config.Auths["ghcr.io"]
-	if entry.Username != "deploy-bot" || entry.Password != token || entry.Auth != "ZGVwbG95LWJvdDpSRUdJU1RSWS1UT0tFTi03YTFl" {
-		t.Errorf(".dockerconfigjson = %s", data)
-	}
-	if applied, _ := os.ReadFile(filepath.Join(h.state, "kubectl.applied")); !strings.Contains(string(applied), "kind: Secret") {
-		t.Errorf("the Secret was not applied: %q", applied)
 	}
 }
 

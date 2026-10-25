@@ -4,10 +4,10 @@
 # Input is the Infrastructure spec's Environments table as `smaqit spec environments --json`
 # prints it (validated there). Output is one deploy.yml for every environment: the dispatch
 # options list each machine slug, K3S_TARGETS carries each machine's row, and steps branch on
-# the dispatched machine's row at run time. The mesh-join step is kept, with the spec's pinned
-# action and input names, only when some environment is private-mesh. The imagePullSecret step is
-# kept, with the registry host, only when the spec's Container Registry is private. The spec's
-# Deployer Exec row (default denied) becomes the deploy job's DEPLOYER_EXEC.
+# the dispatched machine's row at run time. The cluster-connect step uses the spec's pinned
+# Cluster Connect action and input names, which every spec must declare. The mesh-join step is
+# kept, with the spec's pinned action and input names, only when some environment names a mesh
+# secret. The spec's Deployer Exec row (default denied) becomes the deploy job's DEPLOYER_EXEC.
 #
 # Usage: render-k3s-deploy.sh <environments.json> <app-slug> [--default-env <environment>] [--template <path>]
 #   <environments.json>  output of `smaqit spec environments --json` ("-" reads stdin)
@@ -87,33 +87,27 @@ case "$DEPLOYER_EXEC" in
   *) fail "deployerExec '${DEPLOYER_EXEC}' must be denied or allowed" ;;
 esac
 
-KEEP_PULL=0
-REGISTRY_HOST=""
-REGISTRY_VISIBILITY="$(jq -r '.registry.visibility // "public"' <<<"$SPEC")"
-case "$REGISTRY_VISIBILITY" in
-  public) ;;
-  private)
-    KEEP_PULL=1
-    REGISTRY_HOST="$(jq -r '.registry.host // ""' <<<"$SPEC")"
-    [[ "$REGISTRY_HOST" =~ ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?$ ]] \
-      || fail "a private Container Registry needs a registry host (got '${REGISTRY_HOST}')" ;;
-  *) fail "Container Registry visibility '${REGISTRY_VISIBILITY}' must be public or private" ;;
-esac
+CONNECT_ACTION="$(jq -r '.connect.action // ""' <<<"$SPEC")"
+CONNECT_MACHINE_INPUT="$(jq -r '.connect.machineInput // ""' <<<"$SPEC")"
+CONNECT_NAMESPACE_INPUT="$(jq -r '.connect.namespaceInput // ""' <<<"$SPEC")"
+[ -n "$CONNECT_ACTION" ] && [ -n "$CONNECT_MACHINE_INPUT" ] && [ -n "$CONNECT_NAMESPACE_INPUT" ] \
+  || fail "the spec needs its Cluster Connect Action, Cluster Connect Machine Input, and Cluster Connect Namespace Input: the platform's action that connects CI with the job's OIDC identity"
 
 KEEP_MESH=0
 MESH_ACTION="" MESH_KEY_INPUT="" MESH_WAIT_INPUT=""
-if jq -e '.environments | any(.reachability == "private-mesh")' >/dev/null <<<"$SPEC"; then
+if jq -e '.environments | any((.meshSetupKeySecret // "") != "")' >/dev/null <<<"$SPEC"; then
   KEEP_MESH=1
   MESH_ACTION="$(jq -r '.mesh.action // ""' <<<"$SPEC")"
   MESH_KEY_INPUT="$(jq -r '.mesh.setupKeyInput // ""' <<<"$SPEC")"
   MESH_WAIT_INPUT="$(jq -r '.mesh.waitForInput // ""' <<<"$SPEC")"
   [ -n "$MESH_ACTION" ] && [ -n "$MESH_KEY_INPUT" ] && [ -n "$MESH_WAIT_INPUT" ] \
-    || fail "a private-mesh environment needs the spec's Mesh Join Action, Mesh Setup-Key Input, and Mesh Wait-For Input"
+    || fail "an environment that joins a mesh needs the spec's Mesh Join Action, Mesh Setup-Key Input, and Mesh Wait-For Input"
 fi
 
 OUTPUT="$(OPTIONS="$OPTIONS" TARGETS="$TARGETS" APP_SLUG="$APP_SLUG" DEFAULT_MACHINE="$DEFAULT_MACHINE" \
   KEEP_MESH="$KEEP_MESH" MESH_ACTION="$MESH_ACTION" MESH_KEY_INPUT="$MESH_KEY_INPUT" MESH_WAIT_INPUT="$MESH_WAIT_INPUT" \
-  KEEP_PULL="$KEEP_PULL" REGISTRY_HOST="$REGISTRY_HOST" DEPLOYER_EXEC="$DEPLOYER_EXEC" \
+  CONNECT_ACTION="$CONNECT_ACTION" CONNECT_MACHINE_INPUT="$CONNECT_MACHINE_INPUT" CONNECT_NAMESPACE_INPUT="$CONNECT_NAMESPACE_INPUT" \
+  DEPLOYER_EXEC="$DEPLOYER_EXEC" \
   awk '
   # Literal (non-regex) token replacement, so no value is ever read as a pattern.
   function repl(s, token, value,    out, i) {
@@ -135,9 +129,6 @@ OUTPUT="$(OPTIONS="$OPTIONS" TARGETS="$TARGETS" APP_SLUG="$APP_SLUG" DEFAULT_MAC
   /# smaqit:mesh-join:begin/ { in_mesh = 1; next }
   /# smaqit:mesh-join:end/ { in_mesh = 0; dropped = ENVIRON["KEEP_MESH"] != "1"; next }
   in_mesh && ENVIRON["KEEP_MESH"] != "1" { next }
-  /# smaqit:pull-secret:begin/ { in_pull = 1; next }
-  /# smaqit:pull-secret:end/ { in_pull = 0; dropped = ENVIRON["KEEP_PULL"] != "1"; next }
-  in_pull && ENVIRON["KEEP_PULL"] != "1" { next }
   index($0, "__MACHINE_SLUG_OPTIONS__") {
     n = split(ENVIRON["OPTIONS"], slugs, "\n")
     indent = substr($0, 1, index($0, "__") - 1)
@@ -152,19 +143,18 @@ OUTPUT="$(OPTIONS="$OPTIONS" TARGETS="$TARGETS" APP_SLUG="$APP_SLUG" DEFAULT_MAC
     line = repl(line, "__MESH_JOIN_ACTION__", ENVIRON["MESH_ACTION"])
     line = repl(line, "__MESH_SETUP_KEY_INPUT__", ENVIRON["MESH_KEY_INPUT"])
     line = repl(line, "__MESH_WAIT_FOR_INPUT__", ENVIRON["MESH_WAIT_INPUT"])
-    line = repl(line, "__REGISTRY_HOST__", ENVIRON["REGISTRY_HOST"])
+    line = repl(line, "__CLUSTER_CONNECT_ACTION__", ENVIRON["CONNECT_ACTION"])
+    line = repl(line, "__CLUSTER_CONNECT_MACHINE_INPUT__", ENVIRON["CONNECT_MACHINE_INPUT"])
+    line = repl(line, "__CLUSTER_CONNECT_NAMESPACE_INPUT__", ENVIRON["CONNECT_NAMESPACE_INPUT"])
     line = repl(line, "__DEPLOYER_EXEC__", ENVIRON["DEPLOYER_EXEC"])
     print line
   }
 ' "$TEMPLATE")"
 
 # Every render-time token must be gone; the remaining __TOKEN__s are stamped at run time.
-LEFT="$(grep -oE '__(APP_SLUG|DEFAULT_MACHINE_SLUG|MACHINE_SLUG_OPTIONS|K3S_TARGETS|MESH_[A-Z_]+|REGISTRY_HOST|DEPLOYER_EXEC)__' <<<"$OUTPUT" | sort -u | tr '\n' ' ' || true)"
+LEFT="$(grep -oE '__(APP_SLUG|DEFAULT_MACHINE_SLUG|MACHINE_SLUG_OPTIONS|K3S_TARGETS|MESH_[A-Z_]+|CLUSTER_CONNECT_[A-Z_]+|DEPLOYER_EXEC)__' <<<"$OUTPUT" | sort -u | tr '\n' ' ' || true)"
 [ -z "$LEFT" ] || fail "unrendered token(s) left in the workflow: ${LEFT}"
 if [ "$KEEP_MESH" != "1" ] && grep -q 'smaqit:mesh-join' "$TEMPLATE" && grep -q 'Join the mesh' <<<"$OUTPUT"; then
-  fail "the mesh-join step survived an all-public render"
-fi
-if [ "$KEEP_PULL" != "1" ] && grep -q 'smaqit:pull-secret' "$TEMPLATE" && grep -q 'Create imagePullSecret' <<<"$OUTPUT"; then
-  fail "the imagePullSecret step survived a public-registry render"
+  fail "the mesh-join step survived a render where no environment joins a mesh"
 fi
 printf '%s\n' "$OUTPUT"

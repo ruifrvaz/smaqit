@@ -141,25 +141,29 @@ These rules are specific to the Infrastructure layer and must be followed when p
 - For a target environment resolving to `provisioning_mode: existing-k3s`, populate the
   Constraints table's `Platform Repo`, `Registry File Path`, and `Namespace Quota` rows, and one
   `## Environments` row per environment (`Machine Slug`, `Host`, `Reachability`, `Ingress Mode`,
-  `Ingress Class`, `ClusterIssuer`, `Health Path`, and for `private-mesh` the `Mesh Setup-Key
-  Secret` and `Mesh Wait-For Host`) — every value must come from the platform team's own
+  `Ingress Class`, `ClusterIssuer`, `Health Path`, and, when the API is reachable only from mesh
+  peers, the `Mesh Setup-Key Secret` and `Mesh Wait-For Host`) — every value must come from the platform team's own
   onboarding documentation for that cluster; never invent, infer, or default one. If the operator
   cannot supply a required value, flag it as a gap under Untestable Criteria rather than guessing
 - Declare every existing-k3s environment's `Reachability` (`public` | `private-mesh`) and
   `Ingress Mode` (`own-tls` | `platform-default-tls` | `platform-owned`) explicitly; there is no
   default. Follow the column rules in the template's Environments comments (ClusterIssuer only for
-  `own-tls`; no Host or Ingress Class for `platform-owned`; mesh fields only for `private-mesh`)
-- When any environment is `private-mesh`, populate the Constraints rows `Mesh Join Action` (a pinned
+  `own-tls`; no Host or Ingress Class for `platform-owned`; mesh fields required for `private-mesh`,
+  and set on a `public` row too when the platform keeps the API mesh-only — `Reachability` describes
+  the app, the mesh fields the API)
+- Populate the Constraints rows `Cluster Connect Action` (a pinned `uses:` reference of the
+  platform's action that connects CI with the job's OIDC identity), `Cluster Connect Machine Input`,
+  and `Cluster Connect Namespace Input` from the platform team's documentation; they are required for
+  every existing-k3s spec. The app holds no kubeconfig or other deploy credential
+- When any environment names a mesh secret, populate the Constraints rows `Mesh Join Action` (a pinned
   `uses:` reference), `Mesh Setup-Key Input`, and `Mesh Wait-For Input` from the platform team's
   documentation; when any environment is `private-mesh` or `platform-owned`, populate `Probe Client`
   (`curl`, `wget`, or `python3`, whichever the app's own image contains)
 - Keep every existing-k3s environment in one Infrastructure spec's `## Environments` table, and run
   `smaqit spec environments` before handoff; fix every `SLOTS-SPEC-*` line it reports
-- For that same `existing-k3s` target, also populate the Constraints table's `Container Registry`
-  row as `<host>, public` or `<host>, private` — unlike the platform-sourced fields above,
-  this is a per-project decision the operator makes, not a fact to source from the platform
-  team's documentation; still never default it silently (e.g. assuming GHCR or assuming public)
-  without an explicit operator answer
+- When the platform restricts exposure (for example, it owns every Ingress), populate `Allowed Ingress
+  Modes` from its documentation and use only those modes in the Environments rows; leave the row out
+  when the platform allows all three
 - Leave the `Deployer Exec` Constraints row out (meaning `denied`) unless the operator confirms the
   platform deliberately grants the deployer `pods/exec`; only then set it to `allowed`
 

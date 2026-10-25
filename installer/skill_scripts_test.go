@@ -151,8 +151,9 @@ esac
 `
 
 // stubKubectl answers the namespace guard's and exec-refused's calls.
-// STUB_KUBECTL_MODE: ok (every can-i is "no"), unreachable, rejected,
-// allow-nodes (get nodes is "yes"), flaky (one can-i call errors after the API
+// STUB_KUBECTL_MODE: ok (every can-i is "no"), unreachable, unreachable-twice
+// (the first two --list calls cannot connect, then the API answers), rejected
+// (Unauthorized), forbidden (the identity is not bound yet), allow-nodes (get nodes is "yes"), flaky (one can-i call errors after the API
 // answered), exec-yes (both pods/exec checks are "yes"), exec-get-yes (only
 // get pods/exec is "yes"), or exec-unclear (the pods/exec checks error).
 // STUB_KUBECTL_EXEC sets a real exec's result: forbidden (default), runs,
@@ -168,6 +169,12 @@ if [ "$1" = auth ] && [ "$2" = can-i ]; then
   case "$mode" in
     unreachable) echo "Unable to connect to the server: dial tcp 100.64.0.7:6443: i/o timeout" >&2; exit 1 ;;
     rejected) echo "error: You must be logged in to the server (Unauthorized)" >&2; exit 1 ;;
+    forbidden) echo 'Error from server (Forbidden): selfsubjectrulesreviews.authorization.k8s.io is forbidden: User "gha:123:edge-01" cannot create resource "selfsubjectrulesreviews"' >&2; exit 1 ;;
+    unreachable-twice)
+      if [ "$3" = --list ]; then
+        n=$(( $(cat "$STUB_STATE/kubectl.reach" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$STUB_STATE/kubectl.reach"
+        if [ "$n" -le 2 ]; then echo "Unable to connect to the server: dial tcp 100.64.0.7:6443: connect: connection refused" >&2; exit 1; fi
+      fi ;;
   esac
   if [ "$3" = --list ]; then echo "Resources   Non-Resource URLs   Resource Names   Verbs"; exit 0; fi
   case "$mode:$3:$4:${5:-}" in
@@ -177,12 +184,6 @@ if [ "$1" = auth ] && [ "$2" = can-i ]; then
     exec-unclear:*:pods:--subresource=exec) echo "error: context deadline exceeded" >&2; exit 1 ;;
   esac
   echo no; exit 1
-fi
-if [ "$1" = create ] && [ "$2" = secret ]; then
-  for arg in "$@"; do
-    case "$arg" in --from-file=*=*) cat "${arg#*=*=}" > "$STUB_STATE/dockerconfigjson" ;; esac
-  done
-  echo "apiVersion: v1"; echo "kind: Secret"; exit 0
 fi
 if [ "$1" = apply ]; then
   cat > "$STUB_STATE/kubectl.applied"; exit 0
@@ -882,25 +883,22 @@ func TestPlanGuardRejectsBadUsage(t *testing.T) {
 func TestCredentialFileHandsOutOnlyAllowlistedCredentials(t *testing.T) {
 	h := newScriptHarness(t)
 	script := skillScript("smaqit.infrastructure-vault-loader", "credential-file.sh")
-	const kubeconfig = "apiVersion: v1\nkind: Config\nusers: [{name: deployer, user: {token: KUBE-TOKEN-91a2}}]\n"
 	const sshKey = "-----BEGIN OPENSSH PRIVATE KEY-----\nAPP-KEY-77c1\n-----END OPENSSH PRIVATE KEY-----\n"
-	h.seedVault("secret/apps/shop/edge-01/kubeconfig", map[string]string{"value": kubeconfig})
 	h.seedVault("secret/apps/shop/ssh", map[string]string{"private_key": sshKey, "public_key": "ssh-ed25519 AAAA"})
 	h.seedVault("secret/apps/shop/platform-repo", map[string]string{"token": "PLATFORM-PAT-3f9e"})
 	h.seedVault("secret/legacy-app/ssh", map[string]string{"private_key": sshKey})
 
 	for path, want := range map[string]string{
-		"apps/shop/edge-01/kubeconfig": kubeconfig,
-		"apps/shop/ssh":                sshKey,
-		"apps/shop/platform-repo":      "PLATFORM-PAT-3f9e",
-		"legacy-app/ssh":               sshKey,
+		"apps/shop/ssh":           sshKey,
+		"apps/shop/platform-repo": "PLATFORM-PAT-3f9e",
+		"legacy-app/ssh":          sshKey,
 	} {
 		out, err := h.run(nil, script, path)
 		if err != nil {
 			t.Fatalf("%s: %v\n%s", path, err, out)
 		}
 		file := strings.TrimSpace(out)
-		h.requireAbsent("stdout of "+path, out, "KUBE-TOKEN-91a2", "APP-KEY-77c1", "PLATFORM-PAT-3f9e")
+		h.requireAbsent("stdout of "+path, out, "APP-KEY-77c1", "PLATFORM-PAT-3f9e")
 		data, err := os.ReadFile(file)
 		if err != nil || string(data) != want {
 			t.Errorf("%s: file %q holds %q (%v), want %q", path, file, data, err, want)
@@ -914,15 +912,11 @@ func TestCredentialFileHandsOutOnlyAllowlistedCredentials(t *testing.T) {
 		os.RemoveAll(filepath.Dir(file))
 	}
 
-	for _, path := range []string{"machines/edge-01/base-ssh", "apps/shop/github", "organizations/acme/github-package-read", "apps/ssh", "apps/Shop/ssh", "apps/shop/edge-01/kubeconfig/extra"} {
+	// existing-k3s keeps no kubeconfig: CI connects with its own OIDC identity.
+	for _, path := range []string{"machines/edge-01/base-ssh", "apps/shop/github", "apps/shop/edge-01/kubeconfig", "organizations/acme/github-package-read", "apps/ssh", "apps/Shop/ssh"} {
 		if out, err := h.run(nil, script, path); err == nil {
 			t.Errorf("%s: handed out a credential outside the allowlist:\n%s", path, out)
 		}
-	}
-
-	out, err := h.run(nil, script, "apps/shop/edge-02/kubeconfig")
-	if err == nil || !strings.Contains(out, "hand-off") || strings.Contains(out, "/credential") {
-		t.Errorf("missing kubeconfig: %v\n%s", err, out)
 	}
 }
 
@@ -1003,85 +997,42 @@ func TestTerraformEnvExportsWithoutPrintingAndUnsets(t *testing.T) {
 	}
 }
 
-func TestSyncK3sEnvUsesTheMachineSlugEnvironment(t *testing.T) {
-	h := newScriptHarness(t)
-	script := skillScript("smaqit.infrastructure-repo-config", "sync-k3s-env.sh")
-	const kubeconfig = "apiVersion: v1\nusers: [{user: {token: KUBE-TOKEN-5e5e}}]\n"
-	h.seedVault("secret/apps/shop/edge-01/kubeconfig", map[string]string{"value": kubeconfig})
-	h.seedVault("secret/organizations/acme/github-package-read", map[string]string{"username": "bot", "token": "PKG-TOKEN-7a7a"})
-
-	out, err := h.run(nil, script, "acme/shop", "shop", "edge-01", "--host", "shop.example.com", "--registry-org", "acme")
-	if err != nil {
-		t.Fatalf("sync failed: %v\n%s", err, out)
-	}
-	for name, want := range map[string]string{"KUBECONFIG": kubeconfig, "REGISTRY_USERNAME": "bot", "REGISTRY_TOKEN": "PKG-TOKEN-7a7a"} {
-		if got, ok := h.ghValue("edge-01", "secret", name); !ok || got != want {
-			t.Errorf("secret %s = %q (present %v), want %q", name, got, ok, want)
-		}
-	}
-	if got, _ := h.ghValue("edge-01", "variable", "APP_HOST"); got != "shop.example.com" {
-		t.Errorf("APP_HOST = %q", got)
-	}
-	for _, env := range []string{"test", "prod"} {
-		if _, err := os.Stat(filepath.Join(h.state, "gh", "envs", env)); err == nil {
-			t.Errorf("created a %q Environment instead of the machine slug", env)
-		}
-	}
-	h.requireAbsent("gh argv", h.argv("gh"), "KUBE-TOKEN-5e5e", "PKG-TOKEN-7a7a")
-	h.requireAbsent("output", out, "KUBE-TOKEN-5e5e", "PKG-TOKEN-7a7a")
-
-	// Without the platform's hand-off there is nothing to sync, and nothing is written.
-	h2 := newScriptHarness(t)
-	out, err = h2.run(nil, script, "acme/shop", "shop", "edge-01")
-	if err == nil || !strings.Contains(out, "hand-off") {
-		t.Fatalf("missing kubeconfig accepted: %v\n%s", err, out)
-	}
-	if strings.Contains(h2.argv("gh"), "PUT") || strings.Contains(h2.argv("gh"), "secret\x00set") {
-		t.Error("wrote to GitHub before the kubeconfig existed")
-	}
-	if _, err := h2.run(nil, script, "acme/shop", "shop", "Edge_01"); err == nil {
-		t.Error("accepted a machine slug that needs URL encoding")
-	}
-}
-
-func TestLoadCredentialsEnablesKvAndLoadsTheRegistryToken(t *testing.T) {
+func TestLoadCredentialsEnablesKvAndLoadsThePlatformRepoToken(t *testing.T) {
 	h := newScriptHarness(t)
 	script := skillScript("smaqit.infrastructure-vault-loader", "load-credentials.sh")
-	const (
-		ghToken   = "GH-PAT-1d1d"
-		platToken = "PLAT-PAT-2e2e"
-		pkgToken  = "PKG-PAT-3f3f"
-	)
-	cmd := "PROVISIONING_MODE=existing-k3s CREDENTIAL_SCOPE=access REGISTRY_ORG=acme bash " + shellQuote(mustAbs(t, script))
-	out, err := h.runInteractiveCommand(cmd, [][2]string{
-		{"github_token:", ghToken},
-		{"platform_repo_token:", platToken},
-		{"username:", "bot"},
-		{"token:", pkgToken},
-	})
+	const platToken = "PLAT-PAT-2e2e"
+	cmd := "PROVISIONING_MODE=existing-k3s bash " + shellQuote(mustAbs(t, script))
+	out, err := h.runInteractiveCommand(cmd, [][2]string{{"platform_repo_token:", platToken}})
 	if err != nil {
-		t.Fatalf("access load failed: %v\n%s", err, out)
+		t.Fatalf("existing-k3s load failed: %v\n%s", err, out)
 	}
 	slug := filepath.Base(h.work)
-	for path, want := range map[string]string{
-		"secret/apps/" + slug + "/github/token":                  ghToken,
-		"secret/apps/" + slug + "/platform-repo/token":           platToken,
-		"secret/organizations/acme/github-package-read/username": "bot",
-		"secret/organizations/acme/github-package-read/token":    pkgToken,
-	} {
-		if got := h.vaultValue(filepath.Dir(path), filepath.Base(path)); got != want {
-			t.Errorf("%s = %q, want %q", path, got, want)
+	if got := h.vaultValue("secret/apps/"+slug+"/platform-repo", "token"); got != platToken {
+		t.Errorf("platform-repo token = %q, want %q", got, platToken)
+	}
+	// The app stores no deploy credential: no github PAT, kubeconfig, mesh key or
+	// registry credential, and no machine slug is needed.
+	for _, path := range []string{"secret/apps/" + slug + "/github", "secret/organizations"} {
+		if got := h.vaultValue(path, "token"); got != "" {
+			t.Errorf("%s was written: %q", path, got)
 		}
 	}
-	h.requireAbsent("vault argv", h.argv("vault"), ghToken, platToken, pkgToken)
-	h.requireAbsent("terminal output", out, ghToken, platToken, pkgToken)
+	// From the scheme line on: the terminal recorder's banner echoes the script path.
+	_, scheme, _ := strings.Cut(out, "==> Scheme:")
+	for _, word := range []string{"kubeconfig", "MACHINE_SLUG", "mesh", "registry"} {
+		if strings.Contains(strings.ToLower(scheme), strings.ToLower(word)) {
+			t.Errorf("existing-k3s load still mentions %q:\n%s", word, out)
+		}
+	}
+	h.requireAbsent("vault argv", h.argv("vault"), platToken)
+	h.requireAbsent("terminal output", out, platToken)
 	enable, _ := os.ReadFile(filepath.Join(h.state, "secrets-enable.log"))
 	if strings.Count(string(enable), "kv-v2") != 1 {
 		t.Errorf("kv-v2 enable calls: %q, want exactly one", enable)
 	}
 
-	// A second run skips everything already present and doesn't re-enable kv-v2.
-	if out, err := h.runInteractiveCommand(cmd, nil); err != nil || strings.Count(out, "SKIP") != 3 {
+	// A second run skips what is already present and doesn't re-enable kv-v2.
+	if out, err := h.runInteractiveCommand(cmd, nil); err != nil || strings.Count(out, "SKIP") != 1 {
 		t.Errorf("re-run: %v\n%s", err, out)
 	}
 	enable, _ = os.ReadFile(filepath.Join(h.state, "secrets-enable.log"))

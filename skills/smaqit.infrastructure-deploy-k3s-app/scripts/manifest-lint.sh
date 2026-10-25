@@ -16,6 +16,9 @@
 #      non-root itself (docker run never surfaces this — it is Kubernetes-only).
 #   3. Explicit CPU/memory requests AND limits on every container.
 #   4. No cluster-scoped `kind` anywhere in the manifest set.
+#   5. Every Service is ClusterIP (no `spec.type`, or `ClusterIP`): a NodePort or LoadBalancer
+#      Service exposes the app around the platform's Ingress, which a platform-owned exposure
+#      model refuses at admission.
 #
 # Usage: manifest-lint.sh <manifest.yaml> [<manifest.yaml> ...]
 #   Exit 0 — every check passes across every given manifest.
@@ -151,6 +154,11 @@ for path in sys.argv[1:]:
             fail(path, i, kind, name, f"cluster-scoped kind '{kind}' is not permitted in an app manifest set")
             continue
 
+        if kind == "Service":
+            service_type = (doc.get("spec") or {}).get("type")
+            if service_type not in (None, "ClusterIP"):
+                fail(path, i, kind, name, f"Service type '{service_type}' is not permitted — only ClusterIP; exposure goes through the Ingress")
+
         pod_spec = find_pod_template_spec(doc)
         if pod_spec:
             check_pod_spec(pod_spec, path, i, kind, name)
@@ -161,5 +169,5 @@ if failures:
         print(f"  - {item}", file=sys.stderr)
     sys.exit(1)
 
-print("manifest-lint: PASS — all manifests satisfy restricted Pod Security, explicit resource limits, and no cluster-scoped kind.")
+print("manifest-lint: PASS — all manifests satisfy restricted Pod Security, explicit resource limits, ClusterIP Services, and no cluster-scoped kind.")
 PYEOF

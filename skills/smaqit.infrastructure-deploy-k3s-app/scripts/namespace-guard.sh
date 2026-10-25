@@ -2,8 +2,8 @@
 # Pre-flight namespace guard for smaqit.infrastructure-deploy-k3s-app.
 #
 # Defense-in-depth against ever running with a broader credential than the platform's
-# onboarding contract issues. A Namespace-scoped kubeconfig should be restricted to exactly
-# one Namespace (app-__APP_SLUG__) with no cluster-scoped verb permitted. This script refuses
+# onboarding contract grants. The kubeconfig the platform's connect action writes should be
+# restricted to exactly one Namespace (app-__APP_SLUG__) with no cluster-scoped verb permitted. This script refuses
 # to proceed if either assumption doesn't hold — it is the k3s family's analog of the
 # Terraform family's plan-guard.sh/ownership-guard.sh.
 #
@@ -19,7 +19,10 @@
 #   Exit 2 — usage error.
 #
 # Fails closed: only an explicit "no" from the API counts as denied. An unreachable API (for
-# example a private-mesh machine before the mesh is joined) is a FAIL, never a PASS.
+# example a mesh-only API before the mesh is joined) is a FAIL, never a PASS. Because a freshly
+# joined mesh can resolve the API's name before its port answers, a connection failure is retried
+# for a bounded window (NAMESPACE_GUARD_REACH_ATTEMPTS, default 6, NAMESPACE_GUARD_REACH_WAIT
+# seconds apart, default 5); a credential the API rejects (Unauthorized/Forbidden) is not.
 #
 # Exec is checked with `--subresource=exec`. Never write `can-i create pods/exec`: kubectl reads
 # `pods/exec` as TYPE/NAME ("a pod named exec"), so any deployer allowed to create pods gets "yes".
@@ -92,17 +95,34 @@ REQUEST_TIMEOUT="${NAMESPACE_GUARD_REQUEST_TIMEOUT:-15s}"
 ERR_FILE="$(mktemp)"
 trap 'rm -f "$ERR_FILE"' EXIT
 
-set +e
-RULES="$(kubectl auth can-i --list -n "$EXPECTED_NAMESPACE" --request-timeout="$REQUEST_TIMEOUT" 2>"$ERR_FILE")"
-REACH=$?
-set -e
-if [ "$REACH" -ne 0 ]; then
-  echo "namespace-guard: FAIL — the Kubernetes API is unreachable or rejected this credential:" >&2
-  sed 's/^/                 /' "$ERR_FILE" | head -5 >&2
-  echo "                 For a private-mesh machine, join the mesh first. Otherwise check the" >&2
-  echo "                 kubeconfig's server and token against the platform's hand-off." >&2
-  exit 1
-fi
+REACH_ATTEMPTS="${NAMESPACE_GUARD_REACH_ATTEMPTS:-6}"
+REACH_WAIT="${NAMESPACE_GUARD_REACH_WAIT:-5}"
+attempt=1
+while :; do
+  set +e
+  RULES="$(kubectl auth can-i --list -n "$EXPECTED_NAMESPACE" --request-timeout="$REQUEST_TIMEOUT" 2>"$ERR_FILE")"
+  REACH=$?
+  set -e
+  [ "$REACH" -eq 0 ] && break
+  if grep -qiE 'unauthorized|forbidden' "$ERR_FILE"; then
+    echo "namespace-guard: FAIL — the Kubernetes API rejected this credential:" >&2
+    sed 's/^/                 /' "$ERR_FILE" | head -5 >&2
+    echo "                 Unauthorized: the platform did not accept this job's identity (its" >&2
+    echo "                 audience, repository, or GitHub Environment). Forbidden: the identity is" >&2
+    echo "                 not bound to the Namespace yet — the onboarding has not reconciled." >&2
+    exit 1
+  fi
+  if [ "$attempt" -ge "$REACH_ATTEMPTS" ]; then
+    echo "namespace-guard: FAIL — the Kubernetes API is unreachable after ${attempt} attempt(s):" >&2
+    sed 's/^/                 /' "$ERR_FILE" | head -5 >&2
+    echo "                 For a mesh-only API, check that the mesh join step ran and that the" >&2
+    echo "                 platform's mesh key reached this job." >&2
+    exit 1
+  fi
+  echo "namespace-guard: API not answering yet (attempt ${attempt}/${REACH_ATTEMPTS}); retrying in ${REACH_WAIT}s" >&2
+  attempt=$((attempt + 1))
+  sleep "$REACH_WAIT"
+done
 
 # ── Cluster-scoped verb check: no cluster-scoped verb may be permitted ──────────────────────────
 # `kubectl auth can-i` prints "yes" (exit 0) or "no" (exit 1). Any other result — an error, a

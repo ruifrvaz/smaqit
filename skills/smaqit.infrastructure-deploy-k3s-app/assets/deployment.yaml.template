@@ -45,10 +45,7 @@ spec:
       labels:
         app: __APP_SLUG__
     spec:
-      # imagePullSecrets: only present when the spec names a private registry — see
-      # smaqit.infrastructure-deploy-k3s-app/SKILL.md Step 4.
-      # imagePullSecrets:
-      #   - name: app-registry
+      # No imagePullSecrets: the platform pulls images for the apps it hosts.
       securityContext:
         runAsNonRoot: true
         seccompProfile:

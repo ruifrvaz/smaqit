@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Target machine (its GitHub Environment holds that machine's kubeconfig)"
+        description: "Target machine (its GitHub Environment is the identity the platform binds)"
         type: choice
         options:
           - edge-01
@@ -14,10 +14,12 @@ on:
 
 # provisioning_mode: existing-k3s — the target is a Namespace-scoped Kubernetes/k3s cluster,
 # not a VM. No provision job, no Terraform, no SSH, no nginx, no VM_HOST anywhere in this
-# workflow. Each target machine has a GitHub Environment named after its machine slug — the same
-# slug that keys the app's kubeconfig in Vault — holding a KUBECONFIG secret and, for a
-# private-mesh machine, its mesh setup-key secret (see smaqit.infrastructure-repo-config). Never
-# repository-level secrets, since each machine needs its own distinct values.
+# workflow. The deploy job runs in the GitHub Environment named after the target machine's slug,
+# and authenticates with its own GitHub Actions OIDC token through the platform's connect action:
+# the platform binds the app's Namespace to this repository and that Environment, so the app holds
+# no kubeconfig. A machine whose API is reachable only from mesh peers is joined first with the
+# platform's shared mesh key, a secret the platform holds (for example an organisation secret).
+# GitHub creates the Environment on the first run that references it; it holds no deploy secret.
 #
 # Rendered by smaqit.infrastructure-cicd-generate's scripts/render-k3s-deploy.sh from the
 # Infrastructure spec's Environments table (`smaqit spec environments --json`). Do not edit
@@ -68,6 +70,11 @@ jobs:
     # The target machine's GitHub Environment: the dispatch input, or the default machine when
     # post-merge-deploy.yml dispatches without one.
     environment: ${{ inputs.environment || 'edge-01' }}
+    # The connect action requests this job's OIDC token (id-token: write). A job-level permissions
+    # block sets every unlisted scope to none, so contents: read keeps checkout working.
+    permissions:
+      contents: read
+      id-token: write
     # One deploy per machine at a time. A second dispatch waits for the running one instead of
     # cancelling it mid-rollout.
     concurrency:
@@ -128,15 +135,16 @@ jobs:
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
 
-      # The secret reaches the step through env:, never pasted into the script text. The file is
-      # owner-only from the moment it exists, and the last step removes it whatever the outcome.
-      - name: Write kubeconfig
-        env:
-          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
-        run: |
-          set -euo pipefail
-          (umask 077 && printf '%s' "$KUBECONFIG_DATA" > "$RUNNER_TEMP/kubeconfig")
-          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+      # Turns this job's GitHub Actions OIDC identity into a kubeconfig for this machine and the
+      # app's Namespace, and exports KUBECONFIG. The platform's action owns the API address, the
+      # cluster CA, the token audience, and the token's refresh; no deploy secret exists anywhere.
+      # The action, its input names, and its pinned version come from the Infrastructure spec. The
+      # last step removes the file whatever the outcome.
+      - name: Connect to the cluster
+        uses: example-org/platform/.github/actions/k3s-connect@v1.0.0
+        with:
+          machine: ${{ env.MACHINE }}
+          namespace: app-shop
 
       # Refuses to proceed if the API is unreachable, if the kubeconfig's context targets any
       # namespace other than app-shop, if any cluster-scoped verb is permitted, or if the
@@ -287,7 +295,10 @@ jobs:
           echo "Deployment verification did not succeed within 60s" >&2
           exit 1
 
+      # Removes the kubeconfig the connect action exported, whatever the outcome.
       - name: Remove kubeconfig
         if: always()
         run: |
-          shred -u "$RUNNER_TEMP/kubeconfig" 2>/dev/null || rm -f "$RUNNER_TEMP/kubeconfig"
+          if [ -n "${KUBECONFIG:-}" ]; then
+            shred -u "$KUBECONFIG" 2>/dev/null || rm -f "$KUBECONFIG"
+          fi

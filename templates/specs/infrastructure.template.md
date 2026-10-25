@@ -123,11 +123,11 @@ created: [TIMESTAMP]
 <!-- One row per environment; every value comes from the platform team's onboarding documentation, never invented -->
 <!-- `smaqit slots plan --mode=existing-k3s` refuses to plan an environment whose row is incomplete; `smaqit spec environments` validates and prints this table -->
 <!-- Leave a cell as — when the rules below say it must be empty -->
-<!-- Reachability: public (CI reaches the API and the app over the internet) | private-mesh (reachable only from mesh peers; CI joins the mesh first) -->
+<!-- Reachability (the app): public (reachable over the internet; verified over HTTPS) | private-mesh (reachable only from mesh peers; verified in-cluster) -->
 <!-- Ingress Mode: own-tls (the app's Ingress requests its own certificate from ClusterIssuer) | platform-default-tls (Ingress without tls; the platform's default certificate serves it) | platform-owned (the platform owns the Ingress; the app ships none) -->
 <!-- Host: required unless platform-owned. Ingress Class: required unless platform-owned, empty for it. ClusterIssuer: own-tls only -->
 <!-- Health Path: absolute path the verification requests on the app (e.g. /health.json) -->
-<!-- Mesh Setup-Key Secret (GitHub secret name in this environment) and Mesh Wait-For Host (the k3s API's mesh name): private-mesh only -->
+<!-- Mesh Setup-Key Secret (the platform's shared mesh secret for this machine, e.g. an organisation secret) and Mesh Wait-For Host (the k3s API's mesh name): required for private-mesh; set on a public row too when the platform keeps its API mesh-only; both or neither -->
 
 | Environment | Machine Slug | Host | Reachability | Ingress Mode | Ingress Class | ClusterIssuer | Health Path | Mesh Setup-Key Secret | Mesh Wait-For Host |
 |-------------|--------------|------|--------------|--------------|---------------|---------------|-------------|-----------------------|--------------------|
@@ -142,12 +142,15 @@ created: [TIMESTAMP]
 | Budget | [Cost limits or optimization goals] | [How it constrains resource choices] |
 | Platform Repo | [owner/repo hosting the k3s onboarding registry — `provisioning_mode: existing-k3s` only, omit otherwise] | [`smaqit.infrastructure-request-k3s-onboarding`'s PR must target this repo, never this project's own] |
 | Registry File Path | [path within Platform Repo to the onboarding registry file — `existing-k3s` only, omit otherwise; sourced from the platform team's own onboarding documentation, never invented] | [`smaqit.infrastructure-request-k3s-onboarding` appends this project's entry to this exact path] |
-| Mesh Join Action | [pinned `uses:` reference of the platform's mesh-join GitHub Action, e.g. "owner/repo@v1.2.3" — required when any environment is `private-mesh`, omit otherwise; sourced from the platform team, never invented] | [the generated deploy workflow joins the mesh with this action before any `kubectl` call] |
-| Mesh Setup-Key Input | [that action's input name for the setup key — `private-mesh` only, omit otherwise; from the action's own documentation] | [the workflow passes the environment's setup-key secret through this input] |
-| Mesh Wait-For Input | [that action's input name for the host to wait for — `private-mesh` only, omit otherwise; from the action's own documentation] | [the workflow passes the environment's Mesh Wait-For Host through this input] |
+| Cluster Connect Action | [pinned `uses:` reference of the platform's action that turns the CI job's GitHub Actions OIDC identity into a kubeconfig, e.g. "owner/repo/.github/actions/k3s-connect@v1.2.3" — `existing-k3s` only (required), omit otherwise; sourced from the platform team, never invented] | [the generated deploy workflow connects with this action; the app holds no kubeconfig or deploy secret] |
+| Cluster Connect Machine Input | [that action's input name for the machine — `existing-k3s` only; from the action's own documentation] | [the workflow passes the dispatched machine slug through this input] |
+| Cluster Connect Namespace Input | [that action's input name for the Namespace — `existing-k3s` only; from the action's own documentation] | [the workflow passes `app-<app-slug>` through this input] |
+| Mesh Join Action | [pinned `uses:` reference of the platform's mesh-join GitHub Action, e.g. "owner/repo@v1.2.3" — required when any environment names a mesh secret, omit otherwise; sourced from the platform team, never invented] | [the generated deploy workflow joins the mesh with this action before any `kubectl` call] |
+| Mesh Setup-Key Input | [that action's input name for the setup key — only when an environment names a mesh secret; from the action's own documentation] | [the workflow passes the environment's mesh secret through this input] |
+| Mesh Wait-For Input | [that action's input name for the host to wait for — only when an environment names a mesh secret; from the action's own documentation] | [the workflow passes the environment's Mesh Wait-For Host through this input] |
+| Allowed Ingress Modes | [comma list of the Ingress modes the platform permits, e.g. "platform-owned" — `existing-k3s` only; omit when the platform allows all three; sourced from the platform team] | [an Environments row using any other mode is refused; the platform owns exposure accordingly] |
 | Probe Client | [`curl`, `wget`, or `python3`, whichever the app's own image contains — required when any environment is `private-mesh` or `platform-owned`, omit otherwise] | [the in-cluster probe Job runs the app's image with this client against the Service's health path] |
 | Namespace Quota | [the onboarded Namespace's `ResourceQuota`/`LimitRange` numbers — `existing-k3s` only, omit otherwise; sourced from the platform team's own onboarding documentation, never invented] | [application resource requests/limits declared elsewhere in this spec must fit within this ceiling] |
-| Container Registry | [`<host>, public` or `<host>, private`, e.g. "ghcr.io, private" — `existing-k3s` only, omit otherwise (absent means a public image); a per-project decision, not sourced from the platform team] | [`smaqit.infrastructure-cicd-generate`'s `build` job pushes here; if private, the generated deploy workflow creates the `app-registry` pull Secret, `smaqit.infrastructure-repo-config` syncs its credential, and the manifests need `imagePullSecrets`] |
 | Deployer Exec | [`denied` (default when omitted) or `allowed` — `existing-k3s` only; set `allowed` only when the platform deliberately grants the deployer `pods/exec`] | [the generated deploy workflow fails when the deployer can exec into pods; `allowed` turns that into a warning] |
 
 ## Acceptance Criteria

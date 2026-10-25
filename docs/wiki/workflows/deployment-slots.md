@@ -39,11 +39,11 @@ its own fillers for apps to bind.
 **`existing-k3s`** — what a filler must do in each slot:
 
 - **`platform-prereqs`:** None. A filler must not act on the target: the deploy job joins any mesh itself.
-- **`access-credentials`:** Loads only what this machine needs to request onboarding (the default: the `platform-repo` token). Never a deploy credential: the deploy authenticates with the CI job's OIDC identity.
-- **`platform-onboarding`:** Inputs: the spec's `Platform Repo` and `Registry File Path`, the environment's `Machine Slug`, and this repository's `owner/repo` and numeric ID. Hands off a merged registry request; stops while pending. Never dispatches the platform's workflows: the first deploy's namespace guard confirms the binding (403 until the platform reconciles).
+- **`access-credentials`:** Loads only the environment's runtime secrets (the spec's `## Runtime Secrets` table) into Vault; nothing, and no Vault call, when there are none or under `Vault Access: operator-scripts`. Never a deploy credential: the deploy authenticates with the CI job's OIDC identity, and onboarding uses the operator's own `gh` login.
+- **`platform-onboarding`:** Inputs: the spec's `Platform Repo` and `Registry File Path`, the environment's `Machine Slug`, and this repository's `owner/repo` and numeric ID. Runs with the operator's own `gh` login, which must have push access to the platform repository; holds no stored credential. Hands off a merged registry request; stops while pending. Never dispatches the platform's workflows: the first deploy's namespace guard confirms the binding (403 until the platform reconciles).
 - **`target-credentials`:** None: the target issues the app nothing. A filler must not store a deploy credential.
-- **`environment-config`:** None: nothing is synced, and GitHub creates the machine-slug Environment on the first run that references it. A filler may set non-secret variables or protection rules only.
-- **`artifact-build`:** Authors the `Dockerfile` and `deployment/k3s/deployment.yaml` and `service.yaml`: a ClusterIP Service, Pod Security `restricted`, an explicit numeric `runAsUser`, `DEPLOY_SHA`/`DEPLOY_TIME` as pod environment, no `imagePullSecrets`, no Ingress. Runs on this machine and never pushes: the workflow's `build` job does.
+- **`environment-config`:** Syncs the environment's runtime secrets into the machine-slug GitHub Environment (default: repo-config `runtime`), and completes at once when there are none. Under `Vault Access: operator-scripts` it makes no Vault call: it hands the operator the exact command for each missing secret and completes once `gh secret list --env <machine>` shows every name. Never a deploy credential.
+- **`artifact-build`:** Authors the `Dockerfile` and `deployment/k3s/deployment.yaml` and `service.yaml`: a ClusterIP Service, Pod Security `restricted`, an explicit numeric `runAsUser`, `DEPLOY_SHA`/`DEPLOY_TIME` as pod environment, a `secretKeyRef` into the `<app-slug>-runtime` Secret for each of the environment's runtime secrets, no `imagePullSecrets`, no Ingress. Runs on this machine and never pushes: the workflow's `build` job does.
 - **`iac-generate`:** None: the app owns no infrastructure on the platform.
 - **`ci-generate`:** Writes a dispatch-only `deploy.yml` with an `environment` input of machine slugs. Its `deploy` job runs in the machine-slug GitHub Environment with `permissions` `contents: read` and `id-token: write`; joins the mesh when the row names a mesh secret; connects through the spec's `Cluster Connect` action; and runs the guard, lint, apply, rollout, and exec check plus the steps "Verify revision" and "Verify in cluster" or "Verify over HTTPS" (`verify` reads them by name). Also writes the Ingress and probe manifests the spec's allowed modes need.
 - **`provision`:** None; refused on `ci-bootstrap`. A binding that would run on this machine is refused (`SLOTS-LOCAL-DEPLOY-REFUSED`).
@@ -64,10 +64,10 @@ its own fillers for apps to bind.
 | Slot | `provision` / `existing-owned` | `existing-shared` / `existing-unmanaged` | `existing-k3s` |
 |------|-------------------------------|------------------------------------------|----------------|
 | `platform-prereqs` | none | none | none (the generated `deploy.yml` joins a private mesh itself) |
-| `access-credentials` | vault-loader `access` | vault-loader `access` | vault-loader `access` |
+| `access-credentials` | vault-loader `access` | vault-loader `access` | vault-loader `access` (runtime secrets only; no Vault call when there are none) |
 | `platform-onboarding` | none | none | request-k3s-onboarding `request` |
 | `target-credentials` | none | vault-loader `target` | none (the deploy job connects with its own OIDC identity) |
-| `environment-config` | repo-config `sync` | repo-config `sync` | none (no deploy secret; GitHub creates the machine-slug Environment) |
+| `environment-config` | repo-config `sync` | repo-config `sync` | repo-config `runtime` (runtime secrets only; no deploy secret) |
 | `artifact-build` | none | none | `image-build-push*` family `build` |
 | `iac-generate` | agent builtin | none | none |
 | `ci-generate` | cicd-generate `generate` | cicd-generate `generate` | cicd-generate `generate` |
@@ -189,8 +189,10 @@ For `existing-k3s` the useful substitution points are:
   the workflow `ci-generate` wrote; the agent reads this filler only to dispatch the run, select it
   by commit, wait for it, and hand its ID to `verify`.
 
-`target-credentials`, `environment-config`, and `tls` are none for `existing-k3s`, and a binding of
-`tls`, `replace`, or `teardown` is refused: no path runs them in CI.
+`target-credentials` and `tls` are none for `existing-k3s`, and a binding of `tls`, `replace`, or
+`teardown` is refused: no path runs them in CI. `access-credentials` and `environment-config` carry
+only the app's runtime secrets (below), so a platform filler there handles app configuration, never
+a deploy credential.
 
 ## Inspecting and Validating
 
@@ -271,8 +273,35 @@ Spec-wide Constraints rows apply to every environment:
   platform that grants exec on purpose is recorded as `allowed`, which turns the failure into a
   warning.
 
+- `Vault Access`: `direct` (default) or `operator-scripts`, for an operator who allows Vault
+  access only through their own reviewed scripts. Under `operator-scripts` no filler calls Vault:
+  vault-loader's `access` completes at once, and repo-config's `runtime` prints a `HANDOFF` block
+  per missing runtime secret (Vault path, field, Environment, secret name, and the command shape for
+  the operator's own script), pauses the slot, and completes once `gh secret list --env <machine>`
+  shows every name. The slots are never bound to `none` for this.
+
 The platform pulls the app's images itself, so the workflow creates no pull Secret and the
-manifests carry no `imagePullSecrets`.
+manifests carry no `imagePullSecrets`. Onboarding needs no stored credential either:
+request-k3s-onboarding opens its PR with the operator's own `gh` login, after checking that login
+can push to the platform repository.
+
+**Runtime secrets.** Values the app's pod needs at run time (a session-signing key, a first-admin
+password) are declared in a `## Runtime Secrets` table: `Name` (an uppercase GitHub secret name),
+`Source` (`generated` or `operator-provided`), and `Environments` (`all` or a comma list). With no
+table, existing-k3s touches no Vault on any path. Otherwise, per environment:
+
+1. `access-credentials` (vault-loader `access`) stores each value at
+   `secret/apps/<app-slug>/<machine-slug>/runtime`, one field per name: a `generated` value is
+   created once and never printed, an `operator-provided` one is read from a hidden prompt.
+2. `environment-config` (repo-config `runtime`) pipes each value into the machine-slug GitHub
+   Environment on stdin.
+3. The generated `deploy.yml`'s "Create runtime Secret" step, between lint and apply, builds
+   `<app-slug>-runtime` from those Environment secrets through `env:` and `jq`, and applies it
+   server-side, so no value is on a command line or in a last-applied annotation.
+4. The Deployment reads each one with its own `secretKeyRef` (the env var has the secret's name;
+   `optional: true` when the secret isn't declared for every environment, since one
+   `deployment.yaml` serves them all), and `manifest-lint.sh` refuses a missing or mismatched
+   reference and `envFrom`.
 
 There is no default. `smaqit slots plan --mode=existing-k3s` refuses to plan an environment whose
 row is incomplete, and `smaqit spec environments [--env=<env>] [--json]` validates and prints the

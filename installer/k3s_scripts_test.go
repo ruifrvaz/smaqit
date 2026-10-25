@@ -303,3 +303,86 @@ func TestManifestLintRequiresClusterIPServices(t *testing.T) {
 		}
 	}
 }
+
+// Runtime secrets: with RUNTIME_SECRET_NAME set, every name this machine
+// receives is referenced by its own secretKeyRef, a reference to another
+// environment's secret is optional, and envFrom never pulls the Secret in.
+func TestManifestLintRequiresRuntimeSecretRefs(t *testing.T) {
+	if err := exec.Command("python3", "-c", "import yaml").Run(); err != nil {
+		t.Skipf("python3 with PyYAML not available: %v", err)
+	}
+	lint := filepath.Join("..", "skills", "smaqit.infrastructure-deploy-k3s-app", "scripts", "manifest-lint.sh")
+	deployment := func(env string) string {
+		return `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop
+spec:
+  template:
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: shop
+          image: ghcr.io/example-org/shop:sha
+` + env + `          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 50m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+`
+	}
+	ref := func(env, key, optional string) string {
+		s := "            - name: " + env + "\n              valueFrom:\n                secretKeyRef:\n                  name: shop-runtime\n                  key: " + key + "\n"
+		if optional != "" {
+			s += "                  optional: " + optional + "\n"
+		}
+		return s
+	}
+	session := ref("SESSION_SECRET", "SESSION_SECRET", "")
+	adminOptional := ref("ADMIN_PASSWORD", "ADMIN_PASSWORD", "true")
+	cases := []struct {
+		name, env, secrets, want string
+	}{
+		{"every name referenced", "          env:\n" + session + adminOptional, "SESSION_SECRET", ""},
+		{"prod receives both", "          env:\n" + session + adminOptional, "SESSION_SECRET ADMIN_PASSWORD", ""},
+		{"name not referenced", "          env:\n" + session, "SESSION_SECRET ADMIN_PASSWORD", "runtime secret 'ADMIN_PASSWORD' is declared for this environment but no Deployment container references it"},
+		{"other environment's secret not optional", "          env:\n" + session + ref("ADMIN_PASSWORD", "ADMIN_PASSWORD", ""), "SESSION_SECRET", "references runtime secret 'ADMIN_PASSWORD', which this environment does not receive"},
+		{"env var renamed", "          env:\n" + ref("SESSION", "SESSION_SECRET", ""), "SESSION_SECRET", "env 'SESSION' reads runtime secret key 'SESSION_SECRET'"},
+		{"envFrom", "          envFrom:\n            - secretRef:\n                name: shop-runtime\n", "", "pulls the shop-runtime Secret in with envFrom"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "deployment.yaml")
+			if err := os.WriteFile(path, []byte(deployment(c.env)), 0644); err != nil {
+				t.Fatal(err)
+			}
+			cmd := exec.Command("bash", lint, path)
+			cmd.Env = append(os.Environ(), "RUNTIME_SECRET_NAME=shop-runtime", "RUNTIME_SECRETS="+c.secrets)
+			out, err := cmd.CombinedOutput()
+			if c.want == "" {
+				if err != nil {
+					t.Fatalf("want pass, got %v\n%s", err, out)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(string(out), c.want) {
+				t.Fatalf("want failure containing %q, got %v\n%s", c.want, err, out)
+			}
+		})
+	}
+
+	// Without RUNTIME_SECRET_NAME (a spec with no runtime secrets) the rule is off.
+	path := filepath.Join(t.TempDir(), "deployment.yaml")
+	if err := os.WriteFile(path, []byte(deployment("")), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("bash", lint, path).CombinedOutput(); err != nil {
+		t.Fatalf("no runtime secrets: %v\n%s", err, out)
+	}
+}

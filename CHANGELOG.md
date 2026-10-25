@@ -7,23 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Action required:**
+- **existing-k3s onboarding uses the operator's own `gh` login; the `platform-repo` PAT is retired.** The operator's login needs push access to the platform repository (`smaqit.infrastructure-request-k3s-onboarding` checks it first). Delete `secret/apps/<app>/platform-repo` with your own Vault tooling once your next onboarding request has opened; nothing reads it any more.
+- **Declare the app's runtime secrets, if any, in a new `## Runtime Secrets` table** of the Infrastructure spec (`Name`, `Source` = `generated` or `operator-provided`, `Environments` = `all` or a list), regenerate `deploy.yml` with `smaqit.infrastructure-cicd-generate`, and reference each one in `deployment/k3s/deployment.yaml` with its own `secretKeyRef` into `<app-slug>-runtime` (`optional: true` when it isn't declared for every environment). `manifest-lint.sh` refuses a missing or mismatched reference. A spec without the table deploys exactly as before.
+- **An operator who allows Vault access only through their own scripts adds `Vault Access: operator-scripts`** to the Constraints table: the credential fillers then make no Vault call and hand off the exact commands instead.
+
 ### Added
-- Nothing to add.
+- **existing-k3s runtime secrets.** The Infrastructure spec's `## Runtime Secrets` table, parsed and validated by `smaqit spec environments` (`SLOTS-SPEC-*` on a bad name, source, or environment). vault-loader's `access` stores each value per environment at `secret/apps/<app>/<machine>/runtime` (generated values never printed); repo-config's new `runtime` operation (`sync-runtime-env.sh`, now the existing-k3s `environment-config` default) pipes them into the machine-slug Environment on stdin; the generated `deploy.yml` gains a "Create runtime Secret" step that builds `<app-slug>-runtime` from step `env:` with `jq` and applies it server-side; `manifest-lint.sh` checks the Deployment's `secretKeyRef`s.
+- **`Vault Access: direct | operator-scripts`** Constraints row. Under `operator-scripts`, vault-loader `access` completes without a Vault call and repo-config `runtime` prints a `HANDOFF` block per missing secret, pauses the slot (exit 4), and completes once `gh secret list` shows every name.
+- A test keeping each skill definition that carries skill-body markers equal to its shipped `SKILL.md`.
 
 ### Changed
-- Nothing to add.
+- existing-k3s `access-credentials` and `environment-config` read the spec before touching Vault: with no runtime secrets declared, no existing-k3s slot calls Vault on any path, feature deploys included. `smaqit.feature-new` and `smaqit.project-new` ask for Vault only when the plan's fillers will use it.
+- request-k3s-onboarding 3.0.0, vault-loader 5.0.0, repo-config 4.0.0, cicd-generate 4.2.0, deploy-k3s-app 4.2.0, image-build-push-static 1.5.0.
 
 ### Deprecated
 - Nothing to add.
 
 ### Removed
-- Nothing to add.
+- The existing-k3s `platform-repo` PAT: `load-credentials.sh` no longer loads it, and `credential-file.sh` and `rotate-credential.sh` no longer accept `apps/<app>/platform-repo`.
 
 ### Fixed
 - Nothing to add.
 
 ### Security
-- Nothing to add.
+- Runtime secret values never reach a command line, a `run:` script, or a `last-applied-configuration` annotation.
 
 ### Chore
 - Nothing to add.

@@ -26,13 +26,16 @@
 #   PROVISIONING_MODE=existing-unmanaged bash .../load-credentials.sh
 #
 #   existing-k3s — a different scheme entirely: the app's CI deploys with its own GitHub Actions
-#     OIDC identity, the platform holds the mesh key and pulls the images, so the app stores no
-#     deploy credential. One invocation checks/populates only secret/apps/<app-slug>/platform-repo
-#     (idempotent — a PAT scoped only to contents:write + pull_requests:write on the platform-owned
-#     infrastructure repo, used by smaqit.infrastructure-request-k3s-onboarding to open a PR there,
-#     never to commit or dispatch workflows directly). The PAT is pasted, never generated.
+#     OIDC identity, the platform holds the mesh key and pulls the images, and onboarding uses the
+#     operator's own gh login, so the app stores no deploy credential. The only paths are the app's
+#     runtime secrets for one environment, read from the Infrastructure spec's `## Runtime Secrets`
+#     table (`smaqit spec environments --json`) and stored at
+#     secret/apps/<app-slug>/<machine-slug>/runtime, one field per secret name: `generated` values
+#     are created here and never printed, `operator-provided` ones are read from a hidden prompt.
+#     The spec is read before Vault is touched: with no runtime secrets for the environment, or
+#     under `Vault Access: operator-scripts`, the script exits without a single vault call.
 #
-#   PROVISIONING_MODE=existing-k3s bash .../load-credentials.sh
+#   PROVISIONING_MODE=existing-k3s ENVIRONMENT=<env> bash .../load-credentials.sh
 #
 # On every run, once Vault is unsealed and authenticated, the kv-v2 engine at secret/ is enabled
 # if it isn't yet (idempotent — the one-time step setup-vault.sh cannot do before the first unseal).
@@ -69,6 +72,30 @@ read_secret() {
   printf -v "$_var" '%s' "$_value"
   unset _value
 }
+
+# ── existing-k3s: decide from the spec before touching Vault ──────────────────
+
+if [ "$PROVISIONING_MODE" = "existing-k3s" ]; then
+  if [ -z "${ENVIRONMENT:-}" ]; then
+    echo "ERROR: existing-k3s needs ENVIRONMENT=<env>, the Infrastructure spec's Environments row to load." >&2
+    exit 2
+  fi
+  if ! K3S_SPEC="$(smaqit spec environments --env="$ENVIRONMENT" --json)"; then
+    echo "ERROR: smaqit spec environments --env=${ENVIRONMENT} failed; fix the SLOTS-SPEC-* lines above." >&2
+    exit 1
+  fi
+  K3S_MACHINE="$(jq -r '.environments[0].machineSlug' <<<"$K3S_SPEC")"
+  K3S_COUNT="$(jq '.runtimeSecrets | length' <<<"$K3S_SPEC")"
+  if [ "$K3S_COUNT" -eq 0 ]; then
+    echo "==> existing-k3s: no runtime secrets for ${ENVIRONMENT}; nothing to load (no Vault access needed)."
+    exit 0
+  fi
+  if [ "$(jq -r '.vaultAccess' <<<"$K3S_SPEC")" = "operator-scripts" ]; then
+    echo "==> existing-k3s: Vault Access is operator-scripts; this script makes no Vault call."
+    echo "    The environment-config slot hands off each runtime secret for ${ENVIRONMENT} (${K3S_MACHINE})."
+    exit 0
+  fi
+fi
 
 # ── Step 0: Start Vault if not reachable ──────────────────────────────────────
 
@@ -148,37 +175,44 @@ fi
 
 echo "==> Project slug: $PROJECT_SLUG"
 
-# ── existing-k3s: its own scheme, checked before new-scheme/legacy detection ───
+# ── existing-k3s: runtime secrets, checked before new-scheme/legacy detection ─
 #
 # A Namespace-scoped Kubernetes/k3s target has no VM machine namespace at all, and the app holds no
 # deploy credential: its CI authenticates with its own OIDC identity through the platform's connect
-# action, and the platform holds the mesh key and pulls the images. The only path is the
-# platform-repo PAT the onboarding request uses.
+# action, and the platform holds the mesh key and pulls the images. The only paths are the runtime
+# secrets the spec declares for this environment.
 
-if [ "${PROVISIONING_MODE:-}" = "existing-k3s" ]; then
-  APP_SLUG="$PROJECT_SLUG"
-  echo "==> Scheme: existing-k3s (secret/apps/${APP_SLUG}/platform-repo)"
-  echo ""
-  echo "--- Platform-repo PAT (secret/apps/${APP_SLUG}/platform-repo) ---"
-  if vault kv get "secret/apps/${APP_SLUG}/platform-repo" > /dev/null 2>&1; then
-    echo "    SKIP — path already populated"
-  else
-    echo "  Required scopes: contents:write, pull_requests:write — on the platform-owned"
-    echo "  infrastructure repository ONLY, never this project's own repo. Used by"
-    echo "  smaqit.infrastructure-request-k3s-onboarding to open a PR there; never to commit"
-    echo "  directly to its default branch or dispatch a workflow."
-    read_secret PLATFORM_REPO_TOKEN "platform_repo_token"
-    if [ -z "$PLATFORM_REPO_TOKEN" ]; then
-      echo "ERROR: platform_repo_token is empty — refusing to write a placeholder secret." >&2
-      exit 1
+if [ "$PROVISIONING_MODE" = "existing-k3s" ]; then
+  RUNTIME_PATH="secret/apps/${PROJECT_SLUG}/${K3S_MACHINE}/runtime"
+  echo "==> Scheme: existing-k3s runtime secrets (${RUNTIME_PATH})"
+  while IFS=$'\t' read -r NAME SOURCE; do
+    echo ""
+    echo "--- ${NAME} (${SOURCE}) ---"
+    if vault kv get -field="$NAME" "$RUNTIME_PATH" > /dev/null 2>&1; then
+      echo "    SKIP — already populated"
+      continue
     fi
-    printf '%s' "$PLATFORM_REPO_TOKEN" | vault kv put "secret/apps/${APP_SLUG}/platform-repo" token=- > /dev/null
-    unset PLATFORM_REPO_TOKEN
+    if [ "$SOURCE" = "generated" ]; then
+      # 32 random bytes, base64 without a trailing newline; never printed.
+      VALUE="$(head -c 32 /dev/urandom | base64 | tr -d '\n')"
+    else
+      read_secret VALUE "$NAME"
+      if [ -z "$VALUE" ]; then
+        echo "ERROR: ${NAME} is empty — refusing to write a placeholder secret." >&2
+        exit 1
+      fi
+    fi
+    # patch keeps the other fields at the path; put creates it.
+    VERB="put"
+    vault kv get "$RUNTIME_PATH" > /dev/null 2>&1 && VERB="patch"
+    printf '%s' "$VALUE" | vault kv "$VERB" "$RUNTIME_PATH" "${NAME}=-" > /dev/null
+    unset VALUE
     echo "    DONE"
-  fi
+  done < <(jq -r '.runtimeSecrets[] | [.name, .source] | @tsv' <<<"$K3S_SPEC")
   echo ""
-  echo "==> existing-k3s credentials populated (platform-repo). The deploy itself needs no stored"
-  echo "    credential: CI connects with its own OIDC identity."
+  echo "==> existing-k3s runtime secrets populated for ${ENVIRONMENT} (${K3S_MACHINE}). The"
+  echo "    environment-config slot (smaqit.infrastructure-repo-config runtime) syncs them into the"
+  echo "    ${K3S_MACHINE} GitHub Environment."
   exit 0
 fi
 

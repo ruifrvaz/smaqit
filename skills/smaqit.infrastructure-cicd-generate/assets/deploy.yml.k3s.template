@@ -117,6 +117,10 @@ jobs:
             echo "MESH_SETUP_KEY_SECRET=$(field meshSetupKeySecret)"
             echo "MESH_WAIT_FOR_HOST=$(field meshWaitForHost)"
             echo "VERIFY=${VERIFY}"
+            # smaqit:runtime-secrets:begin
+            echo "RUNTIME_SECRETS=$(jq -r '.runtimeSecrets // [] | join(" ")' <<<"$TARGET")"
+            echo "RUNTIME_SECRET_NAME=__APP_SLUG__-runtime"
+            # smaqit:runtime-secrets:end
           } >> "$GITHUB_ENV"
           echo "Target ${MACHINE}: $(field environment), $(field reachability), $(field ingressMode), verify ${VERIFY}"
 
@@ -209,6 +213,31 @@ jobs:
         run: |
           # shellcheck disable=SC2086 # LINT_MANIFESTS is a space-separated list of fixed paths
           bash deployment/k3s/scripts/manifest-lint.sh $LINT_MANIFESTS
+
+      # smaqit:runtime-secrets:begin
+      # Builds the app's Kubernetes Secret __APP_SLUG__-runtime from this machine's runtime secrets:
+      # the Infrastructure spec's Runtime Secrets table, synced into this machine-slug Environment by
+      # the environment-config slot (smaqit.infrastructure-repo-config runtime). Each value reaches
+      # the step only through env:, and jq reads it from the environment, so no value is on a command
+      # line or in this script. Server-side apply keeps the values out of a last-applied annotation
+      # and drops a key the spec no longer declares. Runs before the Deployment that references it.
+      - name: Create runtime Secret
+        if: env.RUNTIME_SECRETS != ''
+        env:
+          __RUNTIME_SECRET_ENV__: ""
+        run: |
+          set -euo pipefail
+          for name in $RUNTIME_SECRETS; do
+            if [ -z "${!name:-}" ]; then
+              echo "Runtime secret ${name} is not set in the ${MACHINE} Environment; run the environment-config slot (smaqit.infrastructure-repo-config runtime)" >&2
+              exit 1
+            fi
+          done
+          jq -n --arg name "$RUNTIME_SECRET_NAME" --arg names "$RUNTIME_SECRETS" '{
+            apiVersion: "v1", kind: "Secret", type: "Opaque", metadata: {name: $name},
+            data: ($names | split(" ") | map(select(. != "")) | map({key: ., value: (env[.] | @base64)}) | from_entries)
+          }' | kubectl apply --server-side --force-conflicts --field-manager=smaqit-deploy -n "app-__APP_SLUG__" -f -
+      # smaqit:runtime-secrets:end
 
       - name: Apply manifests
         run: |

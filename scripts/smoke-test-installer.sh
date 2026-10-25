@@ -123,10 +123,16 @@ printf '%s\n' '---' 'id: INF-SMOKE-K3S' 'status: draft' 'created: 2026-01-01' '-
   '| Mesh Join Action | example-org/mesh-join@v1.0.0 | joins the mesh |' \
   '| Mesh Setup-Key Input | setup-key | action input |' \
   '| Mesh Wait-For Input | wait-for | action input |' \
-  '| Probe Client | wget | in-cluster probe |' > "$k3s_spec"
+  '| Probe Client | wget | in-cluster probe |' \
+  '| Vault Access | operator-scripts | the fillers make no Vault call |' '' \
+  '## Runtime Secrets' '' '| Name | Source | Environments |' '|---|---|---|' \
+  '| SESSION_SECRET | generated | all |' > "$k3s_spec"
 (cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test --path=ci-bootstrap --json) \
   | grep -Fq '"skill": "smaqit.infrastructure-request-k3s-onboarding"'
-(cd "$project" && "$binary" spec environments --env=test --json) | grep -Fq '"reachability": "private-mesh"'
+k3s_json="$(cd "$project" && "$binary" spec environments --env=test --json)"
+grep -Fq '"reachability": "private-mesh"' <<<"$k3s_json"
+grep -Fq '"vaultAccess": "operator-scripts"' <<<"$k3s_json"
+grep -Fq '"name": "SESSION_SECRET"' <<<"$k3s_json"
 # existing-k3s deploys only from CI: the local standard path is refused, and on
 # every CI path the deploy run performs app-deploy and verify reads its record.
 if refusal="$(cd "$project" && "$binary" slots plan --phase=deploy --mode=existing-k3s --env=test 2>&1)"; then
@@ -139,7 +145,7 @@ for path in ci-bootstrap ci-push existing-cicd-pr; do
   grep -Eq '^ *[0-9]+  app-deploy +profile +ci ' <<<"$ci_plan"
   grep -Eq '^ *[0-9]+  verify +profile +local +smaqit\.infrastructure-deploy-verify \(ci-evidence\)' <<<"$ci_plan"
   grep -Eq '^ *[0-9]+  target-credentials +none ' <<<"$ci_plan"
-  grep -Eq '^ *[0-9]+  environment-config +none ' <<<"$ci_plan"
+  grep -Eq '^ *[0-9]+  environment-config +profile +local +smaqit\.infrastructure-repo-config \(runtime\)' <<<"$ci_plan"
   if grep -Fq 'mesh-check' <<<"$ci_plan"; then
     echo "existing-k3s $path plan still runs mesh-check locally" >&2
     exit 1

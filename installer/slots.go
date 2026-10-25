@@ -139,7 +139,7 @@ var deploySlots = []slotDef{
 		Inputs:     "Vault paths for the mode",
 		Handoff:    "Credentials in Vault (never in artifacts)",
 		Completion: "Required paths populated",
-		Notes:      map[string]string{"existing-k3s": "Loads only what this machine needs to request onboarding (the default: the `platform-repo` token). Never a deploy credential: the deploy authenticates with the CI job's OIDC identity."},
+		Notes:      map[string]string{"existing-k3s": "Loads only the environment's runtime secrets (the spec's `## Runtime Secrets` table) into Vault; nothing, and no Vault call, when there are none or under `Vault Access: operator-scripts`. Never a deploy credential: the deploy authenticates with the CI job's OIDC identity, and onboarding uses the operator's own `gh` login."},
 		Defaults:   byMode(skillFiller(skillVaultLoader, "access"), nil),
 	},
 	{
@@ -148,7 +148,7 @@ var deploySlots = []slotDef{
 		Inputs:     "Platform repo, registry file, environment",
 		Handoff:    "Approved onboarding (merged request)",
 		Completion: "Request merged; stop while pending",
-		Notes:      map[string]string{"existing-k3s": "Inputs: the spec's `Platform Repo` and `Registry File Path`, the environment's `Machine Slug`, and this repository's `owner/repo` and numeric ID. Hands off a merged registry request; stops while pending. Never dispatches the platform's workflows: the first deploy's namespace guard confirms the binding (403 until the platform reconciles)."},
+		Notes:      map[string]string{"existing-k3s": "Inputs: the spec's `Platform Repo` and `Registry File Path`, the environment's `Machine Slug`, and this repository's `owner/repo` and numeric ID. Runs with the operator's own `gh` login, which must have push access to the platform repository; holds no stored credential. Hands off a merged registry request; stops while pending. Never dispatches the platform's workflows: the first deploy's namespace guard confirms the binding (403 until the platform reconciles)."},
 		Defaults:   byMode(noFiller(), map[string]slotFiller{"existing-k3s": skillFiller(skillOnboarding, "request")}),
 	},
 	{
@@ -170,10 +170,11 @@ var deploySlots = []slotDef{
 		Inputs:     "Credentials, target facts",
 		Handoff:    "Repository and environment configuration",
 		Completion: "Expected names present",
-		Notes:      map[string]string{"existing-k3s": "None: nothing is synced, and GitHub creates the machine-slug Environment on the first run that references it. A filler may set non-secret variables or protection rules only."},
-		// existing-k3s: nothing is synced; GitHub creates the machine-slug
-		// Environment on the first run that references it.
-		Defaults: byMode(skillFiller(skillRepoConfig, "sync"), map[string]slotFiller{"existing-k3s": noFiller()}),
+		Notes:      map[string]string{"existing-k3s": "Syncs the environment's runtime secrets into the machine-slug GitHub Environment (default: repo-config `runtime`), and completes at once when there are none. Under `Vault Access: operator-scripts` it makes no Vault call: it hands the operator the exact command for each missing secret and completes once `gh secret list --env <machine>` shows every name. Never a deploy credential."},
+		// existing-k3s: only runtime secrets are synced; GitHub creates the
+		// machine-slug Environment on the first run that references it, or when
+		// the first runtime secret is set.
+		Defaults: byMode(skillFiller(skillRepoConfig, "sync"), map[string]slotFiller{"existing-k3s": skillFiller(skillRepoConfig, "runtime")}),
 	},
 	{
 		Name:       "artifact-build",
@@ -181,7 +182,7 @@ var deploySlots = []slotDef{
 		Inputs:     "Stack spec, source tree",
 		Handoff:    "Image and manifests",
 		Completion: "Image built (and pushed when required)",
-		Notes:      map[string]string{"existing-k3s": "Authors the `Dockerfile` and `deployment/k3s/deployment.yaml` and `service.yaml`: a ClusterIP Service, Pod Security `restricted`, an explicit numeric `runAsUser`, `DEPLOY_SHA`/`DEPLOY_TIME` as pod environment, no `imagePullSecrets`, no Ingress. Runs on this machine and never pushes: the workflow's `build` job does."},
+		Notes:      map[string]string{"existing-k3s": "Authors the `Dockerfile` and `deployment/k3s/deployment.yaml` and `service.yaml`: a ClusterIP Service, Pod Security `restricted`, an explicit numeric `runAsUser`, `DEPLOY_SHA`/`DEPLOY_TIME` as pod environment, a `secretKeyRef` into the `<app-slug>-runtime` Secret for each of the environment's runtime secrets, no `imagePullSecrets`, no Ingress. Runs on this machine and never pushes: the workflow's `build` job does."},
 		Defaults:   byMode(noFiller(), map[string]slotFiller{"existing-k3s": familyFiller(familyImageBuild, "build")}),
 	},
 	{

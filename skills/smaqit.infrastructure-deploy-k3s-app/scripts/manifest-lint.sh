@@ -19,8 +19,14 @@
 #   5. Every Service is ClusterIP (no `spec.type`, or `ClusterIP`): a NodePort or LoadBalancer
 #      Service exposes the app around the platform's Ingress, which a platform-owned exposure
 #      model refuses at admission.
+#   6. Runtime secrets, when RUNTIME_SECRET_NAME is set (the generated deploy workflow exports it,
+#      with RUNTIME_SECRETS, the dispatched machine's names, when the spec declares runtime
+#      secrets): every name in RUNTIME_SECRETS is referenced by a Deployment container as
+#      `env: [{name: NAME, valueFrom: {secretKeyRef: {name: $RUNTIME_SECRET_NAME, key: NAME}}}]`;
+#      a reference to a key this machine does not receive sets `optional: true` (one
+#      deployment.yaml serves every environment); the Secret is never pulled in with envFrom.
 #
-# Usage: manifest-lint.sh <manifest.yaml> [<manifest.yaml> ...]
+# Usage: [RUNTIME_SECRET_NAME=<app>-runtime RUNTIME_SECRETS="<NAME> ..."] manifest-lint.sh <manifest.yaml> [<manifest.yaml> ...]
 #   Exit 0 — every check passes across every given manifest.
 #   Exit 1 — at least one check failed; the offending file and field are named on stderr.
 #
@@ -37,6 +43,7 @@ fi
 command -v python3 >/dev/null 2>&1 || { echo "manifest-lint: python3 not found on PATH" >&2; exit 1; }
 
 python3 - "$@" <<'PYEOF'
+import os
 import sys
 import yaml
 
@@ -47,6 +54,10 @@ CLUSTER_SCOPED_KINDS = {
 }
 
 failures = []
+
+RUNTIME_SECRET_NAME = os.environ.get("RUNTIME_SECRET_NAME", "")
+RUNTIME_SECRETS = set(os.environ.get("RUNTIME_SECRETS", "").split())
+runtime_refs = set()
 
 
 def fail(path, doc_index, kind, name, msg):
@@ -127,6 +138,25 @@ def check_pod_spec(spec, path, doc_index, kind, name):
                 fail(path, doc_index, kind, name, f"container '{cname}' missing resources.limits.{field}")
 
 
+def check_runtime_secret_refs(spec, path, doc_index, kind, name):
+    for container in pod_spec_containers(spec):
+        cname = container.get("name", "?")
+        for source in container.get("envFrom") or []:
+            if (source.get("secretRef") or {}).get("name") == RUNTIME_SECRET_NAME:
+                fail(path, doc_index, kind, name, f"container '{cname}' pulls the {RUNTIME_SECRET_NAME} Secret in with envFrom — reference each runtime secret with its own secretKeyRef")
+        for var in container.get("env") or []:
+            ref = (var.get("valueFrom") or {}).get("secretKeyRef") or {}
+            if ref.get("name") != RUNTIME_SECRET_NAME:
+                continue
+            key = ref.get("key")
+            if var.get("name") != key:
+                fail(path, doc_index, kind, name, f"container '{cname}' env '{var.get('name')}' reads runtime secret key '{key}' — the env var must have the secret's own name")
+            if key in RUNTIME_SECRETS:
+                runtime_refs.add(key)
+            elif ref.get("optional") is not True:
+                fail(path, doc_index, kind, name, f"container '{cname}' references runtime secret '{key}', which this environment does not receive — set optional: true, or declare it for this environment in the spec's Runtime Secrets table")
+
+
 def find_pod_template_spec(doc):
     kind = doc.get("kind")
     if kind == "Pod":
@@ -162,6 +192,11 @@ for path in sys.argv[1:]:
         pod_spec = find_pod_template_spec(doc)
         if pod_spec:
             check_pod_spec(pod_spec, path, i, kind, name)
+            if RUNTIME_SECRET_NAME and kind == "Deployment":
+                check_runtime_secret_refs(pod_spec, path, i, kind, name)
+
+for missing in sorted(RUNTIME_SECRETS - runtime_refs) if RUNTIME_SECRET_NAME else []:
+    failures.append(f"runtime secret '{missing}' is declared for this environment but no Deployment container references it (env {missing} from secretKeyRef {RUNTIME_SECRET_NAME}/{missing})")
 
 if failures:
     print("manifest-lint: FAIL — rejected before any kubectl apply:", file=sys.stderr)

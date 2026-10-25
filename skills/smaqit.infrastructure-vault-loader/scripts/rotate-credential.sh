@@ -8,9 +8,7 @@
 #     cyso | ssh | tfstate | github
 #
 #   New scheme:
-#     apps/<app-slug>/ssh | apps/<app-slug>/github | apps/<app-slug>/platform-repo
-#       (platform-repo: existing-k3s only — a PAT scoped only to contents:write +
-#       pull_requests:write on the platform-owned infrastructure repo, distinct from github)
+#     apps/<app-slug>/ssh | apps/<app-slug>/github
 #     machines/<machine-slug>/cyso | machines/<machine-slug>/tfstate | machines/<machine-slug>/base-ssh
 #
 # For everything except machines/<slug>/base-ssh, the path is deleted and re-populated (via load-credentials.sh for the legacy scheme; directly here
@@ -23,7 +21,6 @@
 # Example:
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh cyso
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/ssh
-#   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh apps/<app-slug>/platform-repo
 #   bash [SMAQIT_SKILLS_DIR]/smaqit.infrastructure-vault-loader/scripts/rotate-credential.sh machines/<machine-slug>/base-ssh
 
 set -euo pipefail
@@ -51,7 +48,7 @@ CREDENTIAL_PATH="${1:-}"
 if [ -z "$CREDENTIAL_PATH" ]; then
   echo "Usage: $0 <path>"
   echo "  Legacy: cyso | ssh | tfstate | github"
-  echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | machines/<machine-slug>/{cyso,tfstate,base-ssh}"
+  echo "  New:    apps/<app-slug>/{ssh,github} | machines/<machine-slug>/{cyso,tfstate,base-ssh}"
   exit 1
 fi
 
@@ -61,7 +58,7 @@ case "$CREDENTIAL_PATH" in
   cyso|ssh|tfstate|github)
     SCHEME="legacy"
     ;;
-  apps/*/ssh|apps/*/github|apps/*/platform-repo)
+  apps/*/ssh|apps/*/github)
     SCHEME="apps"
     APP_SLUG="$(echo "$CREDENTIAL_PATH" | cut -d/ -f2)"
     CRED_TYPE="$(echo "$CREDENTIAL_PATH" | cut -d/ -f3)"
@@ -74,7 +71,7 @@ case "$CREDENTIAL_PATH" in
   *)
     echo "ERROR: Unrecognized path '$CREDENTIAL_PATH'."
     echo "  Legacy: cyso | ssh | tfstate | github"
-    echo "  New:    apps/<app-slug>/{ssh,github,platform-repo} | machines/<machine-slug>/{cyso,tfstate,base-ssh}"
+    echo "  New:    apps/<app-slug>/{ssh,github} | machines/<machine-slug>/{cyso,tfstate,base-ssh}"
     exit 1
     ;;
 esac
@@ -113,7 +110,7 @@ if [ "$SCHEME" = "legacy" ]; then
   exit 0
 fi
 
-# ── New scheme: apps/<app-slug>/{ssh,github,platform-repo} ─────────────────────
+# ── New scheme: apps/<app-slug>/{ssh,github} ───────────────────────────────────
 
 if [ "$SCHEME" = "apps" ]; then
   FULL_PATH="secret/apps/${APP_SLUG}/${CRED_TYPE}"
@@ -138,17 +135,6 @@ if [ "$SCHEME" = "apps" ]; then
     fi
     echo "==> Re-running bootstrap against machine '${MACHINE_SLUG}'..."
     bash "${SCRIPT_DIR}/bootstrap-app-to-machine.sh" "$APP_SLUG" "$MACHINE_SLUG"
-  elif [ "$CRED_TYPE" = "platform-repo" ]; then
-    echo "  Required scopes: contents:write, pull_requests:write — on the platform-owned"
-    echo "  infrastructure repository ONLY."
-    read_secret PLATFORM_REPO_TOKEN "platform_repo_token"
-    if [ -z "$PLATFORM_REPO_TOKEN" ]; then
-      echo "ERROR: platform_repo_token is empty — refusing to write a placeholder secret." >&2
-      exit 1
-    fi
-    printf '%s' "$PLATFORM_REPO_TOKEN" | vault kv put "$FULL_PATH" token=- > /dev/null
-    unset PLATFORM_REPO_TOKEN
-    echo "    DONE"
   else
     read_secret GH_TOKEN "github_token"
     if [ -z "$GH_TOKEN" ]; then

@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/fs"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -36,5 +37,68 @@ func TestSkillTextNeverRunsVaultDirectly(t *testing.T) {
 	}
 	if checked == 0 {
 		t.Fatal("no skill documents found in the embedded tree")
+	}
+}
+
+// A definition carrying skill-body markers is the authoring source for its
+// shipped skill, applied by hand: its frontmatter block and body must equal the
+// skill's, so a change made in only one of them fails here.
+func TestSkillDefinitionsMatchShippedSkills(t *testing.T) {
+	definitions, err := filepath.Glob(filepath.Join("..", ".smaqit", "definitions", "skills", "*.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	frontmatter := regexp.MustCompile("(?s)## Frontmatter\n\n```yaml\n(.*?)\n```")
+	body := regexp.MustCompile("(?s)<!-- skill-body:begin -->\n(.*?)\n?<!-- skill-body:end -->")
+	skill := regexp.MustCompile("(?s)^---\n(.*?)\n---\n\n?(.*)$")
+	checked := 0
+	for _, path := range definitions {
+		def, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := body.FindSubmatch(def)
+		if b == nil {
+			continue
+		}
+		name := strings.TrimSuffix(filepath.Base(path), ".md")
+		shipped, err := os.ReadFile(filepath.Join("..", "skills", name, "SKILL.md"))
+		if err != nil {
+			t.Errorf("%s: no shipped skill: %v", name, err)
+			continue
+		}
+		checked++
+		s := skill.FindSubmatch(shipped)
+		f := frontmatter.FindSubmatch(def)
+		if s == nil || f == nil {
+			t.Errorf("%s: definition or SKILL.md has no frontmatter block", name)
+			continue
+		}
+		if string(f[1]) != string(s[1]) {
+			t.Errorf("%s: definition frontmatter differs from SKILL.md's", name)
+		}
+		if strings.TrimRight(string(b[1]), "\n") != strings.TrimRight(string(s[2]), "\n") {
+			t.Errorf("%s: definition body differs from SKILL.md's; apply the change to both", name)
+		}
+	}
+	if checked == 0 {
+		t.Fatal("no definition with skill-body markers found")
+	}
+}
+
+// The onboarding request opens its PR with the operator's own gh login: the
+// skill loads no stored token, so it never needs Vault.
+func TestK3sOnboardingLoadsNoStoredCredential(t *testing.T) {
+	content, err := skillFilesShared.ReadFile("skills-shared/smaqit.infrastructure-request-k3s-onboarding/SKILL.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, banned := range []string{"credential-file.sh", "GH_TOKEN", "platform-repo", "load-credentials.sh"} {
+		if strings.Contains(string(content), banned) {
+			t.Errorf("request-k3s-onboarding mentions %q; it must use the operator's own gh login", banned)
+		}
+	}
+	if !strings.Contains(string(content), ".permissions.push") {
+		t.Error("request-k3s-onboarding no longer preflights push access with the operator's gh login")
 	}
 }

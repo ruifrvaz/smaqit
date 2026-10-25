@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/145-existing-k3s-ci-identity-deploys-without-carried-credentials-oidc-token-shared-mesh-key-platform-owned-pulls",
-      "path": "../smaqit-wt-task-145-existing-k3s-ci-identity-deploys-without-carried-credentials-oidc-token-shared-mesh-key-platform-owned-pulls"
     }
   ],
   "settings": {

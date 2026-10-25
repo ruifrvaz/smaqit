@@ -573,3 +573,29 @@ scope (ingress class, `ClusterIssuer` name, quota/limit numbers) map to those sa
 | GHCR | Working with the Container registry | https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry |
 | Go | testing package | https://pkg.go.dev/testing |
 | Go | Documentation | https://go.dev/doc/ |
+
+## Task 137 — existing-k3s: Credential Slots Under a Scripts-Only Vault Policy
+
+**Context fingerprint:** sha256:c13a594971f030dd05de94d4acbd6392d374204f3f4496ec3d894e1338752ad6
+**Refreshed:** 2026-10-25
+
+| Tool | Section | URL |
+|------|---------|-----|
+| HashiCorp Vault | KV secrets engine v2 | https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2 |
+| HashiCorp Vault | vault kv CLI | https://developer.hashicorp.com/vault/docs/commands/kv |
+| GitHub CLI | gh secret set | https://cli.github.com/manual/gh_secret_set |
+| GitHub CLI | gh secret list | https://cli.github.com/manual/gh_secret_list |
+| GitHub CLI | gh api | https://cli.github.com/manual/gh_api |
+| GitHub Actions | Using secrets (environment secrets) | https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets |
+| GitHub Actions | Contexts (secrets context) | https://docs.github.com/en/actions/reference/workflows-and-actions/contexts |
+| GitHub Actions | Managing environments | https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments |
+| GitHub REST API | Get a repository (permissions.push) | https://docs.github.com/en/rest/repos/repos#get-a-repository |
+| Kubernetes (k3s) | Secrets | https://kubernetes.io/docs/concepts/configuration/secret/ |
+| Kubernetes (k3s) | Distribute credentials securely (secretKeyRef) | https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/ |
+| Kubernetes (k3s) | k3s documentation | https://docs.k3s.io/ |
+| kubectl | kubectl create secret generic | https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_generic/ |
+| kubectl | kubectl apply | https://kubernetes.io/docs/reference/kubectl/generated/kubectl_apply/ |
+| jq | Manual | https://jqlang.org/manual/ |
+| Bash | Reference manual | https://www.gnu.org/software/bash/manual/bash.html |
+| Go | testing package | https://pkg.go.dev/testing |
+| Go | Documentation | https://go.dev/doc/ |
